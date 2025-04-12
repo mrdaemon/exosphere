@@ -1,0 +1,178 @@
+{
+	"version": 1,
+	"date": "2025-04-12T18:06:01.366Z",
+	"items": {
+		"FILES/.tangent\\tangents\\pixel_0\\sessions\\2025-4-12_13-25-18.tangentsession": {},
+		"FILES/.tangent\\tangents\\pixel_0\\tangent.json": {},
+		"FILES/Rich.md": {
+			"virtual": true
+		},
+		"FILES/Cliff Library.md": {
+			"modified": "2025-04-12T17:34:53.186Z"
+		},
+		"FILES/CLI prompt Library Choices.md": {
+			"modified": "2025-04-12T17:44:50.850Z",
+			"structure": [
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 2,
+					"end": 25,
+					"href": "Click Library",
+					"text": "Click",
+					"context": "* [[Click Library|Click]]",
+					"to": "FILES/Click Library.md"
+				},
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 28,
+					"end": 51,
+					"href": "Cliff Library",
+					"text": "Cliff",
+					"context": "* [[Cliff Library|Cliff]]",
+					"to": "FILES/Cliff Library.md"
+				},
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 54,
+					"end": 77,
+					"href": "Typer Library",
+					"text": "Typer",
+					"context": "* [[Typer Library|Typer]]",
+					"to": "FILES/Typer Library.md"
+				}
+			]
+		},
+		"FILES/Config System.md": {
+			"virtual": true
+		},
+		"FILES/Dashboard.md": {
+			"virtual": true
+		},
+		"FILES/Patch Management.md": {
+			"virtual": true
+		},
+		"FILES/Exosphere Overview.md": {
+			"modified": "2025-04-12T17:50:09.445Z",
+			"structure": [
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 97,
+					"end": 137,
+					"href": "CLI prompt Library Choices",
+					"text": "a library",
+					"context": "An interactive CLI as the main entry point, probably using [[CLI prompt Library Choices|a library]].",
+					"to": "FILES/CLI prompt Library Choices.md"
+				},
+				{
+					"type": 2,
+					"level": 2,
+					"text": "Core Features",
+					"start": 462,
+					"end": 478
+				},
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 537,
+					"end": 603,
+					"href": "Config System",
+					"text": "A simple host inventory and configuration system",
+					"context": "* [[Config System|A simple host inventory and configuration system]]",
+					"to": "FILES/Config System.md"
+				},
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 606,
+					"end": 684,
+					"href": "Dashboard",
+					"text": "A \"dashboard\" comand that reports the state of inventory systems",
+					"context": "* [[Dashboard|A \"dashboard\" comand that reports the state of inventory systems]]",
+					"to": "FILES/Dashboard.md"
+				},
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 687,
+					"end": 780,
+					"href": "Patch Management",
+					"text": "A system for fetching and displaying the state of pending system updates",
+					"context": "* [[Patch Management|A system for fetching and displaying the state of pending system updates]]",
+					"to": "FILES/Patch Management.md"
+				}
+			]
+		},
+		"FILES/Typer Library.md": {
+			"modified": "2025-04-12T18:00:29.679Z",
+			"structure": [
+				{
+					"type": 2,
+					"level": 2,
+					"text": "Stop the presses",
+					"start": 474,
+					"end": 493
+				},
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 639,
+					"end": 663,
+					"href": "Click REPL Libraries",
+					"context": "* There's a handful of [[Click REPL Libraries]]",
+					"to": "FILES/Click REPL Libraries.md"
+				}
+			]
+		},
+		"FILES/Click REPL Libraries.md": {
+			"modified": "2025-04-12T18:04:58.051Z",
+			"structure": [
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 0,
+					"end": 23,
+					"href": "Typer Library",
+					"text": "Typer",
+					"context": "[[Typer Library|Typer]] does not seem to have the REPL feature, but I found some useful experience reports in the github issue:",
+					"to": "FILES/Typer Library.md"
+				}
+			]
+		},
+		"FILES/Click Library.md": {
+			"modified": "2025-04-12T18:05:42.984Z",
+			"structure": [
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 527,
+					"end": 544,
+					"href": "Cliff Library",
+					"context": "I would use it outright except it does not seem to offer an interactive mode, unlike [[Cliff Library]], which does.",
+					"to": "FILES/Cliff Library.md"
+				},
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 608,
+					"end": 616,
+					"href": "Rich",
+					"context": "As a bonus: It absolutely can be integrated with [[Rich]] for terminal output, which is banging.",
+					"to": "FILES/Rich.md"
+				},
+				{
+					"type": 0,
+					"form": "wiki",
+					"start": 690,
+					"end": 714,
+					"href": "Click REPL Libraries",
+					"context": "Apparently: there's a handful or [[Click REPL Libraries]] available from extras or community, which could actually make this very usable.",
+					"to": "FILES/Click REPL Libraries.md"
+				}
+			]
+		}
+	}
+}

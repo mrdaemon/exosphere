@@ -1,0 +1,40 @@
+{
+	"directoryView": {
+		"openDirectories": [],
+		"selection": [
+			"FILES/Click Library.md"
+		],
+		"sortMode": "name|ascending",
+		"sortFoldersToTop": true,
+		"sortQueriesToTop": true
+	},
+	"tagTreeView": {
+		"openDirectories": [],
+		"selection": [
+			"FILES/Click Library.md"
+		],
+		"sortMode": "name|ascending",
+		"sortFoldersToTop": true,
+		"sortQueriesToTop": true
+	},
+	"leftSidebar": {
+		"size": 300,
+		"mode": 1,
+		"lastUnfocusedMode": 1,
+		"lastFocusedMode": 0,
+		"currentTab": "files"
+	},
+	"targetFocusModeLevel": 2,
+	"system": {
+		"showMenu": false,
+		"section": "Maps"
+	},
+	"version": 2,
+	"window_state": {
+		"x": 720,
+		"y": 96,
+		"width": 2000,
+		"height": 1200,
+		"fullscreen": false
+	}
+}
