@@ -32,7 +32,7 @@ build-backend = "hatchling.build"
 testpaths = ["tests"]
 
 [tool.poe.tasks]
-ruff = "ruff check src"
+lint = "ruff check src"
 format = "ruff format src"
-check = ['ruff', 'format']
+check = ['lint', 'format']
 test = "pytest"
