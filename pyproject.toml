@@ -8,7 +8,8 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "click-shell>=2.1",
+    "click-shell[readline]>=2.1 ; sys_platform != 'win32'",
+    "click-shell>=2.1 ; sys_platform == 'win32'",
     "fabric>=3.2.2",
     "typer>=0.15.2",
 ]

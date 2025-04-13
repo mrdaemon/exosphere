@@ -1,6 +1,10 @@
 version = 1
 revision = 1
 requires-python = ">=3.12"
+resolution-markers = [
+    "sys_platform == 'win32'",
+    "sys_platform != 'win32'",
+]
 
 [[package]]
 name = "bcrypt"
@@ -109,6 +113,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/21/ce/d81dcb726c436bf3f77d0145e03bf364c189cc95e6551e797bc0511dcea0/click_shell-2.1-py2.py3-none-any.whl", hash = "sha256:2d971a2e50eb7ad387cf0ce79ba4b844e66e0580784e2efe2df58b50a2f047f0", size = 8582 },
 ]
 
+[package.optional-dependencies]
+readline = [
+    { name = "gnureadline", marker = "sys_platform != 'win32'" },
+]
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
@@ -180,6 +189,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "click-shell" },
+    { name = "click-shell", extra = ["readline"], marker = "sys_platform != 'win32'" },
     { name = "fabric" },
     { name = "typer" },
 ]
@@ -193,7 +203,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "click-shell", specifier = ">=2.1" },
+    { name = "click-shell", marker = "sys_platform == 'win32'", specifier = ">=2.1" },
+    { name = "click-shell", extras = ["readline"], marker = "sys_platform != 'win32'", specifier = ">=2.1" },
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "typer", specifier = ">=0.15.2" },
 ]
@@ -218,6 +229,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0d/3f/337f278b70ba339c618a490f6b8033b7006c583bd197a897f12fbc468c51/fabric-3.2.2.tar.gz", hash = "sha256:8783ca42e3b0076f08b26901aac6b9d9b1f19c410074e7accfab902c184ff4a3", size = 183215 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d6/1f/e99e23ee01847147fa194e8d41cfcf2535a2dbfcb51414c541cadb15c5d7/fabric-3.2.2-py3-none-any.whl", hash = "sha256:91c47c0be68b14936c88b34da8a1f55e5710fd28397dac5d4ff2e21558113a6f", size = 59417 },
+]
+
+[[package]]
+name = "gnureadline"
+version = "8.2.13"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/92/20723aa239b9a8024e6f8358c789df8859ab1085a1ae106e5071727ad20f/gnureadline-8.2.13.tar.gz", hash = "sha256:c9b9e1e7ba99a80bb50c12027d6ce692574f77a65bf57bc97041cf81c0f49bd1", size = 3224991 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/bd/df8fd060e43efd3dbdd3b210bf558ce3ef854843cd093f910f4115ebe2e9/gnureadline-8.2.13-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:9c152a82613fa012ab4331bb9a0ffddb415e37561d376b910bf9e7d535607faf", size = 160504 },
+    { url = "https://files.pythonhosted.org/packages/97/ee/322e5340c8cdfa40e71bd0485a82404ad4cf9aed2260cca090f3c1a3a032/gnureadline-8.2.13-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:85e362d2d0e85e45f0affae7bbfaf998b00167c55a78d31ee0f214de9ff429d2", size = 162380 },
+    { url = "https://files.pythonhosted.org/packages/92/64/ae5598fd1dbf7de863cd7066798fe882f2e9b5dcdb49f8ad859e736c2212/gnureadline-8.2.13-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b69e6608cc94e110018b721a11718d480a6330e0b62cbab65a22880e84011205", size = 648192 },
+    { url = "https://files.pythonhosted.org/packages/08/d3/1face508173298b6d4d9f96ad4e408bcbdea704c583646e41d0aa6826385/gnureadline-8.2.13-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0cc77fc9c8a8fcf10e0a554e49ee763219683386b8f906b7e6ef07c9e40e8420", size = 651945 },
+    { url = "https://files.pythonhosted.org/packages/a1/b0/4a3c55a05b4c1c240fd6dc204ff597432008c4649ce500688a2441d27cf4/gnureadline-8.2.13-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:2d3e33d2e0dd694d623a2ca1fae6990b52f1d25955504b7293a9350fb9912940", size = 160646 },
+    { url = "https://files.pythonhosted.org/packages/3a/41/8821db40f2b0dd9cc935d6838bc63776fb5bfb1df092f8d4698ec29ada6a/gnureadline-8.2.13-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:6c550d08c4d2882a83293a724b14a262ee5078fd4fa7acdc78aa59cab26ae343", size = 162630 },
+    { url = "https://files.pythonhosted.org/packages/16/8e/9f716757f875dfea0c9f5a323e103eec8a546e650a37c7f133a9b86c2c8f/gnureadline-8.2.13-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a7d6e3f5d9fd0cf8a84fb382d4e3ad2914331be4d929f17d50da01f1571c4b03", size = 650930 },
+    { url = "https://files.pythonhosted.org/packages/ee/2c/29cc2b99b9c7f49041edefe3c051c566e60080631dd4241cae269a2f067b/gnureadline-8.2.13-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f59275168cae1b02ca1ec7586a9804bb04ce427df92f8582a80d16e96c846b78", size = 654619 },
 ]
 
 [[package]]

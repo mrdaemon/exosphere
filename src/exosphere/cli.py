@@ -1,27 +1,21 @@
-import click
 import typer
 
 from click_shell import make_click_shell
+
+from exosphere.commands import test
 
 app = typer.Typer(
     no_args_is_help=False,
 )
 
-# click shell factory method
-
-
-# A dumb test command to have something in the REPL
-# and to see if it works as standalone cli as well
-@app.command()
-def greet(name: str = "World"):
-    """Greet the user."""
-    click.echo(f"Hello, {name}!")
+# Setup commands from modules
+app.add_typer(test.app, name="test", help="Test commands")
 
 
 # The default command fall through call back
 # We use this to start the REPL if no command is given.
 @app.callback(invoke_without_command=True)
-def cli(ctx: typer.Context):
+def cli(ctx: typer.Context) -> None:
     """
     Exosphere CLI
     """
