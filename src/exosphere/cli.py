@@ -9,7 +9,7 @@ app = typer.Typer(
 )
 
 # Setup commands from modules
-app.add_typer(test.app, name="test", help="Test commands")
+app.add_typer(test.app, name="test")
 
 
 # The default command fall through call back
