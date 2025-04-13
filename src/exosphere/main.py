@@ -1,5 +1,8 @@
+from exosphere import cli
+
+
 def main() -> None:
     """
     Program Entry Point
     """
-    print("Hello from Exosphere")
+    cli.app()

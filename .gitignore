@@ -6,6 +6,14 @@ dist/
 wheels/
 *.egg-info
 
+# Pytest
+*.cover
+*.coverage
+.pytest_cache/
+
+# linters etc
+.ruff_cache/
+
 # Vscode settings
 .vscode/
 
