@@ -17,3 +17,19 @@ as well as query information about state that is otherwise difficult
 to aggregate or obtain ad-hoc.
 
 Reporting sucks, just tell me what I need to know.
+
+## Development Quick Start
+
+tl;dr
+
+```bash
+uv sync
+uv run exosphere
+```
+
+Linting, formatting and testing can be done with poe tasks:
+
+```bash
+uv run poe check
+uv run poe tests
+```
