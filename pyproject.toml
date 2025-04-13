@@ -35,4 +35,4 @@ testpaths = ["tests"]
 lint = "ruff check src tests"
 format = "ruff format src tests"
 check = ['lint', 'format']
-test = "pytest"
+test = "pytest -v"
