@@ -17,7 +17,7 @@ banner = """
 
 Exosphere CLI vx.x.y
 """
-                    
+
 app = typer.Typer(
     no_args_is_help=False,
 )

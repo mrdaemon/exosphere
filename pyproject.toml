@@ -35,5 +35,6 @@ testpaths = ["tests"]
 [tool.poe.tasks]
 lint = "ruff check src tests"
 format = "ruff format src tests"
-check = ['lint', 'format']
+format-check = "ruff format --check src tests"
+check = ['lint', 'format-check']
 test = "pytest -v"
