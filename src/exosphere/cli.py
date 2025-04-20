@@ -4,6 +4,20 @@ from click_shell import make_click_shell
 
 from exosphere.commands import test
 
+
+banner = """
+                         ▗▖
+                         ▐▌
+ ▟█▙ ▝█ █▘ ▟█▙ ▗▟██▖▐▙█▙ ▐▙██▖ ▟█▙  █▟█▌ ▟█▙
+▐▙▄▟▌ ▐█▌ ▐▛ ▜▌▐▙▄▖▘▐▛ ▜▌▐▛ ▐▌▐▙▄▟▌ █▘  ▐▙▄▟▌
+▐▛▀▀▘ ▗█▖ ▐▌ ▐▌ ▀▀█▖▐▌ ▐▌▐▌ ▐▌▐▛▀▀▘ █   ▐▛▀▀▘
+▝█▄▄▌ ▟▀▙ ▝█▄█▘▐▄▄▟▌▐█▄█▘▐▌ ▐▌▝█▄▄▌ █   ▝█▄▄▌
+ ▝▀▀ ▝▀ ▀▘ ▝▀▘  ▀▀▀ ▐▌▀▘ ▝▘ ▝▘ ▝▀▀  ▀    ▝▀▀
+                    ▐▌
+
+Exosphere CLI vx.x.y
+"""
+                    
 app = typer.Typer(
     no_args_is_help=False,
 )
@@ -23,7 +37,7 @@ def cli(ctx: typer.Context) -> None:
         repl = make_click_shell(
             ctx,
             prompt="exosphere> ",
-            intro="Welcome to Exosphere v x.x",
+            intro=banner,
         )
         repl.cmdloop()
         typer.Exit(0)
