@@ -15,3 +15,10 @@ class UnsupportedOSError(DataRefreshError):
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class OfflineHostError(DataRefreshError):
+    """Exception raised for offline hosts."""
+
+    def __init__(self, message: str = "Host is offline") -> None:
+        super().__init__(message)

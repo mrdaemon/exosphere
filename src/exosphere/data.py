@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from fabric import Connection
 
+from exosphere.errors import OfflineHostError
 from exosphere.setup import detect
 
 
@@ -26,6 +27,8 @@ class Host:
         self.port = port
 
         self._connection = None
+
+        self.online = True
 
         self.os = (None,)
         self.version = None
