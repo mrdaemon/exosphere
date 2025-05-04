@@ -1,7 +1,20 @@
+from unittest.mock import MagicMock
 import pytest
 
-from exosphere.setup.detect import os_detect, flavor_detect, version_detect
+from exosphere.setup.detect import (
+    os_detect,
+    flavor_detect,
+    package_manager_detect,
+    version_detect,
+)
 from exosphere.errors import DataRefreshError, UnsupportedOSError
+
+
+def _run_return(failed: bool, stdout: str = "") -> MagicMock:
+    mock_return = MagicMock()
+    mock_return.stdout = stdout
+    mock_return.failed = failed
+    return mock_return
 
 
 class TestDetection:
@@ -36,14 +49,8 @@ class TestDetection:
     def test_flavor_detect(self, connection, os_name, id, like, expected) -> None:
         # Mock the connection to return the id and like id in sequence
         connection.run.side_effect = [
-            type(
-                "MockResponse", (object,), {"stdout": f'ID="{id}"\n', "failed": False}
-            )(),
-            type(
-                "MockResponse",
-                (object,),
-                {"stdout": f'ID_LIKE="{like}"\n', "failed": False},
-            )(),
+            _run_return(False, f'ID="{id}"\n'),
+            _run_return(False, f'ID_LIKE="{like}"\n'),
         ]
 
         # Call the function to test
@@ -66,14 +73,8 @@ class TestDetection:
 
         # Mock the connection to return the id and like id in sequence
         connection.run.side_effect = [
-            type(
-                "MockResponse", (object,), {"stdout": f'ID="{id}"\n', "failed": False}
-            )(),
-            type(
-                "MockResponse",
-                (object,),
-                {"stdout": f'ID_LIKE="{like}"\n', "failed": False},
-            )(),
+            _run_return(False, f'ID="{id}"\n'),
+            _run_return(False, f'ID_LIKE="{like}"\n'),
         ]
 
         # Call the function and expect it to raise a DataRefreshError
@@ -129,3 +130,31 @@ class TestDetection:
         # Call the function and expect it to raise a DataRefreshError
         with pytest.raises(DataRefreshError):
             version_detect(connection, flavor)
+
+    @pytest.mark.parametrize(
+        "flavor,fallback,expected",
+        [
+            ("ubuntu", False, "apt"),
+            ("debian", False, "apt"),
+            ("rhel", True, "yum"),
+            ("rhel", False, "dnf"),
+            ("freebsd", False, "pkg"),
+        ],
+        ids=["ubuntu", "debian", "rhel_fallback", "rhel_no_fallback", "freebsd"],
+    )
+    def test_package_manager_detect(
+        self, connection, flavor, fallback, expected
+    ) -> None:
+        connection.run.return_value.failed = False
+
+        if fallback:
+            connection.run.side_effect = [
+                _run_return(True),
+                _run_return(False),
+            ]
+
+        # Call the function to test
+        package_manager = package_manager_detect(connection, flavor)
+
+        # Assert that the detected package manager is as expected
+        assert package_manager == expected

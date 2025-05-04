@@ -39,6 +39,12 @@ def platform_detect(cx: Connection) -> HostInfo:
 
 
 def os_detect(cx: Connection) -> str:
+    """
+    Detect the operating system of the remote system.
+
+    :param cx: Fabric Connection object
+    :return: OS name as string
+    """
     result_system = cx.run("uname -s", hide=True)
     cx.close()
 
@@ -51,6 +57,7 @@ def os_detect(cx: Connection) -> str:
 def flavor_detect(cx: Connection, platform: str) -> str:
     """
     Detect the flavor of the remote system.
+
     :param cx: Fabric Connection object
     :return: Flavor string
     """
@@ -170,6 +177,7 @@ def version_detect(cx: Connection, flavor: str) -> str:
 def package_manager_detect(cx: Connection, flavor: str) -> str:
     """
     Detect the package manager of the remote system.
+
     :param cx: Fabric Connection object
     :return: Package manager string
     """
@@ -179,7 +187,7 @@ def package_manager_detect(cx: Connection, flavor: str) -> str:
 
     # Debian/Ubuntu
     if flavor in ["ubuntu", "debian"]:
-        return "apt-get"
+        return "apt"
 
     # Redhat-likes
     if flavor == "rhel":
