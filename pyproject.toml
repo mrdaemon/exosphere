@@ -16,7 +16,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "fabric[pytest]>=3.2.2",
     "poethepoet>=0.33.1",
+    "pyright>=1.1.400",
     "pytest>=8.3.5",
     "pytest-mock>=3.14.0",
     "ruff>=0.11.5",
@@ -34,7 +36,8 @@ testpaths = ["tests"]
 
 [tool.poe.tasks]
 lint = "ruff check src tests"
+type = "pyright src tests"
 format = "ruff format src tests"
 format-check = "ruff format --check src tests"
-check = ['lint', 'format-check']
+check = ['format-check', 'lint', 'type']
 test = "pytest -v"

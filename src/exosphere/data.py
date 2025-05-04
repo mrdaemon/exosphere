@@ -55,8 +55,16 @@ class Host:
 
         :return: None
         """
+        try:
+            platform_info: HostInfo = detect.platform_detect(self.connection)
+        except OfflineHostError:
+            self.online = False
+            return
 
-        platform_info: HostInfo = detect.platform_detect(self.connection)
+        self.os = platform_info.os
+        self.version = platform_info.version
+        self.flavor = platform_info.flavor
+        self.package_manager = platform_info.package_manager
 
     def __repr__(self):
         return f"Host(name={self.name}, ip={self.ip}, port={self.port})"

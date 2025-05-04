@@ -30,6 +30,13 @@ def platform_detect(cx: Connection) -> HostInfo:
     except TimeoutError as e:
         raise OfflineHostError(f"Host {cx.host} is offline. Error: {e}") from e
 
+    return HostInfo(
+        os=result_os,
+        version=result_version,
+        flavor=result_flavor,
+        package_manager=result_package_manager,
+    )
+
 
 def os_detect(cx: Connection) -> str:
     result_system = cx.run("uname -s", hide=True)
@@ -49,7 +56,7 @@ def flavor_detect(cx: Connection, platform: str) -> str:
     """
 
     # Check if platform is one of the supported types
-    if platform not in SUPPORTED_PLATFORMS:
+    if platform.lower() not in SUPPORTED_PLATFORMS:
         raise UnsupportedOSError(f"Unsupported platform: {platform}")
 
     # FreeBSD doesn't have flavors that matter so far.
@@ -79,7 +86,7 @@ def flavor_detect(cx: Connection, platform: str) -> str:
 
         # We kind of handwave the specific detection here, as long
         # as either the ID or the LIKE_ID matches, it's supported.
-        actual_id = result_id.stdout.strip().split('"')[1::2][0].lower()
+        actual_id: str = result_id.stdout.strip().split('"')[1::2][0].lower()
         if actual_id in SUPPORTED_FLAVORS:
             return actual_id
 
@@ -89,7 +96,7 @@ def flavor_detect(cx: Connection, platform: str) -> str:
             raise UnsupportedOSError("Unknown flavor, no matching ID or ID_LIKE.")
 
         # Return first match in like table, it's good enough
-        like_id = result_like_id.stdout.strip().split('"')[1::2]
+        like_id: str = result_like_id.stdout.strip().split('"')[1::2]
         for like in [x.lower() for x in like_id]:
             if like in SUPPORTED_FLAVORS:
                 return like
@@ -97,8 +104,10 @@ def flavor_detect(cx: Connection, platform: str) -> str:
         # Ultimately, we should give up here since we have no idea
         # what we're talking to, so let the user figure it out.
         raise UnsupportedOSError(
-            f"Unsupported OS flavor detected: {actual_id.stdout.strip().lower()}"
+            f"Unsupported OS flavor detected: {result_id.stdout.strip().lower()}"
         )
+
+    raise UnsupportedOSError(f"Unknown issue in detecting platform: {platform}")
 
 
 def version_detect(cx: Connection, flavor: str) -> str:
@@ -108,7 +117,7 @@ def version_detect(cx: Connection, flavor: str) -> str:
     :return: Version string
     """
 
-    if flavor not in SUPPORTED_FLAVORS:
+    if flavor.lower() not in SUPPORTED_FLAVORS:
         raise UnsupportedOSError(f"Unsupported OS flavor: {flavor}")
 
     # Debian/Ubuntu
@@ -155,6 +164,8 @@ def version_detect(cx: Connection, flavor: str) -> str:
 
         return result_version.stdout.strip()
 
+    raise UnsupportedOSError(f"Unknown issue in detecting version for flavor: {flavor}")
+
 
 def package_manager_detect(cx: Connection, flavor: str) -> str:
     """
@@ -189,3 +200,7 @@ def package_manager_detect(cx: Connection, flavor: str) -> str:
     # FreeBSD
     if flavor == "freebsd":
         return "pkg"
+
+    raise UnsupportedOSError(
+        f"Unknown issue in detecting package manager for flavor: {flavor}"
+    )
