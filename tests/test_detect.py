@@ -5,7 +5,7 @@ from exosphere.errors import DataRefreshError, UnsupportedOSError
 
 
 class TestDetection:
-    def test_os_detect(self, connection):
+    def test_os_detect(self, connection) -> None:
         # Mock the connection to return a specific OS type
         connection.run.return_value.stdout = "Linux\n"
         connection.run.return_value.failed = False
@@ -25,7 +25,7 @@ class TestDetection:
             os_detect(connection)
 
     @pytest.mark.parametrize(
-        "os,id,like,expected",
+        "os_name,id,like,expected",
         [
             ("linux", "ubuntu", "debian", "ubuntu"),
             ("linux", "fedora", "rhel", "rhel"),
@@ -33,7 +33,7 @@ class TestDetection:
         ],
         ids=["ubuntu", "rhel", "freebsd"],
     )
-    def test_flavor_detect(self, connection, os, id, like, expected):
+    def test_flavor_detect(self, connection, os_name, id, like, expected) -> None:
         # Mock the connection to return the id and like id in sequence
         connection.run.side_effect = [
             type(
@@ -47,13 +47,13 @@ class TestDetection:
         ]
 
         # Call the function to test
-        flavor = flavor_detect(connection, os)
+        flavor = flavor_detect(connection, os_name)
 
         # Assert that the detected flavor is as expected
         assert flavor == expected
 
     @pytest.mark.parametrize(
-        "os,id,like",
+        "os_name,id,like",
         [
             ("linux", "arch", "arch"),
             ("linux", "gentoo", "gentoo"),
@@ -61,7 +61,7 @@ class TestDetection:
         ],
         ids=["arch", "gentoo", "openbsd"],
     )
-    def test_flavor_detect_failure(self, connection, os, id, like):
+    def test_flavor_detect_failure(self, connection, os_name, id, like) -> None:
         connection.run.return_value.failed = False
 
         # Mock the connection to return the id and like id in sequence
@@ -78,6 +78,14 @@ class TestDetection:
 
         # Call the function and expect it to raise a DataRefreshError
         with pytest.raises(UnsupportedOSError):
+            flavor_detect(connection, os_name)
+
+    def test_flavor_detect_connection_failure(self, connection) -> None:
+        # Mock the connection to simulate a failure in flavor detection
+        connection.run.return_value.failed = True
+
+        # Call the function and expect it to raise a DataRefreshError
+        with pytest.raises(DataRefreshError):
             flavor_detect(connection, "linux")
 
     @pytest.mark.parametrize(
@@ -90,7 +98,7 @@ class TestDetection:
         ],
         ids=["ubuntu", "debian", "rhel", "freebsd"],
     )
-    def test_version_detect(self, connection, flavor, stdout, expected):
+    def test_version_detect(self, connection, flavor, stdout, expected) -> None:
         # Mock the connection to return a specific version string
         connection.run.return_value.stdout = stdout
         connection.run.return_value.failed = False
@@ -100,3 +108,24 @@ class TestDetection:
 
         # Assert that the detected version is as expected
         assert version == expected
+
+    @pytest.mark.parametrize(
+        "flavor",
+        ["arch", "gentoo", "openbsd"],  # Unsupported flavors
+    )
+    def test_version_detect_failure(self, connection, flavor) -> None:
+        # Call the function and expect it to raise a DataRefreshError
+        with pytest.raises(UnsupportedOSError):
+            version_detect(connection, flavor)
+
+    @pytest.mark.parametrize(
+        "flavor",
+        ["ubuntu", "debian", "rhel", "freebsd"],
+    )
+    def test_version_detect_connection_failure(self, connection, flavor) -> None:
+        # Mock the connection to simulate a failure in version detection
+        connection.run.return_value.failed = True
+
+        # Call the function and expect it to raise a DataRefreshError
+        with pytest.raises(DataRefreshError):
+            version_detect(connection, flavor)
