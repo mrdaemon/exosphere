@@ -41,7 +41,10 @@ class Host:
         Establish a connection to the host using Fabric.
         This method sets up the connection object for further operations.
 
-        :return: None
+        Connection objects are recycled if already created.
+
+        :return: Fabric Connection object
+        :raises ConnectionError: If the connection cannot be established
         """
         if self._connection is None:
             self._connection = Connection(host=self.ip, port=self.port)
