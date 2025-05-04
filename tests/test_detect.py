@@ -158,3 +158,16 @@ class TestDetection:
 
         # Assert that the detected package manager is as expected
         assert package_manager == expected
+
+    @pytest.mark.parametrize(
+        "flavor",
+        ["unsupported_flavor", "rhel"],
+        ids=["unsupported_flavor", "rhel_with_no_fallback"],
+    )
+    def test_package_manager_detect_failure(self, connection, flavor) -> None:
+        # Mock the connection to simulate a failure in package manager detection
+        connection.run.return_value.failed = True
+
+        # Call the function and expect it to raise a DataRefreshError
+        with pytest.raises(UnsupportedOSError):
+            package_manager_detect(connection, flavor)
