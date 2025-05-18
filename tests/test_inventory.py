@@ -5,6 +5,8 @@ import pytest
 from exosphere.inventory import Configuration
 
 
+# FIXME: these tests are garbage, need fixtures, and need functional coverage.
+
 class TestConfiguration:
     def test_initialization(self):
         config = Configuration()
