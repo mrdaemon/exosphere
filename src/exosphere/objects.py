@@ -1,8 +1,8 @@
+from fabric import Connection
+
 from exosphere.data import HostInfo
 from exosphere.errors import OfflineHostError
 from exosphere.setup import detect
-
-from fabric import Connection
 
 
 class Host:

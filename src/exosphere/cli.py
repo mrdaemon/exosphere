@@ -1,10 +1,8 @@
 import typer
-
 from click_shell import make_click_shell
 
 from exosphere import __version__
 from exosphere.commands import test
-
 
 banner = f"""
                          ▗▖

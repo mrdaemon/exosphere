@@ -1,13 +1,14 @@
 from unittest.mock import MagicMock
+
 import pytest
 
+from exosphere.errors import DataRefreshError, UnsupportedOSError
 from exosphere.setup.detect import (
-    os_detect,
     flavor_detect,
+    os_detect,
     package_manager_detect,
     version_detect,
 )
-from exosphere.errors import DataRefreshError, UnsupportedOSError
 
 
 def _run_return(failed: bool, stdout: str = "") -> MagicMock:

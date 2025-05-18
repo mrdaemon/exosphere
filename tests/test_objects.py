@@ -1,8 +1,8 @@
 import pytest
 
-from exosphere.objects import Host
 from exosphere.data import HostInfo
 from exosphere.errors import OfflineHostError
+from exosphere.objects import Host
 
 
 class TestHostObject:

@@ -8,7 +8,6 @@ from fabric import Connection
 from exosphere.data import HostInfo
 from exosphere.errors import DataRefreshError, OfflineHostError, UnsupportedOSError
 
-
 SUPPORTED_PLATFORMS = ["linux", "freebsd"]
 SUPPORTED_FLAVORS = ["ubuntu", "debian", "rhel", "freebsd"]
 

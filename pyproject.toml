@@ -37,9 +37,13 @@ testpaths = ["tests"]
 
 [tool.poe.tasks]
 lint = "ruff check src tests"
+isort-check = "ruff check --select I src tests"
+isort = "ruff check --select I --fix src tests"
 type = "pyright src tests"
-format = "ruff format src tests"
-format-check = "ruff format --check src tests"
+ruff-format = "ruff format src tests"
+ruff-format-check = "ruff format --check src tests"
+format = ['ruff-format', 'isort']
+format-check = ['ruff-format-check', 'isort-check']
 check = ['format-check', 'lint', 'type']
 test = "pytest -v"
 test-report = "pytest -v --ctrf report.json"
