@@ -10,7 +10,7 @@ wheels/
 *.cover
 *.coverage
 .pytest_cache/
-report.json
+.tests_report.json
 
 # linters etc
 .ruff_cache/

@@ -45,5 +45,4 @@ ruff-format-check = "ruff format --check src tests"
 format = ['ruff-format', 'isort']
 format-check = ['ruff-format-check', 'isort-check']
 check = ['format-check', 'lint', 'typecheck']
-test = "pytest -v"
-test-report = "pytest -v --ctrf report.json"
+test = "pytest -v --ctrf .tests_report.json"

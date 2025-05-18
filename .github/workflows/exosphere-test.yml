@@ -27,12 +27,12 @@ jobs:
       run: |
         python -m pip install uv
         uv sync --frozen
-    - name: Lint and Check
+    - name: Formatting, linting and Typechecker"
       run: |
         uv run poe check
     - name: Run test suite
       run: |
-        uv run poe test-report
+        uv run poe test
     - name: Publish test suite summary
-      run: npx github-actions-ctrf report.json
+      run: npx github-actions-ctrf .tests_report.json
       if: always()
