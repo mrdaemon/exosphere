@@ -20,6 +20,7 @@ dev = [
     "poethepoet>=0.33.1",
     "pyright>=1.1.400",
     "pytest>=8.3.5",
+    "pytest-json-ctrf>=0.3.5",
     "pytest-mock>=3.14.0",
     "ruff>=0.11.5",
 ]
@@ -41,3 +42,4 @@ format = "ruff format src tests"
 format-check = "ruff format --check src tests"
 check = ['format-check', 'lint', 'type']
 test = "pytest -v"
+test-report = "pytest -v --ctrf report.json"
