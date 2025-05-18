@@ -32,4 +32,7 @@ jobs:
         uv run poe check
     - name: Run test suite
       run: |
-        uv run poe test
+        uv run poe test-report
+    - name: Publish test suite summary
+      run: npx github-actions-ctrf report.json
+      if: always()
