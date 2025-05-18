@@ -93,18 +93,35 @@ def flavor_detect(cx: Connection, platform: str) -> str:
 
         # We kind of handwave the specific detection here, as long
         # as either the ID or the LIKE_ID matches, it's supported.
-        actual_id: str = result_id.stdout.strip().split('"')[1::2][0].lower()
+        try:
+            actual_id: str = result_id.stdout.strip().partition("=")[2].strip('"').lower()
+        except (ValueError, IndexError):
+            raise DataRefreshError(
+                "Could not parse ID value, likely unsupported.",
+                stderr=result_id.stderr,
+                stdout=result_id.stdout,
+            )
+
         if actual_id in SUPPORTED_FLAVORS:
             return actual_id
 
         # If the ID was not a match, we should check the LIKE_ID field.
-        # We should resist the temptation to guess, in this case.
+        # We should resist the temptation to guess, if that fails entirely.
         if result_like_id.failed:
-            raise UnsupportedOSError("Unknown flavor, no matching ID or ID_LIKE.")
+            raise UnsupportedOSError("Unknown flavor, and no ID_LIKE available.")
 
-        # Return first match in like table, it's good enough
-        like_id: str = result_like_id.stdout.strip().split('"')[1::2]
-        for like in [x.lower() for x in like_id]:
+        # Compare any values found in LIKE_ID to supported flavors.
+        # First match is good enough.
+        try:
+            like_id: str = result_like_id.stdout.strip().partition("=")[2].strip('"')
+        except (ValueError, IndexError):
+            raise DataRefreshError(
+                "Could not parse ID_LIKE value, likely unsupported.",
+                stderr=result_like_id.stderr,
+                stdout=result_like_id.stdout,
+            )
+
+        for like in [x.lower() for x in like_id.split()]:
             if like in SUPPORTED_FLAVORS:
                 return like
 

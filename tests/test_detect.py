@@ -41,10 +41,12 @@ class TestDetection:
         "os_name,id,like,expected",
         [
             ("linux", "ubuntu", "debian", "ubuntu"),
-            ("linux", "fedora", "rhel", "rhel"),
+            ("linux", "fedora", "rhel fedora", "rhel"),
+            ("linux", "almalinux", "rhel centos fedora", "rhel"),
+            ("linux", "rockylinux", "rhel centos fedora", "rhel"),
             ("freebsd", "", "", "freebsd"),
         ],
-        ids=["ubuntu", "rhel", "freebsd"],
+        ids=["ubuntu", "fedora", "almalinux", "centos", "freebsd"],
     )
     def test_flavor_detect(self, connection, os_name, id, like, expected) -> None:
         # Mock the connection to return the id and like id in sequence
