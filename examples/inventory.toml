@@ -1,0 +1,18 @@
+[options]
+log_level = "INFO"
+
+[[hosts]]
+name = "host1"
+ip = "host1.example.com"
+
+[[hosts]]
+name = "host2"
+ip = "host2.example.com"
+port = 2222
+
+[[hosts]]
+name = "host3"
+ip = "host3.example.com"
+
+[[hosts.options]]
+log_level = "DEBUG"
