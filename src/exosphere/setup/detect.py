@@ -94,7 +94,9 @@ def flavor_detect(cx: Connection, platform: str) -> str:
         # We kind of handwave the specific detection here, as long
         # as either the ID or the LIKE_ID matches, it's supported.
         try:
-            actual_id: str = result_id.stdout.strip().partition("=")[2].strip('"').lower()
+            actual_id: str = (
+                result_id.stdout.strip().partition("=")[2].strip('"').lower()
+            )
         except (ValueError, IndexError):
             raise DataRefreshError(
                 "Could not parse ID value, likely unsupported.",
