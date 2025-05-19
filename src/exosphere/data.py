@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class HostInfo:
     """
     Data class to hold platform information about a host.
@@ -17,7 +17,7 @@ class HostInfo:
     package_manager: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class Update:
     """
     Data class to hold information about a software update.
@@ -29,3 +29,4 @@ class Update:
     current_version: str
     new_version: str
     source: Optional[str] = None
+    security: Optional[bool] = None
