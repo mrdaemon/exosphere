@@ -38,13 +38,14 @@ class TestHostObject:
         assert host.ip == "172.16.64.10"
         assert host.port == 22
 
+        assert host.online is False
+
     def test_host_ping(self, mocker, mock_connection):
         mock_connection.run.return_value = mocker.Mock()
         mock_connection.run.return_value.failed = False
 
         host = Host(name="test_host", ip="127.0.0.1")
-        host.ping()
-
+        assert host.ping() is True
         assert host.online is True
 
     @pytest.mark.parametrize(
@@ -84,6 +85,8 @@ class TestHostObject:
         )
 
         host = Host(name="test_host", ip="127.0.0.1")
+        mocker.patch.object(host, "ping", return_value=False)
+
         host.sync()
 
         assert host.os is None
