@@ -3,6 +3,8 @@ import tomllib
 from collections.abc import Callable
 from typing import BinaryIO
 
+import yaml
+
 
 class Configuration(dict):
     """
@@ -39,6 +41,17 @@ class Configuration(dict):
         see `from_file()`for details.
         """
         return self.from_file(filepath, tomllib.load, silent=silent)
+
+    def from_yaml(self, filepath: str, silent: bool = False) -> bool:
+        """
+        Populate the configuration structure from a yaml file
+
+        This method is a convenience wrapper used for shorthand
+        for the from_file method, with yaml.safe_load() as the loader.
+
+        see `from_file()`for details.
+        """
+        return self.from_file(filepath, yaml.safe_load, silent=silent)
 
     def from_file(
         self, filepath: str, loader: Callable[[BinaryIO], dict], silent: bool = False
