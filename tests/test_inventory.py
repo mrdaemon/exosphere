@@ -118,7 +118,7 @@ class TestConfiguration:
         """
         Ensure that the Configuration object can be populated
         from a toml file.
-        """ 
+        """
         config = Configuration()
 
         assert config.from_toml(toml_config_file) is True
@@ -156,7 +156,6 @@ class TestConfiguration:
         for key in expected_config:
             assert key in config
             assert config[key] == expected_config[key]
-
 
     @pytest.mark.parametrize(
         "loader",
