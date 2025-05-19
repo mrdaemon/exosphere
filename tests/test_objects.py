@@ -13,6 +13,24 @@ class TestHostObject:
         """
         return mocker.patch("exosphere.objects.Connection", autospec=True)
 
+    @pytest.fixture
+    def mock_hostinfo(self, mocker):
+        """
+        Fixture to mock the HostInfo object.
+        A generic host running Debian Linux.
+        """
+        hostinfo = mocker.Mock(
+            spec=HostInfo,
+            os="linux",
+            version="12",
+            flavor="debian",
+            package_manager="apt",
+        )
+
+        mocker.patch("exosphere.setup.detect.platform_detect", return_value=hostinfo)
+
+        return hostinfo
+
     def test_host_initialization(self):
         host = Host(name="test_host", ip="172.16.64.10", port=22)
 
@@ -46,24 +64,14 @@ class TestHostObject:
 
         assert host.online is False  # Should be False on failure
 
-    def test_host_sync(self, mocker, mock_connection):
-        mock_hostinfo = HostInfo(
-            os="linux",
-            version="jessie",
-            flavor="debian",
-            package_manager="apt",
-        )
-
-        mocker.patch(
-            "exosphere.setup.detect.platform_detect", return_value=mock_hostinfo
-        )
+    def test_host_sync(self, mocker, mock_connection, mock_hostinfo):
         host = Host(name="test_host", ip="127.0.0.1")
         host.sync()
 
-        assert host.os == "linux"
-        assert host.version == "jessie"
-        assert host.flavor == "debian"
-        assert host.package_manager == "apt"
+        assert host.os == mock_hostinfo.os
+        assert host.version == mock_hostinfo.version
+        assert host.flavor == mock_hostinfo.flavor
+        assert host.package_manager == mock_hostinfo.package_manager
         assert host.online is True
 
         # Ensure the connection was established
@@ -84,3 +92,12 @@ class TestHostObject:
         assert host.package_manager is None
 
         assert host.online is False
+
+    def test_host_refresh_catalog(self, mocker, mock_connection, mock_hostinfo):
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.sync()
+
+        # This is currently unimplemented, leaving the test in to
+        # remember to implement the matching test in the future.
+        with pytest.raises(NotImplementedError):
+            host.refresh_catalog()
