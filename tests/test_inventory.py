@@ -138,7 +138,7 @@ class TestConfiguration:
         config_file = request.getfixturevalue(config_file)
         assert config.from_file(config_file, loader) is True
 
-        assert config == expected_config 
+        assert config == expected_config
 
     @pytest.mark.parametrize(
         "loader",
