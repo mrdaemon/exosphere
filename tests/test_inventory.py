@@ -14,6 +14,20 @@ class TestConfiguration:
         return Configuration.DEFAULTS
 
     @pytest.fixture()
+    def expected_config(self):
+        data = {
+            "options": {
+                "log_level": "DEBUG",
+            },
+            "hosts": [
+                {"name": "host1", "ip": "127.0.0.1"},
+                {"name": "host2", "ip": "127.0.0.2"},
+            ],
+        }
+
+        return data
+
+    @pytest.fixture()
     def toml_config_file(self, tmp_path):
         toml_content = """
         [options]
@@ -58,6 +72,10 @@ class TestConfiguration:
         name = "host1"
         ip = "127.0.0.1"
 
+        [[hosts]]
+        name = "host2"
+        ip = "127.0.0.2"
+
         [unrecognized_section]
         name = "extra"
         description = "This is an unparsed section"
@@ -75,6 +93,8 @@ class TestConfiguration:
         hosts:
           - name: host1
             ip: 127.0.0.1
+          - name: host2
+            ip: 127.0.0.2
         unrecognized_section:
           name: extra
           description: This is an unparsed section
@@ -86,33 +106,23 @@ class TestConfiguration:
 
     def test_initialization(self, config_defaults):
         config = Configuration()
-        assert isinstance(config, Configuration)
-        assert config["options"] == config_defaults["options"]
-        assert config["hosts"] == config_defaults["hosts"]
 
-    def test_from_toml(self, toml_config_file):
+        assert isinstance(config, Configuration)
+        assert config == config_defaults
+
+    def test_from_toml(self, toml_config_file, expected_config):
         config = Configuration()
 
         assert config.from_toml(toml_config_file) is True
 
-        assert config["options"]["log_level"] == "DEBUG"
-        assert len(config["hosts"]) == 2
-        assert config["hosts"][0]["name"] == "host1"
-        assert config["hosts"][1]["name"] == "host2"
-        assert config["hosts"][0]["ip"] == "127.0.0.1"
-        assert config["hosts"][1]["ip"] == "127.0.0.2"
+        assert config == expected_config
 
-    def test_from_yaml(self, yaml_config_file):
+    def test_from_yaml(self, yaml_config_file, expected_config):
         config = Configuration()
 
         assert config.from_yaml(yaml_config_file) is True
 
-        assert config["options"]["log_level"] == "DEBUG"
-        assert len(config["hosts"]) == 2
-        assert config["hosts"][0]["name"] == "host1"
-        assert config["hosts"][1]["name"] == "host2"
-        assert config["hosts"][0]["ip"] == "127.0.0.1"
-        assert config["hosts"][1]["ip"] == "127.0.0.2"
+        assert config == expected_config
 
     @pytest.mark.parametrize(
         "config_file, loader",
@@ -122,18 +132,13 @@ class TestConfiguration:
         ],
         ids=["toml", "yaml"],
     )
-    def test_from_file(self, request, config_file, loader):
+    def test_from_file(self, request, config_file, loader, expected_config):
         config = Configuration()
 
         config_file = request.getfixturevalue(config_file)
         assert config.from_file(config_file, loader) is True
 
-        assert config["options"]["log_level"] == "DEBUG"
-        assert len(config["hosts"]) == 2
-        assert config["hosts"][0]["name"] == "host1"
-        assert config["hosts"][1]["name"] == "host2"
-        assert config["hosts"][0]["ip"] == "127.0.0.1"
-        assert config["hosts"][1]["ip"] == "127.0.0.2"
+        assert config == expected_config 
 
     @pytest.mark.parametrize(
         "loader",
@@ -159,13 +164,10 @@ class TestConfiguration:
         ],
         ids=["toml", "yaml"],
     )
-    def test_from_file_extra(self, request, config_file_extra, loader):
+    def test_from_file_extra(self, request, config_file_extra, loader, expected_config):
         config = Configuration()
         config_file = request.getfixturevalue(config_file_extra)
         assert config.from_file(config_file, loader) is True
 
-        assert config["options"]["log_level"] == "DEBUG"
-        assert len(config["hosts"]) == 1
-        assert config["hosts"][0]["name"] == "host1"
-        assert config["hosts"][0]["ip"] == "127.0.0.1"
         assert "unrecognized_section" not in config
+        assert config == expected_config
