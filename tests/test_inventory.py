@@ -105,24 +105,39 @@ class TestConfiguration:
         return config_file
 
     def test_initialization(self, config_defaults):
+        """
+        Ensure that the Configuration object initializes with
+        the default values.
+        """
         config = Configuration()
 
         assert isinstance(config, Configuration)
         assert config == config_defaults
 
     def test_from_toml(self, toml_config_file, expected_config):
+        """
+        Ensure that the Configuration object can be populated
+        from a toml file.
+        """ 
         config = Configuration()
 
         assert config.from_toml(toml_config_file) is True
 
-        assert config == expected_config
+        # We don't directly compare the dicts with == because
+        # one can be a subset of the other, and that is ok
+        # since that's how default values work.
+        for key in expected_config:
+            assert key in config
+            assert config[key] == expected_config[key]
 
     def test_from_yaml(self, yaml_config_file, expected_config):
         config = Configuration()
 
         assert config.from_yaml(yaml_config_file) is True
 
-        assert config == expected_config
+        for key in expected_config:
+            assert key in config
+            assert config[key] == expected_config[key]
 
     @pytest.mark.parametrize(
         "config_file, loader",
@@ -138,7 +153,10 @@ class TestConfiguration:
         config_file = request.getfixturevalue(config_file)
         assert config.from_file(config_file, loader) is True
 
-        assert config == expected_config
+        for key in expected_config:
+            assert key in config
+            assert config[key] == expected_config[key]
+
 
     @pytest.mark.parametrize(
         "loader",
@@ -169,5 +187,8 @@ class TestConfiguration:
         config_file = request.getfixturevalue(config_file_extra)
         assert config.from_file(config_file, loader) is True
 
+        for key in expected_config:
+            assert key in config
+            assert config[key] == expected_config[key]
+
         assert "unrecognized_section" not in config
-        assert config == expected_config
