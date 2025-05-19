@@ -23,3 +23,8 @@ wheels/
 
 # Tangent Metadata
 .tangent/
+
+# in-dir configs
+config.toml
+config.yaml
+config.json

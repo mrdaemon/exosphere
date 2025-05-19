@@ -5,6 +5,8 @@ from typing import BinaryIO
 
 import yaml
 
+from exosphere.objects import Host
+
 
 class Configuration(dict):
     """
@@ -109,3 +111,63 @@ class Configuration(dict):
                     self[k] = v
 
         return True
+
+
+class Inventory:
+    """
+    Inventory and state management
+
+    Handles reading the inventory from file and creating the
+    Host objects.
+    """
+
+    def __init__(self, config: Configuration) -> None:
+        """
+        Initialize the Inventory object with default values.
+        """
+        self.configuration = config
+        self.hosts: list[Host] = []
+
+        self.init_all()
+
+    def init_all(self) -> None:
+        """
+        Setup the inventory by creating Host objects from the
+        configuration.
+
+        Existing state will be cleared.
+        """
+        self.hosts: list[Host] = []
+
+        if len(self.configuration["hosts"]) == 0:
+            return
+
+        for host in self.configuration["hosts"]:
+            try:
+                host_obj = Host(**host)
+            except Exception as e:
+                raise ValueError(
+                    f"Unable to create host object from inventory: {host}: {e}"
+                )
+
+            self.hosts.append(host_obj)
+
+    def sync_all(self) -> None:
+        """
+        Sync all hosts in the inventory.
+
+        """
+        for host in self.hosts:
+            host.sync()
+
+    def ping_all(self, stdout: bool = False) -> None:
+        """
+        Ping all hosts in the inventory.
+
+        """
+        for host in self.hosts:
+            host.ping()
+            if stdout:
+                print(
+                    f"Host {host.name} is {'reachable' if host.online else 'offline'}"
+                )
