@@ -161,9 +161,12 @@ class Inventory:
             try:
                 host_obj = Host(**host)
             except Exception as e:
+                self.logger.error(
+                    "Unable to create host object from inventory: %s: %s", host, e
+                )
                 raise ValueError(
                     f"Unable to create host object from inventory: {host}: {e}"
-                )
+                ) from e
 
             self.hosts.append(host_obj)
 
