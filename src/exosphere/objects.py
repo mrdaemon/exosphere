@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from fabric import Connection
@@ -21,6 +22,9 @@ class Host:
         :param ip: IP address or FQDN of the host
         :param port: Port number for SSH connection (default is 22)
         """
+        # Setup logging
+        self.logger = logging.getLogger(__name__)
+
         # Unpacked host information, usually from inventory
         self.name = name
         self.ip = ip
@@ -57,6 +61,12 @@ class Host:
         :raises ConnectionError: If the connection cannot be established
         """
         if self._connection is None:
+            logging.debug(
+                "Creating new connection to %s at %s:%s",
+                self.name,
+                self.ip,
+                self.port,
+            )
             self._connection = Connection(host=self.ip, port=self.port)
 
         return self._connection
@@ -72,14 +82,25 @@ class Host:
         # Check if the host is reachable before attempting anything else
         # This also updates the online status
         if not self.ping():
+            self.logger.warning("Host %s is offline, skipping sync.", self.name)
             return
 
         try:
             platform_info: HostInfo = detect.platform_detect(self.connection)
-        except OfflineHostError:
+        except OfflineHostError as e:
+            self.logger.warning(
+                "Host %s has gone offline during sync, received: %s",
+                self.name,
+                e,
+            )
             self.online = False
             return
         except DataRefreshError as e:
+            self.logger.error(
+                "An error occurred during sync for %s: %s",
+                self.name,
+                e,
+            )
             self.online = False
             raise DataRefreshError(
                 f"An error occured during sync for {self.name}: {e}"
@@ -115,9 +136,11 @@ class Host:
         :return: True if the host is reachable, False otherwise
         """
         try:
+            self.logger.debug("Pinging host %s at %s:%s", self.name, self.ip, self.port)
             self.connection.run("echo 'ping'", hide=True)
             self.online = True
-        except Exception:
+        except Exception as e:
+            self.logger.error("Ping to host %s failed: %s", self.name, e)
             self.online = False
         finally:
             self.connection.close()

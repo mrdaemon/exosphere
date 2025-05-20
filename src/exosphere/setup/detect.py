@@ -3,6 +3,8 @@
 # the remote system. It is used mostly for setup actions surrounding
 # actual actions exosphere might take.
 
+import logging
+
 from fabric import Connection
 
 from exosphere.data import HostInfo
@@ -10,6 +12,8 @@ from exosphere.errors import DataRefreshError, OfflineHostError, UnsupportedOSEr
 
 SUPPORTED_PLATFORMS = ["linux", "freebsd"]
 SUPPORTED_FLAVORS = ["ubuntu", "debian", "rhel", "freebsd"]
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def platform_detect(cx: Connection) -> HostInfo:
@@ -48,7 +52,7 @@ def os_detect(cx: Connection) -> str:
     cx.close()
 
     if result_system.failed:
-        raise DataRefreshError("Failed to query OS info.")
+        raise DataRefreshError(f"Failed to query OS info: {result_system.stderr}")
 
     return result_system.stdout.strip().lower()
 

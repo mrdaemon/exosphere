@@ -1,4 +1,5 @@
 import errno
+import logging
 import tomllib
 from collections.abc import Callable
 from typing import BinaryIO
@@ -22,6 +23,8 @@ class Configuration(dict):
         "hosts": [],
     }
 
+    # FIXME: Instead of this static list, the defaults should just be
+    #        used as a reference for the valid keys.
     VALID_ROOT_KEYS: list[str] = [
         "options",
         "hosts",
@@ -32,6 +35,7 @@ class Configuration(dict):
         Initialize the Configuration object with default values.
         """
         dict.__init__(self, self.DEFAULTS)
+        self.logger = logging.getLogger(__name__)
 
     def from_toml(self, filepath: str, silent: bool = False) -> bool:
         """
@@ -109,6 +113,10 @@ class Configuration(dict):
             for k, v in mapping:
                 if k in self.VALID_ROOT_KEYS:
                     self[k] = v
+                else:
+                    self.logger.warning(
+                        "Configuration key %s is not a valid root key, ignoring", k
+                    )
 
         return True
 
@@ -130,6 +138,8 @@ class Inventory:
 
         self.init_all()
 
+        self.logger = logging.getLogger(__name__)
+
     def init_all(self) -> None:
         """
         Setup the inventory by creating Host objects from the
@@ -140,7 +150,12 @@ class Inventory:
         self.hosts: list[Host] = []
 
         if len(self.configuration["hosts"]) == 0:
+            self.logger.warning("No hosts found in inventory")
             return
+
+        self.logger.debug(
+            "Initializing inventory with %d hosts", len(self.configuration["hosts"])
+        )
 
         for host in self.configuration["hosts"]:
             try:
@@ -157,8 +172,12 @@ class Inventory:
         Sync all hosts in the inventory.
 
         """
+        self.logger.info("Syncing all hosts in inventory")
+
         for host in self.hosts:
             host.sync()
+
+        self.logger.info("All hosts synced")
 
     def ping_all(self, stdout: bool = False) -> None:
         """
@@ -167,7 +186,6 @@ class Inventory:
         """
         for host in self.hosts:
             host.ping()
-            if stdout:
-                print(
-                    f"Host {host.name} is {'reachable' if host.online else 'offline'}"
-                )
+            logging.info(
+                "Host %s is %s", host.name, "online" if host.online else "offline"
+            )
