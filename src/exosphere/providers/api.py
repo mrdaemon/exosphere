@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Optional
 
 from fabric import Connection
@@ -23,6 +23,7 @@ class PkgManager(ABC):
         self.sudo = sudo
         self.__password = password
 
+    @abstractmethod
     def reposync(self, cx: Connection) -> bool:
         """
         Synchronize the package repository.
@@ -34,6 +35,7 @@ class PkgManager(ABC):
         """
         raise NotImplementedError("reposync method is not implemented.")
 
+    @abstractmethod
     def get_updates(self, cx: Connection) -> list[Update]:
         """
         Get a list of available updates.

@@ -2,33 +2,6 @@ import pytest
 
 from exosphere.data import Update
 from exosphere.providers import Apt
-from exosphere.providers.api import PkgManager
-
-
-class TestAPI:
-    def test_pkg_manager_init(self):
-        """
-        Test the initialization of the PkgManager class.
-        """
-        pkg_manager = PkgManager()
-        assert isinstance(pkg_manager, PkgManager)
-
-    def test_pkg_manager_reposync(self, mocker, connection):
-        """
-        Test the reposync method of the PkgManager class.
-        """
-        pkg_manager = PkgManager()
-        with pytest.raises(NotImplementedError):
-            pkg_manager.reposync(connection)
-
-    def test_pkg_manager_get_updates(self, mocker, connection):
-        """
-        Test the get_updates method of the PkgManager class.
-        """
-        pkg_manager = PkgManager()
-        with pytest.raises(NotImplementedError):
-            pkg_manager.get_updates(connection)
-
 
 class TestAptProvider:
     @pytest.fixture
@@ -54,11 +27,14 @@ class TestAptProvider:
         Fixture to mock the output of the apt command enumerating packages.
         """
         output = """
+        
         Inst base-files [12.4+deb12u10] (12.4+deb12u11 Debian:12.11/stable [arm64])
         Inst bash [5.2.15-2+b7] (5.2.15-2+b8 Debian:12.11/stable [arm64])
         Inst login [1:4.13+dfsg1-1+b1] (1:4.13+dfsg1-1+deb12u1 Debian:12.11/stable [arm64])
+
         Inst passwd [1:4.13+dfsg1-1+b1] (1:4.13+dfsg1-1+deb12u1 Debian:12.11/stable [arm64])
         Inst initramfs-tools [0.142+rpt3+deb12u1] (0.142+rpt3+deb12u3 Raspberry Pi Foundation:stable [all])
+        Inst big-patch [1.0-1] (1.0-2 Debian:12.11/bookworm-security [arm64])
         """
         mock_connection.run.return_value.stdout = output
         return mock_connection
@@ -92,9 +68,24 @@ class TestAptProvider:
         apt = Apt()
         updates: list[Update] = apt.get_updates(mock_pkg_output)
 
-        assert len(updates) == 5
+        assert len(updates) == 6
         assert updates[0].name == "base-files"
         assert updates[0].current_version == "12.4+deb12u10"
         assert updates[0].new_version == "12.4+deb12u11"
         assert updates[0].source == "Debian:12.11/stable"
         assert not updates[0].security
+
+        # Ensure security updates are correctly identified
+        assert updates[5].name == "big-patch"
+        assert updates[5].security
+
+    def test_get_updates_no_updates(self, mocker, mock_connection):
+        """
+        Test the get_updates method of the Apt provider when no updates are available.
+        """
+        apt = Apt()
+        mock_connection.run.return_value.stdout = ""
+
+        updates: list[Update] = apt.get_updates(mock_connection)
+
+        assert updates == []
