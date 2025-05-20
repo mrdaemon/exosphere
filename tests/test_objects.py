@@ -32,6 +32,9 @@ class TestHostObject:
         return hostinfo
 
     def test_host_initialization(self):
+        """
+        Test the initialization of the Host object.
+        """
         host = Host(name="test_host", ip="172.16.64.10", port=22)
 
         assert host.name == "test_host"
@@ -41,6 +44,9 @@ class TestHostObject:
         assert host.online is False
 
     def test_host_ping(self, mocker, mock_connection):
+        """
+        Functional test of the ping functionality for Host objects
+        """
         mock_connection.run.return_value = mocker.Mock()
         mock_connection.run.return_value.failed = False
 
@@ -52,6 +58,9 @@ class TestHostObject:
         "exception_type", [TimeoutError, ConnectionError, Exception]
     )
     def test_host_ping_failure(self, mocker, mock_connection, exception_type):
+        """
+        Test of the failure cases for the ping functionality for Host objects
+        """
         mock_connection.return_value.run.side_effect = exception_type(
             "Connection failed"
         )
@@ -66,6 +75,9 @@ class TestHostObject:
         assert host.online is False  # Should be False on failure
 
     def test_host_sync(self, mocker, mock_connection, mock_hostinfo):
+        """
+        Functional test of the sync functionality for Host objects
+        """
         host = Host(name="test_host", ip="127.0.0.1")
         host.sync()
 
@@ -79,6 +91,9 @@ class TestHostObject:
         mock_connection.assert_called_once_with(host=host.ip, port=host.port)
 
     def test_host_sync_offline(self, mocker, mock_connection):
+        """
+        Test the sync functionality for Host objects when the host is offline.
+        """
         mocker.patch(
             "exosphere.setup.detect.platform_detect",
             side_effect=OfflineHostError("Host is offline"),
@@ -97,10 +112,13 @@ class TestHostObject:
         assert host.online is False
 
     def test_host_refresh_catalog(self, mocker, mock_connection, mock_hostinfo):
+        """
+        Test of the refresh_catalog functionality for Host objects
+        """
         host = Host(name="test_host", ip="127.0.0.1")
         host.sync()
 
-        # This is currently unimplemented, leaving the test in to
+        # TODO: This is currently unimplemented, leaving the test in to
         # remember to implement the matching test in the future.
         with pytest.raises(NotImplementedError):
             host.refresh_catalog()
