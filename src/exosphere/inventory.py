@@ -186,6 +186,6 @@ class Inventory:
         """
         for host in self.hosts:
             host.ping()
-            logging.info(
+            self.logger.info(
                 "Host %s is %s", host.name, "online" if host.online else "offline"
             )
