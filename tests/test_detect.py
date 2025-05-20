@@ -84,6 +84,17 @@ class TestDetection:
         with pytest.raises(UnsupportedOSError):
             flavor_detect(connection, os_name)
 
+    def test_flavor_detect_no_id_like(self, connection) -> None:
+        # Mock the connection to return an empty ID and ID_LIKE
+        connection.run.side_effect = [
+            _run_return(False, 'ID="MagixOS"\n'),
+            _run_return(True, ""),  # no ID_LIKE
+        ]
+
+        # Call the function and expect it to raise an UnsupportedOSError
+        with pytest.raises(UnsupportedOSError):
+            flavor_detect(connection, "linux")
+
     def test_flavor_detect_connection_failure(self, connection) -> None:
         # Mock the connection to simulate a failure in flavor detection
         connection.run.return_value.failed = True
