@@ -136,9 +136,9 @@ class Inventory:
         self.configuration = config
         self.hosts: list[Host] = []
 
-        self.init_all()
-
         self.logger = logging.getLogger(__name__)
+
+        self.init_all()
 
     def init_all(self) -> None:
         """
