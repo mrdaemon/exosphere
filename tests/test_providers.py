@@ -3,6 +3,7 @@ import pytest
 from exosphere.data import Update
 from exosphere.providers import Apt
 
+
 class TestAptProvider:
     @pytest.fixture
     def mock_connection(self, mocker):
