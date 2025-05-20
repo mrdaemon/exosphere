@@ -20,6 +20,7 @@ dev = [
     "poethepoet>=0.33.1",
     "pyright>=1.1.400",
     "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
     "pytest-json-ctrf>=0.3.5",
     "pytest-mock>=3.14.0",
     "ruff>=0.11.5",
@@ -46,3 +47,4 @@ format = ['ruff-format', 'isort']
 format-check = ['ruff-format-check', 'isort-check']
 check = ['format-check', 'lint', 'typecheck']
 test = "pytest -v --ctrf .tests_report.json"
+coverage = "pytest --cov-report term-missing --cov=src tests/"
