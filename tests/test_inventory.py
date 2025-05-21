@@ -22,7 +22,7 @@ class TestConfiguration:
             },
             "hosts": [
                 {"name": "host1", "ip": "127.0.0.1"},
-                {"name": "host2", "ip": "127.0.0.2"},
+                {"name": "host2", "ip": "127.0.0.2", "port": 22},
             ],
         }
 
@@ -41,6 +41,7 @@ class TestConfiguration:
         [[hosts]]
         name = "host2"
         ip = "127.0.0.2"
+        port = 22
         """
 
         config_file = tmp_path / "config.toml"
@@ -57,6 +58,7 @@ class TestConfiguration:
             ip: 127.0.0.1
           - name: host2
             ip: 127.0.0.2
+            port: 22
         """
 
         config_file = tmp_path / "config.yaml"
@@ -76,6 +78,7 @@ class TestConfiguration:
         [[hosts]]
         name = "host2"
         ip = "127.0.0.2"
+        port = 22
 
         [unrecognized_section]
         name = "extra"
@@ -96,6 +99,7 @@ class TestConfiguration:
             ip: 127.0.0.1
           - name: host2
             ip: 127.0.0.2
+            port: 22
         unrecognized_section:
           name: extra
           description: This is an unparsed section
