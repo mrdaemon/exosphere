@@ -34,5 +34,7 @@ jobs:
       run: |
         uv run poe test
     - name: Publish test suite summary
-      run: npx github-actions-ctrf .tests_report.json
+      uses: ctrf-io/github-test-reporter@v1
+      with:
+        report-path: './.tests_report.json'
       if: always()
