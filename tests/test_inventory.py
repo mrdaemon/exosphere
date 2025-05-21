@@ -1,3 +1,4 @@
+import errno
 import tomllib
 
 import pytest
@@ -191,3 +192,52 @@ class TestConfiguration:
             assert config[key] == expected_config[key]
 
         assert "unrecognized_section" not in config
+
+    @pytest.mark.parametrize(
+        "exception_type, silent_mode",
+        [
+            (OSError(errno.ENOENT, "File not found"), False),
+            (OSError(errno.EISDIR, "is a Directory"), False),
+            (OSError(errno.EAGAIN, "Not Available"), True),
+        ],
+        ids=["file_not_found", "is_directory", "io_error"],
+    )
+    def test_from_file_ioerror(self, mocker, exception_type, silent_mode):
+        """
+        Ensure that the Configuration object raises an IOError
+        when opening generates an IOError and silent is False,
+        or when silent is True and the IOError is not one of the supported
+        cases.
+        """
+        config = Configuration()
+        mocker.patch("exosphere.inventory.open", side_effect=exception_type)
+
+        with pytest.raises(IOError):
+            config.from_file("non_existent_file.toml", tomllib.load, silent=silent_mode)
+
+    @pytest.mark.parametrize(
+        "error_code, error_name",
+        [
+            (errno.ENOENT, "File not found"),
+            (errno.EISDIR, "Is a directory"),
+        ],
+        ids=["file_not_found", "is_directory"],
+    )
+    def test_from_file_silent(self, mocker, error_code, error_name):
+        """
+        Ensure that the Configuration object does not raise an
+        IOError when the file cannot be opened and silent is True.
+        """
+        config = Configuration()
+        mocker.patch(
+            "exosphere.inventory.open", side_effect=OSError(error_code, error_name)
+        )
+
+        try:
+            result = config.from_file(
+                "non_existent_file.toml", tomllib.load, silent=True
+            )
+        except IOError:
+            pytest.fail("IOError should not have been raised with silent=True")
+
+        assert result is False
