@@ -6,8 +6,6 @@ import yaml
 
 from exosphere.inventory import Configuration
 
-# FIXME: these tests are garbage, need fixtures, and need functional coverage.
-
 
 class TestConfiguration:
     @pytest.fixture()
