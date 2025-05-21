@@ -9,6 +9,7 @@ wheels/
 # Pytest
 *.cover
 *.coverage
+htmlcov/
 .pytest_cache/
 .tests_report.json
 

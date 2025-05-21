@@ -47,4 +47,4 @@ format = ['ruff-format', 'isort']
 format-check = ['ruff-format-check', 'isort-check']
 check = ['format-check', 'lint', 'typecheck']
 test = "pytest -v --ctrf .tests_report.json"
-coverage = "pytest --cov-report term-missing --cov=src tests/"
+coverage = "pytest --cov-report term-missing --cov-report html --cov=src tests/"
