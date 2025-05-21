@@ -31,5 +31,11 @@ Linting, formatting and testing can be done with poe tasks:
 
 ```bash
 uv run poe check
-uv run poe tests
+uv run poe test
+```
+
+For more details, and available tasks, run:
+
+```bash
+uv run poe --help
 ```
