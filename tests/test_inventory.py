@@ -243,3 +243,33 @@ class TestConfiguration:
             pytest.fail("IOError should not have been raised with silent=True")
 
         assert result is False
+
+    def test_update_from_mapping(self, caplog):
+        """
+        Ensure that the Configuration object can be updated
+        from a mapping and discards invalid keys.
+        """
+        config = Configuration()
+
+        new_mapping = {
+            "options": {"log_level": "INFO"},
+            "hosts": [
+                {"name": "host3", "ip": "172.16.64.3"},
+                {"name": "host4", "ip": "172.16.64.4", "port": 22},
+            ],
+            "invalid_key": [{"name": "invalid"}],
+        }
+        result = config.update_from_mapping(new_mapping)
+
+        assert result is True
+
+        assert config["options"]["log_level"] == "INFO"
+        assert len(config["hosts"]) == 2
+        assert config["hosts"][0]["name"] == "host3"
+        assert config["hosts"][1]["name"] == "host4"
+        assert config["hosts"][0]["ip"] == "172.16.64.3"
+        assert config["hosts"][1]["ip"] == "172.16.64.4"
+        assert config["hosts"][1]["port"] == 22
+
+        assert "invalid_key" not in config
+        assert "is not a valid root key" in caplog.text
