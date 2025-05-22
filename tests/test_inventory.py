@@ -273,3 +273,14 @@ class TestConfiguration:
 
         assert "invalid_key" not in config
         assert "is not a valid root key" in caplog.text
+
+    def test_update_from_mapping_invalid_length(self):
+        """
+        Ensure that the Configuration object raises a TypeError
+        when more than one positional argument is passed to
+        update_from_mapping.
+        """
+        config = Configuration()
+
+        with pytest.raises(TypeError):
+            config.update_from_mapping({}, {}, {})
