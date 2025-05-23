@@ -5,6 +5,8 @@ from fabric import Connection
 
 from exosphere.data import HostInfo, Update
 from exosphere.errors import DataRefreshError, OfflineHostError
+from exosphere.providers import PkgManagerFactory
+from exosphere.providers.api import PkgManager
 from exosphere.setup import detect
 
 
@@ -42,6 +44,9 @@ class Host:
         self.version: Optional[str] = None
         self.flavor: Optional[str] = None
         self.package_manager: Optional[str] = None
+
+        # Package manager implementation
+        self._pkginst: Optional[PkgManager] = None
 
         # Update Catalog for host
         self.updates: list[Update] = []
@@ -111,6 +116,13 @@ class Host:
         self.flavor = platform_info.flavor
         self.package_manager = platform_info.package_manager
 
+        self._pkginst = PkgManagerFactory.create(self.package_manager)
+        self.logger.debug(
+            "Using concrete package manager %s for %s",
+            self._pkginst,
+            self.package_manager,
+        )
+
     def refresh_catalog(self) -> None:
         """
         Refresh the package catalog on the host.
@@ -127,7 +139,60 @@ class Host:
         if not self.online:
             raise OfflineHostError(f"Host {self.name} is offline.")
 
-        raise NotImplementedError("refresh_catalog method is not implemented.")
+        if self._pkginst is None:
+            self.logger.warning(
+                "Platform data missing! Forcing sync, "
+                "but this indicates an ordering bug."
+            )
+            self.sync()
+
+        if self._pkginst is not None:
+            pkg_manager = self._pkginst
+            if not pkg_manager.reposync(self.connection):
+                raise DataRefreshError(
+                    f"Failed to refresh package catalog on {self.name}"
+                )
+
+    def refresh_updates(self) -> None:
+        """
+        Refresh the list of available updates on the host.
+        This method retrieves the list of available updates and
+        populates the `updates` attribute.
+
+        :return: None
+        """
+        if not self.online:
+            raise OfflineHostError(f"Host {self.name} is offline.")
+
+        if self._pkginst is None:
+            self.logger.warning(
+                "Platform data missing! Forcing sync, "
+                "but this indicates an ordering bug."
+            )
+            self.sync()
+
+        if self._pkginst is not None:
+            pkg_manager = self._pkginst
+            self.updates = pkg_manager.get_updates(self.connection)
+        else:
+            self.logger.error(
+                "Package manager implementation unavailable, "
+                "this is likely due to sync failure."
+            )
+            raise DataRefreshError(
+                f"Failed to refresh updates on {self.name}: "
+                "No package manager implementation could be used."
+            )
+
+        if not self.updates:
+            self.logger.info("No updates available for %s", self.name)
+        else:
+            self.logger.info(
+                "Found %d updates for %s: %s",
+                len(self.updates),
+                self.name,
+                ", ".join(str(update) for update in self.updates),
+            )
 
     def ping(self) -> bool:
         """

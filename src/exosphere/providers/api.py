@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -22,6 +23,10 @@ class PkgManager(ABC):
         """
         self.sudo = sudo
         self.__password = password
+
+        # Setup logging
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
 
     @abstractmethod
     def reposync(self, cx: Connection) -> bool:

@@ -24,6 +24,22 @@ class TestAptProvider:
         return mock_connection
 
     @pytest.fixture
+    def mock_connection_sudo(self, mocker, mock_connection):
+        """
+        Fixture to mock the Fabric Connection object with sudo.
+        """
+        mock_connection.sudo.return_value.failed = False
+        return mock_connection
+
+    @pytest.fixture
+    def mock_connection_sudo_failed(self, mocker, mock_connection):
+        """
+        Fixture to mock the Fabric Connection object with sudo and a failed run.
+        """
+        mock_connection.sudo.return_value.failed = True
+        return mock_connection
+
+    @pytest.fixture
     def mock_pkg_output(self, mocker, mock_connection):
         """
         Fixture to mock the output of the apt command enumerating packages.
@@ -44,8 +60,8 @@ class TestAptProvider:
     @pytest.mark.parametrize(
         "connection_fixture, expected",
         [
-            ("mock_connection", True),
-            ("mock_connection_failed", False),
+            ("mock_connection_sudo", True),
+            ("mock_connection_sudo_failed", False),
         ],
         ids=["success", "failure"],
     )
@@ -58,7 +74,7 @@ class TestAptProvider:
         apt = Apt()
         result = apt.reposync(mock_connection)
 
-        mock_connection.run.assert_called_once_with(
+        mock_connection.sudo.assert_called_once_with(
             "apt-get update", hide=True, warn=True
         )
         assert result is expected

@@ -110,15 +110,3 @@ class TestHostObject:
         assert host.package_manager is None
 
         assert host.online is False
-
-    def test_host_refresh_catalog(self, mocker, mock_connection, mock_hostinfo):
-        """
-        Test of the refresh_catalog functionality for Host objects
-        """
-        host = Host(name="test_host", ip="127.0.0.1")
-        host.sync()
-
-        # TODO: This is currently unimplemented, leaving the test in to
-        # remember to implement the matching test in the future.
-        with pytest.raises(NotImplementedError):
-            host.refresh_catalog()

@@ -21,7 +21,7 @@ class Apt(PkgManager):
         :param cx: Fabric Connection object.
         :return: True if synchronization is successful, False otherwise.
         """
-        update = cx.run("apt-get update", hide=True, warn=True)
+        update = cx.sudo("apt-get update", hide=True, warn=True)
 
         if update.failed:
             return False
