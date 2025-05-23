@@ -1,5 +1,7 @@
 # Exosphere
 
+[![Test Suite](https://github.com/mrdaemon/exosphere/actions/workflows/exosphere-test.yml/badge.svg)](https://github.com/mrdaemon/exosphere/actions/workflows/exosphere-test.yml)
+
 Exosphere is a command line and Text User Interface driven utility to query and
 get ad-hoc reports from server infrastructure.
 
