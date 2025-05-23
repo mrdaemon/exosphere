@@ -23,13 +23,6 @@ class Configuration(dict):
         "hosts": [],
     }
 
-    # FIXME: Instead of this static list, the defaults should just be
-    #        used as a reference for the valid keys.
-    VALID_ROOT_KEYS: list[str] = [
-        "options",
-        "hosts",
-    ]
-
     def __init__(self):
         """
         Initialize the Configuration object with default values.
@@ -111,7 +104,7 @@ class Configuration(dict):
         # Parse and filter mappings
         for mapping in mappings:
             for k, v in mapping:
-                if k in self.VALID_ROOT_KEYS:
+                if k in self.DEFAULTS:
                     self[k] = v
                 else:
                     self.logger.warning(
