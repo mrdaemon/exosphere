@@ -2,11 +2,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from exosphere.errors import DataRefreshError, UnsupportedOSError
+from exosphere.data import HostInfo
+from exosphere.errors import DataRefreshError, OfflineHostError, UnsupportedOSError
 from exosphere.setup.detect import (
     flavor_detect,
     os_detect,
     package_manager_detect,
+    platform_detect,
     version_detect,
 )
 
@@ -229,3 +231,40 @@ class TestDetection:
         # Call the function and expect it to raise a DataRefreshError
         with pytest.raises(UnsupportedOSError):
             package_manager_detect(connection, flavor)
+
+    def test_platform_detect(self, connection) -> None:
+        """
+        Very basic end to end test for platform detection
+        """
+        # mock the connection to return a series of values in a mock
+        # object, as the stdout attribute of the mock object
+        connection.run.side_effect = [
+            _run_return(False, "Linux\n"),
+            _run_return(False, 'ID="debian"\n'),
+            _run_return(True, ""),  # no ID_LIKE
+            _run_return(False, "12\n"),
+            _run_return(False, "apt\n"),
+        ]
+
+        expected = HostInfo(
+            os="linux",
+            version="12",
+            flavor="debian",
+            package_manager="apt",
+        )
+
+        # Call the function to test
+        platform_info = platform_detect(connection)
+
+        assert platform_info == expected
+
+    def test_platform_detect_timeout(self, connection) -> None:
+        """
+        Test for platform detection handling of Timeout Errors
+        """
+        # Mock the connection to simulate a timeout
+        connection.run.side_effect = TimeoutError("Connection timed out")
+
+        # Call the function and expect it to raise an OfflineHostError
+        with pytest.raises(OfflineHostError):
+            platform_detect(connection)
