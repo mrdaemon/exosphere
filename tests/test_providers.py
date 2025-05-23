@@ -1,6 +1,7 @@
 import pytest
 
 from exosphere.data import Update
+from exosphere.errors import DataRefreshError
 from exosphere.providers import Apt
 
 
@@ -90,3 +91,25 @@ class TestAptProvider:
         updates: list[Update] = apt.get_updates(mock_connection)
 
         assert updates == []
+
+    def test_get_updates_query_failed(self, mocker, mock_connection):
+        """
+        Test the get_updates method of the Apt provider when the query fails.
+        """
+        apt = Apt()
+        mock_connection.run.return_value.failed = True
+
+        with pytest.raises(DataRefreshError):
+            apt.get_updates(mock_connection)
+
+    def test_get_updates_invalid_output(self, mocker, mock_connection):
+        """
+        Test the get_updates method of the Apt provider with invalid output.
+        Unparsable output in lines should be ignored.
+        """
+        apt = Apt()
+        mock_connection.run.return_value.stdout = "Invalid output"
+
+        results = apt.get_updates(mock_connection)
+
+        assert results == []
