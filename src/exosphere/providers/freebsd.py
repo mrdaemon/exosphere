@@ -51,63 +51,63 @@ class Pkg(PkgManager):
 
         # Check for vulnerable packages via
         # pkg audit -q
-        with cx as c:
-            self.logger.info("Running pkg audit to inventory vulnerable packages")
-            result = c.run("pkg audit -q", hide=True, warn=True)
+        self.logger.info("Running pkg audit to inventory vulnerable packages")
+        result_audit = cx.run("pkg audit -q", hide=True, warn=True)
 
-            if result.failed:
-                raise DataRefreshError(
-                    f"Failed to get vulnerable packages from pkg: {result.stderr}"
-                )
-
-            for line in result.stdout.splitlines():
-                line = line.strip()
-
-                # Skip blank lines
-                if not line:
-                    continue
-
-                # Add the vulnerable package to the list
-                # This is a string, not an Update object.
-                # Comparison can be done later via:
-                # f"{update.name}-{update.current_version}"
-                vulnerable.append(line)
-
-            # Store vulnerable packages as member for later use
-            self.vulnerable = vulnerable
-            self.logger.info(
-                "Found %d vulnerable packages: %s",
-                len(vulnerable),
-                ", ".join(vulnerable),
+        if result_audit.failed:
+            cx.close()
+            raise DataRefreshError(
+                f"Failed to get vulnerable packages from pkg: {result_audit.stderr}"
             )
 
-        with cx as c:
-            result = c.run("pkg upgrade -qn | grep -e '^\\s'", hide=True, warn=True)
+        for line in result_audit.stdout.splitlines():
+            line = line.strip()
 
-            if result.failed:
-                raise DataRefreshError(
-                    f"Failed to get updates from pkg: {result.stderr}"
-                )
+            # Skip blank lines
+            if not line:
+                continue
 
-            for line in result.stdout.splitlines():
-                line = line.strip()
+            # Add the vulnerable package to the list
+            # This is a string, not an Update object.
+            # Comparison can be done later via:
+            # f"{update.name}-{update.current_version}"
+            vulnerable.append(line)
 
-                # Skip blank lines
-                if not line:
-                    continue
+        # Store vulnerable packages as member for later use
+        self.vulnerable = vulnerable
+        self.logger.info(
+            "Found %d vulnerable packages: %s",
+            len(vulnerable),
+            ", ".join(vulnerable),
+        )
 
-                update = self._parse_line(line)
-                if update is None:
-                    self.logger.debug("Skipping garbage line: %s", line)
-                    continue
+        result = cx.run("pkg upgrade -qn | grep -e '^\\s'", hide=True, warn=True)
 
-                updates.append(update)
+        if result.failed:
+            cx.close()
+            raise DataRefreshError(f"Failed to get updates from pkg: {result.stderr}")
+
+        for line in result.stdout.splitlines():
+            line = line.strip()
+
+            # Skip blank lines
+            if not line:
+                continue
+
+            update = self._parse_line(line)
+            if update is None:
+                self.logger.debug("Skipping garbage line: %s", line)
+                continue
+
+            updates.append(update)
 
         self.logger.info(
             "Found %d updates for FreeBSD packages: %s",
             len(updates),
             ", ".join(str(update) for update in updates),
         )
+
+        cx.close()
         return updates
 
     def _parse_line(self, line: str) -> Update | None:
@@ -118,11 +118,10 @@ class Pkg(PkgManager):
         """
 
         pattern = (
-            r"^\s+"  # Start with whitespace (any amount)
-            r"(\S+):\s+"  # (1) Package name: non-space characters
-            r"(\S+)\s+"  # (2) Current version: non-space characters
-            r"->\s+"  # Arrow followed by whitespace
-            r"(\S+)\s+"  # (3) Proposed version: non-space characters
+            r"^\s*(\S+):\s+"  # (1) Package name
+            r"([^\s]+)"  # (2) Current version
+            r"\s+->\s+"  # Separator
+            r"([^\s]+)$"  # (3) Proposed version
         )
 
         match = re.match(pattern, line)

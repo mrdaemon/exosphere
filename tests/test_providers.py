@@ -3,6 +3,7 @@ import pytest
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
 from exosphere.providers import Apt
+from exosphere.providers.freebsd import Pkg
 
 
 class TestAptProvider:
@@ -127,5 +128,154 @@ class TestAptProvider:
         mock_connection.run.return_value.stdout = "Invalid output"
 
         results = apt.get_updates(mock_connection)
+
+        assert results == []
+
+
+class TestPkgProvider:
+    @pytest.fixture
+    def mock_connection(self, mocker):
+        """
+        Fixture to mock the Fabric Connection object.
+        """
+        mock_cx = mocker.patch("exosphere.providers.freebsd.Connection", autospec=True)
+        mock_cx.run.return_value.failed = False
+        return mock_cx
+
+    @pytest.fixture
+    def mock_connection_failed(self, mocker, mock_connection):
+        """
+        Fixture to mock the Fabric Connection object with a failed run.
+        """
+        mock_connection.run.return_value.failed = True
+        return mock_connection
+
+    @pytest.fixture
+    def mock_connection_sudo(self, mocker, mock_connection):
+        """
+        Fixture to mock the Fabric Connection object with sudo.
+        """
+        mock_connection.sudo.return_value.failed = False
+        return mock_connection
+
+    @pytest.fixture
+    def mock_connection_sudo_failed(self, mocker, mock_connection):
+        """
+        Fixture to mock the Fabric Connection object with sudo and a failed run.
+        """
+        mock_connection.sudo.return_value.failed = True
+        return mock_connection
+
+    @pytest.fixture
+    def mock_pkg_output(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the pkg command enumerating packages.
+        """
+        output = """
+        The following 19 package(s) will be affected (of 0 checked):
+
+        Installed packages to be UPGRADED:
+                btop: 1.4.1 -> 1.4.3
+                cmake: 3.31.6 -> 3.31.7
+                cmake-core: 3.31.6 -> 3.31.7
+                cmake-doc: 3.31.6 -> 3.31.7
+                cmake-man: 3.31.6 -> 3.31.7
+                curl: 8.13.0 -> 8.13.0_2
+                en-freebsd-doc: 20250425,1 -> 20250509,1
+                libgcrypt: 1.11.0 -> 1.11.1
+                mpdecimal: 4.0.0 -> 4.0.1
+                p5-URI: 5.31 -> 5.32
+                pciids: 20250309 -> 20250415
+                py311-cryptography: 44.0.1,1 -> 44.0.2,1
+                py311-h11: 0.14.0_1 -> 0.16.0
+                py311-httpcore: 1.0.7 -> 1.0.9
+                py311-markdown: 3.6 -> 3.7
+                py311-typing-extensions: 4.13.1 -> 4.13.2
+                smartmontools: 7.4_2 -> 7.5
+                vim: 9.1.1265 -> 9.1.1378
+                xxd: 9.1.1265 -> 9.1.1378
+
+        Number of packages to be upgraded: 19
+
+        77 MiB to be downloaded.
+
+        """
+        output_vulnerable = "py311-h11-0.14.0_1"
+
+        mock_audit = mocker.MagicMock()
+        mock_audit.failed = False
+        mock_audit.stdout = output_vulnerable
+
+        mock_packages = mocker.MagicMock()
+        mock_packages.failed = False
+        mock_packages.stdout = output
+
+        mock_connection.run.side_effect = [mock_audit, mock_packages]
+
+        return mock_connection
+
+    def test_reposync(self, mocker, mock_connection):
+        """
+        Test the reposync method of the Pkg provider.
+        This method is a no-op for FreeBSD, since pkg automatically
+        syncs the repositories on update checks.
+        """
+
+        pkg = Pkg()
+        result = pkg.reposync(mock_connection)
+
+        assert result is True
+
+    def test_get_updates(self, mocker, mock_pkg_output):
+        """
+        Test the get_updates method of the Pkg provider.
+        The data is provided by the mock_pkg_output fixture.
+
+        Note: Closely coupled with implementation due to use
+        of side effect to mock to two separate calls to the
+        mock_connection.run method.
+        """
+        pkg = Pkg()
+        updates: list[Update] = pkg.get_updates(mock_pkg_output)
+
+        assert len(updates) == 19
+        assert updates[0].name == "btop"
+        assert updates[0].current_version == "1.4.1"
+        assert updates[0].new_version == "1.4.3"
+        assert not updates[0].security
+
+        # Ensure security updates are correctly identified
+        assert updates[12].name == "py311-h11"
+        assert updates[12].security
+
+    def test_get_updates_no_updates(self, mocker, mock_connection):
+        """
+        Test the get_updates method of the Pkg provider when no updates are available.
+        """
+        pkg = Pkg()
+        mock_connection.run.return_value.stdout = ""
+
+        updates: list[Update] = pkg.get_updates(mock_connection)
+
+        assert updates == []
+
+    def test_get_updates_query_failed(self, mocker, mock_connection_failed):
+        """
+        Test the get_updates method of the Pkg provider when the query fails.
+        """
+        pkg = Pkg()
+
+        with pytest.raises(DataRefreshError):
+            pkg.get_updates(mock_connection_failed)
+
+    def test_get_updates_invalid_output(self, mocker, mock_connection):
+        """
+        Test the get_updates method of the Pkg provider with invalid output.
+        Unparsable output in lines should be ignored.
+        """
+        pkg = Pkg()
+        mock_connection.run.return_value.stdout = "Invalid outputTTE ->"
+
+        results = pkg.get_updates(mock_connection)
 
         assert results == []
