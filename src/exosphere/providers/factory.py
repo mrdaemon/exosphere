@@ -1,7 +1,8 @@
 from typing import Optional
 
-from exosphere.providers import Apt
 from exosphere.providers.api import PkgManager
+from exosphere.providers.debian import Apt
+from exosphere.providers.freebsd import Pkg
 
 
 class PkgManagerFactory:
@@ -23,5 +24,7 @@ class PkgManagerFactory:
         """
         if name == "apt":
             return Apt(sudo=sudo, password=password)
+        elif name == "pkg":
+            return Pkg(sudo=sudo, password=password)
         else:
             raise ValueError(f"Unsupported package manager: {name}")
