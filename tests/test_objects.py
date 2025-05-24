@@ -87,6 +87,11 @@ class TestHostObject:
         assert host.package_manager == mock_hostinfo.package_manager
         assert host.online is True
 
+        # Ensure a Package Manager implementation was picked
+        # in this case, with the fixture, it should be Apt
+        assert host._pkginst is not None
+        assert host._pkginst.__class__.__name__ == "Apt"
+
         # Ensure the connection was established
         mock_connection.assert_called_once_with(host=host.ip, port=host.port)
 
