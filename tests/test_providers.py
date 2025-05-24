@@ -268,13 +268,23 @@ class TestPkgProvider:
         with pytest.raises(DataRefreshError):
             pkg.get_updates(mock_connection_failed)
 
-    def test_get_updates_invalid_output(self, mocker, mock_connection):
+    @pytest.mark.parametrize(
+        "output",
+        ["Invalid output", "Updates are being launched in space", "->", ""],
+        ids=[
+            "invalid_output_1",
+            "invalid_output_2",
+            "invalid_output_3",
+            "empty_output",
+        ],
+    )
+    def test_get_updates_invalid_output(self, mocker, mock_connection, output):
         """
         Test the get_updates method of the Pkg provider with invalid output.
         Unparsable output in lines should be ignored.
         """
         pkg = Pkg()
-        mock_connection.run.return_value.stdout = "Invalid outputTTE ->"
+        mock_connection.run.return_value.stdout = output
 
         results = pkg.get_updates(mock_connection)
 
