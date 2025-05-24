@@ -33,10 +33,16 @@ class Apt(PkgManager):
         :param cx: Fabric Connection object.
         :return: True if synchronization is successful, False otherwise.
         """
+        self.logger.info("Synchronizing apt repositories")
         update = cx.sudo("apt-get update", hide=True, warn=True)
 
         if update.failed:
+            self.logger.error(
+                f"Failed to synchronize apt repositories: {update.stderr}"
+            )
             return False
+
+        self.logger.info("Apt repositories synchronized successfully")
 
         return True
 
@@ -70,6 +76,10 @@ class Apt(PkgManager):
 
             updates.append(update)
 
+        self.logger.info(
+            f"Found {len(updates)} updates available via Apt: {', '.join(u.name for u in updates)}"
+        )
+
         return updates
 
     def _parse_line(self, line: str) -> Update | None:
@@ -100,6 +110,9 @@ class Apt(PkgManager):
         is_security = False
 
         if "security" in repo_source.lower():
+            self.logger.info(
+                f"Package {package_name} is a security update: {new_version}"
+            )
             is_security = True
 
         return Update(

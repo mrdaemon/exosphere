@@ -117,7 +117,7 @@ class Pkg(PkgManager):
         self.logger.info(
             "Found %d updates for FreeBSD packages: %s",
             len(updates),
-            ", ".join(str(update) for update in updates),
+            ", ".join(u.name for u in updates),
         )
 
         cx.close()
