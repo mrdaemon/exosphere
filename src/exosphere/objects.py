@@ -104,7 +104,7 @@ class Host:
             self.logger.error(
                 "An error occurred during sync for %s: %s",
                 self.name,
-                e,
+                e.stderr,
             )
             self.online = False
             raise DataRefreshError(
@@ -163,13 +163,6 @@ class Host:
         """
         if not self.online:
             raise OfflineHostError(f"Host {self.name} is offline.")
-
-        if self._pkginst is None:
-            self.logger.warning(
-                "Platform data missing! Forcing sync, "
-                "but this indicates an ordering bug."
-            )
-            self.sync()
 
         if self._pkginst is not None:
             pkg_manager = self._pkginst

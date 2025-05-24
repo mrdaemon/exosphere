@@ -43,6 +43,9 @@ class Pkg(PkgManager):
         :param cx: Fabric Connection object
         :return: True if synchronization is successful, False otherwise.
         """
+        self.logger.debug(
+            "FreeBSD pkg does not require explicit repository synchronization, returning True"
+        )
         return True
 
     def get_updates(self, cx: Connection) -> list[Update]:
