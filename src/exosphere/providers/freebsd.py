@@ -18,6 +18,14 @@ class Pkg(PkgManager):
         """
         Initialize the Pkg package manager.
 
+        On FreeBSD, the reposync operation is not needed as the package
+        manager automatically syncs the repositories.
+
+        Additionally, this implementation only covers the freebsd packages.
+        Ports and system components are not covered as of now.
+
+        You get a nice email about those, if correctly configured.
+
         :param sudo: Whether to use sudo for package refresh operations (default is True).
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
