@@ -1,4 +1,3 @@
-import logging
 import re
 from typing import Optional
 
@@ -31,7 +30,6 @@ class Pkg(PkgManager):
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
         super().__init__(sudo, password)
-        self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing FreeBSD pkg package manager")
         self.vulnerable: list[str] = []
 

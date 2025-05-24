@@ -1,4 +1,3 @@
-import logging
 import re
 from typing import Optional
 
@@ -24,7 +23,6 @@ class Apt(PkgManager):
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
         super().__init__(sudo, password)
-        self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing Debian Apt package manager")
         self.vulnerable: list[str] = []
 
