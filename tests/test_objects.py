@@ -1,7 +1,7 @@
 import pytest
 
 from exosphere.data import HostInfo
-from exosphere.errors import OfflineHostError
+from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.objects import Host
 
 
@@ -108,6 +108,51 @@ class TestHostObject:
         mocker.patch.object(host, "ping", return_value=False)
 
         host.sync()
+
+        assert host.os is None
+        assert host.version is None
+        assert host.flavor is None
+        assert host.package_manager is None
+
+        assert host.online is False
+
+    def test_host_sync_offline_after_ping(self, mocker, mock_connection):
+        """
+        Test the sync functionality for Host objects when the host is offline
+        and an exception is raised.
+        """
+        mocker.patch(
+            "exosphere.setup.detect.platform_detect",
+            side_effect=OfflineHostError("Host is offline"),
+        )
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        mocker.patch.object(host, "ping", return_value=True)
+
+        host.sync()
+
+        assert host.os is None
+        assert host.version is None
+        assert host.flavor is None
+        assert host.package_manager is None
+
+        assert host.online is False
+
+    def test_host_sync_data_refresh_error(self, mocker, mock_connection):
+        """
+        Test behavior of sync when a DataRefreshError is raised.
+        It should re-raise the exception and set the online status to False.
+        """
+        mocker.patch(
+            "exosphere.setup.detect.platform_detect",
+            side_effect=DataRefreshError("Data refresh error"),
+        )
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        mocker.patch.object(host, "ping", return_value=True)
+
+        with pytest.raises(DataRefreshError):
+            host.sync()
 
         assert host.os is None
         assert host.version is None
