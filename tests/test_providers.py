@@ -2,8 +2,31 @@ import pytest
 
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
-from exosphere.providers import Apt
-from exosphere.providers.freebsd import Pkg
+from exosphere.providers import Apt, Pkg, PkgManagerFactory
+
+
+class TestPkgManagerFactory:
+    @pytest.mark.parametrize(
+        "name, expected_class",
+        [
+            ("apt", Apt),
+            ("pkg", Pkg),
+        ],
+        ids=["apt", "pkg"],
+    )
+    def test_create(self, name, expected_class):
+        """
+        Test the PkgManagerFactory to create package manager instances.
+        """
+        pkg_manager = PkgManagerFactory.create(name)
+        assert isinstance(pkg_manager, expected_class)
+
+    def test_create_invalid(self):
+        """
+        Test the PkgManagerFactory with an invalid package manager name.
+        """
+        with pytest.raises(ValueError):
+            PkgManagerFactory.create("invalid_pkg_manager")
 
 
 class TestAptProvider:
