@@ -131,10 +131,10 @@ class Pkg(PkgManager):
         """
 
         pattern = (
-            r"^\s*(\S+):\s+"  # (1) Package name
-            r"([^\s]+)"  # (2) Current version
-            r"\s+->\s+"  # Separator
-            r"([^\s]+)$"  # (3) Proposed version
+            r"^\s*(\S+):\s+"  # (1) Package name, followed by colon and spaces
+            r"([^\s]+)"  # (2) Current version: non-space characters
+            r"\s+->\s+"  # -> Separator, surrounded by spaces
+            r"([^\s]+)$"  # (3) Proposed version, non-space characters until eol
         )
 
         match = re.match(pattern, line)
@@ -143,7 +143,8 @@ class Pkg(PkgManager):
 
         package_name = match.group(1).strip()
         current_version = match.group(2).strip()
-        proposed_version = match.group(3).strip()
+        new_version = match.group(3).strip()
+        is_security = False
 
         # Check if package is vulnerable, indicates
         # that it is a security update
@@ -154,13 +155,11 @@ class Pkg(PkgManager):
                 current_version,
             )
             is_security = True
-        else:
-            is_security = False
 
         return Update(
             name=package_name,
             current_version=current_version,
-            new_version=proposed_version,
+            new_version=new_version,
             source="Packages Mirror",  # FreeBSD only has this source
             security=is_security,
         )

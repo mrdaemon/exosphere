@@ -61,25 +61,32 @@ class Apt(PkgManager):
         )
 
         if raw_query.failed:
+            cx.close()
             raise DataRefreshError(
                 f"Failed to get updates from apt-get: {raw_query.stderr}"
             )
 
         for line in raw_query.stdout.splitlines():
             line = line.strip()
+
+            # Skip blank lines
             if not line:
                 continue
 
             update = self._parse_line(line)
             if update is None:
+                self.logger.debug("Failed to parse line: %s. Skipping.", line)
                 continue
 
             updates.append(update)
 
         self.logger.info(
-            f"Found {len(updates)} updates available via Apt: {', '.join(u.name for u in updates)}"
+            "Found %d package updates available: %s",
+            len(updates),
+            ", ".join(u.name for u in updates),
         )
 
+        cx.close()
         return updates
 
     def _parse_line(self, line: str) -> Update | None:
