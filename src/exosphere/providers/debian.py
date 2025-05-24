@@ -1,4 +1,6 @@
+import logging
 import re
+from typing import Optional
 
 from fabric import Connection
 
@@ -13,6 +15,18 @@ class Apt(PkgManager):
 
     Implements the Apt package manager interface.
     """
+
+    def __init__(self, sudo: bool = True, password: Optional[str] = None) -> None:
+        """
+        Initialize the Apt package manager.
+
+        :param sudo: Whether to use sudo for package refresh operations (default is True).
+        :param password: Optional password for sudo operations, if not using NOPASSWD.
+        """
+        super().__init__(sudo, password)
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing Debian Apt package manager")
+        self.vulnerable: list[str] = []
 
     def reposync(self, cx: Connection) -> bool:
         """
