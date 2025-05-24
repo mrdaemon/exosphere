@@ -160,3 +160,10 @@ class TestHostObject:
         assert host.package_manager is None
 
         assert host.online is False
+
+    def test_host_repr(self):
+        """
+        Test the string representation of the Host object.
+        """
+        host = Host(name="test_host", ip="10.0.0.2", port=22)
+        assert repr(host) == "Host(name='test_host', ip='10.0.0.2', port='22')"

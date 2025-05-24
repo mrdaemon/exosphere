@@ -219,4 +219,4 @@ class Host:
         )
 
     def __repr__(self):
-        return f"Host({self.name}, {self.ip}, {self.port})"
+        return f"Host(name='{self.name}', ip='{self.ip}', port='{self.port}')"
