@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Optional
 
@@ -30,6 +31,8 @@ class Pkg(PkgManager):
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
         super().__init__(sudo, password)
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing FreeBSD pkg package manager")
         self.vulnerable: list[str] = []
 
     def reposync(self, cx: Connection) -> bool:
@@ -63,10 +66,14 @@ class Pkg(PkgManager):
         result_audit = cx.run("pkg audit -q", hide=True, warn=True)
 
         if result_audit.failed:
-            cx.close()
-            raise DataRefreshError(
-                f"Failed to get vulnerable packages from pkg: {result_audit.stderr}"
-            )
+            # We check for stderr here, as pkg audit will return
+            # non-zero exit code if vulnerable packages are found.
+            if result_audit.stderr:
+                self.logger.error("pkg audit failed: %s", result_audit.stderr)
+                cx.close()
+                raise DataRefreshError(
+                    f"Failed to get vulnerable packages from pkg: {result_audit.stdout} {result_audit.stderr}"
+                )
 
         for line in result_audit.stdout.splitlines():
             line = line.strip()
@@ -156,6 +163,6 @@ class Pkg(PkgManager):
             name=package_name,
             current_version=current_version,
             new_version=proposed_version,
-            source="FreeBSD Ports",  # FreeBSD only has this source
+            source="Packages Mirror",  # FreeBSD only has this source
             security=is_security,
         )
