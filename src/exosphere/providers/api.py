@@ -25,7 +25,7 @@ class PkgManager(ABC):
         self.__password = password
 
         # Setup logging
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
 
     @abstractmethod
