@@ -226,8 +226,9 @@ class TestPkgProvider:
         output_vulnerable = "py311-h11-0.14.0_1"
 
         mock_audit = mocker.MagicMock()
-        mock_audit.failed = False
+        mock_audit.failed = True  # Audit returns non-zero exit code on match
         mock_audit.stdout = output_vulnerable
+        mock_audit.stderr = ""  # No error message for successful audit
 
         mock_packages = mocker.MagicMock()
         mock_packages.failed = False
@@ -235,6 +236,25 @@ class TestPkgProvider:
 
         mock_connection.run.side_effect = [mock_audit, mock_packages]
 
+        return mock_connection
+
+    @pytest.fixture
+    def mock_pkg_output_audit_failed(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the pkg command when the audit fails.
+        This simulates a non-zero exit code with an error message.
+        """
+
+        mock_audit = mocker.MagicMock()
+        mock_audit.failed = True
+        mock_audit.stdout = ""
+        mock_audit.stderr = "Generic error"
+
+        mock_packages = mocker.MagicMock()
+        mock_packages.failed = False
+        mock_packages.stdout = ""
+
+        mock_connection.run.side_effect = [mock_audit, mock_packages]
         return mock_connection
 
     def test_reposync(self, mocker, mock_connection):
@@ -259,7 +279,11 @@ class TestPkgProvider:
         mock_connection.run method.
         """
         pkg = Pkg()
-        updates: list[Update] = pkg.get_updates(mock_pkg_output)
+
+        try:
+            updates: list[Update] = pkg.get_updates(mock_pkg_output)
+        except DataRefreshError as e:
+            pytest.fail(f"DataRefreshError should not be raised, got: {e}")
 
         assert len(updates) == 19
         assert updates[0].name == "btop"
@@ -312,3 +336,20 @@ class TestPkgProvider:
         results = pkg.get_updates(mock_connection)
 
         assert results == []
+
+    def test_get_updates_nonzero_exit_audit(self, mocker, mock_pkg_output_audit_failed):
+        """
+        Test the get_updates method of the Pkg provider when the audit command fails.
+
+        We test this by simulating the combination of a non-zero exit code
+        and a non-empty stderr, which is the only way to figure out if the
+        audit command genuinely failed.
+        """
+        pkg = Pkg()
+
+        with pytest.raises(DataRefreshError) as e:
+            pkg.get_updates(mock_pkg_output_audit_failed)
+            assert (
+                str(e.value)
+                == "Failed to get vulnerable packages from pkg: Generic error"
+            )
