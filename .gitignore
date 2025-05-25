@@ -28,4 +28,5 @@ htmlcov/
 # in-dir configs
 config.toml
 config.yaml
+config.yml
 config.json
