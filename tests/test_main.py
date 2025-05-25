@@ -1,5 +1,9 @@
 import pytest
 
+from pathlib import Path
+
+import yaml
+
 from exosphere.inventory import Configuration
 from exosphere.main import load_first_config
 
@@ -39,7 +43,12 @@ class TestMain:
         """
         Test the load_first_config function.
         """
+        mocker.patch("pathlib.Path.exists", return_value=True)
+        first_path = Path.home() / ".config" / "exosphere" / "config.yaml"
+
         result = load_first_config(mock_config)
 
         assert result is True
-        mock_config.from_file.assert_called_once()
+        mock_config.from_file.assert_called_once_with(
+            mock_config, str(first_path), yaml.safe_load, silent=True
+        )
