@@ -7,7 +7,7 @@ from typing import Callable
 
 import yaml
 
-from exosphere import cli
+from exosphere import app_config, app_state, cli
 from exosphere.inventory import Configuration
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,7 @@ def load_first_config(config: Configuration) -> bool:
 
         try:
             if config.from_file(filepath=str(confpath), loader=loader, silent=True):
+                app_state.confpath = str(confpath)
                 logger.info("Loaded config file from %s", confpath)
                 return True
         except Exception as e:
@@ -91,16 +92,14 @@ def main() -> None:
     """
     Program Entry Point
     """
-
-    # We're running on defaults for now
-    # FIXME: Resolve when we implement reading the config file
-    config = Configuration()
-    setup_logging(config["options"]["log_level"])
-
     # Load the first configuration file found
-    if not load_first_config(config):
+    if not load_first_config(app_config):
         logger.warning("No configuration file found. Using defaults.")
 
+    # Setup logging from configuration
+    setup_logging(app_config["options"]["log_level"])
+
+    # Launch CLI application
     cli.app()
 
 
