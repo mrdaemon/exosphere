@@ -378,6 +378,7 @@ dependencies = [
     { name = "fabric" },
     { name = "pyyaml" },
     { name = "textual" },
+    { name = "textual-serve" },
     { name = "typer" },
 ]
 
@@ -401,6 +402,7 @@ requires-dist = [
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "textual", specifier = ">=3.2.0" },
+    { name = "textual-serve", specifier = ">=1.1.2" },
     { name = "typer", specifier = ">=0.15.2" },
 ]
 
