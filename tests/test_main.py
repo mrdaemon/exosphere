@@ -1,0 +1,33 @@
+class TestMain:
+    def test_main(self, mocker):
+        """
+        Test the main function of the Exosphere application.
+        """
+        mock_load_first_config = mocker.patch(
+            "exosphere.main.load_first_config", return_value=True
+        )
+        mock_setup_logging = mocker.patch("exosphere.main.setup_logging")
+
+        mock_cli_app = mocker.patch("exosphere.cli.app")
+
+        from exosphere.main import main
+
+        main()
+
+        mock_load_first_config.assert_called_once()
+        mock_setup_logging.assert_called_once()
+        mock_cli_app.assert_called_once()
+
+    def test_load_first_config(self, mocker):
+        """
+        Test the load_first_config function.
+        """
+        mock_config = mocker.Mock()
+        mock_config.from_file.return_value = True
+
+        from exosphere.main import load_first_config
+
+        result = load_first_config(mock_config)
+
+        assert result is True
+        mock_config.from_file.assert_called_once()
