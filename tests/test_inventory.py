@@ -1,4 +1,5 @@
 import errno
+import json
 import tomllib
 
 import pytest
@@ -64,6 +65,30 @@ class TestConfiguration:
         return config_file
 
     @pytest.fixture()
+    def json_config_file(self, tmp_path):
+        json_content = """
+        {
+            "options": {
+                "log_level": "DEBUG"
+            },
+            "hosts": [
+                {
+                    "name": "host1",
+                    "ip": "127.0.0.1"
+                },
+                {
+                    "name": "host2",
+                    "ip": "127.0.0.2",
+                    "port": 22
+                }
+            ]
+        }
+        """
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json_content)
+        return config_file
+
+    @pytest.fixture()
     def toml_config_file_extra(self, tmp_path):
         toml_content = """
         [options]
@@ -107,6 +132,34 @@ class TestConfiguration:
         config_file.write_text(yaml_content)
         return config_file
 
+    @pytest.fixture()
+    def json_config_file_extra(self, tmp_path):
+        json_content = """
+        {
+            "options": {
+                "log_level": "DEBUG"
+            },
+            "hosts": [
+                {
+                    "name": "host1",
+                    "ip": "127.0.0.1"
+                },
+                {
+                    "name": "host2",
+                    "ip": "127.0.0.2",
+                    "port": 22
+                }
+            ],
+            "unrecognized_section": {
+                "name": "extra",
+                "description": "This is an unparsed section"
+            }
+        }
+        """
+        config_file = tmp_path / "config_extra.json"
+        config_file.write_text(json_content)
+        return config_file
+
     def test_initialization(self, config_defaults):
         """
         Ensure that the Configuration object initializes with
@@ -147,8 +200,9 @@ class TestConfiguration:
         [
             ("toml_config_file", tomllib.load),
             ("yaml_config_file", yaml.safe_load),
+            ("json_config_file", json.load),
         ],
-        ids=["toml", "yaml"],
+        ids=["toml", "yaml", "json"],
     )
     def test_from_file(self, request, config_file, loader, expected_config):
         config = Configuration()
@@ -165,8 +219,9 @@ class TestConfiguration:
         [
             (tomllib.load),
             (yaml.safe_load),
+            (json.load),
         ],
-        ids=["toml", "yaml"],
+        ids=["toml", "yaml", "json"],
     )
     def test_invalid_config(self, tmp_path, loader):
         config = Configuration()
@@ -181,8 +236,9 @@ class TestConfiguration:
         [
             ("toml_config_file_extra", tomllib.load),
             ("yaml_config_file_extra", yaml.safe_load),
+            ("json_config_file_extra", json.load),
         ],
-        ids=["toml", "yaml"],
+        ids=["toml", "yaml", "json"],
     )
     def test_from_file_extra(self, request, config_file_extra, loader, expected_config):
         config = Configuration()

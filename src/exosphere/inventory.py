@@ -1,4 +1,5 @@
 import errno
+import json
 import logging
 import tomllib
 from collections.abc import Callable
@@ -51,6 +52,17 @@ class Configuration(dict):
         see `from_file()`for details.
         """
         return self.from_file(filepath, yaml.safe_load, silent=silent)
+
+    def from_json(self, filepath: str, silent: bool = False) -> bool:
+        """
+        Populate the configuration structure from a json file
+
+        This method is a convenience wrapper used for shorthand
+        for the from_file method, with json.load() as the loader.
+
+        see `from_file()`for details.
+        """
+        return self.from_file(filepath, json.load, silent=silent)
 
     def from_file(
         self, filepath: str, loader: Callable[[BinaryIO], dict], silent: bool = False
