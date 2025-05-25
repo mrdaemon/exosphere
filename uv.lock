@@ -376,6 +376,7 @@ dependencies = [
     { name = "click-shell" },
     { name = "click-shell", extra = ["readline"], marker = "sys_platform != 'win32'" },
     { name = "fabric" },
+    { name = "pyyaml" },
     { name = "textual" },
     { name = "typer" },
 ]
@@ -398,6 +399,7 @@ requires-dist = [
     { name = "click-shell", marker = "sys_platform == 'win32'", specifier = ">=2.1" },
     { name = "click-shell", extras = ["readline"], marker = "sys_platform != 'win32'", specifier = ">=2.1" },
     { name = "fabric", specifier = ">=3.2.2" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "textual", specifier = ">=3.2.0" },
     { name = "typer", specifier = ">=0.15.2" },
 ]
