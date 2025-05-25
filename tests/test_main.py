@@ -19,6 +19,17 @@ class TestMain:
         mock_config = Configuration()
         return mock_config
 
+    @pytest.fixture()
+    def mock_config_exception(self, mocker):
+        """
+        Fixture to create a mock configuration object that raises an exception.
+        """
+        mocker.patch.object(
+            Configuration, "from_file", side_effect=Exception("Test exception")
+        )
+        mock_config = Configuration()
+        return mock_config
+
     def test_main(self, mocker):
         """
         Test the main function of the Exosphere application.
@@ -62,3 +73,13 @@ class TestMain:
 
         assert result is False
         mock_config.from_file.assert_not_called()
+
+    def test_load_first_config_invalid_file(self, mocker, mock_config_exception):
+        """
+        Test the load_first_config function when an invalid file is found.
+        It should raise a SystemExit exception via sys.exit(1)
+        """
+        mocker.patch("pathlib.Path.exists", return_value=True)
+
+        with pytest.raises(SystemExit):
+            load_first_config(mock_config_exception)
