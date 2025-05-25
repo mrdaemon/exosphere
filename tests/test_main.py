@@ -10,10 +10,10 @@ class TestMain:
         """
         Fixture to create a mock configuration object.
         """
-        mock_config = Configuration()
         mocker.patch.object(
-            mock_config, "from_file", return_value="True", autospec=True
+            Configuration, "from_file", return_value=True, autospec=True
         )
+        mock_config = Configuration()
         return mock_config
 
     def test_main(self, mocker):
