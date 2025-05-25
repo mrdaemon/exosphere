@@ -51,3 +51,14 @@ class TestMain:
         mock_config.from_file.assert_called_once_with(
             mock_config, str(first_path), yaml.safe_load, silent=True
         )
+
+    def test_load_first_config_no_file(self, mocker, mock_config):
+        """
+        Test the load_first_config function when no file is found.
+        """
+        mocker.patch("pathlib.Path.exists", return_value=False)
+
+        result = load_first_config(mock_config)
+
+        assert result is False
+        mock_config.from_file.assert_not_called()
