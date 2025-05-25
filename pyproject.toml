@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Alexandre Gauthier", email = "alex@underwares.org" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "click-shell[readline]>=2.1 ; sys_platform != 'win32'",
     "click-shell>=2.1 ; sys_platform == 'win32'",
