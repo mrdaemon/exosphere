@@ -1,4 +1,21 @@
+import pytest
+
+from exosphere.inventory import Configuration
+from exosphere.main import load_first_config
+
+
 class TestMain:
+    @pytest.fixture()
+    def mock_config(self, mocker):
+        """
+        Fixture to create a mock configuration object.
+        """
+        mock_config = Configuration()
+        mocker.patch.object(
+            mock_config, "from_file", return_value="True", autospec=True
+        )
+        return mock_config
+
     def test_main(self, mocker):
         """
         Test the main function of the Exosphere application.
@@ -18,15 +35,10 @@ class TestMain:
         mock_setup_logging.assert_called_once()
         mock_cli_app.assert_called_once()
 
-    def test_load_first_config(self, mocker):
+    def test_load_first_config(self, mocker, mock_config):
         """
         Test the load_first_config function.
         """
-        mock_config = mocker.Mock()
-        mock_config.from_file.return_value = True
-
-        from exosphere.main import load_first_config
-
         result = load_first_config(mock_config)
 
         assert result is True
