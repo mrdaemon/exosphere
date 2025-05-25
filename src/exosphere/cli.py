@@ -1,8 +1,10 @@
+import logging
+
 import typer
 from click_shell import make_click_shell
 
 from exosphere import __version__
-from exosphere.commands import test
+from exosphere.commands import test, ui
 
 banner = f"""
                          ▗▖
@@ -23,6 +25,7 @@ app = typer.Typer(
 
 # Setup commands from modules
 app.add_typer(test.app, name="test")
+app.add_typer(ui.app, name="ui")
 
 
 # The default command fall through call back
@@ -33,6 +36,8 @@ def cli(ctx: typer.Context) -> None:
     Exosphere CLI
     """
     if ctx.invoked_subcommand is None:
+        logger = logging.getLogger(__name__)
+        logger.info("Starting Exosphere REPL interface")
         repl = make_click_shell(
             ctx,
             prompt="exosphere> ",
