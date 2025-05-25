@@ -47,8 +47,8 @@ def setup_logging(log_level: str) -> None:
         level=log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    logging.getLogger(__name__).info("Logging initialized with level: %s", log_level)
     logging.getLogger().setLevel(log_level)
+    logging.getLogger(__name__).info("Logging initialized with level: %s", log_level)
 
 
 def load_first_config(config: Configuration) -> bool:
