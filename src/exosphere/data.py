@@ -38,5 +38,5 @@ class Update:
     name: str
     current_version: str
     new_version: str
+    security: bool = False
     source: Optional[str] = None
-    security: Optional[bool] = None
