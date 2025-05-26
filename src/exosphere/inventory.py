@@ -4,7 +4,7 @@ import logging
 import tomllib
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 
 import yaml
 
@@ -25,7 +25,7 @@ class Configuration(dict):
         "hosts": [],
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the Configuration object with default values.
         """
@@ -184,22 +184,12 @@ class Inventory:
         Sync all hosts in the inventory.
 
         """
-        if not self.hosts:
-            self.logger.warning("No hosts in inventory")
-            return
-
         self.logger.info("Syncing all hosts in inventory")
 
-        with ThreadPoolExecutor() as executor:
-            futures = {executor.submit(host.sync): host for host in self.hosts}
-
-            for future in as_completed(futures):
-                host = futures[future]
-                try:
-                    future.result()
-                    self.logger.info("Host %s synced successfully", host.name)
-                except Exception as e:
-                    self.logger.error("Failed to sync host %s: %s", host.name, e)
+        self._run_all(
+            "sync",
+            "Host %s synced successfully",
+        )
 
         self.logger.info("All hosts synced")
 
@@ -210,28 +200,12 @@ class Inventory:
         This method will call the `refresh_catalog` method on each
         Host object in the inventory.
         """
-        if not self.hosts:
-            self.logger.warning("No hosts in inventory")
-            return
-
         self.logger.info("Refreshing package catalogs for all hosts")
 
-        with ThreadPoolExecutor() as executor:
-            futures = {
-                executor.submit(host.refresh_catalog): host for host in self.hosts
-            }
-
-            for future in as_completed(futures):
-                host = futures[future]
-                try:
-                    future.result()
-                    self.logger.info("Package catalog refreshed for host %s", host.name)
-                except Exception as e:
-                    self.logger.error(
-                        "Failed to refresh package catalog for host %s: %s",
-                        host.name,
-                        e,
-                    )
+        self._run_all(
+            "refresh_catalog",
+            "Package catalog refreshed for host %s",
+        )
 
         self.logger.info("Package catalogs refreshed for all hosts")
 
@@ -243,26 +217,12 @@ class Inventory:
         Host object in the inventory.
         """
 
-        if not self.hosts:
-            self.logger.warning("No hosts in inventory")
-            return
-
         self.logger.info("Refreshing updates for all hosts")
 
-        with ThreadPoolExecutor() as executor:
-            futures = {
-                executor.submit(host.refresh_updates): host for host in self.hosts
-            }
-
-            for future in as_completed(futures):
-                host = futures[future]
-                try:
-                    future.result()
-                    self.logger.info("Updates refreshed for host %s", host.name)
-                except Exception as e:
-                    self.logger.error(
-                        "Failed to refresh updates for host %s: %s", host.name, e
-                    )
+        self._run_all(
+            "refresh_updates",
+            "Updates refreshed for host %s",
+        )
 
         self.logger.info("Updates refreshed for all hosts")
 
@@ -272,21 +232,70 @@ class Inventory:
 
         """
 
+        def log_template(host: Host) -> None:
+            self.logger.info(
+                "Host %s is %s",
+                host.name,
+                "online" if host.online else "offline",
+            )
+
+        self.logger.info("Pinging all hosts in inventory")
+
+        self._run_all(
+            "ping",
+            "",
+            log_callback=log_template,
+        )
+
+        self.logger.info("Pinged all hosts in inventory")
+
+    def _run_all(
+        self,
+        host_method: str,
+        log_msg_success: str,
+        log_callback: Optional[Callable[[Host], None]] = None,
+    ) -> None:
+        """
+        Run a method on all hosts in the inventory.
+
+        :param host_method: The method to run on each host
+        :param log_msg_success: The log message to display on success.
+        :param log_callback: Optional callback function to log results for each host.
+                             Note that this overrides the value of log_msg_success
+        :raises ValueError: If the host_method is not callable or does not exist
+        """
         if not self.hosts:
-            self.logger.warning("No hosts in inventory")
+            self.logger.warning("No hosts in inventory. Nothing to run.")
+            return
+
+        if not hasattr(Host, host_method):
+            self.logger.error(
+                "Host class does not have attribute '%s', refusing to execute!",
+                host_method,
+            )
+            return
+
+        if not callable(getattr(Host, host_method)):
+            self.logger.error(
+                "Host class attribute '%s' is not callable, refusing to execute!",
+                host_method,
+            )
             return
 
         with ThreadPoolExecutor() as executor:
-            futures = {executor.submit(host.ping): host for host in self.hosts}
+            futures = {
+                executor.submit(getattr(host, host_method)): host for host in self.hosts
+            }
 
             for future in as_completed(futures):
                 host = futures[future]
                 try:
                     future.result()
-                    self.logger.info(
-                        "Host %s is %s",
-                        host.name,
-                        "online" if host.online else "offline",
-                    )
+                    if log_callback:
+                        log_callback(host)
+                    else:
+                        self.logger.info(log_msg_success, host.name)
                 except Exception as e:
-                    self.logger.error("Failed to ping host %s: %s", host.name, e)
+                    self.logger.error(
+                        "Failed to run %s on %s: %s", host_method, host.name, e
+                    )
