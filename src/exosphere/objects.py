@@ -76,6 +76,15 @@ class Host:
 
         return self._connection
 
+    @property
+    def security_updates(self) -> list[Update]:
+        """
+        Get a list of security updates available on the host.
+
+        :return: List of security updates
+        """
+        return [update for update in self.updates if update.security]
+
     def sync(self) -> None:
         """
         Synchronize host information with remote system.
