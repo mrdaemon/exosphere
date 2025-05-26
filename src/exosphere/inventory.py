@@ -3,6 +3,7 @@ import json
 import logging
 import tomllib
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import BinaryIO
 
 import yaml
@@ -132,6 +133,9 @@ class Inventory:
 
     Handles reading the inventory from file and creating the
     Host objects.
+
+    Convenience methods for syncing, refreshing catalogs, updates and ping
+    are provided, and are all parallelized using Threads.
     """
 
     def __init__(self, config: Configuration) -> None:
@@ -180,10 +184,22 @@ class Inventory:
         Sync all hosts in the inventory.
 
         """
+        if not self.hosts:
+            self.logger.warning("No hosts in inventory")
+            return
+
         self.logger.info("Syncing all hosts in inventory")
 
-        for host in self.hosts:
-            host.sync()
+        with ThreadPoolExecutor() as executor:
+            futures = {executor.submit(host.sync): host for host in self.hosts}
+
+            for future in as_completed(futures):
+                host = futures[future]
+                try:
+                    future.result()
+                    self.logger.info("Host %s synced successfully", host.name)
+                except Exception as e:
+                    self.logger.error("Failed to sync host %s: %s", host.name, e)
 
         self.logger.info("All hosts synced")
 
@@ -194,17 +210,28 @@ class Inventory:
         This method will call the `refresh_catalog` method on each
         Host object in the inventory.
         """
+        if not self.hosts:
+            self.logger.warning("No hosts in inventory")
+            return
+
         self.logger.info("Refreshing package catalogs for all hosts")
 
-        for host in self.hosts:
-            try:
-                host.refresh_catalog()
-            except Exception as e:
-                self.logger.error(
-                    "Failed to refresh package catalog for host %s: %s",
-                    host.name,
-                    e,
-                )
+        with ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(host.refresh_catalog): host for host in self.hosts
+            }
+
+            for future in as_completed(futures):
+                host = futures[future]
+                try:
+                    future.result()
+                    self.logger.info("Package catalog refreshed for host %s", host.name)
+                except Exception as e:
+                    self.logger.error(
+                        "Failed to refresh package catalog for host %s: %s",
+                        host.name,
+                        e,
+                    )
 
         self.logger.info("Package catalogs refreshed for all hosts")
 
@@ -215,15 +242,27 @@ class Inventory:
         This method will call the `refresh_updates` method on each
         Host object in the inventory.
         """
+
+        if not self.hosts:
+            self.logger.warning("No hosts in inventory")
+            return
+
         self.logger.info("Refreshing updates for all hosts")
 
-        for host in self.hosts:
-            try:
-                host.refresh_updates()
-            except Exception as e:
-                self.logger.error(
-                    "Failed to refresh updates for host %s: %s", host.name, e
-                )
+        with ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(host.refresh_updates): host for host in self.hosts
+            }
+
+            for future in as_completed(futures):
+                host = futures[future]
+                try:
+                    future.result()
+                    self.logger.info("Updates refreshed for host %s", host.name)
+                except Exception as e:
+                    self.logger.error(
+                        "Failed to refresh updates for host %s: %s", host.name, e
+                    )
 
         self.logger.info("Updates refreshed for all hosts")
 
@@ -232,8 +271,22 @@ class Inventory:
         Ping all hosts in the inventory.
 
         """
-        for host in self.hosts:
-            host.ping()
-            self.logger.info(
-                "Host %s is %s", host.name, "online" if host.online else "offline"
-            )
+
+        if not self.hosts:
+            self.logger.warning("No hosts in inventory")
+            return
+
+        with ThreadPoolExecutor() as executor:
+            futures = {executor.submit(host.ping): host for host in self.hosts}
+
+            for future in as_completed(futures):
+                host = futures[future]
+                try:
+                    future.result()
+                    self.logger.info(
+                        "Host %s is %s",
+                        host.name,
+                        "online" if host.online else "offline",
+                    )
+                except Exception as e:
+                    self.logger.error("Failed to ping host %s: %s", host.name, e)
