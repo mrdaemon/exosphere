@@ -136,6 +136,11 @@ class Inventory:
 
     Convenience methods for syncing, refreshing catalogs, updates and ping
     are provided, and are all parallelized using Threads.
+
+    Runtime errors are generally non-fatal, but will be logged.
+    The Host objects themselves usually handle their own failure cases
+    and will log errors as appropriate, on top of flagging themselves
+    as offline if they are unable to perform their tasks.
     """
 
     def __init__(self, config: Configuration) -> None:
@@ -262,12 +267,16 @@ class Inventory:
         :param log_msg_success: The log message to display on success.
         :param log_callback: Optional callback function to log results for each host.
                              Note that this overrides the value of log_msg_success
-        :raises ValueError: If the host_method is not callable or does not exist
+
         """
         if not self.hosts:
             self.logger.warning("No hosts in inventory. Nothing to run.")
             return
 
+        # Sanity checks, these should only come in play if we have an internal
+        # programming error, not a user error.
+
+        # Ensure the host_method exists in the base class
         if not hasattr(Host, host_method):
             self.logger.error(
                 "Host class does not have attribute '%s', refusing to execute!",
@@ -275,6 +284,7 @@ class Inventory:
             )
             return
 
+        # Ensure the host_method is callable
         if not callable(getattr(Host, host_method)):
             self.logger.error(
                 "Host class attribute '%s' is not callable, refusing to execute!",
