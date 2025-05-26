@@ -187,6 +187,46 @@ class Inventory:
 
         self.logger.info("All hosts synced")
 
+    def refresh_catalog_all(self) -> None:
+        """
+        Refresh the package catalog on all hosts in the inventory.
+
+        This method will call the `refresh_catalog` method on each
+        Host object in the inventory.
+        """
+        self.logger.info("Refreshing package catalogs for all hosts")
+
+        for host in self.hosts:
+            try:
+                host.refresh_catalog()
+            except Exception as e:
+                self.logger.error(
+                    "Failed to refresh package catalog for host %s: %s",
+                    host.name,
+                    e,
+                )
+
+        self.logger.info("Package catalogs refreshed for all hosts")
+
+    def refresh_updates_all(self) -> None:
+        """
+        Refresh the list of available updates on all hosts in the inventory.
+
+        This method will call the `refresh_updates` method on each
+        Host object in the inventory.
+        """
+        self.logger.info("Refreshing updates for all hosts")
+
+        for host in self.hosts:
+            try:
+                host.refresh_updates()
+            except Exception as e:
+                self.logger.error(
+                    "Failed to refresh updates for host %s: %s", host.name, e
+                )
+
+        self.logger.info("Updates refreshed for all hosts")
+
     def ping_all(self, stdout: bool = False) -> None:
         """
         Ping all hosts in the inventory.
