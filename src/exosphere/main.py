@@ -44,10 +44,11 @@ def setup_logging(log_level: str) -> None:
     :param log_level: The logging level to set.
     """
     logging.basicConfig(
-        level=log_level,
+        level=logging.WARNING,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    logging.getLogger().setLevel(log_level)
+
+    logging.getLogger("exosphere").setLevel(log_level)
     logging.getLogger(__name__).info("Logging initialized with level: %s", log_level)
 
 
