@@ -118,8 +118,9 @@ class Host:
 
         self._pkginst = PkgManagerFactory.create(self.package_manager)
         self.logger.debug(
-            "Using concrete package manager %s for %s",
-            self._pkginst,
+            "Using concrete package manager %s.%s for %s",
+            self._pkginst.__class__.__module__,
+            self._pkginst.__class__.__qualname__,
             self.package_manager,
         )
 
