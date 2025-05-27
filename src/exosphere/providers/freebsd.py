@@ -101,7 +101,15 @@ class Pkg(PkgManager):
 
         if result.failed:
             cx.close()
-            raise DataRefreshError(f"Failed to get updates from pkg: {result.stderr}")
+            # Nonzero exit can mean grep found no matches.
+            if result.stderr:
+                raise DataRefreshError(
+                    f"Failed to get updates from pkg: {result.stderr}"
+                )
+
+            # We're probably good, no updates available.
+            self.logger.info("No updates available or no matches in output.")
+            return updates
 
         for line in result.stdout.splitlines():
             line = line.strip()

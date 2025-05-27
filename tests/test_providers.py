@@ -182,6 +182,7 @@ class TestPkgProvider:
         Fixture to mock the Fabric Connection object with a failed run.
         """
         mock_connection.run.return_value.failed = True
+        mock_connection.run.return_value.stderr = "Generic error"
         return mock_connection
 
     @pytest.fixture
@@ -268,6 +269,23 @@ class TestPkgProvider:
         mock_connection.run.side_effect = [mock_audit, mock_packages]
         return mock_connection
 
+    @pytest.fixture
+    def mock_pkg_output_no_updates(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the pkg command when no updates are available.
+        """
+        mock_audit = mocker.MagicMock()
+        mock_audit.failed = False
+        mock_audit.stdout = ""
+        mock_audit.stderr = ""
+
+        mock_packages = mocker.MagicMock()
+        mock_packages.failed = True
+        mock_packages.stderr = ""
+
+        mock_connection.run.side_effect = [mock_audit, mock_packages]
+        return mock_connection
+
     def test_reposync(self, mocker, mock_connection):
         """
         Test the reposync method of the Pkg provider.
@@ -306,14 +324,13 @@ class TestPkgProvider:
         assert updates[12].name == "py311-h11"
         assert updates[12].security
 
-    def test_get_updates_no_updates(self, mocker, mock_connection):
+    def test_get_updates_no_updates(self, mocker, mock_pkg_output_no_updates):
         """
         Test the get_updates method of the Pkg provider when no updates are available.
         """
         pkg = Pkg()
-        mock_connection.run.return_value.stdout = ""
 
-        updates: list[Update] = pkg.get_updates(mock_connection)
+        updates: list[Update] = pkg.get_updates(mock_pkg_output_no_updates)
 
         assert updates == []
 
