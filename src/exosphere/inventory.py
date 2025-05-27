@@ -4,7 +4,7 @@ import logging
 import tomllib
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import BinaryIO, Optional
+from typing import Any, BinaryIO, Generator, Optional
 
 import yaml
 
@@ -191,10 +191,13 @@ class Inventory:
         """
         self.logger.info("Syncing all hosts in inventory")
 
-        self._run_all(
+        for host, _, exc in self.run_all(
             "sync",
-            "Host %s synced successfully",
-        )
+        ):
+            if exc:
+                self.logger.error("Failed to sync host %s: %s", host.name, exc)
+            else:
+                self.logger.info("Host %s synced successfully", host.name)
 
         self.logger.info("All hosts synced")
 
@@ -207,10 +210,15 @@ class Inventory:
         """
         self.logger.info("Refreshing package catalogs for all hosts")
 
-        self._run_all(
+        for host, _, exc in self.run_all(
             "refresh_catalog",
-            "Package catalog refreshed for host %s",
-        )
+        ):
+            if exc:
+                self.logger.error(
+                    "Failed to refresh package catalog for host %s: %s", host.name, exc
+                )
+            else:
+                self.logger.info("Package catalog refreshed for host %s", host.name)
 
         self.logger.info("Package catalogs refreshed for all hosts")
 
@@ -224,42 +232,22 @@ class Inventory:
 
         self.logger.info("Refreshing updates for all hosts")
 
-        self._run_all(
+        for host, _, exc in self.run_all(
             "refresh_updates",
-            "Updates refreshed for host %s",
-        )
+        ):
+            if exc:
+                self.logger.error(
+                    "Failed to refresh updates for host %s: %s", host.name, exc
+                )
+            else:
+                self.logger.info("Updates refreshed for host %s", host.name)
 
         self.logger.info("Updates refreshed for all hosts")
 
-    def ping_all(self, stdout: bool = False) -> None:
-        """
-        Ping all hosts in the inventory.
-
-        """
-
-        def log_template(host: Host) -> None:
-            self.logger.info(
-                "Host %s is %s",
-                host.name,
-                "online" if host.online else "offline",
-            )
-
-        self.logger.info("Pinging all hosts in inventory")
-
-        self._run_all(
-            "ping",
-            "",
-            log_callback=log_template,
-        )
-
-        self.logger.info("Pinged all hosts in inventory")
-
-    def _run_all(
+    def run_all(
         self,
         host_method: str,
-        log_msg_success: str,
-        log_callback: Optional[Callable[[Host], None]] = None,
-    ) -> None:
+    ) -> Generator[tuple[Host, Any, Optional[Exception]]]:
         """
         Run a method on all hosts in the inventory.
 
@@ -271,6 +259,7 @@ class Inventory:
         """
         if not self.hosts:
             self.logger.warning("No hosts in inventory. Nothing to run.")
+            yield from ()
             return
 
         # Sanity checks, these should only come in play if we have an internal
@@ -282,6 +271,7 @@ class Inventory:
                 "Host class does not have attribute '%s', refusing to execute!",
                 host_method,
             )
+            yield from ()
             return
 
         # Ensure the host_method is callable
@@ -290,6 +280,7 @@ class Inventory:
                 "Host class attribute '%s' is not callable, refusing to execute!",
                 host_method,
             )
+            yield from ()
             return
 
         with ThreadPoolExecutor() as executor:
@@ -300,12 +291,13 @@ class Inventory:
             for future in as_completed(futures):
                 host = futures[future]
                 try:
-                    future.result()
-                    if log_callback:
-                        log_callback(host)
-                    else:
-                        self.logger.info(log_msg_success, host.name)
+                    result = future.result()
+                    self.logger.info(
+                        "Successfully executed %s on %s", host_method, host.name
+                    )
+                    yield (host, result, None)
                 except Exception as e:
                     self.logger.error(
                         "Failed to run %s on %s: %s", host_method, host.name, e
                     )
+                    yield (host, None, e)
