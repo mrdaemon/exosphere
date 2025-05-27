@@ -1,3 +1,4 @@
+import copy
 import errno
 import json
 import tomllib
@@ -15,15 +16,15 @@ class TestConfiguration:
 
     @pytest.fixture()
     def expected_config(self):
-        data = {
-            "options": {
-                "log_level": "DEBUG",
-            },
-            "hosts": [
-                {"name": "host1", "ip": "127.0.0.1"},
-                {"name": "host2", "ip": "127.0.0.2", "port": 22},
-            ],
-        }
+        data = copy.deepcopy(Configuration.DEFAULTS)
+
+        data["options"]["log_level"] = "DEBUG"
+        data["options"]["debug"] = True
+
+        data["hosts"] = [
+            {"name": "host1", "ip": "127.0.0.1"},
+            {"name": "host2", "ip": "127.0.0.2", "port": 22},
+        ]
 
         return data
 
@@ -32,6 +33,7 @@ class TestConfiguration:
         toml_content = """
         [options]
         log_level = "DEBUG"
+        debug = true
         
         [[hosts]]
         name = "host1"
@@ -52,6 +54,7 @@ class TestConfiguration:
         yaml_content = """
         options:
           log_level: DEBUG
+          debug: true
         hosts:
           - name: host1
             ip: 127.0.0.1
@@ -69,7 +72,8 @@ class TestConfiguration:
         json_content = """
         {
             "options": {
-                "log_level": "DEBUG"
+                "log_level": "DEBUG",
+                "debug": true
             },
             "hosts": [
                 {
@@ -93,6 +97,7 @@ class TestConfiguration:
         toml_content = """
         [options]
         log_level = "DEBUG"
+        debug = true
         
         [[hosts]]
         name = "host1"
@@ -117,6 +122,7 @@ class TestConfiguration:
         yaml_content = """
         options:
           log_level: DEBUG
+          debug: true
         hosts:
           - name: host1
             ip: 127.0.0.1
@@ -137,7 +143,8 @@ class TestConfiguration:
         json_content = """
         {
             "options": {
-                "log_level": "DEBUG"
+                "log_level": "DEBUG",
+                "debug": true
             },
             "hosts": [
                 {
@@ -210,9 +217,7 @@ class TestConfiguration:
         config_file = request.getfixturevalue(config_file)
         assert config.from_file(config_file, loader) is True
 
-        for key in expected_config:
-            assert key in config
-            assert config[key] == expected_config[key]
+        assert config == expected_config
 
     @pytest.mark.parametrize(
         "loader",
@@ -329,6 +334,27 @@ class TestConfiguration:
 
         assert "invalid_key" not in config
         assert "is not a valid root key" in caplog.text
+
+    def test_update_from_mapping_maintains_defaults(self, mocker, config_defaults):
+        """
+        Ensure that the Configuration object maintains default values
+        when updating from a mapping.
+        """
+
+        new_mapping = {
+            "options": {"log_level": "INFO"},
+            "hosts": [
+                {"name": "host3", "ip": "127.0.0.3"},
+            ],
+        }
+
+        config = Configuration()
+        config.update_from_mapping(new_mapping)
+
+        # Check that the options dicts have the same keys
+        assert set(config["options"].keys()) == set(config_defaults["options"].keys())
+        # Check that one of our unconfigured options is still the default
+        assert config["options"]["debug"] == config_defaults["options"]["debug"]
 
     def test_update_from_mapping_invalid_length(self):
         """

@@ -21,6 +21,8 @@ class Configuration(dict):
     DEFAULTS: dict = {
         "options": {
             "log_level": "INFO",
+            "log_file": "exosphere.log",
+            "debug": False,
         },
         "hosts": [],
     }
@@ -98,6 +100,9 @@ class Configuration(dict):
         """
         Populate values like the native dict.update() method, but
         only if the key is a valid root configuration key.
+
+        This will also deep merge the values from the mapping
+        if they are also dicts.
         """
         mappings = []
 
@@ -118,13 +123,29 @@ class Configuration(dict):
         for mapping in mappings:
             for k, v in mapping:
                 if k in self.DEFAULTS:
-                    self[k] = v
+                    if isinstance(self[k], dict) and isinstance(v, dict):
+                        # deep merge the dicts
+                        self.deep_update(self[k], v)
+                    else:
+                        self[k] = v
                 else:
                     self.logger.warning(
                         "Configuration key %s is not a valid root key, ignoring", k
                     )
 
         return True
+
+    def deep_update(self, d: dict, u: dict) -> dict:
+        """
+        Recursively update a dictionary with another dictionary.
+        Ensures nested dicts are updated rather than replaced.
+        """
+        for k, v in u.items():
+            if isinstance(v, dict) and k in d and isinstance(d[k], dict):
+                self.deep_update(d[k], v)
+            else:
+                d[k] = v
+        return d
 
 
 class Inventory:
