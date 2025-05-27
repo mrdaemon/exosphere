@@ -4,7 +4,7 @@ import typer
 from click_shell import make_click_shell
 
 from exosphere import __version__
-from exosphere.commands import test, ui
+from exosphere.commands import inventory, test, ui
 
 banner = f"""
                          ▗▖
@@ -25,6 +25,7 @@ app = typer.Typer(
 
 # Setup commands from modules
 app.add_typer(test.app, name="test")
+app.add_typer(inventory.app, name="inventory")
 app.add_typer(ui.app, name="ui")
 
 
