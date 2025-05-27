@@ -4,16 +4,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-@dataclass()
-class GlobalState:
-    """
-    Data class to hold global state information at runtime.
-    This includes things like the configuration file path
-    """
-
-    confpath: Optional[str] = None
-
-
 @dataclass(frozen=True)
 class HostInfo:
     """
