@@ -62,9 +62,16 @@ class Apt(PkgManager):
 
         if raw_query.failed:
             cx.close()
-            raise DataRefreshError(
-                f"Failed to get updates from apt-get: {raw_query.stderr}"
-            )
+
+            # Nonzero exit can mean grep found no matches.
+            if raw_query.stderr:
+                raise DataRefreshError(
+                    f"Failed to get updates from apt-get: {raw_query.stderr}"
+                )
+
+            # We're probably good, no updates available.
+            self.logger.info("No updates available or no matches in output.")
+            return updates
 
         for line in raw_query.stdout.splitlines():
             line = line.strip()

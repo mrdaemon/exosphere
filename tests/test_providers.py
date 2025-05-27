@@ -81,6 +81,17 @@ class TestAptProvider:
         mock_connection.run.return_value.stdout = output
         return mock_connection
 
+    @pytest.fixture
+    def mock_pkg_output_no_updates(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the apt command when no updates are available.
+        """
+        mock_connection.run.return_value.stdout = ""
+        mock_connection.run.return_value.failed = True  # grep will fail!
+        mock_connection.run.return_value.stderr = ""  # but no error message
+
+        return mock_connection
+
     @pytest.mark.parametrize(
         "connection_fixture, expected",
         [
@@ -121,14 +132,13 @@ class TestAptProvider:
         assert updates[5].name == "big-patch"
         assert updates[5].security
 
-    def test_get_updates_no_updates(self, mocker, mock_connection):
+    def test_get_updates_no_updates(self, mocker, mock_pkg_output_no_updates):
         """
         Test the get_updates method of the Apt provider when no updates are available.
         """
         apt = Apt()
-        mock_connection.run.return_value.stdout = ""
 
-        updates: list[Update] = apt.get_updates(mock_connection)
+        updates: list[Update] = apt.get_updates(mock_pkg_output_no_updates)
 
         assert updates == []
 
@@ -138,6 +148,7 @@ class TestAptProvider:
         """
         apt = Apt()
         mock_connection.run.return_value.failed = True
+        mock_connection.run.return_value.stderr = "Generic error"
 
         with pytest.raises(DataRefreshError):
             apt.get_updates(mock_connection)
