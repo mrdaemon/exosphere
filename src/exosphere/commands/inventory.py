@@ -2,6 +2,8 @@ import logging
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 from typing_extensions import Annotated
 
@@ -38,10 +40,15 @@ def sync() -> None:
     logger = logging.getLogger(__name__)
     logger.info("Synchronizing inventory with hosts")
 
-    # Sync all hosts in the inventory
-    _get_inventory().sync_all()
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        TimeElapsedColumn(),
+    ) as progress:
+        progress.add_task("Syncing hosts", total=None)
+        _get_inventory().sync_all()
 
-    console.print("[bold green]Done![/bold green]")
+    console.print(Panel.fit("[bold green]Done![/bold green]"))
 
 
 @app.command()
@@ -54,15 +61,21 @@ def refresh(
     logger = logging.getLogger(__name__)
     logger.info("Refreshing inventory data")
 
-    inventory: Inventory = _get_inventory()
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        TimeElapsedColumn(),
+    ) as progress:
+        inventory: Inventory = _get_inventory()
 
-    if full:
-        inventory.refresh_catalog_all()
+        if full:
+            progress.add_task("Refreshing package catalog on all hosts", total=None)
+            inventory.refresh_catalog_all()
 
-    # Refresh package catalog and updates
-    inventory.refresh_updates_all()
+        progress.add_task("Refreshing updates on all hosts", total=None)
+        inventory.refresh_updates_all()
 
-    console.print("[bold green]Done![/bold green]")
+    console.print(Panel.fit("[bold green]Done![/bold green]"))
 
 
 @app.command()
@@ -73,20 +86,26 @@ def ping() -> None:
 
     inventory: Inventory = _get_inventory()
 
-    for host, status, exc in inventory.run_all("ping"):
-        if status:
-            console.print(
-                f"Host [bold]{host.name}[/bold] is [bold green]online[/bold green]."
-            )
-        else:
-            if exc:
-                console.print(
-                    f"Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {exc}",
+    with Progress(
+        transient=True,
+    ) as progress:
+        task = progress.add_task("Pinging hosts", total=len(inventory.hosts))
+        for host, status, exc in inventory.run_all("ping"):
+            if status:
+                progress.console.print(
+                    f"Host [bold]{host.name}[/bold] is [bold green]online[/bold green]."
                 )
             else:
-                console.print(
-                    f"Host [bold]{host.name}[/bold] is [bold red]offline[/bold red]."
-                )
+                if exc:
+                    progress.console.print(
+                        f"Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {exc}",
+                    )
+                else:
+                    progress.console.print(
+                        f"Host [bold]{host.name}[/bold] is [bold red]offline[/bold red]."
+                    )
+
+            progress.update(task, advance=1)
 
 
 @app.command()
