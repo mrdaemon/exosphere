@@ -7,8 +7,8 @@ from typing import Callable
 
 import yaml
 
-from exosphere import app_config, app_state, cli
-from exosphere.inventory import Configuration
+from exosphere import app_config, cli, context
+from exosphere.inventory import Configuration, Inventory
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +77,13 @@ def load_first_config(config: Configuration) -> bool:
 
         try:
             if config.from_file(filepath=str(confpath), loader=loader, silent=True):
-                app_state.confpath = str(confpath)
+                context.confpath = str(confpath)
                 logger.info("Loaded config file from %s", confpath)
                 return True
+            else:
+                logger.warning("Failed to load config file from %s", confpath)
         except Exception as e:
-            # Abort brutally in case of load failure
+            # Abort brutally in case of non-standard load failure
             # Exception will contain the actual error message
             logger.error("Startup error: %s", e)
             sys.exit(1)
@@ -99,6 +101,13 @@ def main() -> None:
 
     # Setup logging from configuration
     setup_logging(app_config["options"]["log_level"])
+
+    # Initialize the inventory
+    try:
+        context.inventory = Inventory(app_config)
+    except Exception as e:
+        logger.error("Startup Error loading inventory: %s", e)
+        sys.exit(1)
 
     # Launch CLI application
     cli.app()
