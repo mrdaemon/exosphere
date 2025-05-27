@@ -35,16 +35,27 @@ LOADERS: dict[str, Callable] = {
 }
 
 
-def setup_logging(log_level: str) -> None:
+def setup_logging(log_level: str, log_file: str | None = None) -> None:
     """
     Set up logging configuration.
-    TODO: This is more or less a placeholder for the root logger.
-    It definitely should log to file and other things down the road.
+    This function initializes the logging system with a specified log level
+    and optional log file. If no log file is specified, logs will be printed
+    to the console. This is useful for debugging and running in the REPL.
 
+    :param log_file: Optional log file path to write logs to.
     :param log_level: The logging level to set.
     """
+    handler: logging.Handler
+
+    if log_file:
+        handler = logging.FileHandler(log_file, encoding="utf-8")
+    else:
+        handler = logging.StreamHandler()
+        handler.setLevel(log_level)
+
     logging.basicConfig(
-        level=logging.WARNING,
+        level=logging.WARN,  # Default to WARN for root logger, avoid library noise
+        handlers=[handler],
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
@@ -99,8 +110,15 @@ def main() -> None:
     if not load_first_config(app_config):
         logger.warning("No configuration file found. Using defaults.")
 
-    # Setup logging from configuration
-    setup_logging(app_config["options"]["log_level"])
+    # initialize logging and setup handlers depending on config
+    log_file: str | None = app_config["options"].get("log_file")
+    debug_mode: bool = app_config["options"].get("debug")
+
+    if debug_mode:
+        logger.warning("Debug mode enabled! Logs may flood console!")
+        setup_logging(app_config["options"]["log_level"])
+    else:
+        setup_logging(app_config["options"]["log_level"], log_file)
 
     # Initialize the inventory
     try:
