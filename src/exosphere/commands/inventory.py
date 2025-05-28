@@ -88,11 +88,15 @@ def refresh(
         inventory: Inventory = _get_inventory()
 
         if full:
-            progress.add_task("Refreshing package catalog on all hosts", total=None)
+            full_task = progress.add_task(
+                "Refreshing package catalog on all hosts", total=None
+            )
             inventory.refresh_catalog_all()
+            progress.stop_task(full_task)
 
-        progress.add_task("Refreshing updates on all hosts", total=None)
+        task = progress.add_task("Refreshing updates on all hosts", total=None)
         inventory.refresh_updates_all()
+        progress.stop_task(task)
 
     console.print(Panel.fit("[bold green]Done![/bold green]"))
 
