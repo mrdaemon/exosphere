@@ -6,7 +6,7 @@ import tomllib
 import pytest
 import yaml
 
-from exosphere.inventory import Configuration
+from exosphere.config import Configuration
 
 
 class TestConfiguration:
@@ -273,7 +273,7 @@ class TestConfiguration:
         cases.
         """
         config = Configuration()
-        mocker.patch("exosphere.inventory.open", side_effect=exception_type)
+        mocker.patch("exosphere.config.open", side_effect=exception_type)
 
         with pytest.raises(IOError):
             config.from_file("non_existent_file.toml", tomllib.load, silent=silent_mode)
@@ -293,7 +293,7 @@ class TestConfiguration:
         """
         config = Configuration()
         mocker.patch(
-            "exosphere.inventory.open", side_effect=OSError(error_code, error_name)
+            "exosphere.config.open", side_effect=OSError(error_code, error_name)
         )
 
         try:

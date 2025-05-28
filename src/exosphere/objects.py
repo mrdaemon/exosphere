@@ -1,8 +1,10 @@
 import logging
+from datetime import datetime
 from typing import Optional
 
 from fabric import Connection
 
+from exosphere import app_config
 from exosphere.data import HostInfo, Update
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.providers import PkgManagerFactory
@@ -50,6 +52,10 @@ class Host:
 
         # Update Catalog for host
         self.updates: list[Update] = []
+
+        # Timestamp of the last refresh operation
+        # We store the datetime object straight up for convenience.
+        self.last_refresh: Optional[datetime] = None
 
     def __getstate__(self) -> dict:
         """
@@ -105,6 +111,25 @@ class Host:
         :return: List of security updates
         """
         return [update for update in self.updates if update.security]
+
+    @property
+    def is_stale(self) -> bool:
+        """
+        Returns True if the hosts updates status is stale
+
+        A host is considered stale if it has not been refreshed
+        within the "stale_treshold" value in seconds set in the
+        configuration. Default is 86400 seconds (24 hours).
+
+        :return: True if the host is stale, False otherwise
+        """
+        if self.last_refresh is None:
+            return True
+
+        stale_threshold = app_config["options"]["stale_threshold"]
+        timedelta = datetime.now() - self.last_refresh
+
+        return timedelta.total_seconds() > stale_threshold
 
     def sync(self) -> None:
         """
@@ -217,6 +242,9 @@ class Host:
                 self.name,
                 ", ".join(str(update) for update in self.updates),
             )
+
+        # Update the last refresh timestamp
+        self.last_refresh = datetime.now()
 
     def ping(self) -> bool:
         """

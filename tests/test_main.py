@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from exosphere.inventory import Configuration
+from exosphere.config import Configuration
 from exosphere.main import load_first_config
 
 

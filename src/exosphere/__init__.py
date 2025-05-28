@@ -1,6 +1,6 @@
 import importlib.metadata
 
-from exosphere.inventory import Configuration
+from .config import Configuration
 
 # Global Instances: configuration and GlobalState
 # These are set at runtime and should be used as singletons

@@ -163,13 +163,17 @@ def status() -> None:
         "Security",
         "Status",
         title="Host Status Overview",
+        caption="* indicates stale data",
+        caption_justify="right",
     )
 
     for host in inventory.hosts:
+        stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
+        updates = f"{len(host.updates)}{stale_suffix}"
         sec_count = len(host.security_updates) if host.security_updates else 0
         security_updates = (
             f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
-        )
+        ) + stale_suffix
         online_status = (
             "[bold green]Online[/bold green]"
             if host.online
@@ -181,7 +185,7 @@ def status() -> None:
             host.os or "(unsynced)",
             host.flavor or "(unsynced)",
             host.version or "(unsynced)",
-            str(len(host.updates)),
+            updates,
             security_updates,
             online_status,
         )
@@ -201,6 +205,7 @@ def save() -> None:
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         TimeElapsedColumn(),
+        transient=True,
     ) as progress:
         task = progress.add_task("Saving inventory state to disk", total=None)
 

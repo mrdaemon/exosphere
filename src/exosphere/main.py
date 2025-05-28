@@ -8,7 +8,8 @@ from typing import Callable
 import yaml
 
 from exosphere import app_config, cli, context
-from exosphere.inventory import Configuration, Inventory
+from exosphere.config import Configuration
+from exosphere.inventory import Inventory
 
 logger = logging.getLogger(__name__)
 
