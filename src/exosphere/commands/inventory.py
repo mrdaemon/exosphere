@@ -230,4 +230,12 @@ def clear() -> None:
     """Clear the inventory state and cache file"""
     inventory: Inventory = _get_inventory()
 
-    inventory.clear_state()
+    try:
+        inventory.clear_state()
+    except Exception as e:
+        err_console.print(
+            Panel.fit(
+                f"[bold red]Error clearing inventory state:[/bold red] {e}",
+                style="bold red",
+            )
+        )

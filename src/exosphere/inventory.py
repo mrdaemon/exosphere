@@ -61,6 +61,9 @@ class Inventory:
             )
         except Exception as e:
             self.logger.error("Failed to clear cache file: %s", str(e))
+            raise RuntimeError(
+                f"Failed to clear cache file {self.cache_file}: {str(e)}"
+            ) from e
 
         # Re-initialize the inventory
         self.init_all()
