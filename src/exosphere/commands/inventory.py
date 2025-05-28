@@ -112,16 +112,16 @@ def ping() -> None:
         for host, status, exc in inventory.run_all("ping"):
             if status:
                 progress.console.print(
-                    f"Host [bold]{host.name}[/bold] is [bold green]online[/bold green]."
+                    f"  Host [bold]{host.name}[/bold] is [bold green]online[/bold green]."
                 )
             else:
                 if exc:
                     progress.console.print(
-                        f"Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {str(exc)}",
+                        f"  Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {str(exc)}",
                     )
                 else:
                     progress.console.print(
-                        f"Host [bold]{host.name}[/bold] is [bold red]offline[/bold red]."
+                        f"  Host [bold]{host.name}[/bold] is [bold red]offline[/bold red]."
                     )
 
             progress.update(task, advance=1)
