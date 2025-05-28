@@ -1,6 +1,7 @@
 import logging
 
 import typer
+from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
@@ -40,15 +41,33 @@ def sync() -> None:
     logger = logging.getLogger(__name__)
     logger.info("Synchronizing inventory with hosts")
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        TimeElapsedColumn(),
-    ) as progress:
-        progress.add_task("Syncing hosts", total=None)
-        _get_inventory().sync_all()
+    inventory: Inventory = _get_inventory()
 
-    console.print(Panel.fit("[bold green]Done![/bold green]"))
+    with Progress(
+        transient=True,
+    ) as progress:
+        task = progress.add_task("Syncing hosts", total=len(inventory.hosts))
+        for host, _, exc in inventory.run_all("sync"):
+            output = []
+            if exc:
+                output.append("  [[bold red]FAILED[/bold red]]")
+            else:
+                output.append("  [[bold green]OK[/bold green]]")
+
+            output.append(f"[bold]{host.name}[/bold]")
+
+            if exc:
+                output.append(str(exc))
+
+            progress.console.print(
+                Columns(
+                    output,
+                    padding=(2, 1),
+                    equal=True,
+                ),
+            )
+
+            progress.update(task, advance=1)
 
 
 @app.command()
@@ -98,7 +117,7 @@ def ping() -> None:
             else:
                 if exc:
                     progress.console.print(
-                        f"Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {exc}",
+                        f"Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {str(exc)}",
                     )
                 else:
                     progress.console.print(
