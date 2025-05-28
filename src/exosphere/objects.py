@@ -51,6 +51,27 @@ class Host:
         # Update Catalog for host
         self.updates: list[Update] = []
 
+    def __getstate__(self) -> dict:
+        """
+        Custom getstate method to avoid serializing unserializables.
+        Copies the state dict and plucks out stuff that doesn't
+        serialize well, or is otherwise problematic.
+        """
+        state = self.__dict__.copy()
+        state["_connection"] = None  # Do not serialize the connection
+        state["_pkginst"] = None  # Do not serialize the package manager instance
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        """
+        Custom setstate method to restore the state of the object.
+        Resets properties and members that are not serializable
+        """
+        self.__dict__.update(state)
+        self._connection = None
+        if "package_manager" in state:
+            self._pkginst = PkgManagerFactory.create(state["package_manager"])
+
     @property
     def connection(self) -> Connection:
         """

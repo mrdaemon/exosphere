@@ -30,3 +30,6 @@ config.toml
 config.yaml
 config.yml
 config.json
+
+# in-dir exosphere cache database
+exosphere.db

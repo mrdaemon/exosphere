@@ -177,3 +177,34 @@ def status() -> None:
         )
 
     console.print(table)
+
+
+@app.command()
+def save() -> None:
+    """Save the current inventory state to disk"""
+    logger = logging.getLogger(__name__)
+    logger.debug("Starting inventory save operation")
+
+    inventory: Inventory = _get_inventory()
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        TimeElapsedColumn(),
+    ) as progress:
+        task = progress.add_task("Saving inventory state to disk", total=None)
+
+        try:
+            inventory.save_state()
+            progress.stop_task(task)
+        except Exception as e:
+            logger.error("Error saving inventory: %s", e)
+            progress.stop_task(task)
+            progress.console.print(
+                Panel.fit(
+                    f"[bold red]Error saving inventory state:[/bold red] {e}",
+                    style="bold red",
+                ),
+            )
+
+    logger.debug("Inventory save operation completed")

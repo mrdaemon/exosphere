@@ -8,6 +8,7 @@ from typing import Any, BinaryIO, Generator, Optional
 
 import yaml
 
+from exosphere.database import DiskCache
 from exosphere.objects import Host
 
 
@@ -22,6 +23,7 @@ class Configuration(dict):
         "options": {
             "log_level": "INFO",
             "log_file": "exosphere.log",
+            "cache_file": "exosphere.db",
             "debug": False,
         },
         "hosts": [],
@@ -169,41 +171,86 @@ class Inventory:
         Initialize the Inventory object with default values.
         """
         self.configuration = config
+        self.cache_file = config["options"]["cache_file"]
+
         self.hosts: list[Host] = []
 
         self.logger = logging.getLogger(__name__)
 
+        # Populate inventory from configuration on init
         self.init_all()
+
+    def save_state(self) -> None:
+        """
+        Save the current state of inventory hosts to the cache file.
+        """
+        with DiskCache(self.cache_file) as cache:
+            self.logger.info("Saving inventory state to cache file %s", self.cache_file)
+            for host in self.hosts:
+                cache[host.name] = host
 
     def init_all(self) -> None:
         """
         Setup the inventory by creating Host objects from the
         configuration.
 
-        Existing state will be cleared.
+        Existing state will be cleared in the process.
         """
         self.hosts: list[Host] = []
 
         if len(self.configuration["hosts"]) == 0:
             self.logger.warning("No hosts found in inventory")
+            # TODO: Clean hosts cache in this case?
             return
+
+        config_hosts = {host["name"]: host for host in self.configuration["hosts"]}
+        cached_hosts = set()
 
         self.logger.debug(
             "Initializing inventory with %d hosts", len(self.configuration["hosts"])
         )
 
-        for host in self.configuration["hosts"]:
-            try:
-                host_obj = Host(**host)
-            except Exception as e:
-                self.logger.error(
-                    "Unable to create host object from inventory: %s: %s", host, e
-                )
-                raise ValueError(
-                    f"Unable to create host object from inventory: {host}: {e}"
-                ) from e
+        # Load hosts state from cache if available
+        with DiskCache(self.cache_file) as cache:
+            for name, host in config_hosts.items():
+                host_obj = self._load_or_create_host(name, host, cache)
+                self.hosts.append(host_obj)
+                cached_hosts.add(name)
 
-            self.hosts.append(host_obj)
+            # If hosts are in cache but not in config, remove them
+            # TODO: Maybe make this explicit, or configurable
+            for host in list(cache.keys()):
+                if host not in cached_hosts:
+                    self.logger.info("Removing stale host %s from cache", host)
+                    del cache[host]
+
+    def _load_or_create_host(self, name: str, host_cfg: dict, cache: DiskCache) -> Host:
+        """
+        Attempt to load a host from the cache, or create a new one if that fails
+        in any meaningful way.
+
+        The new host's other configuration properties will be updated
+        if they have changed from config since (i.e. ip address, port etc)
+        """
+        if name not in cache:
+            self.logger.debug("Host %s not found in cache, creating new", name)
+            return Host(**host_cfg)
+
+        try:
+            self.logger.debug("Loading host state for %s from cache", name)
+            host_obj = cache[name]
+            # Also update properties from config
+            for k, v in host_cfg.items():
+                setattr(host_obj, k, v)
+        except Exception as e:
+            self.logger.warning(
+                "Failed to load host state for %s from cache: %s, recreating anew.",
+                name,
+                str(e),
+            )
+            host_obj = Host(**host_cfg)
+
+        return host_obj
 
     def sync_all(self) -> None:
         """
