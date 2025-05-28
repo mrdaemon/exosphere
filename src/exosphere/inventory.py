@@ -23,6 +23,7 @@ class Configuration(dict):
         "options": {
             "log_level": "INFO",
             "log_file": "exosphere.log",
+            "cache_autosave": True,
             "cache_file": "exosphere.db",
             "debug": False,
         },
@@ -188,6 +189,25 @@ class Inventory:
             self.logger.info("Saving inventory state to cache file %s", self.cache_file)
             for host in self.hosts:
                 cache[host.name] = host
+
+    def clear_state(self) -> None:
+        """
+        Clear the current state of the inventory
+        This will remove the cache file and re-init the inventory.
+        """
+        self.logger.info("Clearing inventory state")
+        try:
+            with DiskCache(self.cache_file) as cache:
+                cache.clear()
+        except FileNotFoundError:
+            self.logger.warning(
+                "Cache file %s not found, nothing to clear", self.cache_file
+            )
+        except Exception as e:
+            self.logger.error("Failed to clear cache file: %s", str(e))
+
+        # Re-initialize the inventory
+        self.init_all()
 
     def init_all(self) -> None:
         """

@@ -8,7 +8,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 from typing_extensions import Annotated
 
-from exosphere import context
+from exosphere import app_config, context
 from exosphere.inventory import Inventory
 
 app = typer.Typer(
@@ -69,6 +69,9 @@ def sync() -> None:
 
             progress.update(task, advance=1)
 
+    if app_config["options"]["cache_autosave"]:
+        save()
+
 
 @app.command()
 def refresh(
@@ -97,6 +100,9 @@ def refresh(
         task = progress.add_task("Refreshing updates on all hosts", total=None)
         inventory.refresh_updates_all()
         progress.stop_task(task)
+
+    if app_config["options"]["cache_autosave"]:
+        save()
 
     console.print(Panel.fit("[bold green]Done![/bold green]"))
 
@@ -212,3 +218,11 @@ def save() -> None:
             )
 
     logger.debug("Inventory save operation completed")
+
+
+@app.command()
+def clear() -> None:
+    """Clear the inventory state and cache file"""
+    inventory: Inventory = _get_inventory()
+
+    inventory.clear_state()
