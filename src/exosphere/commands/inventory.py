@@ -154,6 +154,7 @@ def refresh(
     with Progress(
         transient=True,
     ) as progress:
+        errors = []
         task = progress.add_task(
             "Refreshing package updates", total=len(inventory.hosts)
         )
@@ -166,13 +167,13 @@ def refresh(
 
             host_out = f"[bold]{host.name}[/bold]"
 
-            exc_out = str(exc) if exc else ""
-
             renderables = [
                 status_out,
                 host_out,
-                exc_out,
             ]
+
+            if exc:
+                errors.append((host.name, str(exc)))
 
             progress.console.print(
                 Columns(
@@ -185,6 +186,12 @@ def refresh(
             progress.update(task, advance=1)
 
         progress.stop_task(task)
+
+    if errors:
+        for host, error in errors:
+            err_console.print(
+                Panel.fit(error, style="bold red", title=f"Error on {host}")
+            )
 
     if app_config["options"]["cache_autosave"]:
         save()
