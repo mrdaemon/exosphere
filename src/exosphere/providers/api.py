@@ -25,8 +25,9 @@ class PkgManager(ABC):
         self.__password = password
 
         # Setup logging
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.INFO)
+        self.logger = logging.getLogger(
+            f"exosphere.providers.{self.__class__.__name__.lower()}"
+        )
 
     @abstractmethod
     def reposync(self, cx: Connection) -> bool:
@@ -36,6 +37,7 @@ class PkgManager(ABC):
         This method should be implemented by subclasses to provide
         the specific synchronization logic for different package managers.
 
+        :param cx: Fabric Connection object
         :return: True if synchronization is successful, False otherwise.
         """
         raise NotImplementedError("reposync method is not implemented.")
@@ -48,6 +50,10 @@ class PkgManager(ABC):
         This method should be implemented by subclasses to provide
         the specific logic for retrieving updates for different package managers.
 
+        It is preferable if this can be done without the need for elevated privileges
+        and remains read-only, as much as possible.
+
+        :param cx: Fabric Connection object
         :return: List of available updates.
         """
         raise NotImplementedError("updates method is not implemented.")

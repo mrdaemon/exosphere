@@ -30,7 +30,7 @@ class Pkg(PkgManager):
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
         super().__init__(sudo, password)
-        self.logger.info("Initializing FreeBSD pkg package manager")
+        self.logger.debug("Initializing FreeBSD pkg package manager")
         self.vulnerable: list[str] = []
 
     def reposync(self, cx: Connection) -> bool:
@@ -63,7 +63,7 @@ class Pkg(PkgManager):
 
         # Check for vulnerable packages via
         # pkg audit -q
-        self.logger.info("Running pkg audit to inventory vulnerable packages")
+        self.logger.debug("Running pkg audit to inventory vulnerable packages")
         result_audit = cx.run("pkg audit -q", hide=True, warn=True)
 
         if result_audit.failed:
@@ -91,7 +91,7 @@ class Pkg(PkgManager):
 
         # Store vulnerable packages as member for later use
         self.vulnerable = vulnerable
-        self.logger.info(
+        self.logger.debug(
             "Found %d vulnerable packages: %s",
             len(vulnerable),
             ", ".join(vulnerable),
@@ -108,7 +108,7 @@ class Pkg(PkgManager):
                 )
 
             # We're probably good, no updates available.
-            self.logger.info("No updates available or no matches in output.")
+            self.logger.debug("No updates available or no matches in output.")
             return updates
 
         for line in result.stdout.splitlines():
@@ -125,7 +125,7 @@ class Pkg(PkgManager):
 
             updates.append(update)
 
-        self.logger.info(
+        self.logger.debug(
             "Found %d updates for FreeBSD packages: %s",
             len(updates),
             ", ".join(u.name for u in updates),
@@ -160,7 +160,7 @@ class Pkg(PkgManager):
         # Check if package is vulnerable, indicates
         # that it is a security update
         if f"{package_name}-{current_version}" in self.vulnerable:
-            self.logger.info(
+            self.logger.debug(
                 "Found vulnerable package %s-%s, marking as security update",
                 package_name,
                 current_version,

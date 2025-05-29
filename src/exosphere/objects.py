@@ -115,7 +115,7 @@ class Host:
     @property
     def is_stale(self) -> bool:
         """
-        Returns True if the hosts updates status is stale
+        Check if the host is staled based on refresh timestamp
 
         A host is considered stale if it has not been refreshed
         within the "stale_treshold" value in seconds set in the
@@ -182,25 +182,28 @@ class Host:
     def refresh_catalog(self) -> None:
         """
         Refresh the package catalog on the host.
-        This is a placeholder for actual implementation.
 
-        I'm still debating whether or not this should be a pluggable
-        system with a generic Package Manager interface, as what we
-        want to do here is very simple, and almost read-only.
+        Will invoke the concrete package manager provider implementation
+        associated during initial host sync.
 
-        TODO: Implement a generic package manager interface
+        This is the equivalent of your 'apt-get update' or similar
 
-        :return: None
         """
         if not self.online:
             raise OfflineHostError(f"Host {self.name} is offline.")
 
+        # If the concrete package manager provider is not set,
+        # refuse the temptation to guess or force a sync, and throw
+        # an exception instead. Caller can deal with it.
         if self._pkginst is None:
-            self.logger.warning(
-                "Platform data missing! Forcing sync, "
-                "but this indicates an ordering bug."
+            self.logger.error(
+                "Package manager implementation unavailable, "
+                "this is likely due to sync failure."
             )
-            self.sync()
+            raise DataRefreshError(
+                f"Failed to refresh updates on {self.name}: "
+                "No package manager implementation could be used."
+            )
 
         if self._pkginst is not None:
             pkg_manager = self._pkginst
@@ -237,10 +240,9 @@ class Host:
             self.logger.info("No updates available for %s", self.name)
         else:
             self.logger.info(
-                "Found %d updates for %s: %s",
+                "Found %d updates for %s",
                 len(self.updates),
                 self.name,
-                ", ".join(str(update) for update in self.updates),
             )
 
         # Update the last refresh timestamp

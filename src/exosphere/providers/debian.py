@@ -23,7 +23,7 @@ class Apt(PkgManager):
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
         super().__init__(sudo, password)
-        self.logger.info("Initializing Debian Apt package manager")
+        self.logger.debug("Initializing Debian Apt package manager")
         self.vulnerable: list[str] = []
 
     def reposync(self, cx: Connection) -> bool:
@@ -33,7 +33,7 @@ class Apt(PkgManager):
         :param cx: Fabric Connection object.
         :return: True if synchronization is successful, False otherwise.
         """
-        self.logger.info("Synchronizing apt repositories")
+        self.logger.debug("Synchronizing apt repositories")
         update = cx.sudo("apt-get update", hide=True, warn=True)
 
         if update.failed:
@@ -42,7 +42,7 @@ class Apt(PkgManager):
             )
             return False
 
-        self.logger.info("Apt repositories synchronized successfully")
+        self.logger.debug("Apt repositories synchronized successfully")
 
         return True
 
@@ -70,7 +70,7 @@ class Apt(PkgManager):
                 )
 
             # We're probably good, no updates available.
-            self.logger.info("No updates available or no matches in output.")
+            self.logger.debug("No updates available or no matches in output.")
             return updates
 
         for line in raw_query.stdout.splitlines():
@@ -87,7 +87,7 @@ class Apt(PkgManager):
 
             updates.append(update)
 
-        self.logger.info(
+        self.logger.debug(
             "Found %d package updates available: %s",
             len(updates),
             ", ".join(u.name for u in updates),
@@ -124,7 +124,7 @@ class Apt(PkgManager):
         is_security = False
 
         if "security" in repo_source.lower():
-            self.logger.info(
+            self.logger.debug(
                 f"Package {package_name} is a security update: {new_version}"
             )
             is_security = True

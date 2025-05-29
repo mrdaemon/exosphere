@@ -57,7 +57,7 @@ def sync() -> None:
             output.append(f"[bold]{host.name}[/bold]")
 
             if exc:
-                output.append(str(exc))
+                output.append(f" - {str(exc)}")
 
             progress.console.print(
                 Columns(
@@ -83,28 +83,55 @@ def refresh(
     logger = logging.getLogger(__name__)
     logger.info("Refreshing inventory data")
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        TimeElapsedColumn(),
-    ) as progress:
-        inventory: Inventory = _get_inventory()
+    inventory: Inventory = _get_inventory()
 
-        if full:
-            full_task = progress.add_task(
+    if full:
+        logger.info("Full refresh requested, including package catalog")
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            TimeElapsedColumn(),
+        ) as progress:
+            refresh_task = progress.add_task(
                 "Refreshing package catalog on all hosts", total=None
             )
+            # TODO: this should use run_all instead so we can display errors
+            #       instead of just logging them.
             inventory.refresh_catalog_all()
-            progress.stop_task(full_task)
+            progress.stop_task(refresh_task)
 
-        task = progress.add_task("Refreshing updates on all hosts", total=None)
-        inventory.refresh_updates_all()
+    with Progress(
+        transient=True,
+    ) as progress:
+        task = progress.add_task(
+            "Refreshing package updates", total=len(inventory.hosts)
+        )
+        for host, _, exc in inventory.run_all("refresh_updates"):
+            output = []
+            if exc:
+                output.append("  [[bold red]ERROR[/bold red]]")
+            else:
+                output.append("  [[bold green]OK[/bold green]]")
+
+            output.append(f"[bold]{host.name}[/bold]")
+
+            if exc:
+                output.append(f" - {str(exc)}")
+
+            progress.console.print(
+                Columns(
+                    output,
+                    padding=(2, 1),
+                    equal=True,
+                ),
+            )
+
+            progress.update(task, advance=1)
+
         progress.stop_task(task)
 
     if app_config["options"]["cache_autosave"]:
         save()
-
-    console.print(Panel.fit("[bold green]Done![/bold green]"))
 
 
 @app.command()
@@ -149,8 +176,10 @@ def status() -> None:
     # Rich table with their properties and status
     if len(inventory.hosts) == 0:
         err_console.print(
-            "No hosts found in the inventory. Verify your configuration file.",
-            style="bold red",
+            Panel.fit(
+                "No hosts found in the inventory. Verify your configuration file.",
+                style="bold red",
+            )
         )
         return
 
@@ -168,23 +197,28 @@ def status() -> None:
     )
 
     for host in inventory.hosts:
+        # Prepare some rendering data for suffixes and placeholders
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
+        unsynced_status = "[dim](unsynced)[/dim]"
+
+        # Prepare the table row data
         updates = f"{len(host.updates)}{stale_suffix}"
+
         sec_count = len(host.security_updates) if host.security_updates else 0
         security_updates = (
             f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
         ) + stale_suffix
+
         online_status = (
-            "[bold green]Online[/bold green]"
-            if host.online
-            else "[bold red]Offline[/bold red]"
+            "[bold green]Online[/bold green]" if host.online else "[red]Offline[/red]"
         )
 
+        # Construct table
         table.add_row(
             host.name,
-            host.os or "(unsynced)",
-            host.flavor or "(unsynced)",
-            host.version or "(unsynced)",
+            host.os or unsynced_status,
+            host.flavor or unsynced_status,
+            host.version or unsynced_status,
             updates,
             security_updates,
             online_status,
