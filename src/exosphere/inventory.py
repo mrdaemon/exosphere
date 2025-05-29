@@ -138,7 +138,7 @@ class Inventory:
         """
         self.logger.info("Syncing all hosts in inventory")
 
-        for host, _, exc in self.run_all(
+        for host, _, exc in self.run_task(
             "sync",
         ):
             if exc:
@@ -157,7 +157,7 @@ class Inventory:
         """
         self.logger.info("Refreshing package catalogs for all hosts")
 
-        for host, _, exc in self.run_all(
+        for host, _, exc in self.run_task(
             "refresh_catalog",
         ):
             if exc:
@@ -179,7 +179,7 @@ class Inventory:
 
         self.logger.info("Refreshing updates for all hosts")
 
-        for host, _, exc in self.run_all(
+        for host, _, exc in self.run_task(
             "refresh_updates",
         ):
             if exc:
@@ -191,20 +191,30 @@ class Inventory:
 
         self.logger.info("Updates refreshed for all hosts")
 
-    def run_all(
+    def run_task(
         self,
         host_method: str,
+        hosts: Optional[list[Host]] = None,
     ) -> Generator[tuple[Host, Any, Optional[Exception]]]:
         """
-        Run a method on all hosts in the inventory.
+        Run a method on specified hosts in the inventory.
+        If none are specified, run on all hosts.
+
+        Uses a ThreadPoolExecutor to run the provided method concurrently.
 
         :param host_method: The method to run on each host
-        :param log_msg_success: The log message to display on success.
-        :param log_callback: Optional callback function to log results for each host.
-                             Note that this overrides the value of log_msg_success
+        :param hosts: Optional list of Host objects to run the method on.
+                      If unspecified, runs on all hosts in the inventory.
 
         """
-        if not self.hosts:
+
+        target_hosts = hosts if hosts is not None else self.hosts
+
+        self.logger.debug(
+            "Dispatching %s to %d host(s)", host_method, len(target_hosts)
+        )
+
+        if not target_hosts:
             self.logger.warning("No hosts in inventory. Nothing to run.")
             yield from ()
             return
@@ -232,7 +242,8 @@ class Inventory:
 
         with ThreadPoolExecutor() as executor:
             futures = {
-                executor.submit(getattr(host, host_method)): host for host in self.hosts
+                executor.submit(getattr(host, host_method)): host
+                for host in target_hosts
             }
 
             for future in as_completed(futures):

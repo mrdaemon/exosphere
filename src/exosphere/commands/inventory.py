@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import typer
 from rich.columns import Columns
@@ -36,18 +37,46 @@ def _get_inventory():
 
 
 @app.command()
-def sync() -> None:
+def sync(
+    single_host: Annotated[
+        Optional[str],
+        typer.Option("--host", "-h", help="Synchronize a specific host by name"),
+    ] = None,
+) -> None:
     """Synchronize inventory with host state"""
     logger = logging.getLogger(__name__)
     logger.info("Synchronizing inventory with hosts")
 
     inventory: Inventory = _get_inventory()
 
+    # Host filtering, if applicable
+    hosts = (
+        [h for h in inventory.hosts if h.name == single_host]
+        if single_host
+        else inventory.hosts
+    )
+
+    if not hosts:
+        msg = (
+            f"No such host found in inventory: '{single_host}'."
+            if single_host
+            else "No hosts found in the inventory. Please add hosts to the configuration."
+        )
+
+        err_console.print(
+            Panel.fit(
+                msg,
+                title="Inventory Error",
+                style="bold red",
+            )
+        )
+        return
+
     with Progress(
         transient=True,
     ) as progress:
-        task = progress.add_task("Syncing hosts", total=len(inventory.hosts))
-        for host, _, exc in inventory.run_all("sync"):
+        task = progress.add_task("Syncing hosts", total=len(hosts))
+        for host, _, exc in inventory.run_task("sync", hosts=hosts):
             output = []
             if exc:
                 output.append("  [[bold red]FAILED[/bold red]]")
@@ -106,7 +135,7 @@ def refresh(
         task = progress.add_task(
             "Refreshing package updates", total=len(inventory.hosts)
         )
-        for host, _, exc in inventory.run_all("refresh_updates"):
+        for host, _, exc in inventory.run_task("refresh_updates"):
             output = []
             if exc:
                 output.append("  [[bold red]ERROR[/bold red]]")
@@ -146,7 +175,7 @@ def ping() -> None:
         transient=True,
     ) as progress:
         task = progress.add_task("Pinging hosts", total=len(inventory.hosts))
-        for host, status, exc in inventory.run_all("ping"):
+        for host, status, exc in inventory.run_task("ping"):
             if status:
                 progress.console.print(
                     f"  Host [bold]{host.name}[/bold] is [bold green]online[/bold green]."
