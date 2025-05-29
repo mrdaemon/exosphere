@@ -158,20 +158,25 @@ def refresh(
             "Refreshing package updates", total=len(inventory.hosts)
         )
         for host, _, exc in inventory.run_task("refresh_updates"):
-            output = []
-            if exc:
-                output.append("  [[bold red]ERROR[/bold red]]")
-            else:
-                output.append("  [[bold green]OK[/bold green]]")
+            status_out = (
+                "  [[bold red]FAILED[/bold red]]"
+                if exc
+                else "  [[bold green]OK[/bold green]]"
+            )
 
-            output.append(f"[bold]{host.name}[/bold]")
+            host_out = f"[bold]{host.name}[/bold]"
 
-            if exc:
-                output.append(f" - {str(exc)}")
+            exc_out = str(exc) if exc else ""
+
+            renderables = [
+                status_out,
+                host_out,
+                exc_out,
+            ]
 
             progress.console.print(
                 Columns(
-                    output,
+                    renderables,
                     padding=(2, 1),
                     equal=True,
                 ),
