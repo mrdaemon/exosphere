@@ -36,6 +36,41 @@ def _get_inventory():
     return context.inventory
 
 
+def _get_hosts_or_error(
+    inventory: Inventory,
+    single_host: Optional[str] = None,
+    err_console: Console = err_console,
+) -> list | None:
+    """
+    Get hosts from the inventory, filtering if requested
+    Also handles displaying error messages, if any.
+    """
+    # Host filtering, if applicable
+    hosts = (
+        [h for h in inventory.hosts if h.name == single_host]
+        if single_host
+        else inventory.hosts
+    )
+
+    if not hosts:
+        msg = (
+            f"No such host found in inventory: '{single_host}'."
+            if single_host
+            else "No hosts found in the inventory. Please add hosts to the configuration."
+        )
+
+        err_console.print(
+            Panel.fit(
+                msg,
+                title="Inventory Error",
+                style="bold red",
+            )
+        )
+        return None
+
+    return hosts
+
+
 @app.command()
 def sync(
     single_host: Annotated[
@@ -59,27 +94,9 @@ def sync(
 
     inventory: Inventory = _get_inventory()
 
-    # Host filtering, if applicable
-    hosts = (
-        [h for h in inventory.hosts if h.name == single_host]
-        if single_host
-        else inventory.hosts
-    )
+    hosts = _get_hosts_or_error(inventory, single_host, err_console)
 
-    if not hosts:
-        msg = (
-            f"No such host found in inventory: '{single_host}'."
-            if single_host
-            else "No hosts found in the inventory. Please add hosts to the configuration."
-        )
-
-        err_console.print(
-            Panel.fit(
-                msg,
-                title="Inventory Error",
-                style="bold red",
-            )
-        )
+    if hosts is None:
         return
 
     with Progress(
@@ -198,7 +215,12 @@ def refresh(
 
 
 @app.command()
-def ping() -> None:
+def ping(
+    single_host: Annotated[
+        Optional[str],
+        typer.Option("--host", "-h", help="Ping a specific host by name"),
+    ] = None,
+) -> None:
     """
     Ping all hosts in the inventory
 
@@ -217,11 +239,17 @@ def ping() -> None:
 
     inventory: Inventory = _get_inventory()
 
+    hosts = _get_hosts_or_error(inventory, single_host)
+
+    if hosts is None:
+        logger.error("No host(s) found, aborting")
+        return
+
     with Progress(
         transient=True,
     ) as progress:
-        task = progress.add_task("Pinging hosts", total=len(inventory.hosts))
-        for host, status, exc in inventory.run_task("ping"):
+        task = progress.add_task("Pinging hosts", total=len(hosts))
+        for host, status, exc in inventory.run_task("ping", hosts=hosts):
             if status:
                 progress.console.print(
                     f"  Host [bold]{host.name}[/bold] is [bold green]online[/bold green]."
@@ -255,17 +283,13 @@ def status() -> None:
 
     inventory: Inventory = _get_inventory()
 
-    # Iterates through all hosts in the inventory and render a nice
-    # Rich table with their properties and status
-    if len(inventory.hosts) == 0:
-        err_console.print(
-            Panel.fit(
-                "No hosts found in the inventory. Verify your configuration file.",
-                style="bold red",
-            )
-        )
+    hosts = _get_hosts_or_error(inventory)
+    if hosts is None:
+        logger.error("No hosts in inventory, cannot display status.")
         return
 
+    # Iterates through all hosts in the inventory and render a nice
+    # Rich table with their properties and status
     table = Table(
         "Host",
         "OS",
@@ -279,7 +303,7 @@ def status() -> None:
         caption_justify="right",
     )
 
-    for host in inventory.hosts:
+    for host in hosts:
         # Prepare some rendering data for suffixes and placeholders
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
         unsynced_status = "[dim](unsynced)[/dim]"
