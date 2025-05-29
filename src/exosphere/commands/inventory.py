@@ -43,7 +43,17 @@ def sync(
         typer.Option("--host", "-h", help="Synchronize a specific host by name"),
     ] = None,
 ) -> None:
-    """Synchronize inventory with host state"""
+    """
+    Synchronize inventory with live host state.
+
+    On a fresh inventory start, this needs done at least once before
+    operations can be performed on the hosts.
+
+    The sync operation will connect to the specified host(s)
+    and gather their current state, including Operating System, flavor,
+    version and pick a Package Mananager implementation for further
+    operations.
+    """
     logger = logging.getLogger(__name__)
     logger.info("Synchronizing inventory with hosts")
 
@@ -108,7 +118,19 @@ def refresh(
         bool, typer.Option(help="Refresh the package catalog as well as updates")
     ] = False,
 ) -> None:
-    """Refresh the update data for all hosts"""
+    """
+    Refresh the update data for all hosts
+
+    Connects to hosts in the inventory and retrieves pending package
+    updates.
+
+    If --full is specified, the package catalog will also be refreshed.
+
+    Updating the package catalog involves invoking whatever mechamism
+    the package manager uses to synchronize its package repositories,
+    and can be a very expensive operation, which may take a long time,
+    especially on large inventories with a handful of slow hosts.
+    """
     logger = logging.getLogger(__name__)
     logger.info("Refreshing inventory data")
 
@@ -165,7 +187,19 @@ def refresh(
 
 @app.command()
 def ping() -> None:
-    """Ping all hosts in the inventory"""
+    """
+    Ping all hosts in the inventory
+
+    Attempts to connect to all hosts in the inventory.
+    On failure, the affected host will be marked as offline.
+
+    You can use this command to quickly check whether or not
+    hosts are reachable and online.
+
+    Invoke this to update the online status of hosts if
+    any have gone offline and exosphere refuses to run
+    an operation on them.
+    """
     logger = logging.getLogger(__name__)
     logger.info("Pinging all hosts in the inventory")
 
@@ -195,7 +229,15 @@ def ping() -> None:
 
 @app.command()
 def status() -> None:
-    """Show all hosts and their status"""
+    """
+    Show all hosts and their status
+
+    Display a nice table with the current state of all the hosts
+    in the inventory, including their package update counts, their
+    online status and whether or not the data is stale.
+
+    This is the main CLI UI for the inventory.
+    """
     logger = logging.getLogger(__name__)
     logger.info("Showing status of all hosts")
 
@@ -258,7 +300,21 @@ def status() -> None:
 
 @app.command()
 def save() -> None:
-    """Save the current inventory state to disk"""
+    """
+    Save the current inventory state to disk
+
+    Manually save the current state of the inventory to disk using the
+    configured cache file.
+
+    The data is compressed using LZMA.
+
+    If options.cache_autosave is enabled, this will will be automatically
+    invoked after every sync or refresh operation.
+
+    Since this is enabled by default, you will rarely need to invoke this
+    manually.
+
+    """
     logger = logging.getLogger(__name__)
     logger.debug("Starting inventory save operation")
 
@@ -290,7 +346,19 @@ def save() -> None:
 
 @app.command()
 def clear() -> None:
-    """Clear the inventory state and cache file"""
+    """
+    Clear the inventory state and cache file
+
+    This will empty the inventory cache file and re-initialize
+    all hosts from scratch.
+
+    This is useful if you want to reset the inventory state, or
+    have difficulties with stale data that cannot be resolved.
+
+    Note that this will remove all cached host data, so you will
+    need to re-sync the inventory after this operation.
+
+    """
     inventory: Inventory = _get_inventory()
 
     try:
