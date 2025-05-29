@@ -5,7 +5,13 @@ import typer
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from rich.table import Table
 from typing_extensions import Annotated
 
@@ -134,6 +140,10 @@ def refresh(
     full: Annotated[
         bool, typer.Option(help="Refresh the package catalog as well as updates")
     ] = False,
+    single_host: Annotated[
+        Optional[str],
+        typer.Option("--host", "-h", help="Refresh a specific host by name"),
+    ] = None,
 ) -> None:
     """
     Refresh the update data for all hosts
@@ -153,29 +163,40 @@ def refresh(
 
     inventory: Inventory = _get_inventory()
 
+    hosts = _get_hosts_or_error(inventory, single_host)
+
+    if hosts is None:
+        return
+
     if full:
-        logger.info("Full refresh requested, including package catalog")
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
+            TaskProgressColumn(),
             TimeElapsedColumn(),
         ) as progress:
             refresh_task = progress.add_task(
-                "Refreshing package catalog on all hosts", total=None
+                "Refreshing package catalog", total=len(hosts)
             )
-            # TODO: this should use run_all instead so we can display errors
-            #       instead of just logging them.
-            inventory.refresh_catalog_all()
+            for host, _, exc in inventory.run_task("refresh_catalog", hosts=hosts):
+                if exc:
+                    progress.console.print(
+                        Panel.fit(
+                            f"[bold red]{host.name}:[/bold red] {type(exc).__name__}",
+                            style="bold red",
+                            title="Error refreshing package catalog",
+                        )
+                    )
+
+                progress.update(refresh_task, advance=1)
             progress.stop_task(refresh_task)
 
     with Progress(
         transient=True,
     ) as progress:
         errors = []
-        task = progress.add_task(
-            "Refreshing package updates", total=len(inventory.hosts)
-        )
-        for host, _, exc in inventory.run_task("refresh_updates"):
+        task = progress.add_task("Refreshing package updates", total=len(hosts))
+        for host, _, exc in inventory.run_task("refresh_updates", hosts=hosts):
             status_out = (
                 "  [[bold red]FAILED[/bold red]]"
                 if exc
