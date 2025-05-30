@@ -43,45 +43,50 @@ def _get_inventory():
 
 
 def _get_hosts_or_error(
-    inventory: Inventory,
-    single_host: Optional[str] = None,
-    err_console: Console = err_console,
+    names: Optional[list[str]] = None,
 ) -> list | None:
     """
-    Get hosts from the inventory, filtering if requested
-    Also handles displaying error messages, if any.
+    Get hosts from the inventory, filtering by names if provided.
+    Will print an error message and return None if all hosts are not found.
+
+    In the absence of names, will return all hosts in the inventory.
     """
-    # Host filtering, if applicable
-    hosts = (
-        [h for h in inventory.hosts if h.name == single_host]
-        if single_host
-        else inventory.hosts
-    )
 
-    if not hosts:
-        msg = (
-            f"No such host found in inventory: '{single_host}'."
-            if single_host
-            else "No hosts found in the inventory. Please add hosts to the configuration."
-        )
+    inventory: Inventory = _get_inventory()
 
+    if names:
+        hosts_match = [h for h in inventory.hosts if h.name in names]
+        unmatched = set(names) - {h.name for h in hosts_match}
+
+        if unmatched:
+            err_console.print(
+                Panel.fit(
+                    f"Hosts not found in inventory: {', '.join(unmatched)}",
+                    title="Error",
+                )
+            )
+            return None
+
+        return hosts_match
+
+    # No names provided, return all hosts
+    if not inventory.hosts:
         err_console.print(
             Panel.fit(
-                msg,
-                title="Inventory Error",
-                style="bold red",
+                "No hosts found in inventory.Ensure your configuration is correct.",
+                title="Error",
             )
         )
         return None
 
-    return hosts
+    return inventory.hosts
 
 
 @app.command()
 def sync(
-    single_host: Annotated[
-        Optional[str],
-        typer.Option("--host", "-h", help="Synchronize a specific host by name"),
+    host_names: Annotated[
+        Optional[list[str]],
+        typer.Argument(help="Host(s) to synchronize, all if not specified"),
     ] = None,
 ) -> None:
     """
@@ -100,7 +105,7 @@ def sync(
 
     inventory: Inventory = _get_inventory()
 
-    hosts = _get_hosts_or_error(inventory, single_host, err_console)
+    hosts = _get_hosts_or_error(host_names)
 
     if hosts is None:
         return
@@ -140,9 +145,9 @@ def refresh(
     full: Annotated[
         bool, typer.Option(help="Refresh the package catalog as well as updates")
     ] = False,
-    single_host: Annotated[
-        Optional[str],
-        typer.Option("--host", "-h", help="Refresh a specific host by name"),
+    host_names: Annotated[
+        Optional[list[str]],
+        typer.Argument(help="Host(s) to refresh, all if not specified"),
     ] = None,
 ) -> None:
     """
@@ -163,7 +168,7 @@ def refresh(
 
     inventory: Inventory = _get_inventory()
 
-    hosts = _get_hosts_or_error(inventory, single_host)
+    hosts = _get_hosts_or_error(host_names)
 
     if hosts is None:
         return
@@ -237,9 +242,9 @@ def refresh(
 
 @app.command()
 def ping(
-    single_host: Annotated[
-        Optional[str],
-        typer.Option("--host", "-h", help="Ping a specific host by name"),
+    host_names: Annotated[
+        Optional[list[str]],
+        typer.Argument(help="Host(s) to ping, all if not specified"),
     ] = None,
 ) -> None:
     """
@@ -260,7 +265,7 @@ def ping(
 
     inventory: Inventory = _get_inventory()
 
-    hosts = _get_hosts_or_error(inventory, single_host)
+    hosts = _get_hosts_or_error(host_names)
 
     if hosts is None:
         logger.error("No host(s) found, aborting")
@@ -302,9 +307,7 @@ def status() -> None:
     logger = logging.getLogger(__name__)
     logger.info("Showing status of all hosts")
 
-    inventory: Inventory = _get_inventory()
-
-    hosts = _get_hosts_or_error(inventory)
+    hosts = _get_hosts_or_error()
     if hosts is None:
         logger.error("No hosts in inventory, cannot display status.")
         return
