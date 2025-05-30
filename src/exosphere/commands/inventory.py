@@ -402,7 +402,14 @@ def save() -> None:
 
 
 @app.command()
-def clear() -> None:
+def clear(
+    confirm: Annotated[
+        bool,
+        typer.Option(
+            "--force", "-f", help="Do not prompt for confirmation", prompt=True
+        ),
+    ],
+) -> None:
     """
     Clear the inventory state and cache file
 
@@ -417,6 +424,9 @@ def clear() -> None:
 
     """
     inventory: Inventory = _get_inventory()
+    if not confirm:
+        console.print("Inventory state has [bold]not[/bold] been cleared.")
+        return
 
     try:
         inventory.clear_state()
@@ -425,5 +435,13 @@ def clear() -> None:
             Panel.fit(
                 f"[bold red]Error clearing inventory state:[/bold red] {e}",
                 style="bold red",
+            )
+        )
+    else:
+        console.print(
+            Panel.fit(
+                "Inventory state has been cleared. "
+                "You will need to re-sync the inventory.",
+                title="Cache Cleared",
             )
         )
