@@ -366,3 +366,20 @@ class TestConfiguration:
 
         with pytest.raises(TypeError):
             config.update_from_mapping({}, {}, {})
+
+    def test_update_from_mapping_unique_constraints(self):
+        """
+        Ensure that the Configuration object raises a ValueError
+        when duplicate host names are found in the configuration.
+        """
+        config = Configuration()
+
+        with pytest.raises(ValueError, match="Duplicate host names found"):
+            config.update_from_mapping(
+                {
+                    "hosts": [
+                        {"name": "host1", "ip": "127.0.0.4"},
+                        {"name": "host1", "ip": "172.0.0.3"},
+                    ]
+                }
+            )

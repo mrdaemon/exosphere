@@ -133,6 +133,19 @@ class Configuration(dict):
                         "Configuration key %s is not a valid root key, ignoring", k
                     )
 
+        # uniqueness constraint for host names
+        hosts = self.get("hosts", [])
+        if isinstance(hosts, list):
+            names: list[str] = [
+                str(host.get("name"))
+                for host in hosts
+                if isinstance(host, dict) and "name" in host
+            ]
+            dupes: set[str] = {str(name) for name in names if names.count(name) > 1}
+            if dupes:
+                msg = f"Duplicate host names found in configuration: {', '.join(dupes)}"
+                raise ValueError(msg)
+
         return True
 
     def deep_update(self, d: dict, u: dict) -> dict:
