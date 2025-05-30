@@ -70,7 +70,9 @@ def show(
     include_updates: Annotated[
         bool,
         typer.Option(
-            "--updates", "-u", help="Show update details for the host", is_flag=True
+            "--updates",
+            "-u",
+            help="Show update details for the host",
         ),
     ] = False,
 ) -> None:
