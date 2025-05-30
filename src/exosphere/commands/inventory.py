@@ -19,7 +19,7 @@ from exosphere import app_config, context
 from exosphere.inventory import Inventory
 
 app = typer.Typer(
-    help="Inventory and Hosts Management Commands",
+    help="Inventory and Bulk Management Commands",
     no_args_is_help=True,
 )
 
