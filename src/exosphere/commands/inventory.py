@@ -84,9 +84,11 @@ def _get_hosts_or_error(
 
 @app.command()
 def sync(
-    host_names: Annotated[
+    names: Annotated[
         Optional[list[str]],
-        typer.Argument(help="Host(s) to synchronize, all if not specified"),
+        typer.Argument(
+            help="Host(s) to synchronize, all if not specified", metavar="[HOST]..."
+        ),
     ] = None,
 ) -> None:
     """
@@ -105,7 +107,7 @@ def sync(
 
     inventory: Inventory = _get_inventory()
 
-    hosts = _get_hosts_or_error(host_names)
+    hosts = _get_hosts_or_error(names)
 
     if hosts is None:
         return
@@ -145,9 +147,11 @@ def refresh(
     full: Annotated[
         bool, typer.Option(help="Refresh the package catalog as well as updates")
     ] = False,
-    host_names: Annotated[
+    names: Annotated[
         Optional[list[str]],
-        typer.Argument(help="Host(s) to refresh, all if not specified"),
+        typer.Argument(
+            help="Host(s) to refresh, all if not specified", metavar="[HOST]..."
+        ),
     ] = None,
 ) -> None:
     """
@@ -168,7 +172,7 @@ def refresh(
 
     inventory: Inventory = _get_inventory()
 
-    hosts = _get_hosts_or_error(host_names)
+    hosts = _get_hosts_or_error(names)
 
     if hosts is None:
         return
@@ -242,9 +246,11 @@ def refresh(
 
 @app.command()
 def ping(
-    host_names: Annotated[
+    names: Annotated[
         Optional[list[str]],
-        typer.Argument(help="Host(s) to ping, all if not specified"),
+        typer.Argument(
+            help="Host(s) to ping, all if not specified", metavar="[HOST]..."
+        ),
     ] = None,
 ) -> None:
     """
@@ -265,7 +271,7 @@ def ping(
 
     inventory: Inventory = _get_inventory()
 
-    hosts = _get_hosts_or_error(host_names)
+    hosts = _get_hosts_or_error(names)
 
     if hosts is None:
         logger.error("No host(s) found, aborting")
@@ -294,9 +300,16 @@ def ping(
 
 
 @app.command()
-def status() -> None:
+def status(
+    names: Annotated[
+        Optional[list[str]],
+        typer.Argument(
+            help="Host(s) to show status for, all if not specified", metavar="[HOST]..."
+        ),
+    ] = None,
+) -> None:
     """
-    Show all hosts and their status
+    Show hosts and their status
 
     Display a nice table with the current state of all the hosts
     in the inventory, including their package update counts, their
@@ -307,9 +320,8 @@ def status() -> None:
     logger = logging.getLogger(__name__)
     logger.info("Showing status of all hosts")
 
-    hosts = _get_hosts_or_error()
+    hosts = _get_hosts_or_error(names)
     if hosts is None:
-        logger.error("No hosts in inventory, cannot display status.")
         return
 
     # Iterates through all hosts in the inventory and render a nice
