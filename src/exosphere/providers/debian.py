@@ -24,7 +24,6 @@ class Apt(PkgManager):
         """
         super().__init__(sudo, password)
         self.logger.debug("Initializing Debian Apt package manager")
-        self.vulnerable: list[str] = []
 
     def reposync(self, cx: Connection) -> bool:
         """

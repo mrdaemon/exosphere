@@ -2,7 +2,7 @@ import pytest
 
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
-from exosphere.providers import Apt, Pkg, PkgManagerFactory
+from exosphere.providers import Apt, Dnf, Pkg, PkgManagerFactory
 
 
 class TestPkgManagerFactory:
@@ -35,7 +35,7 @@ class TestAptProvider:
         """
         Fixture to mock the Fabric Connection object.
         """
-        mock_cx = mocker.patch("exosphere.providers.debian.Connection", autospec=True)
+        mock_cx = mocker.patch("fabric.Connection", autospec=True)
         mock_cx.run.return_value.failed = False
         return mock_cx
 
@@ -381,3 +381,199 @@ class TestPkgProvider:
                 str(e.value)
                 == "Failed to get vulnerable packages from pkg: Generic error"
             )
+
+
+class TestDnfProvider:
+    @pytest.fixture
+    def mock_connection(self, mocker):
+        """
+        Fixture to mock the Fabric Connection object.
+        """
+        mock_cx = mocker.patch("fabric.Connection", autospec=True)
+        mock_cx.run.return_value.failed = False
+        return mock_cx
+
+    @pytest.fixture
+    def mock_connection_failed(self, mocker, mock_connection):
+        """
+        Fixture to mock the Fabric Connection object with a failed run.
+        """
+        mock_connection.run.return_value = mocker.MagicMock()
+        mock_connection.run.return_value.failed = True
+        mock_connection.run.return_value.return_code = 2
+        mock_connection.run.return_value.stderr = "Generic error"
+        return mock_connection
+
+    @pytest.fixture
+    def mock_dnf_output(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the dnf command enumerating packages.
+        """
+        output = """
+
+        emacs-filesystem.noarch               1:27.2-13.el9_6                   appstream
+        expat.x86_64                          2.5.0-5.el9_6                     baseos
+        git.x86_64                            2.47.1-2.el9_6                    appstream
+        git-core.x86_64                       2.47.1-2.el9_6                    appstream
+        git-core-doc.noarch                   2.47.1-2.el9_6                    appstream
+        kernel.x86_64                         5.14.0-570.18.1.el9_6             baseos
+        kernel-core.x86_64                    5.14.0-570.18.1.el9_6             baseos
+        kernel-modules.x86_64                 5.14.0-570.18.1.el9_6             baseos
+        kernel-modules-core.x86_64            5.14.0-570.18.1.el9_6             baseos
+        kernel-tools.x86_64                   5.14.0-570.18.1.el9_6             baseos
+        kernel-tools-libs.x86_64              5.14.0-570.18.1.el9_6             baseos
+        Obsoleting Packages
+        libldb.i686                           4.21.3-3.el9                      baseos
+            libldb.x86_64                     2.9.1-2.el9                       @baseos
+        """
+
+        mock_return = mocker.MagicMock()
+        mock_return.stdout = output
+        mock_return.failed = True
+        mock_return.return_code = 100
+
+        return mock_return
+
+    @pytest.fixture
+    def mock_dnf_security_output(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the dnf command for security updates.
+        """
+        output = """
+
+        kernel.x86_64                        5.14.0-570.18.1.el9_6              baseos
+        kernel-core.x86_64                   5.14.0-570.18.1.el9_6              baseos
+        kernel-modules.x86_64                5.14.0-570.18.1.el9_6              baseos
+        kernel-modules-core.x86_64           5.14.0-570.18.1.el9_6              baseos
+        kernel-tools.x86_64                  5.14.0-570.18.1.el9_6              baseos
+        kernel-tools-libs.x86_64             5.14.0-570.18.1.el9_6              baseos
+        Obsoleting Packages
+        libldb.i686                          4.21.3-3.el9                       baseos
+            libldb.x86_64                    2.9.1-2.el9                        @baseos
+        """
+
+        mock_return = mocker.MagicMock()
+        mock_return.stdout = output
+        mock_return.failed = True
+        mock_return.return_code = 100
+
+        return mock_return
+
+    @pytest.fixture
+    def mock_dnf_output_no_updates(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the dnf command when no updates are available.
+        """
+        mock_connection.run.return_value = mocker.MagicMock()
+        mock_connection.run.return_value.stdout = ""
+        mock_connection.run.return_value.return_code = 0
+
+        return mock_connection
+
+    @pytest.fixture
+    def run_side_effect_normal(
+        self, mocker, mock_dnf_output, mock_dnf_security_output, mock_connection
+    ):
+        def _side_effect(cmd, *args, **kwargs):
+            if "dnf check-update --security" in cmd:
+                print("Mocking dnf security check")
+                return mock_dnf_security_output
+            elif "dnf check-update" in cmd:
+                print("Mocking dnf check-update")
+                return mock_dnf_output
+            elif "dnf list installed" in cmd:
+                print("Mocking dnf list installed")
+                parts = cmd.split()
+                package_name = parts[-1] if parts else "unknown"
+                output = f"""
+                Installed Packages
+                {package_name}     5.14.0-503.35.1.el9_5       @baseos
+                """
+                mock_result = mocker.MagicMock()
+                mock_result.stdout = output
+                mock_result.failed = False
+                mock_result.return_code = 0
+                return mock_result
+
+        return _side_effect
+
+    @pytest.mark.parametrize(
+        "connection_fixture, expected",
+        [
+            ("mock_connection", True),
+            ("mock_connection_failed", False),
+        ],
+        ids=["success", "failure"],
+    )
+    def test_reposync(self, mocker, request, connection_fixture, expected):
+        """
+        Test the reposync method of the DNF provider.
+        This method is a no-op for Red Hat-based systems, since dnf automatically
+        syncs the repositories on update checks.
+        """
+        mock_connection = request.getfixturevalue(connection_fixture)
+
+        dnf = Dnf()
+        result = dnf.reposync(mock_connection)
+
+        mock_connection.run.assert_called_once_with(
+            "dnf makecache", hide=True, warn=True
+        )
+
+        assert result is expected
+
+    def test_get_updates(self, mocker, mock_connection, run_side_effect_normal):
+        """
+        Test the get_updates method of the DNF provider.
+        The data is provided by the mock_dnf_output fixture.
+        """
+        dnf = Dnf()
+
+        # Setup side effects for the connection object, use the security output first
+        mock_connection.run.side_effect = run_side_effect_normal
+
+        try:
+            updates: list[Update] = dnf.get_updates(mock_connection)
+        except DataRefreshError as e:
+            pytest.fail(f"DataRefreshError should not be raised, got: {e}")
+
+        assert len(updates) == 11
+        assert updates[0].name == "emacs-filesystem.noarch"
+        assert updates[0].new_version == "1:27.2-13.el9_6"
+        assert updates[0].current_version == "5.14.0-503.35.1.el9_5"
+        assert not updates[0].security
+        assert updates[5].name == "kernel.x86_64"
+        assert updates[5].new_version == "5.14.0-570.18.1.el9_6"
+        assert updates[5].current_version == "5.14.0-503.35.1.el9_5"
+        assert updates[5].security
+
+    def test_get_updates_no_updates(self, mocker, mock_dnf_output_no_updates):
+        """
+        Test the get_updates method of the DNF provider when no updates are available.
+        """
+        dnf = Dnf()
+
+        updates: list[Update] = dnf.get_updates(mock_dnf_output_no_updates)
+
+        assert updates == []
+
+    def test_get_updates_query_failed(self, mocker, mock_connection_failed):
+        """
+        Test the get_updates method of the DNF provider when the query fails.
+        """
+        dnf = Dnf()
+
+        with pytest.raises(DataRefreshError):
+            dnf.get_updates(mock_connection_failed)
+
+    def test_get_updates_invalid_output(self, mocker, mock_connection):
+        """
+        Test the get_updates method of the DNF provider with invalid output.
+        Unparsable output in lines should be ignored.
+        """
+        dnf = Dnf()
+        mock_connection.run.return_value.stdout = "Invalid output"
+
+        results = dnf.get_updates(mock_connection)
+
+        assert results == []

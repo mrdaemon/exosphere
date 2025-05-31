@@ -3,6 +3,7 @@ from typing import Optional
 from exosphere.providers.api import PkgManager
 from exosphere.providers.debian import Apt
 from exosphere.providers.freebsd import Pkg
+from exosphere.providers.redhat import Dnf
 
 
 class PkgManagerFactory:
@@ -26,5 +27,7 @@ class PkgManagerFactory:
             return Apt(sudo=sudo, password=password)
         elif name == "pkg":
             return Pkg(sudo=sudo, password=password)
+        elif name == "dnf" or name == "yum":
+            return Dnf(sudo=sudo, password=password)
         else:
             raise ValueError(f"Unsupported package manager: {name}")
