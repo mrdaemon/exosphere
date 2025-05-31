@@ -472,7 +472,11 @@ class TestDnfProvider:
 
     @pytest.fixture
     def run_side_effect_normal(
-        self, mocker, mock_dnf_output_return, mock_dnf_security_output_return, mock_connection
+        self,
+        mocker,
+        mock_dnf_output_return,
+        mock_dnf_security_output_return,
+        mock_connection,
     ):
         def _side_effect(cmd, *args, **kwargs):
             if "dnf check-update --security" in cmd:
