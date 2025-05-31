@@ -405,7 +405,7 @@ class TestDnfProvider:
         return mock_connection
 
     @pytest.fixture
-    def mock_dnf_output(self, mocker, mock_connection):
+    def mock_dnf_output_return(self, mocker, mock_connection):
         """
         Fixture to mock the output of the dnf command enumerating packages.
         """
@@ -435,7 +435,7 @@ class TestDnfProvider:
         return mock_return
 
     @pytest.fixture
-    def mock_dnf_security_output(self, mocker, mock_connection):
+    def mock_dnf_security_output_return(self, mocker, mock_connection):
         """
         Fixture to mock the output of the dnf command for security updates.
         """
@@ -472,17 +472,14 @@ class TestDnfProvider:
 
     @pytest.fixture
     def run_side_effect_normal(
-        self, mocker, mock_dnf_output, mock_dnf_security_output, mock_connection
+        self, mocker, mock_dnf_output_return, mock_dnf_security_output_return, mock_connection
     ):
         def _side_effect(cmd, *args, **kwargs):
             if "dnf check-update --security" in cmd:
-                print("Mocking dnf security check")
-                return mock_dnf_security_output
+                return mock_dnf_security_output_return
             elif "dnf check-update" in cmd:
-                print("Mocking dnf check-update")
-                return mock_dnf_output
+                return mock_dnf_output_return
             elif "dnf list installed" in cmd:
-                print("Mocking dnf list installed")
                 parts = cmd.split()
                 package_name = parts[-1] if parts else "unknown"
                 output = f"""
