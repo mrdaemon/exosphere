@@ -17,11 +17,11 @@ class Configuration(dict):
 
     DEFAULTS: dict = {
         "options": {
+            "debug": False,
             "log_level": "INFO",
             "log_file": "exosphere.log",
             "cache_autosave": True,
             "cache_file": "exosphere.db",
-            "debug": False,
             "stale_threshold": 86400,  # seconds
         },
         "hosts": [],

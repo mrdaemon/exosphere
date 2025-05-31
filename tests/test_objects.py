@@ -74,12 +74,12 @@ class TestHostObject:
 
         assert host.online is False  # Should be False on failure
 
-    def test_host_sync(self, mocker, mock_connection, mock_hostinfo):
+    def test_host_discovery(self, mocker, mock_connection, mock_hostinfo):
         """
-        Functional test of the sync functionality for Host objects
+        Functional test of the discover functionality for Host objects
         """
         host = Host(name="test_host", ip="127.0.0.1")
-        host.sync()
+        host.discover()
 
         assert host.os == mock_hostinfo.os
         assert host.version == mock_hostinfo.version
@@ -95,9 +95,10 @@ class TestHostObject:
         # Ensure the connection was established
         mock_connection.assert_called_once_with(host=host.ip, port=host.port)
 
-    def test_host_sync_offline(self, mocker, mock_connection):
+    def test_host_discovery_offline(self, mocker, mock_connection):
         """
-        Test the sync functionality for Host objects when the host is offline.
+        Test the discover functionality for Host objects when the host
+        is offline.
         """
         mocker.patch(
             "exosphere.setup.detect.platform_detect",
@@ -107,7 +108,7 @@ class TestHostObject:
         host = Host(name="test_host", ip="127.0.0.1")
         mocker.patch.object(host, "ping", return_value=False)
 
-        host.sync()
+        host.discover()
 
         assert host.os is None
         assert host.version is None
@@ -116,10 +117,10 @@ class TestHostObject:
 
         assert host.online is False
 
-    def test_host_sync_offline_after_ping(self, mocker, mock_connection):
+    def test_host_discovery_offline_after_ping(self, mocker, mock_connection):
         """
-        Test the sync functionality for Host objects when the host is offline
-        and an exception is raised.
+        Test the discovery functionality for Host objects when the
+        host is offline and an exception is raised.
         """
         mocker.patch(
             "exosphere.setup.detect.platform_detect",
@@ -129,7 +130,7 @@ class TestHostObject:
         host = Host(name="test_host", ip="127.0.0.1")
         mocker.patch.object(host, "ping", return_value=True)
 
-        host.sync()
+        host.discover()
 
         assert host.os is None
         assert host.version is None
@@ -138,9 +139,9 @@ class TestHostObject:
 
         assert host.online is False
 
-    def test_host_sync_data_refresh_error(self, mocker, mock_connection):
+    def test_host_discovery_data_refresh_error(self, mocker, mock_connection):
         """
-        Test behavior of sync when a DataRefreshError is raised.
+        Test behavior of discovery when a DataRefreshError is raised.
         It should re-raise the exception and set the online status to False.
         """
         mocker.patch(
@@ -152,7 +153,7 @@ class TestHostObject:
         mocker.patch.object(host, "ping", return_value=True)
 
         with pytest.raises(DataRefreshError):
-            host.sync()
+            host.discover()
 
         assert host.os is None
         assert host.version is None

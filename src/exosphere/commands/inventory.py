@@ -83,27 +83,27 @@ def _get_hosts_or_error(
 
 
 @app.command()
-def sync(
+def discover(
     names: Annotated[
         Optional[list[str]],
         typer.Argument(
-            help="Host(s) to synchronize, all if not specified", metavar="[HOST]..."
+            help="Host(s) to discover, all if not specified", metavar="[HOST]..."
         ),
     ] = None,
 ) -> None:
     """
-    Synchronize inventory with live host state.
+    Gather platform information for hosts
 
     On a fresh inventory start, this needs done at least once before
     operations can be performed on the hosts.
 
-    The sync operation will connect to the specified host(s)
+    The discover operation will connect to the specified host(s)
     and gather their current state, including Operating System, flavor,
     version and pick a Package Mananager implementation for further
     operations.
     """
     logger = logging.getLogger(__name__)
-    logger.info("Synchronizing inventory with hosts")
+    logger.info("Gathering platform information for hosts")
 
     inventory: Inventory = _get_inventory()
 
@@ -115,8 +115,8 @@ def sync(
     with Progress(
         transient=True,
     ) as progress:
-        task = progress.add_task("Syncing hosts", total=len(hosts))
-        for host, _, exc in inventory.run_task("sync", hosts=hosts):
+        task = progress.add_task("Gathering platform information", total=len(hosts))
+        for host, _, exc in inventory.run_task("discover", hosts=hosts):
             output = []
             if exc:
                 output.append("  [[bold red]FAILED[/bold red]]")
@@ -144,7 +144,7 @@ def sync(
 
 @app.command()
 def refresh(
-    full: Annotated[
+    sync: Annotated[
         bool, typer.Option(help="Refresh the package catalog as well as updates")
     ] = False,
     names: Annotated[
@@ -160,7 +160,7 @@ def refresh(
     Connects to hosts in the inventory and retrieves pending package
     updates.
 
-    If --full is specified, the package catalog will also be refreshed.
+    If --sync is specified, the package catalog will also be refreshed.
 
     Updating the package catalog involves invoking whatever mechamism
     the package manager uses to synchronize its package repositories,
@@ -177,7 +177,7 @@ def refresh(
     if hosts is None:
         return
 
-    if full:
+    if sync:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -342,7 +342,7 @@ def status(
     for host in hosts:
         # Prepare some rendering data for suffixes and placeholders
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
-        unsynced_status = "[dim](unsynced)[/dim]"
+        unknown_status = "[dim](unknown)[/dim]"
 
         # Prepare the table row data
         updates = f"{len(host.updates)}{stale_suffix}"
@@ -359,9 +359,9 @@ def status(
         # Construct table
         table.add_row(
             host.name,
-            host.os or unsynced_status,
-            host.flavor or unsynced_status,
-            host.version or unsynced_status,
+            host.os or unknown_status,
+            host.flavor or unknown_status,
+            host.version or unknown_status,
             updates,
             security_updates,
             online_status,
@@ -381,7 +381,7 @@ def save() -> None:
     The data is compressed using LZMA.
 
     If options.cache_autosave is enabled, this will will be automatically
-    invoked after every sync or refresh operation.
+    invoked after every discovery or refresh operation.
 
     Since this is enabled by default, you will rarely need to invoke this
     manually.
@@ -435,7 +435,7 @@ def clear(
     have difficulties with stale data that cannot be resolved.
 
     Note that this will remove all cached host data, so you will
-    need to re-sync the inventory after this operation.
+    need to re-discover the entire inventory after this operation.
 
     """
     inventory: Inventory = _get_inventory()
@@ -456,7 +456,7 @@ def clear(
         console.print(
             Panel.fit(
                 "Inventory state has been cleared. "
-                "You will need to re-sync the inventory.",
+                "You will need to re-discover the inventory.",
                 title="Cache Cleared",
             )
         )

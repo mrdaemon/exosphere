@@ -18,7 +18,7 @@ class Host:
         Create a Host object, which then can be used to query
         the host for information, and perform operations on it.
 
-        The host will be marked at offline until the first sync
+        The host will be marked at offline until the first discovery
         operation is performed. Errors in processing will update
         this status automatically.
 
@@ -38,7 +38,7 @@ class Host:
         self._connection: Optional[Connection] = None
 
         # online status, defaults to False
-        # until first sync.
+        # until first discovery.
         self.online: bool = False
 
         # Internal state of host
@@ -131,10 +131,13 @@ class Host:
 
         return timedelta.total_seconds() > stale_threshold
 
-    def sync(self) -> None:
+    def discover(self) -> None:
         """
         Synchronize host information with remote system.
-        Effectively refreshes cache for host information.
+        Attempts to detect the platform details, such as
+        operating system, version, flavor, and package manager.
+
+        Online status is also updated in the process.
 
         :return: None
         """

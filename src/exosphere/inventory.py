@@ -14,7 +14,7 @@ class Inventory:
     Handles reading the inventory from file and creating the
     Host objects.
 
-    Convenience methods for syncing, refreshing catalogs, updates and ping
+    Convenience methods for discovery, refreshing catalogs, updates and ping
     are provided, and are all parallelized using Threads.
 
     Runtime errors are generally non-fatal, but will be logged.
@@ -131,22 +131,22 @@ class Inventory:
 
         return host_obj
 
-    def sync_all(self) -> None:
+    def dicover_all(self) -> None:
         """
-        Sync all hosts in the inventory.
+        Discover all hosts in the inventory.
 
         """
-        self.logger.info("Syncing all hosts in inventory")
+        self.logger.info("Discovering all hosts in inventory")
 
         for host, _, exc in self.run_task(
-            "sync",
+            "discover",
         ):
             if exc:
-                self.logger.error("Failed to sync host %s: %s", host.name, exc)
+                self.logger.error("Failed to discover host %s: %s", host.name, exc)
             else:
-                self.logger.info("Host %s synced successfully", host.name)
+                self.logger.info("Host %s discovered successfully", host.name)
 
-        self.logger.info("All hosts synced")
+        self.logger.info("All hosts discovered")
 
     def refresh_catalog_all(self) -> None:
         """

@@ -112,8 +112,9 @@ def show(
             f"[bold]IP Address:[/bold] {host.ip}\n"
             f"[bold]Port:[/bold] {host.port}\n"
             f"[bold]Online Status:[/bold] {'[bold green]Online[/bold green]' if host.online else '[red]Offline[/red]'}\n"
-            f"[bold]Last Refreshed:[/bold] {last_refresh}\n"
+            "\n"
             f"[bold]Stale:[/bold] {'[yellow]Yes[/yellow]' if host.is_stale else 'No'}\n"
+            f"[bold]Last Refreshed:[/bold] {last_refresh}\n"
             "\n"
             f"[bold]Operating System:[/bold]\n"
             f"  {host_os_details}, using {host.package_manager}\n"
@@ -154,14 +155,14 @@ def show(
 
 
 @app.command()
-def sync(
-    name: Annotated[str, typer.Argument(help="Host from inventory to sync")],
+def discover(
+    name: Annotated[str, typer.Argument(help="Host from inventory to discover")],
 ) -> None:
     """
-    Sync a specific host to ensure its data is up-to-date.
+    Gather platform data for host.
 
     This command retrieves the host by name from the inventory
-    and refreshes its data.
+    and synchronizes its platform data.
     """
     host = _get_host(name)
 
@@ -173,13 +174,13 @@ def sync(
         TextColumn("[progress.description]{task.description}"),
         TimeElapsedColumn(),
     ) as progress:
-        progress.add_task(f"Syncing host '{host.name}'", total=None)
+        progress.add_task(f"Discovering platform for '{host.name}'", total=None)
         try:
-            host.sync()
+            host.discover()
         except Exception as e:
             progress.console.print(
                 Panel.fit(
-                    f"Failed to sync host '{host.name}': {e}",
+                    f"Failed to discover host '{host.name}': {e}",
                     title="Error",
                     style="red",
                 )
