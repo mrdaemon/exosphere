@@ -99,6 +99,12 @@ def show(
         else f"{host.os} {host.version}"
     )
 
+    if not host.last_refresh:
+        last_refresh = "[red]Never[/red]"
+    else:
+        # Format: "Fri May 21:04:43 EDT 2025"
+        last_refresh = host.last_refresh.strftime("%a %b %d %H:%M:%S %Y")
+
     # Display host properties in a rich panel
     console.print(
         Panel.fit(
@@ -106,7 +112,8 @@ def show(
             f"[bold]IP Address:[/bold] {host.ip}\n"
             f"[bold]Port:[/bold] {host.port}\n"
             f"[bold]Online Status:[/bold] {'[bold green]Online[/bold green]' if host.online else '[red]Offline[/red]'}\n"
-            f"[bold]Last Refresh:[/bold] {host.last_refresh}\n"
+            f"[bold]Last Refreshed:[/bold] {last_refresh}\n"
+            f"[bold]Stale:[/bold] {'[yellow]Yes[/yellow]' if host.is_stale else 'No'}\n"
             "\n"
             f"[bold]Operating System:[/bold]\n"
             f"  {host_os_details}, using {host.package_manager}\n"
