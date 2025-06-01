@@ -2,11 +2,12 @@ import logging
 
 import typer
 from click_shell import make_click_shell
+from rich.console import Console
 
 from exosphere import __version__
 from exosphere.commands import host, inventory, test, ui
 
-banner = f"""
+banner = f"""[turquoise4]
                          ▗▖
                          ▐▌
  ▟█▙ ▝█ █▘ ▟█▙ ▗▟██▖▐▙█▙ ▐▙██▖ ▟█▙  █▟█▌ ▟█▙
@@ -14,9 +15,7 @@ banner = f"""
 ▐▛▀▀▘ ▗█▖ ▐▌ ▐▌ ▀▀█▖▐▌ ▐▌▐▌ ▐▌▐▛▀▀▘ █   ▐▛▀▀▘
 ▝█▄▄▌ ▟▀▙ ▝█▄█▘▐▄▄▟▌▐█▄█▘▐▌ ▐▌▝█▄▄▌ █   ▝█▄▄▌
  ▝▀▀ ▝▀ ▀▘ ▝▀▘  ▀▀▀ ▐▌▀▘ ▝▘ ▝▘ ▝▀▀  ▀    ▝▀▀
-                    ▐▌
-
-Exosphere CLI v{__version__}
+                    ▐▌ [green]v{__version__}[/green][/turquoise4]
 """
 
 app = typer.Typer(
@@ -40,10 +39,15 @@ def cli(ctx: typer.Context) -> None:
     if ctx.invoked_subcommand is None:
         logger = logging.getLogger(__name__)
         logger.info("Starting Exosphere REPL interface")
+
+        # Print the banner
+        console = Console()
+        console.print(banner)
+
+        # Start interactive REPL
         repl = make_click_shell(
             ctx,
             prompt="exosphere> ",
-            intro=banner,
         )
         repl.cmdloop()
         typer.Exit(0)
