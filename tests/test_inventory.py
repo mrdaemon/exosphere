@@ -112,6 +112,90 @@ class TestInventory:
         with pytest.raises(RuntimeError):
             inventory.clear_state()
 
+    @pytest.mark.parametrize(
+        "host_name,host_cfg,cache_contains,cache_getitem_side_effect,expect_new,expect_warning",
+        [
+            (
+                "host1",
+                {"name": "host1", "ip": "127.0.0.1", "port": 2222},
+                lambda k: k == "host1",
+                lambda k: mock.Mock(name="host1", ip="127.0.0.1", port=2222) if k == "host1"
+                else KeyError,
+                False,
+                False,
+            ),
+            (
+                "host2",
+                {"name": "host2", "ip": "127.0.0.2", "port": 2222},
+                lambda k: False,
+                None,
+                True,
+                False,
+            ),
+            (
+                "host3",
+                {"name": "host3", "ip": "127.0.0.3", "port": 2222},
+                lambda k: True,
+                Exception("corrupt cache or whatever"),
+                True,
+                True,
+            ),
+        ],
+        ids=[
+            "load_on_cache_hit",
+            "create_on_cache_miss",
+            "create_on_cache_error",
+        ],
+    )
+    def test_load_or_create_host(
+        self,
+        mocker,
+        mock_config,
+        mock_diskcache,
+        mock_host_class,
+        caplog,
+        host_name,
+        host_cfg,
+        cache_contains,
+        cache_getitem_side_effect,
+        expect_new,
+        expect_warning,
+    ):
+        """
+        Test load_or_create_host behavior with various cache states.
+        """
+        inventory = Inventory(mock_config)
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+
+        # Horrying kludge to mock cache behavior
+        cache_mock.__contains__.side_effect = cache_contains
+        if isinstance(cache_getitem_side_effect, Exception):
+            cache_mock.__getitem__.side_effect = cache_getitem_side_effect
+        elif callable(cache_getitem_side_effect):
+            cache_mock.__getitem__.side_effect = cache_getitem_side_effect
+
+        if expect_warning:
+            with caplog.at_level("WARNING"):
+                result = inventory.load_or_create_host(host_name, host_cfg, cache_mock)
+        else:
+            result = inventory.load_or_create_host(host_name, host_cfg, cache_mock)
+
+        if expect_new:
+            mock_host_class.assert_any_call(**host_cfg)
+            assert result.name == host_cfg["name"]
+            assert result.ip == host_cfg["ip"]
+            assert result.port == host_cfg["port"]
+        else:
+            assert result.name == host_cfg["name"]
+            assert result.ip == host_cfg["ip"]
+            assert result.port == host_cfg["port"]
+
+        if expect_warning:
+            assert any(
+                f"Failed to load host state for {host_name} from cache" in m
+                for m in caplog.messages
+            )
+
     def test_discover_all_calls_run_task(
         self, mocker, mock_config, mock_diskcache, mock_host_class
     ):
