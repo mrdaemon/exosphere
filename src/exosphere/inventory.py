@@ -92,7 +92,7 @@ class Inventory:
         # Load hosts state from cache if available
         with DiskCache(self.cache_file) as cache:
             for name, host in config_hosts.items():
-                host_obj = self._load_or_create_host(name, host, cache)
+                host_obj = self.load_or_create_host(name, host, cache)
                 self.hosts.append(host_obj)
                 cached_hosts.add(name)
 
@@ -103,7 +103,7 @@ class Inventory:
                     self.logger.info("Removing stale host %s from cache", host)
                     del cache[host]
 
-    def _load_or_create_host(self, name: str, host_cfg: dict, cache: DiskCache) -> Host:
+    def load_or_create_host(self, name: str, host_cfg: dict, cache: DiskCache) -> Host:
         """
         Attempt to load a host from the cache, or create a new one if that fails
         in any meaningful way.
