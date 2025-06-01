@@ -207,7 +207,7 @@ def discover(
 def refresh(
     name: Annotated[str, typer.Argument(help="Host from inventory to refresh")],
     full: Annotated[
-        bool, typer.Option("--full", "-f", help="Also refresh package catalog")
+        bool, typer.Option("--sync", "-s", help="Also refresh package catalog")
     ] = False,
 ) -> None:
     """
