@@ -74,6 +74,8 @@ class Dnf(PkgManager):
                     f"Failed to retrieve updates from DNF: {raw_query.stderr}"
                 )
 
+        parsed_tuples: list[tuple[str, str, str]] = []
+
         for line in raw_query.stdout.splitlines():
             line = line.strip()
 
@@ -94,18 +96,19 @@ class Dnf(PkgManager):
                 continue
 
             name, version, source = parsed
+
+            parsed_tuples.append((name, version, source))
+
+        self.logger.info("Found %d updates", len(parsed_tuples))
+
+        installed_versions = self._get_current_versions(
+            cx, [name for name, _, _ in parsed_tuples]
+        )
+
+        for name, version, source in parsed_tuples:
             is_security = name in security_updates
 
-            current_version = self._get_current_versions(cx, name)
-
-            self.logger.debug(
-                "Found security update: %s (current: %s, new: %s, source: %s, security: %s)",
-                name,
-                current_version,
-                version,
-                source,
-                is_security,
-            )
+            current_version = installed_versions.get(name, "(unknown)")
 
             update = Update(
                 name=name,
@@ -127,7 +130,7 @@ class Dnf(PkgManager):
 
         updates: list[str] = []
 
-        raw_query = cx.run("dnf check-update --security --quiet")
+        raw_query = cx.run("dnf check-update --security --quiet", hide=True, warn=True)
 
         if raw_query.return_code == 0:
             self.logger.debug("No security updates available")
@@ -181,7 +184,9 @@ class Dnf(PkgManager):
 
         return (name, version, source)
 
-    def _get_current_versions(self, cx: Connection, package_name: str) -> str:
+    def _get_current_versions(
+        self, cx: Connection, package_names: list[str]
+    ) -> dict[str, str]:
         """
         Get the currently installed version of a package.
 
@@ -190,33 +195,34 @@ class Dnf(PkgManager):
         :return: Currently installed version of the package.
         """
         result = cx.run(
-            f"dnf list installed --quiet {package_name}", hide=True, warn=True
+            f"dnf list installed --quiet {' '.join(package_names)}",
+            hide=True,
+            warn=True,
         )
 
         if result.failed:
-            raise DataRefreshError(
-                f"Failed to get current version for {package_name}: {result.stderr}"
-            )
+            raise DataRefreshError(f"Failed to get current versions: {result.stderr}")
 
-        versions = []
+        current_versions = {}
+
         for line in result.stdout.splitlines():
             line = line.strip()
-            if line.startswith(package_name):
-                version_set = self._parse_line(line)
-                if version_set:
-                    versions.append(version_set[1])
+            if not line or "Installed Packages" in line:
+                continue
 
-        if len(versions) > 1:
-            self.logger.debug(
-                "Found multiple versions for %s: %s", package_name, ", ".join(versions)
-            )
-            # Return the last version in list
-            return f"{versions[-1]} (+)"
+            parts = self._parse_line(line)
 
-        if versions:
-            self.logger.debug(
-                "Found current version for %s: %s", package_name, versions[0]
-            )
-            return versions[0]
+            if parts is None:
+                continue
 
-        return "(none)"
+            name = parts[0]
+            version = parts[1]
+
+            # If a package shows up more than once in the list, we
+            # just clobber it and keep the last instance.
+            # This looks like a bug, but is intended, due to how dnf
+            # handles packages with slotted versions.
+            current_versions[name] = version
+
+        self.logger.debug("Current versions: %s", current_versions)
+        return current_versions

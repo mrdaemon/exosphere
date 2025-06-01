@@ -435,6 +435,37 @@ class TestDnfProvider:
         return mock_return
 
     @pytest.fixture
+    def mock_dnf_current_versions_return(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the dnf command for current versions.
+        """
+
+        output = """
+
+        Installed Packages
+        emacs-filesystem.noarch               1:27.1-10.el9_6                   @appstream
+        expat.x86_64                          2.5.0-3.el9_6                     @baseos
+        git.x86_64                            2.47.0-1.el9_6                    @appstream
+        git-core.x86_64                       2.47.0-1.el9_6                    @appstream
+        git-core-doc.noarch                   2.47.1-2.el9_6                    @appstream
+        kernel.x86_64                         5.14.0-502.35.1.el9_5             @baseos
+        kernel-core.x86_64                    5.14.0-502.35.1.el9_5             @baseos
+        kernel-modules.x86_64                 5.12.0-502.35.1.el9_5             @baseos
+        kernel-modules.x86_64                 5.13.0-502.35.1.el9_5             @baseos
+        kernel-modules.x86_64                 5.14.0-502.35.1.el9_5             @baseos
+        kernel-modules-core.x86_64            5.14.0-502.35.1.el9_5             @baseos
+        kernel-tools.x86_64                   5.14.0-502.35.1.el9_5             @baseos
+        kernel-tools-libs.x86_64              5.14.0-502.35.1.el9_5             @baseos
+        """
+
+        mock_return = mocker.MagicMock()
+        mock_return.stdout = output
+        mock_return.failed = False
+        mock_return.return_code = 0
+
+        return mock_return
+
+    @pytest.fixture
     def mock_dnf_security_output_return(self, mocker, mock_connection):
         """
         Fixture to mock the output of the dnf command for security updates.
@@ -476,7 +507,7 @@ class TestDnfProvider:
         mocker,
         mock_dnf_output_return,
         mock_dnf_security_output_return,
-        mock_connection,
+        mock_dnf_current_versions_return,
     ):
         def _side_effect(cmd, *args, **kwargs):
             if "dnf check-update --security" in cmd:
@@ -484,17 +515,7 @@ class TestDnfProvider:
             elif "dnf check-update" in cmd:
                 return mock_dnf_output_return
             elif "dnf list installed" in cmd:
-                parts = cmd.split()
-                package_name = parts[-1] if parts else "unknown"
-                output = f"""
-                Installed Packages
-                {package_name}     5.14.0-503.35.1.el9_5       @baseos
-                """
-                mock_result = mocker.MagicMock()
-                mock_result.stdout = output
-                mock_result.failed = False
-                mock_result.return_code = 0
-                return mock_result
+                return mock_dnf_current_versions_return
 
         return _side_effect
 
@@ -541,11 +562,11 @@ class TestDnfProvider:
         assert len(updates) == 11
         assert updates[0].name == "emacs-filesystem.noarch"
         assert updates[0].new_version == "1:27.2-13.el9_6"
-        assert updates[0].current_version == "5.14.0-503.35.1.el9_5"
+        assert updates[0].current_version == "1:27.1-10.el9_6"
         assert not updates[0].security
         assert updates[5].name == "kernel.x86_64"
         assert updates[5].new_version == "5.14.0-570.18.1.el9_6"
-        assert updates[5].current_version == "5.14.0-503.35.1.el9_5"
+        assert updates[5].current_version == "5.14.0-502.35.1.el9_5"
         assert updates[5].security
 
     def test_get_updates_no_updates(self, mocker, mock_dnf_output_no_updates):
