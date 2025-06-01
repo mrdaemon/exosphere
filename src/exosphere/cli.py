@@ -5,7 +5,7 @@ from click_shell import make_click_shell
 from rich.console import Console
 
 from exosphere import __version__
-from exosphere.commands import host, inventory, test, ui
+from exosphere.commands import host, inventory, ui
 
 banner = f"""[turquoise4]
                          ▗▖
@@ -23,7 +23,6 @@ app = typer.Typer(
 )
 
 # Setup commands from modules
-app.add_typer(test.app, name="test")
 app.add_typer(inventory.app, name="inventory")
 app.add_typer(ui.app, name="ui")
 app.add_typer(host.app, name="host")
