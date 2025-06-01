@@ -75,6 +75,14 @@ def show(
             help="Show update details for the host",
         ),
     ] = False,
+    security_only: Annotated[
+        bool,
+        typer.Option(
+            "--security-only",
+            "-s",
+            help="Show only security updates for the host when displaying updates",
+        ),
+    ] = False,
 ) -> None:
     """
     Show details of a specific host.
@@ -125,10 +133,16 @@ def show(
     )
 
     if not include_updates:
+        if security_only:
+            err_console.print(
+                "[yellow]--security-only option is only valid with --updates; ignoring.[/yellow]"
+            )
         raise typer.Exit(code=0)
 
+    update_list = host.updates if not security_only else host.security_updates
+
     # Display updates in a rich table, if any
-    if not host.updates:
+    if not update_list:
         console.print("[bold]No updates available for this host.[/bold]")
         raise typer.Exit(code=0)
 
@@ -141,7 +155,7 @@ def show(
         title="Available Updates",
     )
 
-    for update in host.updates:
+    for update in update_list:
         updates_table.add_row(
             f"[bold]{update.name}[/bold]",
             update.current_version,
