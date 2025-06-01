@@ -119,7 +119,8 @@ class TestInventory:
                 "host1",
                 {"name": "host1", "ip": "127.0.0.1", "port": 2222},
                 lambda k: k == "host1",
-                lambda k: mock.Mock(name="host1", ip="127.0.0.1", port=2222) if k == "host1"
+                lambda k: mock.Mock(name="host1", ip="127.0.0.1", port=2222)
+                if k == "host1"
                 else KeyError,
                 False,
                 False,
