@@ -168,3 +168,60 @@ class TestHostObject:
         """
         host = Host(name="test_host", ip="10.0.0.2", port=22)
         assert repr(host) == "Host(name='test_host', ip='10.0.0.2', port='22')"
+
+    def test_host_getstate_removes_unserializables(self, mocker):
+        """
+        Test that __getstate__ removes unserializable attributes.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        mocker.patch.object(host, "_connection", mocker.Mock())
+        mocker.patch.object(host, "_pkginst", mocker.Mock())
+
+        state = host.__getstate__()
+
+        assert state["_connection"] is None
+        assert state["_pkginst"] is None
+
+        assert state["name"] == "test_host"
+        assert state["ip"] == "127.0.0.1"
+
+    def test_host_setstate_restores_state_and_pkginst(self, mocker):
+        """
+        Test that __setstate__ restores state and recreates _pkginst
+        """
+        fake_pkginst = mocker.MagicMock()
+        mock_factory = mocker.patch(
+            "exosphere.objects.PkgManagerFactory.create", return_value=fake_pkginst
+        )
+
+        state = {
+            "name": "test_host",
+            "ip": "127.0.0.1",
+            "port": 22,
+            "online": True,
+            "os": "linux",
+            "version": "12",
+            "flavor": "debian",
+            "package_manager": "apt",
+            "_connection": "THE BEFORES",
+            "_pkginst": "THE BEFORES",
+            "updates": [],
+            "last_refresh": None,
+        }
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.__setstate__(state)
+
+        assert host.name == "test_host"
+        assert host.ip == "127.0.0.1"
+        assert host.os == "linux"
+        assert host.version == "12"
+        assert host.package_manager == "apt"
+
+        assert host._connection != "THE BEFORES"
+        assert host._connection != "THE BEFORES"
+
+        assert host._connection is None
+        mock_factory.assert_called_once_with("apt")
+        assert host._pkginst == fake_pkginst
