@@ -115,28 +115,44 @@ def discover(
     with Progress(
         transient=True,
     ) as progress:
+        errors = []
         task = progress.add_task("Gathering platform information", total=len(hosts))
         for host, _, exc in inventory.run_task("discover", hosts=hosts):
-            output = []
-            if exc:
-                output.append("  [[bold red]FAILED[/bold red]]")
-            else:
-                output.append("  [[bold green]OK[/bold green]]")
+            status_out = (
+                "  [[bold red]FAILED[/bold red]]"
+                if exc
+                else "  [[bold green]OK[/bold green]]"
+            )
 
-            output.append(f"[bold]{host.name}[/bold]")
+            host_out = f"[bold]{host.name}[/bold]"
+
+            renderables = [
+                status_out,
+                host_out,
+            ]
 
             if exc:
-                output.append(f" - {str(exc)}")
+                errors.append((host.name, str(exc)))
 
             progress.console.print(
                 Columns(
-                    output,
+                    renderables,
                     padding=(2, 1),
                     equal=True,
                 ),
             )
 
             progress.update(task, advance=1)
+
+    if errors:
+        for host, error in errors:
+            err_console.print(
+                Panel.fit(
+                    error,
+                    style="bold red",
+                    title=f"Error discovering {host}",
+                )
+            )
 
     if app_config["options"]["cache_autosave"]:
         save()
