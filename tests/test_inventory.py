@@ -220,7 +220,9 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
         mock_run = mocker.patch.object(
-            inventory, "run_task", return_value=[(mock.Mock(name="host1"), None, None)]
+            inventory,
+            "run_task",
+            return_value=[(mocker.Mock(name="host1"), None, None)],
         )
 
         inventory.refresh_catalog_all()
@@ -235,7 +237,9 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
         mock_run = mocker.patch.object(
-            inventory, "run_task", return_value=[(mock.Mock(name="host1"), None, None)]
+            inventory,
+            "run_task",
+            return_value=[(mocker.Mock(name="host1"), None, None)],
         )
 
         inventory.refresh_updates_all()
@@ -310,3 +314,49 @@ class TestInventory:
                 in message
                 for message in caplog.messages
             )
+
+    @pytest.mark.parametrize(
+        "method_name",
+        ["discover", "refresh_catalog", "refresh_updates", "ping"],
+    )
+    def test_run_task(
+        self, mocker, mock_config, mock_diskcache, mock_host_class, caplog, method_name
+    ):
+        """
+        Test run_task behavior with success and failure cases.
+        """
+        inventory = Inventory(mock_config)
+
+        # Create two mock hosts
+        mock_host1 = mock_host_class(name="host1", ip="127.0.0.1", port=22)
+        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2", port=22)
+
+        # host1: method succeeds, host2: method raises exception
+        mocker.patch.object(mock_host1, method_name, return_value="ok")
+        mocker.patch.object(mock_host2, method_name, side_effect=RuntimeError("fail"))
+
+        inventory.hosts = [mock_host1, mock_host2]
+
+        results = list(inventory.run_task(method_name))
+
+        with caplog.at_level("INFO"):
+            results = list(inventory.run_task(method_name))
+
+        assert len(results) == 2
+
+        for host, result, exc in results:
+            if host.name == "host1":
+                assert result == "ok"
+                assert exc is None
+            elif host.name == "host2":
+                assert result is None
+                assert isinstance(exc, RuntimeError)
+                assert str(exc) == "fail"
+
+        assert any(
+            f"Successfully executed {method_name} on host1" in m
+            for m in caplog.messages
+        )
+        assert any(
+            f"Failed to run {method_name} on host2: fail" in m for m in caplog.messages
+        )
