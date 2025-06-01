@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import pytest
 
 from exosphere.data import HostInfo
@@ -225,3 +227,75 @@ class TestHostObject:
         assert host._connection is None
         mock_factory.assert_called_once_with("apt")
         assert host._pkginst == fake_pkginst
+
+    def test_security_update_property(self, mocker):
+        """
+        Test that security_updates property returns only updates marked as security.
+        """
+        # Create mock Update objects
+        update1 = mocker.Mock(security=True)
+        update2 = mocker.Mock(security=False)
+        update3 = mocker.Mock(security=True)
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.updates = [update1, update2, update3]
+
+        result = host.security_updates
+
+        assert update1 in result
+        assert update3 in result
+        assert update2 not in result
+        assert all(u.security for u in result)
+        assert len(result) == 2
+
+    def test_security_updates_empty(self):
+        """
+        Test that security_updates property returns empty list if no updates.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        host.updates = []
+
+        assert host.security_updates == []
+
+    def test_is_stale_true_if_never_refreshed(self):
+        """
+        Test is_stale returns True if last_refresh is None.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        host.last_refresh = None
+
+        assert host.is_stale is True
+
+    def test_is_stale_true_if_past_threshold(self, mocker):
+        """
+        Test is_stale returns True if last_refresh is older than threshold.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        # Patch app config to set stale_threshold to 10 seconds
+        mocker.patch(
+            "exosphere.objects.app_config", {"options": {"stale_threshold": 10}}
+        )
+
+        # Set last_refresh to 20 seconds ago
+        host.last_refresh = datetime.now() - timedelta(seconds=20)
+
+        assert host.is_stale is True
+
+    def test_is_stale_false_if_within_threshold(self, mocker):
+        """
+        Test is_stale returns False if last_refresh is within threshold.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        # Patch app config to set stale_threshold to 60 seconds
+        mocker.patch(
+            "exosphere.objects.app_config", {"options": {"stale_threshold": 60}}
+        )
+
+        # Set last_refresh to 30 seconds ago
+        host.last_refresh = datetime.now() - timedelta(seconds=30)
+
+        assert host.is_stale is False
