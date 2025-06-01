@@ -131,7 +131,7 @@ class Inventory:
 
         return host_obj
 
-    def dicover_all(self) -> None:
+    def discover_all(self) -> None:
         """
         Discover all hosts in the inventory.
 
