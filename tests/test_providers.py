@@ -8,11 +8,8 @@ from exosphere.providers import Apt, Dnf, Pkg, PkgManagerFactory
 class TestPkgManagerFactory:
     @pytest.mark.parametrize(
         "name, expected_class",
-        [
-            ("apt", Apt),
-            ("pkg", Pkg),
-        ],
-        ids=["apt", "pkg"],
+        [("apt", Apt), ("pkg", Pkg), ("dnf", Dnf), ("yum", Dnf)],
+        ids=["apt", "pkg", "dnf", "yum"],
     )
     def test_create(self, name, expected_class):
         """
