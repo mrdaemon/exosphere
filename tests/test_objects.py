@@ -299,3 +299,124 @@ class TestHostObject:
         host.last_refresh = datetime.now() - timedelta(seconds=30)
 
         assert host.is_stale is False
+
+    def test_refresh_catalog_success(self, mocker, mock_connection):
+        """
+        Test that refresh_catalog calls reposync and succeeds when online and _pkginst is set.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+
+        pkg_manager = mocker.MagicMock()
+        pkg_manager.reposync.return_value = True
+
+        host._pkginst = pkg_manager
+
+        host.refresh_catalog()
+
+        pkg_manager.reposync.assert_called_once_with(host.connection)
+
+    def test_refresh_catalog_offline_raises(self):
+        """
+        Test that refresh_catalog raises OfflineHostError if host is offline.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = False
+
+        with pytest.raises(OfflineHostError):
+            host.refresh_catalog()
+
+    def test_refresh_catalog_no_pkginst_raises(self, caplog):
+        """
+        Test that refresh_catalog raises DataRefreshError if _pkginst is None.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+        host._pkginst = None
+
+        with pytest.raises(DataRefreshError):
+            host.refresh_catalog()
+
+        caplog.set_level("ERROR")
+        logs = caplog.text
+        assert "Package manager implementation unavailable" in logs
+
+    def test_refresh_catalog_reposync_failure_raises(self, mocker, mock_connection):
+        """
+        Test that refresh_catalog raises DataRefreshError if reposync returns False.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+
+        pkg_manager = mocker.Mock()
+        pkg_manager.reposync.return_value = False
+
+        host._pkginst = pkg_manager
+
+        with pytest.raises(DataRefreshError):
+            host.refresh_catalog()
+
+    def test_refresh_updates_success_with_updates(self, mocker, mock_connection):
+        """
+        Test that refresh_updates populates updates and sets last_refresh when updates are found.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+
+        pkg_manager = mocker.Mock()
+        updates_list = [mocker.Mock(), mocker.Mock()]
+
+        pkg_manager.get_updates.return_value = updates_list
+        host._pkginst = pkg_manager
+
+        before = datetime.now()
+        host.refresh_updates()
+        after = datetime.now()
+
+        pkg_manager.get_updates.assert_called_once_with(host.connection)
+        assert host.updates == updates_list
+        assert host.last_refresh is not None
+        assert before <= host.last_refresh <= after
+
+    def test_refresh_updates_success_no_updates(self, mocker, mock_connection, caplog):
+        """
+        Test that refresh_updates logs info when no updates are found.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+
+        pkg_manager = mocker.Mock()
+        pkg_manager.get_updates.return_value = []
+        host._pkginst = pkg_manager
+
+        caplog.set_level("INFO")
+        host.refresh_updates()
+
+        assert host.updates == []
+        assert "No updates available for test_host" in caplog.text
+
+    def test_refresh_updates_offline_raises(self, mocker):
+        """
+        Test that refresh_updates raises OfflineHostError if host is offline.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = False
+        host._pkginst = mocker.Mock()
+
+        with pytest.raises(OfflineHostError):
+            host.refresh_updates()
+
+    def test_refresh_updates_no_pkginst_raises(self, mocker, caplog):
+        """
+        Test that refresh_updates raises DataRefreshError if _pkginst is None.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+        host._pkginst = None
+
+        caplog.set_level("ERROR")
+
+        with pytest.raises(DataRefreshError):
+            host.refresh_updates()
+
+        assert "Package manager implementation unavailable" in caplog.text
