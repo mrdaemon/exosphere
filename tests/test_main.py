@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from exosphere.config import Configuration
-from exosphere.main import load_first_config
+from exosphere.main import load_first_config, setup_logging
 
 
 class TestMain:
@@ -83,3 +83,50 @@ class TestMain:
 
         with pytest.raises(SystemExit):
             load_first_config(mock_config_exception)
+
+    def test_setup_logging_stream_handler(self, mocker):
+        """
+        Test setup_logging with no log_file (should use StreamHandler).
+        """
+        basic_config = mocker.patch("logging.basicConfig")
+        get_logger = mocker.patch("logging.getLogger")
+
+        setup_logging("INFO")
+
+        basic_config.assert_called()
+        get_logger.assert_any_call("exosphere")
+        get_logger.assert_any_call("exosphere.main")
+
+    def test_setup_logging_file_handler(self, mocker, tmp_path):
+        """
+        Test setup_logging with a log_file (should use FileHandler).
+        """
+        basic_config = mocker.patch("logging.basicConfig")
+        get_logger = mocker.patch("logging.getLogger")
+        log_file = tmp_path / "test.log"
+
+        setup_logging("DEBUG", str(log_file))
+
+        basic_config.assert_called()
+        get_logger.assert_any_call("exosphere")
+        get_logger.assert_any_call("exosphere.main")
+
+    def test_main_inventory_exception(self, mocker):
+        """
+        Test main exits if Inventory raises an exception.
+        """
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+        mocker.patch("exosphere.main.setup_logging")
+        mocker.patch(
+            "exosphere.main.app_config",
+            {"options": {"log_level": "INFO", "debug": False, "log_file": None}},
+        )
+        mocker.patch("exosphere.main.cli.app")
+        mocker.patch(
+            "exosphere.main.Inventory", side_effect=Exception("Inventory error")
+        )
+
+        from exosphere.main import main
+
+        with pytest.raises(SystemExit):
+            main()
