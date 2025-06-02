@@ -73,7 +73,7 @@ def _get_hosts_or_error(
     if not inventory.hosts:
         err_console.print(
             Panel.fit(
-                "No hosts found in inventory.Ensure your configuration is correct.",
+                "No hosts found in inventory. Ensure your configuration is correct.",
                 title="Error",
             )
         )
