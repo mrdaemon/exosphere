@@ -48,7 +48,7 @@ def os_detect(cx: Connection) -> str:
     :param cx: Fabric Connection object
     :return: OS name as string
     """
-    result_system = cx.run("uname -s", hide=True)
+    result_system = cx.run("uname -s", hide=True, warn=True)
     cx.close()
 
     if result_system.failed:
