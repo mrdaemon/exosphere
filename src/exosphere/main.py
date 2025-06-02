@@ -18,12 +18,15 @@ logger = logging.getLogger(__name__)
 # TODO: Add support for environment variables
 CONFPATHS: list[Path] = [
     Path.home() / ".config" / "exosphere" / "config.yaml",
+    Path.home() / ".config" / "exosphere" / "config.yml",
     Path.home() / ".config" / "exosphere" / "config.toml",
     Path.home() / ".config" / "exosphere" / "config.json",
     Path.home() / ".exosphere.yaml",
+    Path.home() / ".exosphere.yml",
     Path.home() / ".exosphere.toml",
     Path.home() / ".exosphere.json",
     Path.cwd() / "config.yaml",
+    Path.cwd() / "config.yml",
     Path.cwd() / "config.toml",
     Path.cwd() / "config.json",
 ]
