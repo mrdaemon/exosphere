@@ -20,11 +20,14 @@ class Pkg(PkgManager):
 
         On FreeBSD, the reposync operation is not needed as the package
         manager automatically syncs the repositories.
-
-        Additionally, this implementation only covers the freebsd packages.
-        Ports and system components are not covered as of now.
-
-        You get a nice email about those, if correctly configured.
+ 
+        Limitations:
+          - Does not include packages changed as a result of a direct dependency
+            update, only the top-level packages.
+          - Does not include ports, only packages installed via pkg.
+          - Does not handle system or kernel updates. Maybe one day we'll wrap
+            freebsd-update(8) for that, but for now you get nice emails about these
+            anyways, when properly configured, and it's easier to track.
 
         :param sudo: Whether to use sudo for package refresh operations (default is True).
         :param password: Optional password for sudo operations, if not using NOPASSWD.
@@ -141,12 +144,37 @@ class Pkg(PkgManager):
         Extracts the package name, current version, and proposed version.
         """
 
+        # Pattern to match NEW packages added as dependencies
+        pattern_new = (
+            r"^\s*(\S+):\s+"  # (1) Package name, followed by colon and spaces
+            r"([^\s]+)$"  # (2) non-space until eol
+        )
+
         pattern = (
             r"^\s*(\S+):\s+"  # (1) Package name, followed by colon and spaces
             r"([^\s]+)"  # (2) Current version: non-space characters
             r"\s+->\s+"  # -> Separator, surrounded by spaces
             r"([^\s]+)$"  # (3) Proposed version, non-space characters until eol
         )
+
+        # Check if the line matches the pattern for new packages
+        newmatch = re.match(pattern_new, line)
+        if newmatch:
+            package_name = newmatch.group(1).strip()
+            current_version = "N/A"
+            new_version = newmatch.group(2).strip() + " (new)"
+
+            self.logger.debug(
+                "Found new package %s with version %s", package_name, new_version
+            )
+
+            return Update(
+                name=package_name,
+                current_version=current_version,
+                new_version=new_version,
+                source="Packages Mirror",  # FreeBSD only has this source
+                security=False,  # New packages are not security updates by definition
+            )
 
         match = re.match(pattern, line)
         if not match:
