@@ -207,6 +207,7 @@ class TestPkgProvider:
         The following 19 package(s) will be affected (of 0 checked):
 
         Installed packages to be UPGRADED:
+                bash-completion-zfs: 2.3.1
                 btop: 1.4.1 -> 1.4.3
                 cmake: 3.31.6 -> 3.31.7
                 cmake-core: 3.31.6 -> 3.31.7
@@ -311,15 +312,23 @@ class TestPkgProvider:
         except DataRefreshError as e:
             pytest.fail(f"DataRefreshError should not be raised, got: {e}")
 
-        assert len(updates) == 19
-        assert updates[0].name == "btop"
-        assert updates[0].current_version == "1.4.1"
-        assert updates[0].new_version == "1.4.3"
+        assert len(updates) == 20
+
+        # new package
+        assert updates[0].name == "bash-completion-zfs"
+        assert updates[0].current_version == "(NEW)"
+        assert updates[0].new_version == "2.3.1"
         assert not updates[0].security
 
+        # normal package update
+        assert updates[1].name == "btop"
+        assert updates[1].current_version == "1.4.1"
+        assert updates[1].new_version == "1.4.3"
+        assert not updates[1].security
+
         # Ensure security updates are correctly identified
-        assert updates[12].name == "py311-h11"
-        assert updates[12].security
+        assert updates[13].name == "py311-h11"
+        assert updates[13].security
 
     def test_get_updates_no_updates(self, mocker, mock_pkg_output_no_updates):
         """
