@@ -227,6 +227,8 @@ class TestPkgProvider:
                 smartmontools: 7.4_2 -> 7.5
                 vim: 9.1.1265 -> 9.1.1378
                 xxd: 9.1.1265 -> 9.1.1378
+                autoconf-2.72 (direct dependency changed: perl5)
+                net-snmp-5.9.4_6,1 (direct dependency changed: perl5)
 
         Number of packages to be upgraded: 19
 
