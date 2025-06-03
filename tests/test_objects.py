@@ -37,11 +37,12 @@ class TestHostObject:
         """
         Test the initialization of the Host object.
         """
-        host = Host(name="test_host", ip="172.16.64.10", port=22)
+        host = Host(name="test_host", ip="172.16.64.10", port=2222, connect_timeout=32)
 
         assert host.name == "test_host"
         assert host.ip == "172.16.64.10"
-        assert host.port == 22
+        assert host.port == 2222
+        assert host.connect_timeout == 32
 
         assert host.online is False
 
@@ -95,7 +96,9 @@ class TestHostObject:
         assert host._pkginst.__class__.__name__ == "Apt"
 
         # Ensure the connection was established
-        mock_connection.assert_called_once_with(host=host.ip, port=host.port)
+        mock_connection.assert_called_once_with(
+            host=host.ip, port=host.port, connect_timeout=host.connect_timeout
+        )
 
     def test_host_discovery_offline(self, mocker, mock_connection):
         """

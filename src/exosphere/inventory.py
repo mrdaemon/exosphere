@@ -240,7 +240,19 @@ class Inventory:
             yield from ()
             return
 
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(
+            max_workers=self.configuration["options"]["max_threads"]
+        ) as executor:
+            self.logger.debug(
+                "Using ThreadPoolExecutor with %d threads",
+                self.configuration["options"]["max_threads"],
+            )
+            self.logger.debug(
+                "Submitting %d tasks to executor for method '%s'",
+                len(target_hosts),
+                host_method,
+            )
+
             futures = {
                 executor.submit(getattr(host, host_method)): host
                 for host in target_hosts

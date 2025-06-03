@@ -13,7 +13,9 @@ from exosphere.setup import detect
 
 
 class Host:
-    def __init__(self, name: str, ip: str, port: int = 22) -> None:
+    def __init__(
+        self, name: str, ip: str, port: int = 22, connect_timeout: Optional[int] = None
+    ) -> None:
         """
         Create a Host object, which then can be used to query
         the host for information, and perform operations on it.
@@ -36,6 +38,12 @@ class Host:
 
         # Shared connection object
         self._connection: Optional[Connection] = None
+
+        # Connection timeout - if not set per-host, will use the
+        # default timeout from the configuration.
+        self.connect_timeout: int = (
+            connect_timeout or app_config["options"]["default_timeout"]
+        )
 
         # online status, defaults to False
         # until first discovery.
@@ -94,12 +102,15 @@ class Host:
         """
         if self._connection is None:
             logging.debug(
-                "Creating new connection to %s at %s:%s",
+                "Creating new connection to %s at %s:%s, (timeout: %s)",
                 self.name,
                 self.ip,
                 self.port,
+                self.connect_timeout,
             )
-            self._connection = Connection(host=self.ip, port=self.port)
+            self._connection = Connection(
+                host=self.ip, port=self.port, connect_timeout=self.connect_timeout
+            )
 
         return self._connection
 

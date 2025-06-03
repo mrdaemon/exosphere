@@ -17,12 +17,14 @@ class Configuration(dict):
 
     DEFAULTS: dict = {
         "options": {
-            "debug": False,
-            "log_level": "INFO",
-            "log_file": "exosphere.log",
-            "cache_autosave": True,
-            "cache_file": "exosphere.db",
-            "stale_threshold": 86400,  # seconds
+            "debug": False,  # Debug mode, enable verbose on root logger
+            "log_level": "INFO",  # Default log level for the application
+            "log_file": "exosphere.log",  # Default log file for the application
+            "cache_autosave": True,  # Automatically save cache to disk after changes
+            "cache_file": "exosphere.db",  # Default cache file for the application
+            "stale_threshold": 86400,  # How long before a host is considered stale (in seconds)
+            "default_timeout": 10,  # Default ssh connection timeout (in seconds)
+            "max_threads": 15,  # Maximum number of threads to use for parallel operations
         },
         "hosts": [],
     }
