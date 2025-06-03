@@ -20,7 +20,7 @@ class Pkg(PkgManager):
 
         On FreeBSD, the reposync operation is not needed as the package
         manager automatically syncs the repositories.
- 
+
         Limitations:
           - Does not include packages changed as a result of a direct dependency
             update, only the top-level packages.
@@ -144,60 +144,40 @@ class Pkg(PkgManager):
         Extracts the package name, current version, and proposed version.
         """
 
-        # Pattern to match NEW packages added as dependencies
-        pattern_new = (
-            r"^\s*(\S+):\s+"  # (1) Package name, followed by colon and spaces
-            r"([^\s]+)$"  # (2) non-space until eol
-        )
-
         pattern = (
-            r"^\s*(\S+):\s+"  # (1) Package name, followed by colon and spaces
-            r"([^\s]+)"  # (2) Current version: non-space characters
-            r"\s+->\s+"  # -> Separator, surrounded by spaces
-            r"([^\s]+)$"  # (3) Proposed version, non-space characters until eol
+            r"^\s*(?P<name>\S+):\s+"  # Package name, followed by colon and spaces
+            r"(?P<version>[^\s]+)"  # Current version: non-space characters
+            r"(?:\s+->\s+(?P<new>[^\s]+))?$"  # optional separator, new version, eol
         )
-
-        # Check if the line matches the pattern for new packages
-        newmatch = re.match(pattern_new, line)
-        if newmatch:
-            package_name = newmatch.group(1).strip()
-            current_version = "N/A"
-            new_version = newmatch.group(2).strip() + " (new)"
-
-            self.logger.debug(
-                "Found new package %s with version %s", package_name, new_version
-            )
-
-            return Update(
-                name=package_name,
-                current_version=current_version,
-                new_version=new_version,
-                source="Packages Mirror",  # FreeBSD only has this source
-                security=False,  # New packages are not security updates by definition
-            )
 
         match = re.match(pattern, line)
         if not match:
             return None
 
-        package_name = match.group(1).strip()
-        current_version = match.group(2).strip()
-        new_version = match.group(3).strip()
-        is_security = False
+        package_name = match["name"].strip()
+        pkg_version = match["version"].strip()
+        new_version = match["new"].strip() if match["new"] else f"{pkg_version}"
 
-        # Check if package is vulnerable, indicates
-        # that it is a security update
-        if f"{package_name}-{current_version}" in self.vulnerable:
+        if match["new"] is None:
+            # New package, no ->, treat as such
             self.logger.debug(
-                "Found vulnerable package %s-%s, marking as security update",
-                package_name,
-                current_version,
+                "Found new package %s with version %s", package_name, new_version
             )
-            is_security = True
+            pkg_version = "(NEW)"  # No current version for new packages
+            is_security = False  # New packages are not security updates by definition
+        else:
+            # normal update, check if it's a security update
+            is_security = f"{package_name}-{pkg_version}" in self.vulnerable
+            if is_security:
+                self.logger.debug(
+                    "Found vulnerable package %s-%s, marking as security update",
+                    package_name,
+                    pkg_version,
+                )
 
         return Update(
             name=package_name,
-            current_version=current_version,
+            current_version=pkg_version,
             new_version=new_version,
             source="Packages Mirror",  # FreeBSD only has this source
             security=is_security,
