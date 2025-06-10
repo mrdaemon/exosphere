@@ -1,8 +1,5 @@
 from typer.testing import CliRunner
 
-from exosphere.cli import app as repl_cli
-from exosphere.commands.ui import app as sub_ui_cli
-
 runner = CliRunner()
 
 
@@ -13,13 +10,18 @@ def test_win32readline_monkeypatch(monkeypatch, mocker) -> None:
     """
     import importlib
     import sys
+    import types
 
+    # fake sys.platform to be win32
     monkeypatch.setattr(sys, "platform", "win32")
 
-    compat_shim = mocker.patch("exosphere.compat.win32readline")
+    # Mock the compatibility module
+    compat_shim = types.ModuleType("exosphere.compat.win32readline")
+    monkeypatch.setitem(sys.modules, "exosphere.compat.win32readline", compat_shim)
 
-    if "readline" in sys.modules:
-        del sys.modules["readline"]
+    # Clean modules to ensure proper imports
+    sys.modules.pop("readline", None)
+    sys.modules.pop("exosphere.cli", None)
 
     # Reimport the cli module to trigger the monkeypatch
     import exosphere.cli  # noqa: F401
@@ -33,6 +35,8 @@ def test_win32readline_monkeypatch(monkeypatch, mocker) -> None:
 def test_repl_root(mocker, caplog) -> None:
     import logging
 
+    from exosphere.cli import app as repl_cli
+
     logging.getLogger("exosphere.cli").setLevel(logging.INFO)
     logging.getLogger("exopshere.cli").addHandler(caplog.handler)
 
@@ -45,6 +49,8 @@ def test_repl_root(mocker, caplog) -> None:
 
 def test_ui_start(mocker, caplog) -> None:
     import logging
+
+    from exosphere.commands.ui import app as sub_ui_cli
 
     logging.getLogger("exosphere.commands.ui").setLevel(logging.INFO)
     logging.getLogger("exopshere.commands.ui").addHandler(caplog.handler)
@@ -60,6 +66,8 @@ def test_ui_start(mocker, caplog) -> None:
 
 def test_ui_webstart(mocker, caplog) -> None:
     import logging
+
+    from exosphere.commands.ui import app as sub_ui_cli
 
     logging.getLogger("exosphere.commands.ui").setLevel(logging.INFO)
     logging.getLogger("exopshere.commands.ui").addHandler(caplog.handler)
