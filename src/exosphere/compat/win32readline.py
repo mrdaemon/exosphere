@@ -41,8 +41,11 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
+import sys
+from typing import TYPE_CHECKING
 
-from pyreadline3.rlmain import Readline
+if sys.platform == "win32" or TYPE_CHECKING:
+    from pyreadline3.rlmain import Readline
 
 __all__ = [
     "parse_and_bind",
