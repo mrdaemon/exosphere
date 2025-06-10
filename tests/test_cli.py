@@ -19,6 +19,10 @@ def test_win32readline_monkeypatch(monkeypatch, mocker) -> None:
     compat_shim = types.ModuleType("exosphere.compat.win32readline")
     monkeypatch.setitem(sys.modules, "exosphere.compat.win32readline", compat_shim)
 
+    import exosphere.compat
+
+    setattr(exosphere.compat, "win32readline", compat_shim)
+
     # Clean modules to ensure proper imports
     sys.modules.pop("readline", None)
     sys.modules.pop("exosphere.cli", None)

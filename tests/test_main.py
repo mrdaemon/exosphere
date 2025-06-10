@@ -3,9 +3,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-from exosphere.config import Configuration
-from exosphere.main import load_first_config, setup_logging
-
 
 class TestMain:
     @pytest.fixture()
@@ -13,6 +10,8 @@ class TestMain:
         """
         Fixture to create a mock configuration object.
         """
+        from exosphere.config import Configuration
+
         mocker.patch.object(
             Configuration, "from_file", return_value=True, autospec=True
         )
@@ -24,6 +23,8 @@ class TestMain:
         """
         Fixture to create a mock configuration object that raises an exception.
         """
+        from exosphere.config import Configuration
+
         mocker.patch.object(
             Configuration, "from_file", side_effect=Exception("Test exception")
         )
@@ -53,6 +54,8 @@ class TestMain:
         """
         Test the load_first_config function.
         """
+        from exosphere.main import load_first_config
+
         mocker.patch("pathlib.Path.exists", return_value=True)
         first_path = Path.home() / ".config" / "exosphere" / "config.yaml"
 
@@ -69,6 +72,8 @@ class TestMain:
         """
         mocker.patch("pathlib.Path.exists", return_value=False)
 
+        from exosphere.main import load_first_config
+
         result = load_first_config(mock_config)
 
         assert result is False
@@ -81,6 +86,8 @@ class TestMain:
         """
         mocker.patch("pathlib.Path.exists", return_value=True)
 
+        from exosphere.main import load_first_config
+
         with pytest.raises(SystemExit):
             load_first_config(mock_config_exception)
 
@@ -88,8 +95,11 @@ class TestMain:
         """
         Test setup_logging with no log_file (should use StreamHandler).
         """
+
         basic_config = mocker.patch("logging.basicConfig")
         get_logger = mocker.patch("logging.getLogger")
+
+        from exosphere.main import setup_logging
 
         setup_logging("INFO")
 
@@ -104,6 +114,8 @@ class TestMain:
         basic_config = mocker.patch("logging.basicConfig")
         get_logger = mocker.patch("logging.getLogger")
         log_file = tmp_path / "test.log"
+
+        from exosphere.main import setup_logging
 
         setup_logging("DEBUG", str(log_file))
 
