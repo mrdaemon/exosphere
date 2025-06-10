@@ -6,6 +6,30 @@ from exosphere.commands.ui import app as sub_ui_cli
 runner = CliRunner()
 
 
+def test_win32readline_monkeypatch(monkeypatch, mocker) -> None:
+    """
+    Test that the windows compatibility shim for pyreadline is
+    correctly applied when running on Windows.
+    """
+    import importlib
+    import sys
+
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    compat_shim = mocker.patch("exosphere.compat.win32readline")
+
+    if "readline" in sys.modules:
+        del sys.modules["readline"]
+
+    # Reimport the cli module to trigger the monkeypatch
+    import exosphere.cli  # noqa: F401
+
+    importlib.reload(exosphere.cli)
+
+    assert "readline" in sys.modules
+    assert sys.modules["readline"] is compat_shim
+
+
 def test_repl_root(mocker, caplog) -> None:
     import logging
 
