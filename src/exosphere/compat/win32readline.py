@@ -45,7 +45,7 @@ import sys
 from typing import TYPE_CHECKING
 
 if sys.platform == "win32" or TYPE_CHECKING:
-    from pyreadline3.rlmain import Readline
+    from pyreadline3.rlmain import Readline # type: ignore[import]
 
 __all__ = [
     "parse_and_bind",
@@ -94,7 +94,7 @@ else:
 
     __all__.append("GetOutputFile")
 
-    import pyreadline3.console as console
+    import pyreadline3.console as console # type: ignore[import]
 
     # make these available so this looks like the python readline module
     read_init_file = rl.read_init_file
