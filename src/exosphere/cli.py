@@ -24,7 +24,7 @@ app = typer.Typer(
 
 # Setup commands from modules
 app.add_typer(inventory.app, name="inventory")
-app.add_typer(ui.app, name="ui")
+#app.add_typer(ui.app, name="ui") # Ui module disabled until release
 app.add_typer(host.app, name="host")
 
 
