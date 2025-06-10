@@ -15,6 +15,7 @@ dependencies = [
     "textual>=3.2.0",
     "pyyaml>=6.0.2",
     "textual-serve>=1.1.2",
+    "pyreadline3>=3.5.4 ; sys_platform == 'win32'",
 ]
 
 [dependency-groups]
@@ -43,10 +44,10 @@ testpaths = ["tests"]
 [tool.poe.tasks]
 lint = "ruff check src tests"
 isort = "ruff check --select I --fix src tests"
-isort-check = "ruff check --select I src tests"
+isort-check = "ruff check --select I src tests --diff"
 typecheck = "pyright src tests"
 ruff-format = "ruff format src tests"
-ruff-format-check = "ruff format --check src tests"
+ruff-format-check = "ruff format --check src tests --diff"
 format = ['ruff-format', 'isort']
 format-check = ['ruff-format-check', 'isort-check']
 check = ['format-check', 'lint', 'typecheck']
