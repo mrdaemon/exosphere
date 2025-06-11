@@ -83,3 +83,33 @@ def test_ui_webstart(mocker, caplog) -> None:
     mock_server.return_value.serve.assert_called_once()
 
     assert "Starting Exosphere Web UI Server" in caplog.text
+
+
+def test_help_no_command(mocker):
+    """
+    Test the 'help' command with no arguments.
+    Should make use of our internal help override
+    """
+    from exosphere.cli import app as repl_cli
+
+    # Patch Panel.fit to just return its content for easier assertion
+    mocker.patch("rich.panel.Panel.fit", side_effect=lambda content, **kwargs: content)
+    result = runner.invoke(repl_cli, ["help"])
+    assert result.exit_code == 0
+
+    # Should mention available modules and help usage
+    assert "Available modules during interactive use" in result.output
+    assert "Use '<command> --help'" in result.output
+
+
+def test_help_unknown_command(monkeypatch):
+    """
+    Test the 'help' command with an unknown subcommand.
+    Should print an error message.
+    """
+    from exosphere.cli import app as repl_cli
+
+    result = runner.invoke(repl_cli, ["help", "doesnotexist"])
+    assert result.exit_code == 0
+    assert "Unkown command 'doesnotexist'" in result.output
+    assert "Use '<command> --help'" in result.output
