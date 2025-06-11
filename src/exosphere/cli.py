@@ -5,8 +5,12 @@ from typing import Annotated, Optional
 # ------------------win32 readline monkeypatch---------------------
 if sys.platform == "win32":
     try:
+        # On windows, we use a wrapper module for pyreadline3 in order
+        # to provide readline compatibility.
         from exosphere.compat import win32readline as readline
 
+        # This needs monkeypatched in order for click_shell to make use
+        # of it instead of its internal, broken, legacy pyreadline.
         sys.modules["readline"] = readline
     except ImportError:
         sys.stderr.write(
