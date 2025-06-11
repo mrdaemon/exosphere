@@ -31,5 +31,6 @@ config.yaml
 config.yml
 config.json
 
-# in-dir exosphere cache database
+# in-dir exosphere runtime data
 exosphere.db
+exosphere.log
