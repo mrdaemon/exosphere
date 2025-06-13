@@ -26,7 +26,7 @@ class Update:
     """
 
     name: str
-    current_version: str
+    current_version: Optional[str]
     new_version: str
     security: bool = False
     source: Optional[str] = None

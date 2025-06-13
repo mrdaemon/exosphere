@@ -318,7 +318,7 @@ class TestPkgProvider:
 
         # new package
         assert updates[0].name == "bash-completion-zfs"
-        assert updates[0].current_version == "(NEW)"
+        assert updates[0].current_version is None
         assert updates[0].new_version == "2.3.1"
         assert not updates[0].security
 

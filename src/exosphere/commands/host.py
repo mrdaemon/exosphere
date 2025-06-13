@@ -158,7 +158,7 @@ def show(
     for update in update_list:
         updates_table.add_row(
             f"[bold]{update.name}[/bold]",
-            update.current_version,
+            update.current_version if update.current_version else "(NEW)",
             update.new_version,
             "Yes" if update.security else "No",
             update.source or "N/A",

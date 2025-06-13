@@ -163,7 +163,7 @@ class Pkg(PkgManager):
             self.logger.debug(
                 "Found new package %s with version %s", package_name, new_version
             )
-            pkg_version = "(NEW)"  # No current version for new packages
+            pkg_version = None  # No current version for new packages
             is_security = False  # New packages are not security updates by definition
         else:
             # normal update, check if it's a security update
