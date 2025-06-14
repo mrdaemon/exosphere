@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Optional
 
 from fabric import Connection
 
@@ -14,7 +13,7 @@ from exosphere.setup import detect
 
 class Host:
     def __init__(
-        self, name: str, ip: str, port: int = 22, connect_timeout: Optional[int] = None
+        self, name: str, ip: str, port: int = 22, connect_timeout: int | None = None
     ) -> None:
         """
         Create a Host object, which then can be used to query
@@ -37,7 +36,7 @@ class Host:
         self.port = port
 
         # Shared connection object
-        self._connection: Optional[Connection] = None
+        self._connection: Connection | None = None
 
         # Connection timeout - if not set per-host, will use the
         # default timeout from the configuration.
@@ -50,20 +49,20 @@ class Host:
         self.online: bool = False
 
         # Internal state of host
-        self.os: Optional[str] = None
-        self.version: Optional[str] = None
-        self.flavor: Optional[str] = None
-        self.package_manager: Optional[str] = None
+        self.os: str | None = None
+        self.version: str | None = None
+        self.flavor: str | None = None
+        self.package_manager: str | None = None
 
         # Package manager implementation
-        self._pkginst: Optional[PkgManager] = None
+        self._pkginst: PkgManager | None = None
 
         # Update Catalog for host
         self.updates: list[Update] = []
 
         # Timestamp of the last refresh operation
         # We store the datetime object straight up for convenience.
-        self.last_refresh: Optional[datetime] = None
+        self.last_refresh: datetime | None = None
 
     def __getstate__(self) -> dict:
         """

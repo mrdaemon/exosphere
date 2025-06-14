@@ -1,5 +1,3 @@
-from typing import Optional
-
 from exosphere.providers.api import PkgManager
 from exosphere.providers.debian import Apt
 from exosphere.providers.freebsd import Pkg
@@ -12,9 +10,7 @@ class PkgManagerFactory:
     """
 
     @staticmethod
-    def create(
-        name: str, sudo: bool = True, password: Optional[str] = None
-    ) -> PkgManager:
+    def create(name: str, sudo: bool = True, password: str | None = None) -> PkgManager:
         """
         Create a package manager instance based on the provided name.
 

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fabric import Connection
 
 from exosphere.data import Update
@@ -19,7 +17,7 @@ class Dnf(PkgManager):
     It is what it is.
     """
 
-    def __init__(self, sudo: bool = True, password: Optional[str] = None) -> None:
+    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
         """
         Initialize the DNF package manager.
 

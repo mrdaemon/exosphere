@@ -1,7 +1,6 @@
 # Data Types and Classes
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -26,7 +25,7 @@ class Update:
     """
 
     name: str
-    current_version: Optional[str]
+    current_version: str | None
     new_version: str
     security: bool = False
-    source: Optional[str] = None
+    source: str | None = None

@@ -1,6 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from fabric import Connection
 
@@ -14,7 +13,7 @@ class PkgManager(ABC):
     Defines the interface for Package Manager implementations.
     """
 
-    def __init__(self, sudo: bool = True, password: Optional[str] = None) -> None:
+    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
         """
         Initialize the Package Manager.
 

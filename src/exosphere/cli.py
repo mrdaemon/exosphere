@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Annotated, Optional
+from typing import Annotated
 
 # ------------------win32 readline monkeypatch---------------------
 if sys.platform == "win32":
@@ -51,7 +51,7 @@ app.add_typer(host.app, name="host")
 # Help wrapper to use typer's help system
 # Except for the root command, which has its own implementation
 @app.command(hidden=True)
-def help(ctx: Context, command: Annotated[Optional[str], Argument()] = None):
+def help(ctx: Context, command: Annotated[str | None, Argument()] = None):
     msg = "\nUse '<command> --help' or 'help <command>' for help on a specific command."
     # Show root help if no command is specified
     if not command:

@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import typer
 from rich.columns import Columns
@@ -43,7 +42,7 @@ def _get_inventory():
 
 
 def _get_hosts_or_error(
-    names: Optional[list[str]] = None,
+    names: list[str] | None = None,
 ) -> list | None:
     """
     Get hosts from the inventory, filtering by names if provided.
@@ -85,7 +84,7 @@ def _get_hosts_or_error(
 @app.command()
 def discover(
     names: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Argument(
             help="Host(s) to discover, all if not specified", metavar="[HOST]..."
         ),
@@ -164,7 +163,7 @@ def refresh(
         bool, typer.Option(help="Refresh the package catalog as well as updates")
     ] = False,
     names: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Argument(
             help="Host(s) to refresh, all if not specified", metavar="[HOST]..."
         ),
@@ -263,7 +262,7 @@ def refresh(
 @app.command()
 def ping(
     names: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Argument(
             help="Host(s) to ping, all if not specified", metavar="[HOST]..."
         ),
@@ -318,7 +317,7 @@ def ping(
 @app.command()
 def status(
     names: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Argument(
             help="Host(s) to show status for, all if not specified", metavar="[HOST]..."
         ),

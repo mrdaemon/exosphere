@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 from fabric import Connection
 
@@ -14,7 +13,7 @@ class Pkg(PkgManager):
     Package manager for FreeBSD using pkg
     """
 
-    def __init__(self, sudo: bool = True, password: Optional[str] = None) -> None:
+    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
         """
         Initialize the Pkg package manager.
 

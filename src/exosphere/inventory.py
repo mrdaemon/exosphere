@@ -1,6 +1,6 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Generator, Optional
+from typing import Any, Generator
 
 from exosphere.config import Configuration
 from exosphere.database import DiskCache
@@ -194,8 +194,8 @@ class Inventory:
     def run_task(
         self,
         host_method: str,
-        hosts: Optional[list[Host]] = None,
-    ) -> Generator[tuple[Host, Any, Optional[Exception]]]:
+        hosts: list[Host] | None = None,
+    ) -> Generator[tuple[Host, Any, Exception | None]]:
         """
         Run a method on specified hosts in the inventory.
         If none are specified, run on all hosts.

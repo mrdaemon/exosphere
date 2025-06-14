@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 from fabric import Connection
 
@@ -15,7 +14,7 @@ class Apt(PkgManager):
     Implements the Apt package manager interface.
     """
 
-    def __init__(self, sudo: bool = True, password: Optional[str] = None) -> None:
+    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
         """
         Initialize the Apt package manager.
 
