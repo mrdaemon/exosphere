@@ -25,7 +25,7 @@ from rich.panel import Panel
 from typer import Argument, Context, Exit, Typer
 
 from exosphere import __version__
-from exosphere.commands import host, inventory
+from exosphere.commands import host, inventory, ui
 
 banner = f"""[turquoise4]
                          ▗▖
@@ -44,7 +44,7 @@ app = Typer(
 
 # Setup commands from modules
 app.add_typer(inventory.app, name="inventory")
-# app.add_typer(ui.app, name="ui") # Ui module disabled until release
+app.add_typer(ui.app, name="ui")
 app.add_typer(host.app, name="host")
 
 
