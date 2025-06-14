@@ -70,11 +70,11 @@ def show(
     include_updates: Annotated[
         bool,
         typer.Option(
-            "--updates",
-            "-u",
+            "--updates/--no-updates",
+            "-u/-n",
             help="Show update details for the host",
         ),
-    ] = False,
+    ] = True,
     security_only: Annotated[
         bool,
         typer.Option(
