@@ -41,3 +41,26 @@ For more details, and available tasks, run:
 ```bash
 uv run poe --help
 ```
+
+## UI Development Quick Start
+
+The UI is built with [Textual](https://textual.textualize.io/).
+
+A quickstart of running the UI with live editing and reloading, with debug
+console is as follows:
+
+```bash
+# Ensure you have the dev dependencies
+uv sync --dev
+# In a separate terminal, run the console
+uv run textual console
+# In another terminal, run the UI
+uv run textual run --dev -c exosphere ui start
+```
+
+Congratulations, editing any of the tcss files in the `ui/` directory will
+reflect changes immediately.
+
+Make sure you run the exosphere ui with 'exosphere ui start' otherwise the
+configuration will not be loaded correctly, and the inventory will not be
+populated.
