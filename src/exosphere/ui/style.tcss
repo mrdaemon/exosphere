@@ -7,7 +7,7 @@ HostGrid {
 }
 .host-box {
     text-align: center;
-    border: wide purple;
+    border: round purple;
 }
 .host-box.online {
     border: wide green;

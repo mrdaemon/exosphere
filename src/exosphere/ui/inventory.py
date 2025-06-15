@@ -7,10 +7,10 @@ class InventoryScreen(Screen):
     """Screen for the inventory."""
 
     BINDINGS = [
-        ("D", "discover_all_hosts", "Discover Hosts"),
-        ("r", "refresh_updates_all", "Refresh Updates"),
-        ("R", "refresh_updates_catalog_all", "Refresh Catalog"),
-        ("p", "ping_all_hosts", "Ping Hosts"),
+        ("^d", "discover_all_hosts", "Discover Hosts"),
+        ("^r", "refresh_updates_all", "Refresh Updates"),
+        ("^x", "refresh_updates_catalog_all", "Refresh Catalog"),
+        ("^p", "ping_all_hosts", "Ping Hosts"),
     ]
 
     def compose(self) -> ComposeResult:

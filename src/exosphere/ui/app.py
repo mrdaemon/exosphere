@@ -19,7 +19,7 @@ class ExosphereUi(App):
         ("d", "switch_mode('dashboard')", "Dashboard"),
         ("i", "switch_mode('inventory')", "Inventory"),
         ("l", "switch_mode('logs')", "Logs"),
-        ("q", "quit", "Quit"),
+        ("^q", "quit", "Quit"),
     ]
 
     MODES = {

@@ -18,7 +18,12 @@ class HostGrid(Grid):
         hosts = inventory.hosts if inventory else []
         for host in hosts:
             logging.getLogger("exosphere.ui").debug(f"Adding host: {host.name}")
-            yield Static(host.name, classes="host-box")
+            if host.online:
+                classes = "host-box online"
+            else:
+                classes = "host-box offline"
+
+            yield Static(host.name, classes=classes)
 
 
 class DashboardScreen(Screen):
@@ -27,7 +32,7 @@ class DashboardScreen(Screen):
     CSS_PATH = "style.tcss"
 
     BINDINGS = [
-        ("p", "ping_all_hosts", "Ping All"),
+        ("^p", "ping_all_hosts", "Ping All"),
     ]
 
     def compose(self) -> ComposeResult:
