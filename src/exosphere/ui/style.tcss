@@ -1,0 +1,17 @@
+HostGrid {
+    grid-size: 4;
+    grid-gutter: 2;
+    align: center middle;
+    content-align: center middle;
+
+}
+.host-box {
+    text-align: center;
+    border: wide purple;
+}
+.host-box.online {
+    border: wide green;
+}
+.host-box.offline {
+    border: wide red;
+}

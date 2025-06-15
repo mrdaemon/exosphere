@@ -24,17 +24,7 @@ class HostGrid(Grid):
 class DashboardScreen(Screen):
     """Screen for the dashboard."""
 
-    CSS = """
-    HostGrid {
-        grid-size: 3;
-        grid-gutter: 2;
-        align: center middle;
-        width: 100%;
-        height: 100%;
-        content-align: center middle;
-    
-    }
-    """
+    CSS_PATH = "style.tcss"
 
     BINDINGS = [
         ("p", "ping_all_hosts", "Ping All"),
