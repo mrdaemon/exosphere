@@ -1,11 +1,33 @@
-import logging
-
 from textual.app import ComposeResult
 from textual.containers import Grid
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static
+from textual.widget import Widget
+from textual.widgets import Footer, Header, Label
 
 from exosphere import context
+from exosphere.objects import Host
+
+
+class HostWidget(Widget):
+    """Widget to display a host in the HostGrid."""
+
+    def __init__(self, host: Host) -> None:
+        self.host = host
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        """Compose the host widget layout."""
+        box_style = "online" if self.host.online else "offline"
+        status = "[green]Online[/green]" if self.host.online else "[red]Offline[/red]"
+
+        yield Label(
+            f"[b]{self.host.name}[/b]\n"
+            f"[dim]{self.host.flavor} {self.host.version}[/dim]\n"
+            f"{status}",
+            classes=f"host-box {box_style}",
+            shrink=True,
+            expand=True,
+        )
 
 
 class HostGrid(Grid):
@@ -17,13 +39,7 @@ class HostGrid(Grid):
 
         hosts = inventory.hosts if inventory else []
         for host in hosts:
-            logging.getLogger("exosphere.ui").debug(f"Adding host: {host.name}")
-            if host.online:
-                classes = "host-box online"
-            else:
-                classes = "host-box offline"
-
-            yield Static(host.name, classes=classes)
+            yield HostWidget(host=host)
 
 
 class DashboardScreen(Screen):

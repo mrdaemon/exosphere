@@ -10,8 +10,8 @@ HostGrid {
     border: round purple;
 }
 .host-box.online {
-    border: wide green;
+    border: round green;
 }
 .host-box.offline {
-    border: wide red;
+    border: round red;
 }
