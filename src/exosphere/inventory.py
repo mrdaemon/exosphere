@@ -191,6 +191,22 @@ class Inventory:
 
         self.logger.info("Updates refreshed for all hosts")
 
+    def ping_all(self) -> None:
+        """
+        Ping all hosts in the inventory.
+        """
+        self.logger.info("Pinging all hosts in inventory")
+
+        for host, _, exc in self.run_task(
+            "ping",
+        ):
+            if exc:
+                self.logger.error("Host %s is offline: %s", host.name, exc)
+            else:
+                self.logger.info("Host %s is online", host.name)
+
+        self.logger.info("Pinged all hosts")
+
     def run_task(
         self,
         host_method: str,

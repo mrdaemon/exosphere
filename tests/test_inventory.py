@@ -246,6 +246,23 @@ class TestInventory:
 
         mock_run.assert_called_once_with("refresh_updates")
 
+    def test_ping_all_calls_run_task(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that ping_all calls run_task with 'ping'.
+        """
+        inventory = Inventory(mock_config)
+        mock_run = mocker.patch.object(
+            inventory,
+            "run_task",
+            return_value=[(mocker.Mock(name="host1"), None, None)],
+        )
+
+        inventory.ping_all()
+
+        mock_run.assert_called_once_with("ping")
+
     @pytest.mark.parametrize("hosts_arg", [None, [], [{}]])
     def test_run_task_no_hosts(
         self, mocker, mock_config, mock_diskcache, mock_host_class, hosts_arg, caplog
