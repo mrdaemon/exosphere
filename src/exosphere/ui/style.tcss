@@ -1,3 +1,4 @@
+# Dashboard host grid
 HostGrid {
     grid-size: 4;
     grid-gutter: 2;
@@ -5,9 +6,11 @@ HostGrid {
     content-align: center middle;
 
 }
+
+# Dashboard host widgets
 .host-box {
     text-align: center;
-    border: round purple;
+    border: round;
 }
 .host-box.online {
     border: round green;
