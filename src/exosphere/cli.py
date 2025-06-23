@@ -48,11 +48,22 @@ app.add_typer(ui.app, name="ui")
 app.add_typer(host.app, name="host")
 
 
-# Help wrapper to use typer's help system
-# Except for the root command, which has its own implementation
 @app.command(hidden=True)
 def help(ctx: Context, command: Annotated[str | None, Argument()] = None):
+    """
+    Help for interactive REPL use
+
+    Provides help for the root REPL command when used interactively,
+    in a way that is friendler for that specific context.
+    If a command is specified, it will show help for that command.
+
+    This only applies when in the interactive REPL, commands (including
+    the root 'exosphere' program) will use the standard Typer help
+    system when invoked from the command line or non-interactively.
+    """
+
     msg = "\nUse '<command> --help' or 'help <command>' for help on a specific command."
+
     # Show root help if no command is specified
     if not command:
         if ctx.parent and getattr(ctx.parent, "command", None):
@@ -90,12 +101,16 @@ def help(ctx: Context, command: Annotated[str | None, Argument()] = None):
     print(msg)
 
 
-# The default command fall through call back
-# We use this to start the REPL if no command is given.
 @app.callback(invoke_without_command=True)
 def cli(ctx: Context) -> None:
     """
     Exosphere CLI
+
+    The main command-line interface for Exosphere.
+    It provides a REPL interface for interactive use as a prompt, but can
+    also be used to run commands directly from the command line.
+
+    Run without arguments to start the interactive mode.
     """
     if ctx.invoked_subcommand is None:
         logger = logging.getLogger(__name__)
