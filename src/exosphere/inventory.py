@@ -237,6 +237,11 @@ class Inventory:
 
         # Sanity checks, these should only come in play if we have an internal
         # programming error, not a user error.
+        #
+        # TODO: I honestly feel these checks could be removed entirely.
+        #       It is better to just let the returned exc field contain the
+        #       error and treat it like any other issue, but I'm leaving them
+        #       in since this is can difficult to debug in context.
 
         # Ensure the host_method exists in the base class
         if not hasattr(Host, host_method):
