@@ -6,6 +6,8 @@ from textual.widgets import Footer, Header, Placeholder
 class InventoryScreen(Screen):
     """Screen for the inventory."""
 
+    CSS_PATH = "style.tcss"
+
     BINDINGS = [
         ("^d", "discover_all_hosts", "Discover Hosts"),
         ("^r", "refresh_updates_all", "Refresh Updates"),

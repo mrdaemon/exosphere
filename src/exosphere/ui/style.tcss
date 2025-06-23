@@ -1,20 +1,30 @@
-# Dashboard host grid
-HostGrid {
+DashboardScreen {
+    layout: grid;
     grid-size: 4;
-    grid-gutter: 2;
+    layers: below above;
     align: center middle;
-    content-align: center middle;
+}
 
+# Empty message box
+.empty-message {
+    text-align: center;
+    border: hkey gray;
+    layer: above;
+    padding: 2 2;
 }
 
 # Dashboard host widgets
 .host-box {
+    height: 100%;
     text-align: center;
     border: round;
+    layer: below;
 }
 .host-box.online {
     border: round green;
+    tint: green 10%;
 }
 .host-box.offline {
     border: round red;
+    tint: red 10%;
 }

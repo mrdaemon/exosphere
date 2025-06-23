@@ -35,6 +35,8 @@ class UILogHandler(logging.Handler):
 class LogsScreen(Screen):
     """Screen for the logs."""
 
+    CSS_PATH = "style.tcss"
+
     def compose(self) -> ComposeResult:
         """Compose the logs layout."""
 

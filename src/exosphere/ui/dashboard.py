@@ -1,5 +1,4 @@
 from textual.app import ComposeResult
-from textual.containers import Grid
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Label
@@ -30,31 +29,31 @@ class HostWidget(Widget):
         )
 
 
-class HostGrid(Grid):
-    """Grid to display hosts in the dashboard."""
-
-    def compose(self) -> ComposeResult:
-        """Compose the grid layout."""
-        inventory = context.inventory
-
-        hosts = inventory.hosts if inventory else []
-        for host in hosts:
-            yield HostWidget(host=host)
-
-
 class DashboardScreen(Screen):
     """Screen for the dashboard."""
 
     CSS_PATH = "style.tcss"
 
     BINDINGS = [
-        ("^p", "ping_all_hosts", "Ping All"),
+        ("P", "ping_all_hosts", "Ping All"),
     ]
 
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout."""
         yield Header()
-        yield HostGrid(classes="centered-grid")
+
+        inventory = context.inventory
+
+        hosts = inventory.hosts if inventory else []
+
+        if not hosts:
+            yield Label("No hosts available.", classes="empty-message")
+            yield Footer()
+            return
+
+        for host in hosts:
+            yield HostWidget(host)
+
         yield Footer()
 
     def on_mount(self) -> None:
