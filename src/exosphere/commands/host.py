@@ -128,7 +128,7 @@ def show(
             f"  {host_os_details}, using {host.package_manager}\n"
             "\n"
             f"[bold]Updates Available:[/bold] {len(host.updates)} updates, {security_count} security\n",
-            title="Details",
+            title=host.description if host.description else "Host Details",
         )
     )
 
