@@ -18,10 +18,12 @@ class HostWidget(Widget):
         """Compose the host widget layout."""
         box_style = "online" if self.host.online else "offline"
         status = "[green]Online[/green]" if self.host.online else "[red]Offline[/red]"
+        description = f"{self.host.description}\n\n" if self.host.description else "\n"
 
         yield Label(
             f"[b]{self.host.name}[/b]\n"
             f"[dim]{self.host.flavor} {self.host.version}[/dim]\n"
+            f"{description}"
             f"{status}",
             classes=f"host-box {box_style}",
             shrink=True,
