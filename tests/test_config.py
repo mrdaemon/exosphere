@@ -24,6 +24,7 @@ class TestConfiguration:
         data["hosts"] = [
             {"name": "host1", "ip": "127.0.0.1"},
             {"name": "host2", "ip": "127.0.0.2", "port": 22},
+            {"name": "host3", "ip": "127.0.0.3", "description": "Test Host"},
         ]
 
         return data
@@ -43,6 +44,11 @@ class TestConfiguration:
         name = "host2"
         ip = "127.0.0.2"
         port = 22
+
+        [[hosts]]
+        name = "host3"
+        ip = "127.0.0.3"
+        description = "Test Host"
         """
 
         config_file = tmp_path / "config.toml"
@@ -61,6 +67,9 @@ class TestConfiguration:
           - name: host2
             ip: 127.0.0.2
             port: 22
+          - name: host3
+            ip: 127.0.0.3
+            description: Test Host
         """
 
         config_file = tmp_path / "config.yaml"
@@ -84,6 +93,11 @@ class TestConfiguration:
                     "name": "host2",
                     "ip": "127.0.0.2",
                     "port": 22
+                },
+                {
+                    "name": "host3",
+                    "ip": "127.0.0.3",
+                    "description": "Test Host"
                 }
             ]
         }
@@ -108,6 +122,11 @@ class TestConfiguration:
         ip = "127.0.0.2"
         port = 22
 
+        [[hosts]]
+        name = "host3"
+        ip = "127.0.0.3"
+        description = "Test Host"
+
         [unrecognized_section]
         name = "extra"
         description = "This is an unparsed section"
@@ -129,6 +148,9 @@ class TestConfiguration:
           - name: host2
             ip: 127.0.0.2
             port: 22
+          - name: host3
+            ip: 127.0.0.3
+            description: Test Host
         unrecognized_section:
           name: extra
           description: This is an unparsed section
@@ -155,6 +177,11 @@ class TestConfiguration:
                     "name": "host2",
                     "ip": "127.0.0.2",
                     "port": 22
+                },
+                {
+                    "name": "host3",
+                    "ip": "127.0.0.3",
+                    "description": "Test Host"
                 }
             ],
             "unrecognized_section": {
@@ -317,6 +344,7 @@ class TestConfiguration:
             "hosts": [
                 {"name": "host3", "ip": "172.16.64.3"},
                 {"name": "host4", "ip": "172.16.64.4", "port": 22},
+                {"name": "host5", "ip": "172.16.64.5", "description": "New Host"},
             ],
             "invalid_key": [{"name": "invalid"}],
         }
@@ -325,12 +353,15 @@ class TestConfiguration:
         assert result is True
 
         assert config["options"]["log_level"] == "INFO"
-        assert len(config["hosts"]) == 2
+        assert len(config["hosts"]) == 3
         assert config["hosts"][0]["name"] == "host3"
         assert config["hosts"][1]["name"] == "host4"
+        assert config["hosts"][2]["name"] == "host5"
         assert config["hosts"][0]["ip"] == "172.16.64.3"
         assert config["hosts"][1]["ip"] == "172.16.64.4"
+        assert config["hosts"][2]["ip"] == "172.16.64.5"
         assert config["hosts"][1]["port"] == 22
+        assert config["hosts"][2]["description"] == "New Host"
 
         assert "invalid_key" not in config
         assert "is not a valid root key" in caplog.text
