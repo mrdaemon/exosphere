@@ -133,10 +133,12 @@ def show(
     )
 
     if not include_updates:
+        # Warn for invalid set of arguments
         if security_only:
             err_console.print(
-                "[yellow]--security-only option is only valid with --updates; ignoring.[/yellow]"
+                "[yellow]Warning: --security-only option is only valid with --updates, ignoring.[/yellow]"
             )
+
         raise typer.Exit(code=0)
 
     update_list = host.updates if not security_only else host.security_updates
@@ -194,9 +196,10 @@ def discover(
         except Exception as e:
             progress.console.print(
                 Panel.fit(
-                    f"Failed to discover host '{host.name}': {e}",
-                    title="Error",
+                    f"{str(e)}",
+                    title="[red]Error[/red]",
                     style="red",
+                    title_align="left",
                 )
             )
 
@@ -238,9 +241,10 @@ def refresh(
             except Exception as e:
                 progress.console.print(
                     Panel.fit(
-                        f"Failed to refresh platform information for '{host.name}': {e}",
-                        title="Error",
+                        f"{str(e)}",
+                        title="[red]Error[/red]",
                         style="red",
+                        title_align="left",
                     )
                 )
                 progress.stop_task(task)
@@ -257,9 +261,10 @@ def refresh(
             except Exception as e:
                 progress.console.print(
                     Panel.fit(
-                        f"Failed to refresh updates and package catalog for '{host.name}': {e}",
-                        title="Error",
+                        f"{str(e)}",
+                        title="[red]Error[/red]",
                         style="red",
+                        title_align="left",
                     )
                 )
                 progress.stop_task(task)
@@ -273,9 +278,10 @@ def refresh(
         except Exception as e:
             progress.console.print(
                 Panel.fit(
-                    f"Failed to refresh updates for '{host.name}': {e}",
-                    title="Error",
+                    f"{str(e)}",
+                    title="[red]Error[/red]",
                     style="red",
+                    title_align="left",
                 )
             )
 

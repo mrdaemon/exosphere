@@ -170,7 +170,7 @@ class Host:
             self.logger.warning(
                 "Host %s has gone offline during sync, received: %s",
                 self.name,
-                e,
+                str(e),
             )
             self.online = False
             return
@@ -182,7 +182,7 @@ class Host:
             )
             self.online = False
             raise DataRefreshError(
-                f"An error occured during sync for {self.name}: {e}"
+                f"An error occured during sync for {self.name}: {str(e)}"
             ) from e
 
         self.os = platform_info.os
@@ -209,7 +209,7 @@ class Host:
 
         """
         if not self.online:
-            raise OfflineHostError(f"Host {self.name} is offline.")
+            raise OfflineHostError(f"Host {self.name} is offline or unreachable.")
 
         # If the concrete package manager provider is not set,
         # refuse the temptation to guess or force a sync, and throw

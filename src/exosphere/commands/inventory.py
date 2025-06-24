@@ -149,7 +149,8 @@ def discover(
                 Panel.fit(
                     error,
                     style="bold red",
-                    title=f"Error discovering {host}",
+                    title=f"Error on {host}",
+                    title_align="left",
                 )
             )
 
@@ -284,7 +285,12 @@ def refresh(
     if errors:
         for host, error in errors:
             err_console.print(
-                Panel.fit(error, style="bold red", title=f"Error on {host}")
+                Panel.fit(
+                    error,
+                    style="bold red",
+                    title=f"Error on {host}",
+                    title_align="left",
+                )
             )
 
     if app_config["options"]["cache_autosave"]:
