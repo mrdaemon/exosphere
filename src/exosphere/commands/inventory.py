@@ -159,6 +159,9 @@ def discover(
 
 @app.command()
 def refresh(
+    discover: Annotated[
+        bool, typer.Option(help="Also refresh platform information")
+    ] = False,
     sync: Annotated[
         bool, typer.Option(help="Refresh the package catalog as well as updates")
     ] = False,
@@ -174,6 +177,10 @@ def refresh(
 
     Connects to hosts in the inventory and retrieves pending package
     updates.
+
+    If --discover is specified, the platform information (Operating
+    System flavor, version, package manager) will also be refreshed.
+    Also refreshes the online status in the process.
 
     If --sync is specified, the package catalog will also be refreshed.
 
@@ -191,6 +198,31 @@ def refresh(
 
     if hosts is None:
         return
+
+    # FIXME: This need refactored to be a common function, possibly
+    #        across all commands that run tasks on hosts.
+    if discover:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+        ) as progress:
+            discover_task = progress.add_task(
+                "Discovering platform information", total=len(hosts)
+            )
+            for host, _, exc in inventory.run_task("discover", hosts=hosts):
+                if exc:
+                    progress.console.print(
+                        Panel.fit(
+                            f"[bold red]{host.name}:[/bold red] {type(exc).__name__}",
+                            style="bold red",
+                            title="Error discovering platform information",
+                        )
+                    )
+
+                progress.update(discover_task, advance=1)
+            progress.stop_task(discover_task)
 
     if sync:
         with Progress(

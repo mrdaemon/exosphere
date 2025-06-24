@@ -209,6 +209,9 @@ def refresh(
     full: Annotated[
         bool, typer.Option("--sync", "-s", help="Also refresh package catalog")
     ] = False,
+    discover: Annotated[
+        bool, typer.Option("--discover", "-d", help="Also refresh platform information")
+    ] = False,
 ) -> None:
     """
     Refresh the updates for a specific host.
@@ -226,6 +229,25 @@ def refresh(
         TextColumn("[progress.description]{task.description}"),
         TimeElapsedColumn(),
     ) as progress:
+        if discover:
+            task = progress.add_task(
+                f"Refreshing platform information for '{host.name}'", total=None
+            )
+            try:
+                host.discover()
+            except Exception as e:
+                progress.console.print(
+                    Panel.fit(
+                        f"Failed to refresh platform information for '{host.name}': {e}",
+                        title="Error",
+                        style="red",
+                    )
+                )
+                progress.stop_task(task)
+                raise typer.Exit(code=1)
+
+            progress.stop_task(task)
+
         if full:
             task = progress.add_task(
                 f"Refreshing updates and package catalog for '{host.name}'", total=None
