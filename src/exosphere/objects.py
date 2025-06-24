@@ -13,7 +13,12 @@ from exosphere.setup import detect
 
 class Host:
     def __init__(
-        self, name: str, ip: str, port: int = 22, connect_timeout: int | None = None
+        self,
+        name: str,
+        ip: str,
+        port: int = 22,
+        description: str | None = None,
+        connect_timeout: int | None = None,
     ) -> None:
         """
         Create a Host object, which then can be used to query
@@ -34,6 +39,7 @@ class Host:
         self.name = name
         self.ip = ip
         self.port = port
+        self.description = description
 
         # Shared connection object
         self._connection: Connection | None = None

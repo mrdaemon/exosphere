@@ -14,6 +14,12 @@ class TestInventory:
             "hosts": [
                 {"name": "host1", "ip": "127.0.0.1", "port": 22},
                 {"name": "host2", "ip": "127.0.0.2", "port": 22},
+                {
+                    "name": "host3",
+                    "ip": "127.0.0.3",
+                    "description": "Test host",
+                    "port": 2222,
+                },
             ],
         }
         config = Configuration()
@@ -34,6 +40,7 @@ class TestInventory:
             m.name = kwargs.get("name", "mock_host")
             m.ip = kwargs.get("ip", "127.0.0.1")
             m.port = kwargs.get("port", 22)
+            m.description = kwargs.get("description", None)
             return m
 
         patcher = mocker.patch("exosphere.inventory.Host", side_effect=make_mock_host)
@@ -44,7 +51,7 @@ class TestInventory:
         Test that init_all creates Host objects from the configuration.
         """
         inventory = Inventory(mock_config)
-        assert len(inventory.hosts) == 2
+        assert len(inventory.hosts) == 3
 
     def test_init_all_removes_stale_hosts(
         self, mocker, mock_config, mock_diskcache, mock_host_class
@@ -81,7 +88,7 @@ class TestInventory:
         inventory.clear_state()
 
         cache_mock.clear.assert_called_once()
-        assert len(inventory.hosts) == 2
+        assert len(inventory.hosts) == 3
 
     def test_clear_state_handles_file_not_found(
         self, mocker, mock_config, mock_diskcache, mock_host_class
