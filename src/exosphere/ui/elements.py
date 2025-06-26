@@ -106,14 +106,14 @@ class ProgressScreen(Screen):
                     f"Error running {self.taskname} on host {host.name}: {str(exc)}"
                 )
             else:
-                logger.info(
-                    f"Successfully ran task {self.taskname} on host: {host.name}"
+                logger.debug(
+                    f"Successfully dispatched task {self.taskname} for host: {host.name}"
                 )
 
             self.app.call_from_thread(self.update_progress, 1)
 
             if worker.is_cancelled:
-                logger.info("Task was cancelled, stopping progress update.")
+                logger.warning("Task was cancelled, stopping progress update.")
                 break
 
         logger.info(f"Finished running {self.taskname} on all hosts.")
