@@ -80,6 +80,8 @@ class ProgressScreen(Screen):
 
     def on_key(self, event: Key) -> None:
         if event.key == "escape":
+            logger.warning("Aborting task due to ESC key press!")
+            self.query_one("#abort-message", Label).update("[red]Aborting...[/red]")
             self.app.workers.cancel_node(self)
 
     def update_progress(self, step: int) -> None:
