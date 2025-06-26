@@ -32,6 +32,13 @@ ProgressScreen {
     layout: vertical;
 }
 
+#abort-message {
+    text-align: center;
+    color: dimgray;
+    text-style: italic;
+    margin-top: 1;
+}
+
 # Dashboard host widgets
 .host-box {
     height: 100%;

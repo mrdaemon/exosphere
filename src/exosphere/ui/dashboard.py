@@ -3,6 +3,7 @@ import logging
 from textual import work
 from textual.app import ComposeResult
 from textual.containers import Vertical
+from textual.events import Key
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Label, ProgressBar
@@ -52,18 +53,23 @@ class ProgressScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Vertical(
+            Label(self.message),
             ProgressBar(
                 total=len(self.hosts),
                 show_eta=False,
                 show_percentage=True,
                 show_bar=True,
             ),
-            Label(self.message),
+            Label("Press ESC to abort", id="abort-message"),
             classes="progress-message",
         )
 
     def on_mount(self) -> None:
         self.do_run()
+
+    def on_key(self, event: Key) -> None:
+        if event.key == "escape":
+            self.app.workers.cancel_node(self)
 
     def update_progress(self, step: int) -> None:
         """Update the progress bar."""
@@ -78,7 +84,7 @@ class ProgressScreen(Screen):
 
         if inventory is None:
             logger.error("Inventory is not initialized, cannot run tasks.")
-            self.app.pop_screen()
+            self.app.call_from_thread(self.app.pop_screen)
             return
 
         for host, _, exc in inventory.run_task(self.taskname, self.hosts):
