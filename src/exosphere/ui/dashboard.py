@@ -15,25 +15,45 @@ logger = logging.getLogger("exosphere.ui.dashboard")
 class HostWidget(Widget):
     """Widget to display a host in the HostGrid."""
 
-    def __init__(self, host: Host) -> None:
+    def __init__(self, host: Host, id: str | None = None) -> None:
         self.host = host
-        super().__init__()
+        super().__init__(id=id)
+
+    def make_contents(self) -> str:
+        """Generate the contents of the host widget."""
+        status = "[green]Online[/green]" if self.host.online else "[red]Offline[/red]"
+        description = f"{self.host.description}\n\n" if self.host.description else "\n"
+
+        return (
+            f"[b]{self.host.name}[/b]\n"
+            f"[dim]{self.host.flavor} {self.host.version}[/dim]\n"
+            f"{description}"
+            f"{status}"
+        )
 
     def compose(self) -> ComposeResult:
         """Compose the host widget layout."""
         box_style = "online" if self.host.online else "offline"
-        status = "[green]Online[/green]" if self.host.online else "[red]Offline[/red]"
-        description = f"{self.host.description}\n\n" if self.host.description else "\n"
 
         yield Label(
-            f"[b]{self.host.name}[/b]\n"
-            f"[dim]{self.host.flavor} {self.host.version}[/dim]\n"
-            f"{description}"
-            f"{status}",
+            self.make_contents(),
             classes=f"host-box {box_style}",
             shrink=True,
             expand=True,
         )
+
+    def refresh_state(self) -> None:
+        """Refresh the state of the host widget."""
+        contents = self.query_one(Label)
+        contents.update(self.make_contents())
+
+        # Change box style class based on online status
+        if self.host.online:
+            contents.add_class("online")
+            contents.remove_class("offline")
+        else:
+            contents.add_class("offline")
+            contents.remove_class("online")
 
 
 class DashboardScreen(Screen):
@@ -59,7 +79,7 @@ class DashboardScreen(Screen):
             return
 
         for host in hosts:
-            yield HostWidget(host)
+            yield HostWidget(host, id=f"host-{host.name}")
 
         yield Footer()
 
@@ -67,6 +87,16 @@ class DashboardScreen(Screen):
         """Set the title and subtitle of the dashboard."""
         self.title = "Exosphere"
         self.sub_title = "Dashboard"
+
+    def refresh_hosts(self) -> None:
+        """Refresh the host widgets."""
+        for host_widget in self.query(HostWidget):
+            host_widget.refresh_state()
+
+    def on_screen_resume(self) -> None:
+        """Handle the screen being resumed."""
+        # Refresh the host widgets when the screen is resumed.
+        self.refresh_hosts()
 
     def action_ping_all_hosts(self) -> None:
         """Action to ping all hosts."""

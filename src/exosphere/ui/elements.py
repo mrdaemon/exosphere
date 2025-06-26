@@ -117,4 +117,15 @@ class ProgressScreen(Screen):
                 break
 
         logger.info(f"Finished running {self.taskname} on all hosts.")
+
+        try:
+            inventory.save_state()
+            logger.debug("Inventory state saved successfully.")
+        except Exception as e:
+            logger.error(f"Failed to save inventory state: {str(e)}")
+            self.app.call_from_thread(
+                self.app.push_screen,
+                ErrorScreen(f"Failed to save inventory state:\n{str(e)}"),
+            )
+
         self.app.call_from_thread(self.app.pop_screen)

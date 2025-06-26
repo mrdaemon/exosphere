@@ -72,15 +72,17 @@ ErrorScreen {
 # Dashboard host widgets
 .host-box {
     height: 100%;
+    width: auto;
     text-align: center;
-    border: round;
+    border: solid;
     layer: below;
+    margin-bottom: 0;
 }
 .host-box.online {
-    border: round green;
+    border: solid green;
     tint: green 10%;
 }
 .host-box.offline {
-    border: round red;
+    border: solid red;
     tint: red 10%;
 }
