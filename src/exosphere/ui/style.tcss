@@ -11,6 +11,12 @@ ProgressScreen {
     background: black 60%;
 }
 
+ErrorScreen {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
+
 # Empty message box
 .empty-message {
     text-align: center;
@@ -38,6 +44,29 @@ ProgressScreen {
     color: dimgray;
     text-style: italic;
     margin-top: 1;
+}
+
+# Error message box
+.error-message {
+    background: gray 30%;
+    border: hkey red;
+    width: auto;
+    height: auto;
+    min-width: 40;
+    max-width: 80;
+}
+
+.error-message Center {
+    width: 100%;
+}
+
+.error-message Center Label {
+    margin-top: 1;
+    padding-bottom: 1;
+}
+
+.error-message Center Button {
+    margin-bottom: 1;
 }
 
 # Dashboard host widgets
