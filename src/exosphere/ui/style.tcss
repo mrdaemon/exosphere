@@ -5,12 +5,31 @@ DashboardScreen {
     align: center middle;
 }
 
+ProgressScreen {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
+
 # Empty message box
 .empty-message {
     text-align: center;
     border: hkey gray;
     layer: above;
     padding: 2 2;
+}
+
+# Progress bar box
+.progress-message {
+    background: gray 30%;
+    padding: 2;
+    border: hkey $primary-darken-1;
+    width: auto;
+    height: auto;
+    min-width: 40;
+    max-width: 80;
+    content-align: center middle;
+    layout: vertical;
 }
 
 # Dashboard host widgets
