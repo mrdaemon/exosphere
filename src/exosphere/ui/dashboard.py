@@ -22,14 +22,15 @@ class HostWidget(Widget):
     def make_contents(self) -> str:
         """Generate the contents of the host widget."""
         status = "[green]Online[/green]" if self.host.online else "[red]Offline[/red]"
+
+        if not self.host.flavor or not self.host.version:
+            version = "(Undiscovered)"
+        else:
+            version = f"{self.host.flavor} {self.host.version}"
+
         description = f"{self.host.description}\n\n" if self.host.description else "\n"
 
-        return (
-            f"[b]{self.host.name}[/b]\n"
-            f"[dim]{self.host.flavor} {self.host.version}[/dim]\n"
-            f"{description}"
-            f"{status}"
-        )
+        return f"[b]{self.host.name}[/b]\n[dim]{version}[/dim]\n{description}{status}"
 
     def compose(self) -> ComposeResult:
         """Compose the host widget layout."""
@@ -63,6 +64,7 @@ class DashboardScreen(Screen):
 
     BINDINGS = [
         ("P", "ping_all_hosts", "Ping All"),
+        ("D", "discover_hosts", "Discover All"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -114,5 +116,24 @@ class DashboardScreen(Screen):
                 message="Pinging all hosts...",
                 hosts=hosts,
                 taskname="ping",
+            )
+        )
+
+    def action_discover_hosts(self) -> None:
+        """Action to discover all hosts."""
+
+        inventory = context.inventory
+        hosts = inventory.hosts if inventory else []
+
+        if not hosts:
+            logger.warning("No hosts available to discover.")
+            self.app.push_screen(ErrorScreen("No hosts available to discover."))
+            return
+
+        self.app.push_screen(
+            ProgressScreen(
+                message="Discovering all hosts...",
+                hosts=hosts,
+                taskname="discover",
             )
         )
