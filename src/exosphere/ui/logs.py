@@ -58,4 +58,6 @@ class LogsScreen(Screen):
         app = cast(ExosphereUi, self.app)
         app.ui_log_handler.set_log_widget(self.log_widget)
 
-        logging.getLogger("exosphere.ui").debug("Log view initialized")
+        logging.getLogger("exosphere.ui").debug(
+            "Log view initialized, logs backfilled."
+        )
