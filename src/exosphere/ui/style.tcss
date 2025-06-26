@@ -32,6 +32,7 @@ ProgressScreen {
     layout: vertical;
 }
 
+# Abort line in progress bar box
 #abort-message {
     text-align: center;
     color: dimgray;
