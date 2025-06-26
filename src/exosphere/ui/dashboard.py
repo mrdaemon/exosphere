@@ -64,7 +64,7 @@ class DashboardScreen(Screen):
 
     BINDINGS = [
         ("P", "ping_all_hosts", "Ping All"),
-        ("D", "discover_hosts", "Discover All"),
+        ("ctrl+d", "discover_hosts", "Discover All"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -103,37 +103,35 @@ class DashboardScreen(Screen):
     def action_ping_all_hosts(self) -> None:
         """Action to ping all hosts."""
 
-        inventory = context.inventory
-        hosts = inventory.hosts if inventory else []
-
-        if not hosts:
-            logger.warning("No hosts available to ping.")
-            self.app.push_screen(ErrorScreen("No hosts available to ping."))
-            return
-
-        self.app.push_screen(
-            ProgressScreen(
-                message="Pinging all hosts...",
-                hosts=hosts,
-                taskname="ping",
-            )
+        self._run_task(
+            taskname="ping",
+            message="Pinging all hosts...",
+            no_hosts_message="No hosts available to ping.",
         )
 
     def action_discover_hosts(self) -> None:
         """Action to discover all hosts."""
 
+        self._run_task(
+            taskname="discover",
+            message="Discovering all hosts...",
+            no_hosts_message="No hosts available to discover.",
+        )
+
+    def _run_task(self, taskname: str, message: str, no_hosts_message: str) -> None:
+        """Run a task on all hosts."""
         inventory = context.inventory
         hosts = inventory.hosts if inventory else []
 
         if not hosts:
-            logger.warning("No hosts available to discover.")
-            self.app.push_screen(ErrorScreen("No hosts available to discover."))
+            logger.warning(f"No hosts available to run task '{taskname}'.")
+            self.app.push_screen(ErrorScreen(no_hosts_message))
             return
 
         self.app.push_screen(
             ProgressScreen(
-                message="Discovering all hosts...",
+                message=message,
                 hosts=hosts,
-                taskname="discover",
+                taskname=taskname,
             )
         )
