@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from unittest import mock
 
 import pytest
@@ -88,6 +87,11 @@ def fake_inventory(mock_host):
     class FakeInventory:
         hosts = [mock_host]
 
+        def get_host(self, name):
+            if name == mock_host.name:
+                return mock_host
+            return None
+
     return FakeInventory()
 
 
@@ -102,12 +106,12 @@ def patch_context_inventory(monkeypatch, fake_inventory):
 @pytest.fixture(autouse=True)
 def patch_save_inventory(monkeypatch):
     """
-    Patch out the save_inventory fucntion to, well not.
+    Patch out the save_inventory function to, well not.
     """
     monkeypatch.setattr(host_module, "save_inventory", mock.Mock())
 
 
-def test_show_host_basic(mock_host):
+def test_show_host_basic(mock_host, patch_context_inventory):
     """
     Test showing a host with basic information.
     """
@@ -115,7 +119,7 @@ def test_show_host_basic(mock_host):
     assert result.exit_code == 0
 
 
-def test_show_host_with_updates(mock_host):
+def test_show_host_with_updates(mock_host, patch_context_inventory):
     """
     Test showing a host with updates information.
     """
@@ -123,7 +127,7 @@ def test_show_host_with_updates(mock_host):
     assert result.exit_code == 0
 
 
-def test_show_host_with_security_only(mock_host):
+def test_show_host_with_security_only(mock_host, patch_context_inventory):
     """
     Test showing a host with security updates only.
     """
@@ -133,7 +137,7 @@ def test_show_host_with_security_only(mock_host):
     assert result.exit_code == 0
 
 
-def test_show_host_not_found(mock_host):
+def test_show_host_not_found(mock_host, patch_context_inventory):
     """
     Test showing a host that does not exist in the inventory.
     """
@@ -144,7 +148,7 @@ def test_show_host_not_found(mock_host):
     assert not hasattr(mock_host, "discovered")
 
 
-def test_discover_host(mock_host):
+def test_discover_host(mock_host, patch_context_inventory):
     """
     Test discovering a host that exists in the inventory.
     """
@@ -154,7 +158,7 @@ def test_discover_host(mock_host):
     assert hasattr(mock_host, "discovered")
 
 
-def test_discover_host_not_found(mock_host):
+def test_discover_host_not_found(mock_host, patch_context_inventory):
     """
     Test discovering a host that does not exist in the inventory.
     """
@@ -165,7 +169,7 @@ def test_discover_host_not_found(mock_host):
     assert not hasattr(mock_host, "discovered")
 
 
-def test_refresh_host(mock_host):
+def test_refresh_host(mock_host, patch_context_inventory):
     """
     Test refreshing a host's updates without full sync
     """
@@ -175,7 +179,7 @@ def test_refresh_host(mock_host):
     assert hasattr(mock_host, "updates_refreshed")
 
 
-def test_refresh_host_sync(mock_host):
+def test_refresh_host_sync(mock_host, patch_context_inventory):
     """
     Test refreshing a host's catalog and updates with full sync
     """
@@ -186,7 +190,7 @@ def test_refresh_host_sync(mock_host):
     assert hasattr(mock_host, "updates_refreshed")
 
 
-def test_refresh_host_not_found(mock_host):
+def test_refresh_host_not_found(mock_host, patch_context_inventory):
     result = runner.invoke(host_module.app, ["refresh", "not_test_host"])
 
     assert result.exit_code == 1
@@ -202,16 +206,24 @@ def test_refresh_host_not_found(mock_host):
     ids=["exists_online", "exists_offline", "not_exists"],
 )
 def test_ping_host_parametrized(
-    monkeypatch, mock_host, host_exists, online, expected_exit_code
+    monkeypatch,
+    mock_host,
+    fake_inventory,
+    patch_context_inventory,
+    host_exists,
+    online,
+    expected_exit_code,
 ):
     """
     Test pinging a host with different scenarios.
     """
     if host_exists:
         mock_host.online = online
-        inventory = SimpleNamespace(hosts=[mock_host])
+        inventory = fake_inventory
+        inventory.hosts = mock_host
     else:
-        inventory = SimpleNamespace(hosts=[])
+        inventory = fake_inventory
+        inventory.hosts = []
 
     monkeypatch.setattr(host_module.context, "inventory", inventory)
     host_name = mock_host.name if host_exists else "not_exists_yo"
