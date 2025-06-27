@@ -5,6 +5,7 @@ from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Label
 
 from exosphere import context
+from exosphere.objects import Host
 from exosphere.ui.elements import ErrorScreen, ProgressScreen
 
 logger = logging.getLogger("exosphere.ui.inventory")
@@ -60,17 +61,7 @@ class InventoryScreen(Screen):
 
         table.add_columns(*COLUMNS)
 
-        for host in hosts:
-            table.add_row(
-                host.name,
-                host.os,
-                host.flavor,
-                host.version,
-                len(host.updates),
-                len(host.security_updates),
-                "[green]Online[/green]" if host.online else "[red]Offline[/red]",
-                key=host.name,
-            )
+        self._populate_table(table, hosts)
 
     def refresh_rows(self, task: str | None = None) -> None:
         """Repopulate all rows in the data table from the inventory."""
@@ -94,58 +85,12 @@ class InventoryScreen(Screen):
         table.clear(columns=False)
 
         # Repopulate
-        for host in hosts:
-            table.add_row(
-                host.name,
-                host.os,
-                host.flavor,
-                host.version,
-                len(host.updates),
-                len(host.security_updates),
-                "[green]Online[/green]" if host.online else "[red]Offline[/red]",
-                key=host.name,
-            )
+        self._populate_table(table, hosts)
 
         if task:
             logger.debug("Updated data table due to task: %s", task)
         else:
             logger.debug("Updated data table.")
-
-    def _run_task(
-        self,
-        taskname: str,
-        message: str,
-        no_hosts_message: str,
-        save_state: bool = True,
-    ) -> None:
-        """
-        Dispatch a task to all hosts in the inventory.
-        """
-        inventory = context.inventory
-
-        if inventory is None:
-            logger.error("Inventory is not initialized, cannot run tasks.")
-            self.app.push_screen(
-                ErrorScreen("Inventory is not initialized, cannot run tasks.")
-            )
-            return
-
-        hosts = inventory.hosts if inventory else []
-
-        if not hosts:
-            logger.warning(f"No hosts available to run task '{taskname}'.")
-            self.app.push_screen(ErrorScreen(no_hosts_message))
-            return
-
-        self.app.push_screen(
-            ProgressScreen(
-                message=message,
-                hosts=hosts,
-                taskname=taskname,
-                save=save_state,
-            ),
-            self.refresh_rows,
-        )
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the data table"""
@@ -184,4 +129,54 @@ class InventoryScreen(Screen):
             message="Refreshing package catalog for all hosts...\nThis may take a long time!",
             no_hosts_message="No hosts available to refresh package catalog.",
             save_state=False,  # Refreshing catalog does not affect state
+        )
+
+    def _populate_table(self, table: DataTable, hosts: list[Host]):
+        """Populate given table with host data"""
+        for host in hosts:
+            table.add_row(
+                host.name,
+                host.os,
+                host.flavor,
+                host.version,
+                len(host.updates),
+                len(host.security_updates),
+                "[green]Online[/green]" if host.online else "[red]Offline[/red]",
+                key=host.name,
+            )
+
+    def _run_task(
+        self,
+        taskname: str,
+        message: str,
+        no_hosts_message: str,
+        save_state: bool = True,
+    ) -> None:
+        """
+        Dispatch a task to all hosts in the inventory.
+        """
+        inventory = context.inventory
+
+        if inventory is None:
+            logger.error("Inventory is not initialized, cannot run tasks.")
+            self.app.push_screen(
+                ErrorScreen("Inventory is not initialized, cannot run tasks.")
+            )
+            return
+
+        hosts = inventory.hosts if inventory else []
+
+        if not hosts:
+            logger.warning(f"No hosts available to run task '{taskname}'.")
+            self.app.push_screen(ErrorScreen(no_hosts_message))
+            return
+
+        self.app.push_screen(
+            ProgressScreen(
+                message=message,
+                hosts=hosts,
+                taskname=taskname,
+                save=save_state,
+            ),
+            self.refresh_rows,
         )
