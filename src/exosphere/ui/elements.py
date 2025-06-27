@@ -116,8 +116,11 @@ class ProgressScreen(Screen):
             )
             return
 
+        # Keep track of exception count, for later UI notify
         exc_count: int = 0
+        was_cancelled: bool = False
 
+        # Dispatch task through worker pool inventory API
         for host, _, exc in inventory.run_task(self.taskname, self.hosts):
             if exc:
                 exc_count += 1
@@ -132,12 +135,7 @@ class ProgressScreen(Screen):
             self.app.call_from_thread(self.update_progress, 1)
 
             if worker.is_cancelled:
-                self.app.call_from_thread(
-                    self.app.notify,
-                    "Task cancelled by user.",
-                    title="Cancelled",
-                    severity="error",
-                )
+                was_cancelled = True
                 logger.warning("Task was cancelled, stopping progress update.")
                 break
 
@@ -155,6 +153,15 @@ class ProgressScreen(Screen):
                     self.app.push_screen,
                     ErrorScreen(f"Failed to save inventory state:\n{str(e)}"),
                 )
+
+        # Send notification if task was cancelled
+        if was_cancelled:
+            self.app.call_from_thread(
+                self.app.notify,
+                "Task cancelled by user.",
+                title="Cancelled",
+                severity="error",
+            )
 
         # Send a notification if task completed with errors
         if exc_count > 0:
