@@ -116,8 +116,11 @@ class ProgressScreen(Screen):
             )
             return
 
+        exc_count: int = 0
+
         for host, _, exc in inventory.run_task(self.taskname, self.hosts):
             if exc:
+                exc_count += 1
                 logger.error(
                     f"Error running {self.taskname} on host {host.name}: {str(exc)}"
                 )
@@ -129,6 +132,12 @@ class ProgressScreen(Screen):
             self.app.call_from_thread(self.update_progress, 1)
 
             if worker.is_cancelled:
+                self.app.call_from_thread(
+                    self.app.notify,
+                    "Task cancelled by user.",
+                    title="Cancelled",
+                    severity="error",
+                )
                 logger.warning("Task was cancelled, stopping progress update.")
                 break
 
@@ -146,6 +155,15 @@ class ProgressScreen(Screen):
                     self.app.push_screen,
                     ErrorScreen(f"Failed to save inventory state:\n{str(e)}"),
                 )
+
+        # Send a notification if task completed with errors
+        if exc_count > 0:
+            self.app.call_from_thread(
+                self.app.notify,
+                f"Task completed with {exc_count} error(s).\nSee logs panel for details.",
+                title="Task Errors",
+                severity="error",
+            )
 
         # Pop the screen and return the task name as argument to the
         # (optional) callback set when the screen was pushed.
