@@ -149,4 +149,4 @@ class ProgressScreen(Screen):
 
         # Pop the screen and return the task name as argument to the
         # (optional) callback set when the screen was pushed.
-        self.dismiss(self.taskname)
+        self.app.call_from_thread(self.dismiss, self.taskname)
