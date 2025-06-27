@@ -7,7 +7,8 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
-from rich.table import Column, Table
+from rich.table import Table
+from rich.text import Text
 from typing_extensions import Annotated
 
 from exosphere import app_config, context
@@ -151,7 +152,7 @@ def show(
         "Current Version",
         "New Version",
         "Security",
-        Column(header="Source", no_wrap=True),
+        "Source",
         title="Available Updates",
     )
 
@@ -161,7 +162,7 @@ def show(
             update.current_version if update.current_version else "(NEW)",
             update.new_version,
             "Yes" if update.security else "No",
-            update.source or "N/A",
+            Text(update.source or "N/A", no_wrap=True),
             style="on bright_black" if update.security else "default",
         )
 
