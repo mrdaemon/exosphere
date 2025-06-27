@@ -45,10 +45,11 @@ class InventoryScreen(Screen):
             return
 
         table = self.query_one(DataTable)
+        table.cursor_type = "row"
+        table.zebra_stripes = True
 
         COLUMNS = (
             "Host",
-            "Description",
             "OS",
             "Flavor",
             "Version",
@@ -62,13 +63,13 @@ class InventoryScreen(Screen):
         for host in hosts:
             table.add_row(
                 host.name,
-                host.description or "server",
                 host.os,
                 host.flavor,
                 host.version,
                 len(host.updates),
                 len(host.security_updates),
                 "[green]Online[/green]" if host.online else "[red]Offline[/red]",
+                key=host.name,
             )
 
     def _run_task(self, taskname: str, message: str, no_hosts_message: str) -> None:
@@ -86,6 +87,25 @@ class InventoryScreen(Screen):
                 taskname=taskname,
             )
         )
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        """Handle row selection in the data table"""
+
+        if context.inventory is None or not context.inventory.hosts:
+            logger.error("Inventory is not initialized, cannot select row.")
+            self.app.push_screen(ErrorScreen("Inventory is not initialized."))
+            return
+
+        host_name = str(event.row_key.value)
+        host = context.inventory.get_host(host_name)
+
+        if host is None:
+            logger.error(f"Host '{host_name}' not found in inventory.")
+            self.app.push_screen(ErrorScreen(f"Host '{host_name}' not found."))
+            return
+
+        logger.debug(f"Selected host: {host}")
+        # Here I would push the details screen but it doesn't exist yet.
 
     def action_refresh_updates_all(self) -> None:
         """Action to refresh updates for all hosts."""
