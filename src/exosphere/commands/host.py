@@ -41,15 +41,12 @@ def _get_inventory():
 
 def _get_host(name: str) -> Host | None:
     """
-    Get a Host object by name from the inventory.
-    If the host is not found, it returns None and prints an error message.
-
-    :param name: The name of the host to retrieve, eg "webserver1"
+    Wraps inventory.get_host() to handle displaying errors on console
     """
+
     inventory = _get_inventory()
 
-    # Get the host by host.name from inventory.hosts
-    host = next((h for h in inventory.hosts if h.name == name), None)
+    host = inventory.get_host(name)
 
     if host is None:
         err_console.print(
