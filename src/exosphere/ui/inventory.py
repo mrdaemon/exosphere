@@ -2,7 +2,7 @@ import logging
 
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Placeholder
+from textual.widgets import DataTable, Footer, Header, Label
 
 from exosphere import context
 from exosphere.ui.elements import ErrorScreen, ProgressScreen
@@ -23,17 +23,56 @@ class InventoryScreen(Screen):
     def compose(self) -> ComposeResult:
         """Compose the inventory layout."""
         yield Header()
-        yield Placeholder(name="inventory_content", label="Inventory Content")
+
+        hosts = getattr(context.inventory, "hosts", []) or []
+
+        if not hosts:
+            yield Label("No hosts in inventory.", classes="empty-message")
+        else:
+            yield DataTable()
+
         yield Footer()
 
     def on_mount(self) -> None:
-        """Set the title and subtitle of the inventory."""
+        """Populate the data table on mount"""
         self.title = "Exosphere"
         self.sub_title = "Inventory Management"
 
+        hosts = context.inventory.hosts if context.inventory else []
+
+        if not hosts:
+            logger.warning("Inventory is empty.")
+            return
+
+        table = self.query_one(DataTable)
+
+        COLUMNS = (
+            "Host",
+            "Description",
+            "OS",
+            "Flavor",
+            "Version",
+            "Updates",
+            "Security",
+            "Status",
+        )
+
+        table.add_columns(*COLUMNS)
+
+        for host in hosts:
+            table.add_row(
+                host.name,
+                host.description or "server",
+                host.os,
+                host.flavor,
+                host.version,
+                len(host.updates),
+                len(host.security_updates),
+                "[green]Online[/green]" if host.online else "[red]Offline[/red]",
+            )
+
     def _run_task(self, taskname: str, message: str, no_hosts_message: str) -> None:
-        inventory = context.inventory
-        hosts = inventory.hosts if inventory else []
+        hosts = context.inventory.hosts if context.inventory else []
 
         if not hosts:
             logger.warning(f"No hosts available to run task '{taskname}'.")
