@@ -72,6 +72,45 @@ class InventoryScreen(Screen):
                 key=host.name,
             )
 
+    def refresh_rows(self, task: str | None = None) -> None:
+        """Repopulate all rows in the data table from the inventory."""
+        table = self.query_one(DataTable)
+
+        if not context.inventory:
+            logger.error("Inventory is not initialized, cannot update rows.")
+            self.app.push_screen(
+                ErrorScreen("Inventory is not initialized, failed to refresh table")
+            )
+            return
+
+        hosts = context.inventory.hosts if context.inventory else []
+
+        if not hosts:
+            logger.warning("No hosts available to update rows.")
+            self.app.push_screen(ErrorScreen("No hosts available to update rows."))
+            return
+
+        # Clear table but keep columns
+        table.clear(columns=False)
+
+        # Repopulate
+        for host in hosts:
+            table.add_row(
+                host.name,
+                host.os,
+                host.flavor,
+                host.version,
+                len(host.updates),
+                len(host.security_updates),
+                "[green]Online[/green]" if host.online else "[red]Offline[/red]",
+                key=host.name,
+            )
+
+        if task:
+            logger.debug("Updated data table due to task: %s", task)
+        else:
+            logger.debug("Updated data table.")
+
     def _run_task(
         self,
         taskname: str,
@@ -104,7 +143,8 @@ class InventoryScreen(Screen):
                 hosts=hosts,
                 taskname=taskname,
                 save=save_state,
-            )
+            ),
+            self.refresh_rows,
         )
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
