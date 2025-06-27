@@ -14,6 +14,9 @@ class Inventory:
     Handles reading the inventory from file and creating the
     Host objects.
 
+    Also handles dispatching tasks to the Host objects, via a parallelized
+    ThreadPoolExecutor.
+
     Convenience methods for discovery, refreshing catalogs, updates and ping
     are provided, and are all parallelized using Threads.
 
