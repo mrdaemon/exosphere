@@ -147,4 +147,6 @@ class ProgressScreen(Screen):
                     ErrorScreen(f"Failed to save inventory state:\n{str(e)}"),
                 )
 
-        self.app.call_from_thread(self.app.pop_screen)
+        # Pop the screen and return the task name as argument to the
+        # (optional) callback set when the screen was pushed.
+        self.dismiss(self.taskname)

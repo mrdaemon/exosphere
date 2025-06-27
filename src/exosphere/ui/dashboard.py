@@ -90,17 +90,15 @@ class DashboardScreen(Screen):
         self.title = "Exosphere"
         self.sub_title = "Dashboard"
 
-    def refresh_hosts(self) -> None:
+    def refresh_hosts(self, task: str | None = None) -> None:
         """Refresh the host widgets."""
+        if task:
+            logger.debug(f"Refreshing host widgets after task: {task}")
+        else:
+            logger.debug("Refreshing host widgets")
+
         for host_widget in self.query(HostWidget):
             host_widget.refresh_state()
-
-    def on_screen_resume(self) -> None:
-        """Handle the screen being resumed."""
-        # Refresh the host widgets when the screen is resumed.
-        # TODO: This needs to be a response to a custom message or event
-        #       sent from the screen that just got popped.
-        self.refresh_hosts()
 
     def action_ping_all_hosts(self) -> None:
         """Action to ping all hosts."""
@@ -144,5 +142,6 @@ class DashboardScreen(Screen):
                 hosts=hosts,
                 taskname=taskname,
                 save=True,  # All dashboard operations affect state
-            )
+            ),
+            self.refresh_hosts,  # Callback after screen is popped
         )
