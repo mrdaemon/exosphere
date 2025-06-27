@@ -351,6 +351,9 @@ def ping(
 
             progress.update(task, advance=1)
 
+    if app_config["options"]["cache_autosave"]:
+        save()
+
 
 @app.command()
 def status(
