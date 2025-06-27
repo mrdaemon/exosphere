@@ -100,6 +100,8 @@ class DashboardScreen(Screen):
         for host_widget in self.query(HostWidget):
             host_widget.refresh_state()
 
+        self.app.notify("Host data successfully refreshed", title="Refresh Complete")
+
     def action_ping_all_hosts(self) -> None:
         """Action to ping all hosts."""
 

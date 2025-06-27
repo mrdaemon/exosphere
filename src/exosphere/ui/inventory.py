@@ -92,6 +92,8 @@ class InventoryScreen(Screen):
         else:
             logger.debug("Updated data table.")
 
+        self.app.notify("Table data refreshed successfully.", title="Refresh Complete")
+
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the data table"""
 
