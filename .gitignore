@@ -34,3 +34,4 @@ config.json
 # in-dir exosphere runtime data
 exosphere.db
 exosphere.log
+test_cache.db
