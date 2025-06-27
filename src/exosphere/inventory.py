@@ -131,6 +131,26 @@ class Inventory:
 
         return host_obj
 
+    def get_host(self, name: str) -> Host | None:
+        """
+        Get a Host object by name from the inventory
+
+        If the host is not found, it returns None and logs an error message.
+        If the inventory was properly loaded, there a unicity constraint on
+        host names, so you can reasonably expect to not have to deal with
+        duplicates.
+
+        :param name: The name of the host to retrieve, e.g. "webserver1"
+        """
+
+        host = next((h for h in self.hosts if h.name == name), None)
+
+        if host is None:
+            self.logger.error("Host '%s' not found in inventory", name)
+            return None
+
+        return host
+
     def discover_all(self) -> None:
         """
         Discover all hosts in the inventory.

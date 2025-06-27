@@ -204,6 +204,29 @@ class TestInventory:
                 for m in caplog.messages
             )
 
+    def test_get_host(self, mocker, mock_config):
+        """
+        Test that get_host retrieves a host by name from the inventory.
+        """
+        inventory = Inventory(mock_config)
+
+        host = inventory.get_host("host2")
+
+        assert host is not None
+        assert host.name == "host2"
+        assert host.ip == "127.0.0.2"
+        assert host.port == 22
+
+    def test_get_host_returns_none_if_not_found(self, mocker, mock_config):
+        """
+        Test that get_host returns None if the host is not found.
+        """
+        inventory = Inventory(mock_config)
+
+        host = inventory.get_host("nonexistent")
+
+        assert host is None
+
     def test_discover_all_calls_run_task(
         self, mocker, mock_config, mock_diskcache, mock_host_class
     ):
