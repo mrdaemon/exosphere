@@ -70,6 +70,8 @@ class TestAptProvider:
         Inst base-files [12.4+deb12u10] (12.4+deb12u11 Debian:12.11/stable [arm64])
         Inst bash [5.2.15-2+b7] (5.2.15-2+b8 Debian:12.11/stable [arm64])
         Inst login [1:4.13+dfsg1-1+b1] (1:4.13+dfsg1-1+deb12u1 Debian:12.11/stable [arm64])
+        Inst libdtovl0 (20250514-1~bookworm Raspberry Pi Foundation:stable [arm64])
+        Inst libgpiolib0 (20250514-1~bookworm Raspberry Pi Foundation:stable [arm64])
 
         Inst passwd [1:4.13+dfsg1-1+b1] (1:4.13+dfsg1-1+deb12u1 Debian:12.11/stable [arm64])
         Inst initramfs-tools [0.142+rpt3+deb12u1] (0.142+rpt3+deb12u3 Raspberry Pi Foundation:stable [all])
@@ -118,16 +120,23 @@ class TestAptProvider:
         apt = Apt()
         updates: list[Update] = apt.get_updates(mock_pkg_output)
 
-        assert len(updates) == 6
+        assert len(updates) == 8
         assert updates[0].name == "base-files"
         assert updates[0].current_version == "12.4+deb12u10"
         assert updates[0].new_version == "12.4+deb12u11"
         assert updates[0].source == "Debian:12.11/stable"
         assert not updates[0].security
 
+        # Ensure new package updates are correctly identified
+        assert updates[3].name == "libdtovl0"
+        assert updates[3].current_version is None
+        assert updates[3].new_version == "20250514-1~bookworm"
+        assert updates[3].source == "Raspberry Pi Foundation:stable"
+        assert not updates[3].security
+
         # Ensure security updates are correctly identified
-        assert updates[5].name == "big-patch"
-        assert updates[5].security
+        assert updates[7].name == "big-patch"
+        assert updates[7].security
 
     def test_get_updates_no_updates(self, mocker, mock_pkg_output_no_updates):
         """
