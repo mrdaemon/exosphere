@@ -98,6 +98,8 @@ class DashboardScreen(Screen):
     def on_screen_resume(self) -> None:
         """Handle the screen being resumed."""
         # Refresh the host widgets when the screen is resumed.
+        # TODO: This needs to be a response to a custom message or event
+        #       sent from the screen that just got popped.
         self.refresh_hosts()
 
     def action_ping_all_hosts(self) -> None:
@@ -121,6 +123,14 @@ class DashboardScreen(Screen):
     def _run_task(self, taskname: str, message: str, no_hosts_message: str) -> None:
         """Run a task on all hosts."""
         inventory = context.inventory
+
+        if inventory is None:
+            logger.error("Inventory is not initialized, cannot run tasks.")
+            self.app.push_screen(
+                ErrorScreen("Inventory is not initialized, cannot run tasks.")
+            )
+            return
+
         hosts = inventory.hosts if inventory else []
 
         if not hosts:
@@ -133,5 +143,6 @@ class DashboardScreen(Screen):
                 message=message,
                 hosts=hosts,
                 taskname=taskname,
+                save=True,  # All dashboard operations affect state
             )
         )

@@ -72,8 +72,26 @@ class InventoryScreen(Screen):
                 key=host.name,
             )
 
-    def _run_task(self, taskname: str, message: str, no_hosts_message: str) -> None:
-        hosts = context.inventory.hosts if context.inventory else []
+    def _run_task(
+        self,
+        taskname: str,
+        message: str,
+        no_hosts_message: str,
+        save_state: bool = True,
+    ) -> None:
+        """
+        Dispatch a task to all hosts in the inventory.
+        """
+        inventory = context.inventory
+
+        if inventory is None:
+            logger.error("Inventory is not initialized, cannot run tasks.")
+            self.app.push_screen(
+                ErrorScreen("Inventory is not initialized, cannot run tasks.")
+            )
+            return
+
+        hosts = inventory.hosts if inventory else []
 
         if not hosts:
             logger.warning(f"No hosts available to run task '{taskname}'.")
@@ -85,6 +103,7 @@ class InventoryScreen(Screen):
                 message=message,
                 hosts=hosts,
                 taskname=taskname,
+                save=save_state,
             )
         )
 
@@ -114,6 +133,7 @@ class InventoryScreen(Screen):
             taskname="refresh_updates",
             message="Refreshing updates for all hosts...",
             no_hosts_message="No hosts available to refresh updates.",
+            save_state=True,
         )
 
     def action_refresh_updates_catalog_all(self) -> None:
@@ -123,4 +143,5 @@ class InventoryScreen(Screen):
             taskname="refresh_catalog",
             message="Refreshing package catalog for all hosts...\nThis may take a long time!",
             no_hosts_message="No hosts available to refresh package catalog.",
+            save_state=False,  # Refreshing catalog does not affect state
         )

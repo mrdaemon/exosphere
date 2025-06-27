@@ -8,7 +8,7 @@ from textual.screen import Screen
 from textual.widgets import Button, Label, ProgressBar
 from textual.worker import get_current_worker
 
-from exosphere import context
+from exosphere import app_config, context
 from exosphere.inventory import Inventory
 from exosphere.objects import Host
 
@@ -50,16 +50,23 @@ class ProgressScreen(Screen):
     Also handles running the host tasks in a separate thread and
     updating the progress bar accordingly.
 
+    The save parameter controls whether the inventory state will be
+    serialized to disk after the task completes, if autosave is enabled
+    in the application configuration. Defaults to True.
+
     Mostly wraps inventory.run_task to provide a UI for it.
     """
 
     CSS_PATH = "style.tcss"
 
-    def __init__(self, message: str, hosts: list[Host], taskname: str) -> None:
+    def __init__(
+        self, message: str, hosts: list[Host], taskname: str, save: bool = True
+    ) -> None:
         super().__init__()
         self.message = message
         self.hosts = hosts
         self.taskname = taskname
+        self.save = save
 
     def compose(self) -> ComposeResult:
         yield Vertical(
@@ -76,11 +83,13 @@ class ProgressScreen(Screen):
         )
 
     def on_mount(self) -> None:
+        """Run the task when the screen is ready."""
         self.do_run()
 
     def on_key(self, event: Key) -> None:
+        """Handle key events, specifically ESC to abort the task."""
         if event.key == "escape":
-            logger.warning("Aborting task due to ESC key press!")
+            logger.warning("Aborting task on user request!")
             self.query_one("#abort-message", Label).update("[red]Aborting...[/red]")
             self.app.workers.cancel_node(self)
 
@@ -90,7 +99,12 @@ class ProgressScreen(Screen):
 
     @work(exclusive=True, thread=True)
     def do_run(self) -> None:
-        """Run the task and update the progress bar."""
+        """
+        Run the task and update the progress bar.
+
+        Runs in a separate, exclusive thread to avoid blocking the UI
+        while the ThreadPoolExecutor runs the task on all hosts.
+        """
         inventory: Inventory | None = context.inventory
 
         worker = get_current_worker()
@@ -120,14 +134,17 @@ class ProgressScreen(Screen):
 
         logger.info(f"Finished running {self.taskname} on all hosts.")
 
-        try:
-            inventory.save_state()
-            logger.debug("Inventory state saved successfully.")
-        except Exception as e:
-            logger.error(f"Failed to save inventory state: {str(e)}")
-            self.app.call_from_thread(
-                self.app.push_screen,
-                ErrorScreen(f"Failed to save inventory state:\n{str(e)}"),
-            )
+        # Attempt to serialize state to database if autosave is enabled
+        # Unless whatever pushed the screen requested otherwise.
+        if self.save and app_config["options"]["cache_autosave"]:
+            try:
+                inventory.save_state()
+                logger.debug("Inventory state saved successfully.")
+            except Exception as e:
+                logger.error("Failed to save inventory state: %s", str(e))
+                self.app.call_from_thread(
+                    self.app.push_screen,
+                    ErrorScreen(f"Failed to save inventory state:\n{str(e)}"),
+                )
 
         self.app.call_from_thread(self.app.pop_screen)
