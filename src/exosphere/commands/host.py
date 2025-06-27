@@ -10,9 +10,10 @@ from rich.progress import (
 from rich.table import Table
 from typing_extensions import Annotated
 
-from exosphere import context
+from exosphere import app_config, context
 from exosphere.objects import Host
 
+# Steal the save function from inventory command
 from .inventory import save as save_inventory
 
 app = typer.Typer(
@@ -200,7 +201,8 @@ def discover(
                 )
             )
 
-    save_inventory()
+    if app_config["options"]["cache_autosave"]:
+        save_inventory()
 
 
 @app.command()
@@ -282,7 +284,8 @@ def refresh(
                 )
             )
 
-    save_inventory()
+    if app_config["options"]["cache_autosave"]:
+        save_inventory()
 
 
 @app.command()
@@ -309,4 +312,5 @@ def ping(
     else:
         console.print(f"Host [bold]{host.name}[/bold] is [red]Offline[/red].")
 
-    save_inventory()
+    if app_config["options"]["cache_autosave"]:
+        save_inventory()
