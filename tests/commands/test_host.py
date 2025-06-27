@@ -209,7 +209,6 @@ def test_ping_host_parametrized(
     monkeypatch,
     mock_host,
     fake_inventory,
-    patch_context_inventory,
     host_exists,
     online,
     expected_exit_code,
@@ -225,6 +224,7 @@ def test_ping_host_parametrized(
         inventory = fake_inventory
         inventory.hosts = []
 
+    # We patch the context inventory ourself to use our manipulated mock
     monkeypatch.setattr(host_module.context, "inventory", inventory)
     host_name = mock_host.name if host_exists else "not_exists_yo"
 
