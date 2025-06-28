@@ -5,6 +5,17 @@ DashboardScreen {
     align: center middle;
 }
 
+InventoryScreen {
+    layout: vertical;
+    align: center top;
+}
+
+HostDetailsPanel {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
+
 ProgressScreen {
     layout: vertical;
     align: center middle;
@@ -15,6 +26,27 @@ ErrorScreen {
     layout: vertical;
     align: center middle;
     background: black 60%;
+}
+
+.host-details {
+    dock: right;
+    width: 45%;
+    height: 100%;
+    padding: 2 2;
+    background: $panel 30%;
+}
+
+.host-details #close-instruction {
+    dock: bottom;
+    align: center bottom;
+    text-align: center;
+    color: dimgray;
+    text-style: italic;
+}
+
+#inventory-table {
+    width: 100%;
+    height: 100%;
 }
 
 # Empty message box
