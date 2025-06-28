@@ -1,0 +1,160 @@
+DashboardScreen {
+    layout: grid;
+    grid-size: 4;
+    layers: below above;
+    align: center middle;
+}
+
+InventoryScreen {
+    layout: vertical;
+    align: center top;
+}
+
+HostDetailsPanel {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
+UpdateDetailsPanel {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
+
+ProgressScreen {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
+
+ErrorScreen {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
+
+.host-details {
+    dock: right;
+    width: 45%;
+    height: 100%;
+    padding: 2 2;
+    background: $panel 30%;
+}
+
+.update-details {
+    dock: left;
+    width: 65%;
+    height: 100%;
+    padding: 2 2;
+    background: $panel 30%;
+}
+
+.update-details #update-name {
+    margin-bottom: 1;
+}
+
+.update-details #update-version-change {
+    margin-bottom: 1;
+}
+
+.host-details #host-online {
+    margin-bottom: 1;
+}
+
+.host-details #updates-table-container {
+    height: 10fr;
+    overflow-y: auto;
+    margin-top: 1;
+    margin-bottom: 1;
+}
+
+.update-details #update-security {
+    margin-top: 1;
+}
+
+.update-details #update-source {
+    margin-top: 1;
+}
+
+#close-instruction {
+    dock: bottom;
+    align: center bottom;
+    text-align: center;
+    color: dimgray;
+    text-style: italic;
+}
+
+#inventory-table {
+    width: 100%;
+    height: 100%;
+}
+
+# Empty message box
+.empty-message {
+    text-align: center;
+    border: hkey gray;
+    layer: above;
+    padding: 2 2;
+}
+
+# Progress bar box
+.progress-message {
+    background: gray 30%;
+    padding: 2;
+    border: hkey $primary-darken-1;
+    width: auto;
+    height: auto;
+    min-width: 40;
+    max-width: 80;
+    content-align: center middle;
+    layout: vertical;
+}
+
+# Abort line in progress bar box
+#abort-message {
+    text-align: center;
+    color: dimgray;
+    text-style: italic;
+    margin-top: 1;
+}
+
+# Error message box
+.error-message {
+    background: gray 30%;
+    border: hkey red;
+    width: auto;
+    height: auto;
+    min-width: 40;
+    max-width: 80;
+}
+
+.error-message Center {
+    width: 100%;
+}
+
+.error-message Center Label {
+    margin-top: 1;
+    padding-bottom: 1;
+}
+
+.error-message Center Button {
+    margin-bottom: 1;
+}
+
+# Dashboard host widgets
+.host-box {
+    height: 100%;
+    width: auto;
+    text-align: center;
+    border: solid;
+    layer: below;
+    margin-bottom: 0;
+}
+.host-box.online {
+    border: solid green;
+    tint: green 10%;
+}
+.host-box.offline {
+    border: solid red;
+    tint: red 10%;
+}

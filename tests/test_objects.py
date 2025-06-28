@@ -37,12 +37,19 @@ class TestHostObject:
         """
         Test the initialization of the Host object.
         """
-        host = Host(name="test_host", ip="172.16.64.10", port=2222, connect_timeout=32)
+        host = Host(
+            name="test_host",
+            ip="172.16.64.10",
+            description="Test host",
+            port=2222,
+            connect_timeout=32,
+        )
 
         assert host.name == "test_host"
         assert host.ip == "172.16.64.10"
         assert host.port == 2222
         assert host.connect_timeout == 32
+        assert host.description == "Test host"
 
         assert host.online is False
 

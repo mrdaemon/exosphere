@@ -14,6 +14,9 @@ class Inventory:
     Handles reading the inventory from file and creating the
     Host objects.
 
+    Also handles dispatching tasks to the Host objects, via a parallelized
+    ThreadPoolExecutor.
+
     Convenience methods for discovery, refreshing catalogs, updates and ping
     are provided, and are all parallelized using Threads.
 
@@ -131,6 +134,26 @@ class Inventory:
 
         return host_obj
 
+    def get_host(self, name: str) -> Host | None:
+        """
+        Get a Host object by name from the inventory
+
+        If the host is not found, it returns None and logs an error message.
+        If the inventory was properly loaded, there a unicity constraint on
+        host names, so you can reasonably expect to not have to deal with
+        duplicates.
+
+        :param name: The name of the host to retrieve, e.g. "webserver1"
+        """
+
+        host = next((h for h in self.hosts if h.name == name), None)
+
+        if host is None:
+            self.logger.error("Host '%s' not found in inventory", name)
+            return None
+
+        return host
+
     def discover_all(self) -> None:
         """
         Discover all hosts in the inventory.
@@ -191,6 +214,22 @@ class Inventory:
 
         self.logger.info("Updates refreshed for all hosts")
 
+    def ping_all(self) -> None:
+        """
+        Ping all hosts in the inventory.
+        """
+        self.logger.info("Pinging all hosts in inventory")
+
+        for host, _, exc in self.run_task(
+            "ping",
+        ):
+            if exc:
+                self.logger.error("Host %s is offline: %s", host.name, exc)
+            else:
+                self.logger.info("Host %s is online", host.name)
+
+        self.logger.info("Pinged all hosts")
+
     def run_task(
         self,
         host_method: str,
@@ -221,6 +260,11 @@ class Inventory:
 
         # Sanity checks, these should only come in play if we have an internal
         # programming error, not a user error.
+        #
+        # TODO: I honestly feel these checks could be removed entirely.
+        #       It is better to just let the returned exc field contain the
+        #       error and treat it like any other issue, but I'm leaving them
+        #       in since this is can difficult to debug in context.
 
         # Ensure the host_method exists in the base class
         if not hasattr(Host, host_method):

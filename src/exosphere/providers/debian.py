@@ -104,10 +104,10 @@ class Apt(PkgManager):
 
         pattern = (
             r"^Inst\s+"  # Starts with "Inst" followed by space(s)
-            r"(\S+)\s+"  # (1) Package name: non-space characters
-            r"\[([^\]]+)\]\s+"  # (2) Current version: content inside []
-            r"\((\S+)\s+"  # (3) New version: first non-space in ()
-            r"(.+?)\s+\[[^\]]+\]\)"  # (4) Repo source: lazily capture text until next [..]
+            r"(?P<name>\S+)\s+"  # Package name: non-space characters
+            r"(?:\[(?P<current_version>[^\]]+)\]\s+)?"  # Current version: text in [] (optional)
+            r"\((?P<new_version>\S+)\s+"  # New version: first non-space in ()
+            r"(?P<source>.+?)\s+\[[^\]]+\]\)"  # Repo source: lazily capture text until next [..]
         )
 
         match = re.match(pattern, line)
@@ -115,10 +115,18 @@ class Apt(PkgManager):
         if not match:
             return None
 
-        package_name = match.group(1).strip()
-        current_version = match.group(2).strip()
-        new_version = match.group(3).strip()
-        repo_source = match.group(4).strip()
+        if not match["current_version"]:
+            # If current version is empty, treat it as a new package
+            self.logger.debug(
+                "New package detected: %s (%s)", match["name"], match["new_version"]
+            )
+
+        package_name = match["name"].strip()
+        current_version = (
+            match["current_version"].strip() if match["current_version"] else None
+        )
+        new_version = match["new_version"].strip()
+        repo_source = match["source"].strip()
         is_security = False
 
         if "security" in repo_source.lower():

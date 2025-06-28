@@ -8,11 +8,13 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 from rich.table import Table
+from rich.text import Text
 from typing_extensions import Annotated
 
-from exosphere import context
+from exosphere import app_config, context
 from exosphere.objects import Host
 
+# Steal the save function from inventory command
 from .inventory import save as save_inventory
 
 app = typer.Typer(
@@ -41,15 +43,12 @@ def _get_inventory():
 
 def _get_host(name: str) -> Host | None:
     """
-    Get a Host object by name from the inventory.
-    If the host is not found, it returns None and prints an error message.
-
-    :param name: The name of the host to retrieve, eg "webserver1"
+    Wraps inventory.get_host() to handle displaying errors on console
     """
+
     inventory = _get_inventory()
 
-    # Get the host by host.name from inventory.hosts
-    host = next((h for h in inventory.hosts if h.name == name), None)
+    host = inventory.get_host(name)
 
     if host is None:
         err_console.print(
@@ -128,15 +127,17 @@ def show(
             f"  {host_os_details}, using {host.package_manager}\n"
             "\n"
             f"[bold]Updates Available:[/bold] {len(host.updates)} updates, {security_count} security\n",
-            title="Details",
+            title=host.description if host.description else "Host Details",
         )
     )
 
     if not include_updates:
+        # Warn for invalid set of arguments
         if security_only:
             err_console.print(
-                "[yellow]--security-only option is only valid with --updates; ignoring.[/yellow]"
+                "[yellow]Warning: --security-only option is only valid with --updates, ignoring.[/yellow]"
             )
+
         raise typer.Exit(code=0)
 
     update_list = host.updates if not security_only else host.security_updates
@@ -161,7 +162,7 @@ def show(
             update.current_version if update.current_version else "(NEW)",
             update.new_version,
             "Yes" if update.security else "No",
-            update.source or "N/A",
+            Text(update.source or "N/A", no_wrap=True),
             style="on bright_black" if update.security else "default",
         )
 
@@ -194,13 +195,15 @@ def discover(
         except Exception as e:
             progress.console.print(
                 Panel.fit(
-                    f"Failed to discover host '{host.name}': {e}",
-                    title="Error",
+                    f"{str(e)}",
+                    title="[red]Error[/red]",
                     style="red",
+                    title_align="left",
                 )
             )
 
-    save_inventory()
+    if app_config["options"]["cache_autosave"]:
+        save_inventory()
 
 
 @app.command()
@@ -208,6 +211,9 @@ def refresh(
     name: Annotated[str, typer.Argument(help="Host from inventory to refresh")],
     full: Annotated[
         bool, typer.Option("--sync", "-s", help="Also refresh package catalog")
+    ] = False,
+    discover: Annotated[
+        bool, typer.Option("--discover", "-d", help="Also refresh platform information")
     ] = False,
 ) -> None:
     """
@@ -226,6 +232,26 @@ def refresh(
         TextColumn("[progress.description]{task.description}"),
         TimeElapsedColumn(),
     ) as progress:
+        if discover:
+            task = progress.add_task(
+                f"Refreshing platform information for '{host.name}'", total=None
+            )
+            try:
+                host.discover()
+            except Exception as e:
+                progress.console.print(
+                    Panel.fit(
+                        f"{str(e)}",
+                        title="[red]Error[/red]",
+                        style="red",
+                        title_align="left",
+                    )
+                )
+                progress.stop_task(task)
+                raise typer.Exit(code=1)
+
+            progress.stop_task(task)
+
         if full:
             task = progress.add_task(
                 f"Refreshing updates and package catalog for '{host.name}'", total=None
@@ -235,9 +261,10 @@ def refresh(
             except Exception as e:
                 progress.console.print(
                     Panel.fit(
-                        f"Failed to refresh updates and package catalog for '{host.name}': {e}",
-                        title="Error",
+                        f"{str(e)}",
+                        title="[red]Error[/red]",
                         style="red",
+                        title_align="left",
                     )
                 )
                 progress.stop_task(task)
@@ -251,13 +278,15 @@ def refresh(
         except Exception as e:
             progress.console.print(
                 Panel.fit(
-                    f"Failed to refresh updates for '{host.name}': {e}",
-                    title="Error",
+                    f"{str(e)}",
+                    title="[red]Error[/red]",
                     style="red",
+                    title_align="left",
                 )
             )
 
-    save_inventory()
+    if app_config["options"]["cache_autosave"]:
+        save_inventory()
 
 
 @app.command()
@@ -284,4 +313,5 @@ def ping(
     else:
         console.print(f"Host [bold]{host.name}[/bold] is [red]Offline[/red].")
 
-    save_inventory()
+    if app_config["options"]["cache_autosave"]:
+        save_inventory()

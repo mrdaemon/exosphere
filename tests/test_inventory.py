@@ -14,6 +14,12 @@ class TestInventory:
             "hosts": [
                 {"name": "host1", "ip": "127.0.0.1", "port": 22},
                 {"name": "host2", "ip": "127.0.0.2", "port": 22},
+                {
+                    "name": "host3",
+                    "ip": "127.0.0.3",
+                    "description": "Test host",
+                    "port": 2222,
+                },
             ],
         }
         config = Configuration()
@@ -34,6 +40,7 @@ class TestInventory:
             m.name = kwargs.get("name", "mock_host")
             m.ip = kwargs.get("ip", "127.0.0.1")
             m.port = kwargs.get("port", 22)
+            m.description = kwargs.get("description", None)
             return m
 
         patcher = mocker.patch("exosphere.inventory.Host", side_effect=make_mock_host)
@@ -44,7 +51,7 @@ class TestInventory:
         Test that init_all creates Host objects from the configuration.
         """
         inventory = Inventory(mock_config)
-        assert len(inventory.hosts) == 2
+        assert len(inventory.hosts) == 3
 
     def test_init_all_removes_stale_hosts(
         self, mocker, mock_config, mock_diskcache, mock_host_class
@@ -81,7 +88,7 @@ class TestInventory:
         inventory.clear_state()
 
         cache_mock.clear.assert_called_once()
-        assert len(inventory.hosts) == 2
+        assert len(inventory.hosts) == 3
 
     def test_clear_state_handles_file_not_found(
         self, mocker, mock_config, mock_diskcache, mock_host_class
@@ -197,6 +204,29 @@ class TestInventory:
                 for m in caplog.messages
             )
 
+    def test_get_host(self, mocker, mock_config):
+        """
+        Test that get_host retrieves a host by name from the inventory.
+        """
+        inventory = Inventory(mock_config)
+
+        host = inventory.get_host("host2")
+
+        assert host is not None
+        assert host.name == "host2"
+        assert host.ip == "127.0.0.2"
+        assert host.port == 22
+
+    def test_get_host_returns_none_if_not_found(self, mocker, mock_config):
+        """
+        Test that get_host returns None if the host is not found.
+        """
+        inventory = Inventory(mock_config)
+
+        host = inventory.get_host("nonexistent")
+
+        assert host is None
+
     def test_discover_all_calls_run_task(
         self, mocker, mock_config, mock_diskcache, mock_host_class
     ):
@@ -245,6 +275,23 @@ class TestInventory:
         inventory.refresh_updates_all()
 
         mock_run.assert_called_once_with("refresh_updates")
+
+    def test_ping_all_calls_run_task(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that ping_all calls run_task with 'ping'.
+        """
+        inventory = Inventory(mock_config)
+        mock_run = mocker.patch.object(
+            inventory,
+            "run_task",
+            return_value=[(mocker.Mock(name="host1"), None, None)],
+        )
+
+        inventory.ping_all()
+
+        mock_run.assert_called_once_with("ping")
 
     @pytest.mark.parametrize("hosts_arg", [None, [], [{}]])
     def test_run_task_no_hosts(
