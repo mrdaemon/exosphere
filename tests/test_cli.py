@@ -28,10 +28,15 @@ def test_win32readline_monkeypatch(monkeypatch, mocker) -> None:
     sys.modules.pop("exosphere.cli", None)
 
     # Reimport the cli module to trigger the monkeypatch
+    # but patch out codepaths with win32 specific imports.
+    # This is untenable long-term, and this test needs refactored.
+    mocker.patch("ssl.create_default_context")
+
     import exosphere.cli  # noqa: F401
 
     importlib.reload(exosphere.cli)
 
+    # Ensure the compatibility shim is used
     assert "readline" in sys.modules
     assert sys.modules["readline"] is compat_shim
 
