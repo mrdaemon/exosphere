@@ -23,29 +23,45 @@ class HostDetailsPanel(Screen):
 
     def compose(self) -> ComposeResult:
         """Compose the host details layout."""
+
+        sec_count: int = (
+            len(self.host.security_updates) if self.host.security_updates else 0
+        )
+        security_updates: str = (
+            f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
+        )
+
+        platform: str
+
+        if not self.host.flavor or not self.host.version:
+            platform = "(Undiscovered)"
+        elif self.host.os == self.host.flavor:
+            platform = f"{self.host.os} {self.host.version}"
+        else:
+            platform = f"{self.host.os} ({self.host.flavor} {self.host.version})"
+
         yield Vertical(
-            Label(f"[b]Host[/b]: {self.host.name}", id="host-name"),
-            Label(f"OS: {self.host.os}", id="host-os"),
-            Label(f"IP Address: {self.host.ip}", id="host-ip"),
-            Label(f"Port: {self.host.port}", id="host-port"),
-            Label(f"Flavor: {self.host.flavor}", id="host-flavor"),
+            Label(f"[i]Host:[/i]\n  {self.host.name}", id="host-name"),
+            Label(f"[i]IP Address:[/i]\n  {self.host.ip}", id="host-ip"),
+            Label(f"[i]Port:[/i]\n  {self.host.port}", id="host-port"),
             Label(
-                f"Operating System: {self.host.os} {self.host.flavor} {self.host.version}",
+                f"[i]Operating System:[/i]\n  {platform}",
                 id="host-version",
             ),
             Label(
-                f"Description: {self.host.description or 'N/A'}", id="host-description"
+                f"[i]Description:[/i]\n  {self.host.description or 'N/A'}",
+                id="host-description",
             ),
             Label(
-                f"Status: {'[green]Online[/green]' if self.host.online else '[red]Offline[/red]'}",
+                f"[i]Status:[/i]\n  {'[green]Online[/green]' if self.host.online else '[red]Offline[/red]'}",
                 id="host-online",
             ),
             Label(
-                f"Last Updated: {self.host.last_refresh.strftime('%a %b %d %H:%M:%S %Y') if self.host.last_refresh else 'Never'}",
+                f"[i]Last Updated:[/i]\n  {self.host.last_refresh.strftime('%a %b %d %H:%M:%S %Y') if self.host.last_refresh else 'Never'}",
                 id="host-last-updated",
             ),
             Label(
-                f"Available Updates: {len(self.host.updates)}, {len(self.host.security_updates)} security",
+                f"[i]Available Updates:[/i]\n  {len(self.host.updates)} updates, {security_updates} security",
                 id="host-updates-count",
             ),
             Container(
@@ -289,9 +305,9 @@ class InventoryScreen(Screen):
 
             table.add_row(
                 host.name,
-                host.os,
-                host.flavor,
-                host.version,
+                host.os or "[dim](undiscovered)[/dim]",
+                host.flavor or "[dim](undiscovered)[/dim]",
+                host.version or "[dim](undiscovered)[/dim]",
                 len(host.updates),
                 security_updates,
                 "[green]Online[/green]" if host.online else "[red]Offline[/red]",
