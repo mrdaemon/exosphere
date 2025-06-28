@@ -129,7 +129,7 @@ class UpdateDetailsPanel(Screen):
                 id="update-current-version",
             ),
             Label(f"New version: {self.update.new_version}", id="update-new-version"),
-            Label(f"Source:\n{self.update.source or 'N/A'}", id="update-source"),
+            Label(f"Source: {self.update.source or '(N/A)'}", id="update-source"),
             Label(
                 f"Security update: {'[red]Yes[/red]' if self.update.security else 'No'}",
                 id="update-security",
