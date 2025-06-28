@@ -15,6 +15,11 @@ HostDetailsPanel {
     align: center middle;
     background: black 60%;
 }
+UpdateDetailsPanel {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
 
 ProgressScreen {
     layout: vertical;
@@ -36,7 +41,34 @@ ErrorScreen {
     background: $panel 30%;
 }
 
-.host-details #close-instruction {
+.update-details {
+    dock: left;
+    width: 65%;
+    height: 100%;
+    padding: 2 2;
+    background: $panel 30%;
+}
+
+.host-details #host-online {
+    margin-bottom: 1;
+}
+
+.host-details #updates-table-container {
+    height: 10fr;
+    overflow-y: auto;
+    margin-top: 1;
+    margin-bottom: 1;
+}
+
+.update-details #update-security {
+    margin-top: 1;
+}
+
+.update-details #update-source {
+    margin-top: 1;
+}
+
+#close-instruction {
     dock: bottom;
     align: center bottom;
     text-align: center;

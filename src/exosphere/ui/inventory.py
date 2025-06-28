@@ -1,12 +1,12 @@
 import logging
 
 from textual.app import ComposeResult
-from textual.containers import Vertical
+from textual.containers import Container, Vertical
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Label
 
 from exosphere import context
-from exosphere.objects import Host
+from exosphere.objects import Host, Update
 from exosphere.ui.elements import ErrorScreen, ProgressScreen
 
 logger = logging.getLogger("exosphere.ui.inventory")
@@ -24,7 +24,7 @@ class HostDetailsPanel(Screen):
     def compose(self) -> ComposeResult:
         """Compose the host details layout."""
         yield Vertical(
-            Label(f"Host: {self.host.name}", id="host-name"),
+            Label(f"[b]Host[/b]: {self.host.name}", id="host-name"),
             Label(f"OS: {self.host.os}", id="host-os"),
             Label(f"IP Address: {self.host.ip}", id="host-ip"),
             Label(f"Port: {self.host.port}", id="host-port"),
@@ -36,7 +36,10 @@ class HostDetailsPanel(Screen):
             Label(
                 f"Description: {self.host.description or 'N/A'}", id="host-description"
             ),
-            Label(f"Online: {'Yes' if self.host.online else 'No'}", id="host-online"),
+            Label(
+                f"Status: {'[green]Online[/green]' if self.host.online else '[red]Offline[/red]'}",
+                id="host-online",
+            ),
             Label(
                 f"Last Updated: {self.host.last_refresh.strftime('%a %b %d %H:%M:%S %Y') if self.host.last_refresh else 'Never'}",
                 id="host-last-updated",
@@ -45,7 +48,10 @@ class HostDetailsPanel(Screen):
                 f"Available Updates: {len(self.host.updates)}, {len(self.host.security_updates)} security",
                 id="host-updates-count",
             ),
-            DataTable(id="host-updates-table", zebra_stripes=True),
+            Container(
+                DataTable(id="host-updates-table", zebra_stripes=True),
+                id="updates-table-container",
+            ),
             Label("Press ESC to close", id="close-instruction"),
             classes="host-details",
         )
@@ -60,6 +66,7 @@ class HostDetailsPanel(Screen):
             return
 
         updates_table = self.query_one(DataTable)
+        updates_table.cursor_type = "row"  # Enable row selection
 
         # Define columns for the updates table
         updates_table.add_columns(
@@ -69,7 +76,7 @@ class HostDetailsPanel(Screen):
         # Populate the updates table with available updates
         for update in update_list:
             updates_table.add_row(
-                update.name,
+                f"[red]{update.name}[/red]" if update.security else update.name,
                 key=update.name,
             )
 
@@ -77,7 +84,69 @@ class HostDetailsPanel(Screen):
         """Handle key presses to return to the inventory screen."""
         if event.key == "escape":
             self.dismiss()
-            event.prevent_default()  # No bubbling
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        """Handle row selection in the updates data table."""
+        update_name = str(event.row_key.value)
+
+        if not self.host:
+            logger.error("Host is not initialized, cannot select update.")
+            self.app.push_screen(ErrorScreen("Host is not initialized."))
+            return
+
+        update: Update = [u for u in self.host.updates if u.name == update_name][
+            0
+        ] or None
+
+        if update is None:
+            logger.error(f"Update not found for host '{self.host.name}'.")
+            self.app.push_screen(
+                ErrorScreen(f"Update not found for host '{self.host.name}'.")
+            )
+            return
+
+        logger.debug(f"Selected update: {update.name}")
+        self.app.push_screen(
+            UpdateDetailsPanel(update),
+        )
+
+
+class UpdateDetailsPanel(Screen):
+    """Screen to display details of a selected update."""
+
+    CSS_PATH = "style.tcss"
+
+    def __init__(self, update: Update) -> None:
+        super().__init__()
+        self.update = update
+
+    def compose(self) -> ComposeResult:
+        """Compose the update details layout."""
+        yield Vertical(
+            Label(f"[b]Update Details for[/b]: {self.update.name}", id="update-name"),
+            Label(
+                f"Current version: {self.update.current_version or 'N/A'}",
+                id="update-current-version",
+            ),
+            Label(f"New version: {self.update.new_version}", id="update-new-version"),
+            Label(f"Source:\n{self.update.source or 'N/A'}", id="update-source"),
+            Label(
+                f"Security update: {'[red]Yes[/red]' if self.update.security else 'No'}",
+                id="update-security",
+            ),
+            Label("Press ESC to close", id="close-instruction"),
+            classes="update-details",
+        )
+
+    def on_mount(self) -> None:
+        """Set the title of the screen on mount."""
+        self.title = f"Update Details: {self.update.name}"
+
+    def on_key(self, event) -> None:
+        """Handle key presses to return to the host details screen."""
+        if event.key == "escape":
+            self.dismiss()
+            event.prevent_default()
 
 
 class InventoryScreen(Screen):
@@ -209,13 +278,20 @@ class InventoryScreen(Screen):
     def _populate_table(self, table: DataTable, hosts: list[Host]):
         """Populate given table with host data"""
         for host in hosts:
+            sec_count: int = len(host.security_updates) if host.security_updates else 0
+
+            if sec_count > 0:
+                security_updates = f"[red]{sec_count}[/red]"
+            else:
+                security_updates = str(sec_count)
+
             table.add_row(
                 host.name,
                 host.os,
                 host.flavor,
                 host.version,
                 len(host.updates),
-                len(host.security_updates),
+                security_updates,
                 "[green]Online[/green]" if host.online else "[red]Offline[/red]",
                 key=host.name,
             )
