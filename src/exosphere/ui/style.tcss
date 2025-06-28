@@ -49,6 +49,14 @@ ErrorScreen {
     background: $panel 30%;
 }
 
+.update-details #update-name {
+    margin-bottom: 1;
+}
+
+.update-details #update-version-change {
+    margin-bottom: 1;
+}
+
 .host-details #host-online {
     margin-bottom: 1;
 }

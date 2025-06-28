@@ -123,15 +123,17 @@ class UpdateDetailsPanel(Screen):
     def compose(self) -> ComposeResult:
         """Compose the update details layout."""
         yield Vertical(
-            Label(f"[b]Update Details for[/b]: {self.update.name}", id="update-name"),
+            Label(f"[i]Package:[/i] {self.update.name}", id="update-name"),
+            Label("[i]Version Change:[/i]", id="update-version-change"),
             Label(
-                f"Current version: {self.update.current_version or 'N/A'}",
-                id="update-current-version",
+                f"  [yellow]{self.update.current_version or '(NEW)'}[/yellow] → [green]{self.update.new_version}[/green]",
+                id="update-version",
             ),
-            Label(f"New version: {self.update.new_version}", id="update-new-version"),
-            Label(f"Source: {self.update.source or '(N/A)'}", id="update-source"),
             Label(
-                f"Security update: {'[red]Yes[/red]' if self.update.security else 'No'}",
+                f"[i]Source[/i]: {self.update.source or '(N/A)'}", id="update-source"
+            ),
+            Label(
+                f"[i]Security update[/i]: {'[red]Yes[/red]' if self.update.security else 'No'}",
                 id="update-security",
             ),
             Label("Press ESC to close", id="close-instruction"),
