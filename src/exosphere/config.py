@@ -43,7 +43,7 @@ class Configuration(dict):
         This method is a convenience wrapper used for shorthand
         for the from_file method, with tomllib.load() as the loader.
 
-        see `from_file()`for details.
+        see `from_file()` for details.
         """
         return self.from_file(filepath, tomllib.load, silent=silent)
 
@@ -52,9 +52,9 @@ class Configuration(dict):
         Populate the configuration structure from a yaml file
 
         This method is a convenience wrapper used for shorthand
-        for the from_file method, with yaml.safe_load() as the loader.
+        for the `from_file` method, with `yaml.safe_load()` as the loader.
 
-        see `from_file()`for details.
+        see `from_file` for details.
         """
         return self.from_file(filepath, yaml.safe_load, silent=silent)
 
@@ -63,9 +63,9 @@ class Configuration(dict):
         Populate the configuration structure from a json file
 
         This method is a convenience wrapper used for shorthand
-        for the from_file method, with json.load() as the loader.
+        for the `from_file` method, with `json.load()` as the loader.
 
-        see `from_file()`for details.
+        see `from_file` for details.
         """
         return self.from_file(filepath, json.load, silent=silent)
 
@@ -79,7 +79,7 @@ class Configuration(dict):
         The loader must be a reference to a callable that takes a
         file handle and returns a mapping of the data contained within.
 
-        For instance, tomllib.load() is a valid loader for toml files
+        For instance, `tomllib.load()` is a valid loader for toml files
 
         This allows for the format of the configuration file to be
         essentially decoupled from the validation and internal
@@ -100,7 +100,7 @@ class Configuration(dict):
 
     def update_from_mapping(self, *mapping: dict, **kwargs: dict) -> bool:
         """
-        Populate values like the native dict.update() method, but
+        Populate values like the native `dict.update()` method, but
         only if the key is a valid root configuration key.
 
         This will also deep merge the values from the mapping
