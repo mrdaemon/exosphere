@@ -28,7 +28,8 @@ class HostWidget(Widget):
         else:
             version = f"{self.host.flavor} {self.host.version}"
 
-        description = f"{self.host.description}\n\n" if self.host.description else "\n"
+        description_value = getattr(self.host, "description", None)
+        description = f"{description_value}\n\n" if description_value else "\n"
 
         return f"[b]{self.host.name}[/b]\n[dim]{version}[/dim]\n{description}{status}"
 
