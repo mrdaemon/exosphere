@@ -13,6 +13,9 @@ htmlcov/
 .pytest_cache/
 .tests_report.json
 
+# Sphinx documentation
+docs/build/
+
 # linters etc
 .ruff_cache/
 

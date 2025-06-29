@@ -28,6 +28,8 @@ dev = [
     "pytest-json-ctrf>=0.3.5",
     "pytest-mock>=3.14.0",
     "ruff>=0.11.5",
+    "sphinx>=8.2.3",
+    "sphinx-rtd-theme>=3.0.2",
     "textual-dev>=1.7.0",
 ]
 
@@ -53,3 +55,4 @@ format-check = ['ruff-format-check', 'isort-check']
 check = ['format-check', 'lint', 'typecheck']
 test = "pytest -v --ctrf .tests_report.json"
 coverage = "pytest --cov-report term-missing --cov-report html --cov=src tests/"
+docs = "sphinx-build -b html docs/source docs/build/html" 
