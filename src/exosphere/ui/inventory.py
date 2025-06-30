@@ -1,4 +1,5 @@
 import logging
+from typing import Callable
 
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical
@@ -286,11 +287,17 @@ class InventoryScreen(Screen):
     def action_refresh_updates_catalog_all(self) -> None:
         """Action to refresh updates and package catalog for all hosts."""
 
+        def post_action(_):
+            """Callback to also run updates refresh after catalog refresh."""
+            # Note: Data Table refresh is handled by the callback
+            self.action_refresh_updates_all()
+
         self._run_task(
             taskname="refresh_catalog",
-            message="Refreshing package catalog for all hosts...\nThis may take a long time!",
+            message="Refreshing package catalog for all hosts.\nThis may take a long time!",
             no_hosts_message="No hosts available to refresh package catalog.",
             save_state=False,  # Refreshing catalog does not affect state
+            callback=post_action,
         )
 
     def _populate_table(self, table: DataTable, hosts: list[Host]):
@@ -320,9 +327,20 @@ class InventoryScreen(Screen):
         message: str,
         no_hosts_message: str,
         save_state: bool = True,
+        callback: Callable | None = None,
     ) -> None:
         """
         Dispatch a task to all hosts in the inventory.
+
+        Note: If you modify the callback via parameter, you are on your
+        own to refresh the data table after the task is completed.
+
+        :param taskname: Name of the task to run.
+        :param message: Message to display in the progress screen.
+        :param no_hosts_message: Message to display if no hosts are available.
+        :param save_state: Whether to save the state after running the task.
+        :param callback: Optional callback function to execute after the task.
+                         Defaults implicitly to self.refresh_rows().
         """
         inventory = context.inventory
 
@@ -347,5 +365,5 @@ class InventoryScreen(Screen):
                 taskname=taskname,
                 save=save_state,
             ),
-            self.refresh_rows,
+            callback or self.refresh_rows,
         )
