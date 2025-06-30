@@ -31,6 +31,16 @@ def test_hostwidget_make_contents_online(host_online):
     assert "Test host" in contents
 
 
+def test_hostwidget_make_contents_offline(host_offline):
+    """Test that HostWidget generates correct contents for an offline host."""
+    widget = HostWidget(host_offline)
+    contents = widget.make_contents()
+    assert "[red]Offline[/red]" in contents
+    assert "Debian 11" in contents
+    assert "(Undiscovered)" not in contents
+    assert "\n\n" in contents  # Check for empty description handling
+
+
 def test_hostwidget_make_contents_offline_undiscovered():
     """Test that HostWidget generates correct contents for an undiscovered host."""
     host = Host(name="host3", ip="127.0.0.4", description=None)
