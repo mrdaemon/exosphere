@@ -178,6 +178,7 @@ class InventoryScreen(Screen):
     CSS_PATH = "style.tcss"
 
     BINDINGS = [
+        ("ctrl+d", "redraw", "Redraw"),
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
         ("ctrl+x", "refresh_updates_catalog_all", "Refresh Catalog"),
     ]
@@ -277,6 +278,10 @@ class InventoryScreen(Screen):
             logger.debug("Updated data table.")
 
         self.app.notify("Table data refreshed successfully.", title="Refresh Complete")
+
+    def action_redraw(self) -> None:
+        """Action to redraw the inventory screen."""
+        self.refresh_rows()
 
     def action_refresh_updates_all(self) -> None:
         """Action to refresh updates for all hosts."""
