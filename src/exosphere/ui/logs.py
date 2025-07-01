@@ -61,3 +61,14 @@ class LogsScreen(Screen):
         logging.getLogger("exosphere.ui").debug(
             "Log view initialized, logs backfilled."
         )
+
+    def on_unmount(self) -> None:
+        """Clean up the log widget when the screen is unmounted."""
+        from exosphere.ui.app import ExosphereUi
+
+        app = cast(ExosphereUi, self.app)
+        app.ui_log_handler.set_log_widget(None)
+
+        logging.getLogger("exosphere.ui").debug(
+            "Log view unmounted, log widget cleared."
+        )
