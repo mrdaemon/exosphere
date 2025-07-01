@@ -62,6 +62,10 @@ class HostDetailsPanel(Screen):
                 id="host-last-updated",
             ),
             Label(
+                f"[i]Stale:[/i]\n  {'[red]Yes[/red] - Consider refreshing' if self.host.is_stale else 'No'}",
+                id="host-stale",
+            ),
+            Label(
                 f"[i]Available Updates:[/i]\n  {len(self.host.updates)} updates, {security_updates} security",
                 id="host-updates-count",
             ),
@@ -302,22 +306,36 @@ class InventoryScreen(Screen):
 
     def _populate_table(self, table: DataTable, hosts: list[Host]):
         """Populate given table with host data"""
+
+        def maybe_undiscovered(value: str | None) -> str:
+            """Format as undiscovered if None or empty"""
+            return value if value else "[dim](undiscovered)[/dim]"
+
         for host in hosts:
             sec_count: int = len(host.security_updates) if host.security_updates else 0
+            upd_count: int = len(host.updates) if host.updates else 0
 
-            if sec_count > 0:
-                security_updates = f"[red]{sec_count}[/red]"
-            else:
-                security_updates = str(sec_count)
+            security_updates = (
+                f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
+            )
+            updates = str(upd_count)
+
+            if host.is_stale:
+                updates += "[dim] *[/dim]"
+                security_updates += "[dim] *[/dim]"
+
+            status_str = (
+                "[green]Online[/green]" if host.online else "[red]Offline[/red]"
+            )
 
             table.add_row(
                 host.name,
-                host.os or "[dim](undiscovered)[/dim]",
-                host.flavor or "[dim](undiscovered)[/dim]",
-                host.version or "[dim](undiscovered)[/dim]",
-                len(host.updates),
+                maybe_undiscovered(host.os),
+                maybe_undiscovered(host.flavor),
+                maybe_undiscovered(host.version),
+                updates,
                 security_updates,
-                "[green]Online[/green]" if host.online else "[red]Offline[/red]",
+                status_str,
                 key=host.name,
             )
 
