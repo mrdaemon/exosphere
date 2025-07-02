@@ -7,7 +7,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, RichLog
 
 LOG_BUFFER = []
-LOG_BUFFER_LOCK = threading.Lock()
+LOG_BUFFER_LOCK = threading.RLock()
 LOG_HANDLER = None
 
 
@@ -18,7 +18,12 @@ class UILogHandler(logging.Handler):
     Involves a running buffer to store logs until the log widget is set,
     which generally happens when the Logs screen is mounted.
 
-    The buffering should be reasonably thread-safe
+    The log handler will backfill the log widget with any buffered logs
+    at that point, and any new logs will be written directly to the
+    widget, in the log screen.
+
+    The buffering should be reasonably thread-safe, but it is a very
+    clumsy and naive attempt at reentrant locking.
     """
 
     def emit(self, record) -> None:
@@ -39,11 +44,12 @@ class UILogHandler(logging.Handler):
         if not self.log_widget:
             return
 
+        logging.getLogger("exosphere.ui").debug(
+            "Flushing buffered logs to the log widget."
+        )
+
         # Flush any buffered logs to the widget
         with LOG_BUFFER_LOCK:
-            logging.getLogger("exosphere.ui").debug(
-                "Flushing buffered logs to the log widget."
-            )
             for msg in LOG_BUFFER:
                 try:
                     self.log_widget.write(msg)
@@ -103,7 +109,3 @@ class LogsScreen(Screen):
             return
 
         app.ui_log_handler.set_log_widget(None)
-
-        logging.getLogger("exosphere.ui").debug(
-            "Log view unmounted, log widget cleared."
-        )
