@@ -11,7 +11,7 @@ from exosphere.ui.logs import LogsScreen, UILogHandler
 class ExosphereUi(App):
     """The main application class for the Exosphere UI."""
 
-    ui_log_handler: UILogHandler
+    ui_log_handler: UILogHandler | None
 
     # Global Bindings - These are available in all modes,
     # unless overriden by a mode-specific binding.
@@ -43,3 +43,11 @@ class ExosphereUi(App):
 
         # Set the default mode to the dashboard
         self.switch_mode("dashboard")
+
+    def on_unmount(self) -> None:
+        """Clean up the UI log handler when the app is unmounted."""
+        if self.ui_log_handler is not None:
+            logging.getLogger("exosphere").removeHandler(self.ui_log_handler)
+            self.ui_log_handler.close()
+
+        logging.debug("UI log handler cleaned up on unmount.")
