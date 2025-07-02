@@ -34,6 +34,7 @@ class ExosphereUi(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        """Initialize UI Log handler and set the default mode."""
         # Initialize logging handler for logs panel
         self.ui_log_handler = UILogHandler()
         self.ui_log_handler.setFormatter(
@@ -49,5 +50,6 @@ class ExosphereUi(App):
         if self.ui_log_handler is not None:
             logging.getLogger("exosphere").removeHandler(self.ui_log_handler)
             self.ui_log_handler.close()
+            self.ui_log_handler = None
 
         logging.debug("UI log handler cleaned up on unmount.")

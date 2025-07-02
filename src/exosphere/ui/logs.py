@@ -56,6 +56,13 @@ class LogsScreen(Screen):
         from exosphere.ui.app import ExosphereUi
 
         app = cast(ExosphereUi, self.app)
+
+        if app.ui_log_handler is None:
+            logging.getLogger("exosphere.ui").error(
+                "UI Log handler is not initialized. Cannot set log widget!"
+            )
+            return
+
         app.ui_log_handler.set_log_widget(self.log_widget)
 
         logging.getLogger("exosphere.ui").debug(
@@ -67,6 +74,13 @@ class LogsScreen(Screen):
         from exosphere.ui.app import ExosphereUi
 
         app = cast(ExosphereUi, self.app)
+
+        if app.ui_log_handler is None:
+            logging.getLogger("exosphere.ui").debug(
+                "UI Log handler is not initialized, nothing to clean up"
+            )
+            return
+
         app.ui_log_handler.set_log_widget(None)
 
         logging.getLogger("exosphere.ui").debug(
