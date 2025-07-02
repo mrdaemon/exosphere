@@ -17,6 +17,7 @@ class Host:
         name: str,
         ip: str,
         port: int = 22,
+        username: str | None = None,
         description: str | None = None,
         connect_timeout: int | None = None,
     ) -> None:
@@ -31,6 +32,9 @@ class Host:
         :param name: Name of the host
         :param ip: IP address or FQDN of the host
         :param port: Port number for SSH connection (default is 22)
+        :param username: SSH username (optional, will use current if not provided)
+        :param description: Optional description for the host
+        :param connect_timeout: Connection timeout in seconds (optional)
         """
         # Setup logging
         self.logger = logging.getLogger(__name__)
@@ -40,6 +44,9 @@ class Host:
         self.ip = ip
         self.port = port
         self.description = description
+
+        # SSH username, if provided
+        self.username: str | None = username
 
         # Shared connection object
         self._connection: Connection | None = None
@@ -106,16 +113,28 @@ class Host:
         :raises ConnectionError: If the connection cannot be established
         """
         if self._connection is None:
-            logging.debug(
-                "Creating new connection to %s at %s:%s, (timeout: %s)",
+            conn_args = {
+                "host": self.ip,
+                "port": self.port,
+                "connect_timeout": self.connect_timeout,
+            }
+
+            if self.username:
+                conn_args["user"] = self.username
+
+            conn_string = (
+                f"{self.username}@{self.ip}:{self.port}"
+                if self.username
+                else f"{self.ip}:{self.port}"
+            )
+
+            self.logger.debug(
+                "Creating new connection to %s using %s, (timeout: %s)",
                 self.name,
-                self.ip,
-                self.port,
+                conn_string,
                 self.connect_timeout,
             )
-            self._connection = Connection(
-                host=self.ip, port=self.port, connect_timeout=self.connect_timeout
-            )
+            self._connection = Connection(**conn_args)
 
         return self._connection
 

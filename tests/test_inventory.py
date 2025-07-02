@@ -20,6 +20,7 @@ class TestInventory:
                     "description": "Test host",
                     "port": 2222,
                 },
+                {"name": "host4", "ip": "127.0.0.4", "username": "test_user"},
             ],
         }
         config = Configuration()
@@ -41,6 +42,7 @@ class TestInventory:
             m.ip = kwargs.get("ip", "127.0.0.1")
             m.port = kwargs.get("port", 22)
             m.description = kwargs.get("description", None)
+            m.username = kwargs.get("username", None)
             return m
 
         patcher = mocker.patch("exosphere.inventory.Host", side_effect=make_mock_host)
@@ -51,7 +53,32 @@ class TestInventory:
         Test that init_all creates Host objects from the configuration.
         """
         inventory = Inventory(mock_config)
-        assert len(inventory.hosts) == 3
+
+        assert len(inventory.hosts) == 4
+
+        assert inventory.hosts[0].name == "host1"
+        assert inventory.hosts[0].ip == "127.0.0.1"
+        assert inventory.hosts[0].port == 22
+        assert inventory.hosts[0].username is None
+        assert inventory.hosts[0].description is None
+
+        assert inventory.hosts[1].name == "host2"
+        assert inventory.hosts[1].ip == "127.0.0.2"
+        assert inventory.hosts[1].port == 22
+        assert inventory.hosts[1].username is None
+        assert inventory.hosts[1].description is None
+
+        assert inventory.hosts[2].name == "host3"
+        assert inventory.hosts[2].ip == "127.0.0.3"
+        assert inventory.hosts[2].description == "Test host"
+        assert inventory.hosts[2].port == 2222
+        assert inventory.hosts[2].username is None
+
+        assert inventory.hosts[3].name == "host4"
+        assert inventory.hosts[3].ip == "127.0.0.4"
+        assert inventory.hosts[3].username == "test_user"
+        assert inventory.hosts[3].description is None
+        assert inventory.hosts[3].port == 22
 
     def test_init_all_removes_stale_hosts(
         self, mocker, mock_config, mock_diskcache, mock_host_class
@@ -88,7 +115,7 @@ class TestInventory:
         inventory.clear_state()
 
         cache_mock.clear.assert_called_once()
-        assert len(inventory.hosts) == 3
+        assert len(inventory.hosts) == 4
 
     def test_clear_state_handles_file_not_found(
         self, mocker, mock_config, mock_diskcache, mock_host_class

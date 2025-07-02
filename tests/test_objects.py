@@ -42,6 +42,7 @@ class TestHostObject:
             ip="172.16.64.10",
             description="Test host",
             port=2222,
+            username="test_user",
             connect_timeout=32,
         )
 
@@ -49,9 +50,76 @@ class TestHostObject:
         assert host.ip == "172.16.64.10"
         assert host.port == 2222
         assert host.connect_timeout == 32
+        assert host.username == "test_user"
         assert host.description == "Test host"
 
+        # Ensure Discovery attributes are initialized to None
+        assert host.os is None
+        assert host.version is None
+        assert host.flavor is None
+        assert host.package_manager is None
+
+        assert host.updates == []
+        assert host.last_refresh is None
+
         assert host.online is False
+
+    def test_host_initialization_defaults(self):
+        """
+        Test the initialization of the Host object with default parameters.
+        """
+        host = Host(
+            name="default_host",
+            ip="127.0.0.9",
+        )
+
+        assert host.name == "default_host"
+        assert host.ip == "127.0.0.9"
+        assert host.port == 22  # Default port
+        assert host.connect_timeout == 10  # Default connect timeout
+        assert host.username is None  # Default username is None
+        assert host.description is None  # Default description is None
+
+    def test_host_connection(self, mocker, mock_connection):
+        """
+        Test the connection property of the Host object.
+        """
+        host = Host(
+            name="test_host",
+            ip="10.0.0.7",
+            description="Test host",
+            port=2222,
+            username="test_user",
+            connect_timeout=32,
+        )
+
+        _ = host.connection
+
+        # Ensure the connection is created with the correct parameters
+        mock_connection.assert_called_once_with(
+            host=host.ip,
+            port=host.port,
+            user=host.username,
+            connect_timeout=host.connect_timeout,
+        )
+
+    def test_host_connection_defaults(self, mocker, mock_connection):
+        """
+        Test the connection property of the Host object without
+        optional parameters.
+        """
+        host = Host(
+            name="test_host",
+            ip="127.0.0.8",
+        )
+
+        _ = host.connection
+        # Ensure the connection is created with default parameters
+        mock_connection.assert_called_once_with(
+            host=host.ip,
+            port=22,  # Default port
+            connect_timeout=10,  # Default connect timeout
+        )
 
     def test_host_ping(self, mocker, mock_connection):
         """
