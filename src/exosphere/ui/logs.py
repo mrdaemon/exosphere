@@ -25,7 +25,8 @@ class UILogHandler(logging.Handler):
     widget, in the log screen.
 
     The buffering should be reasonably thread-safe, but it is a very
-    clumsy and naive attempt at reentrant locking.
+    clumsy and naive attempt at reentrant locking, since the
+    application is made of a mix of threads and async coroutines.
     """
 
     def emit(self, record) -> None:
