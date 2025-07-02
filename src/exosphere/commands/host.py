@@ -254,7 +254,7 @@ def refresh(
 
         if full:
             task = progress.add_task(
-                f"Refreshing updates and package catalog for '{host.name}'", total=None
+                f"Refreshing package catalog for '{host.name}'", total=None
             )
             try:
                 host.refresh_catalog()
