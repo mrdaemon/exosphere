@@ -106,8 +106,6 @@ class HostDetailsPanel(Screen):
         if event.key == "escape":
             self.dismiss()
 
-        event.stop()  # Prevent bubbling the event up in the UI
-
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the updates data table."""
         update_name = str(event.row_key.value)
@@ -171,8 +169,6 @@ class UpdateDetailsPanel(Screen):
         """Handle key presses to return to the host details screen."""
         if event.key == "escape":
             self.dismiss()
-
-        event.stop()  # Prevent bubbling the event up in the UI
 
 
 class InventoryScreen(Screen):
