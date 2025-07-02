@@ -1,4 +1,5 @@
 import logging
+import threading
 from typing import cast
 
 from textual.app import ComposeResult
@@ -6,30 +7,52 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, RichLog
 
 LOG_BUFFER = []
+LOG_BUFFER_LOCK = threading.Lock()
 LOG_HANDLER = None
 
 
 class UILogHandler(logging.Handler):
-    """Custom logging handler to display logs in the UI"""
+    """
+    Custom logging handler to display logs in the UI
 
-    def emit(self, record):
+    Involves a running buffer to store logs until the log widget is set,
+    which generally happens when the Logs screen is mounted.
+
+    The buffering should be reasonably thread-safe
+    """
+
+    def emit(self, record) -> None:
         msg = self.format(record)
         if hasattr(self, "log_widget") and self.log_widget:
             self.log_widget.write(msg)
             return
 
         # If log_widget is not set, store the message in a buffer
-        LOG_BUFFER.append(msg)
+        with LOG_BUFFER_LOCK:
+            LOG_BUFFER.append(msg)
 
-    def set_log_widget(self, log_widget):
+    def set_log_widget(self, log_widget: RichLog | None) -> None:
         """Set the log widget to write logs to."""
         self.log_widget = log_widget
 
-        # Flush any buffered logs to the widget
-        for msg in LOG_BUFFER:
-            self.log_widget.write(msg)
+        # Widget has been cleared, no need to do anything else
+        if not self.log_widget:
+            return
 
-        LOG_BUFFER.clear()
+        # Flush any buffered logs to the widget
+        with LOG_BUFFER_LOCK:
+            logging.getLogger("exosphere.ui").debug(
+                "Flushing buffered logs to the log widget."
+            )
+            for msg in LOG_BUFFER:
+                try:
+                    self.log_widget.write(msg)
+                except Exception as e:
+                    logging.getLogger("exosphere.ui").error(
+                        f"Error writing buffered log message to log pane!: {str(e)}"
+                    )
+
+            LOG_BUFFER.clear()
 
 
 class LogsScreen(Screen):
@@ -65,9 +88,7 @@ class LogsScreen(Screen):
 
         app.ui_log_handler.set_log_widget(self.log_widget)
 
-        logging.getLogger("exosphere.ui").debug(
-            "Log view initialized, logs backfilled."
-        )
+        logging.getLogger("exosphere.ui").debug("Log view initialized")
 
     def on_unmount(self) -> None:
         """Clean up the log widget when the screen is unmounted."""
