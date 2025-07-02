@@ -42,6 +42,9 @@ class ErrorScreen(Screen):
         if event.button.id == "ok-button":
             self.app.pop_screen()
 
+        # Do not bubble the event up in the ui
+        event.stop()
+
 
 class ProgressScreen(Screen):
     """
@@ -92,6 +95,9 @@ class ProgressScreen(Screen):
             logger.warning("Aborting task on user request!")
             self.query_one("#abort-message", Label).update("[red]Aborting...[/red]")
             self.app.workers.cancel_node(self)
+
+        # Do not bubble the event up in the UI
+        event.stop()
 
     def update_progress(self, step: int) -> None:
         """Update the progress bar."""
