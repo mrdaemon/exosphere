@@ -6,6 +6,8 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Footer, Header, RichLog
 
+logger = logging.getLogger("exosphere.ui.logs")
+
 LOG_BUFFER = []
 LOG_BUFFER_LOCK = threading.RLock()
 LOG_HANDLER = None
@@ -87,14 +89,12 @@ class LogsScreen(Screen):
         app = cast(ExosphereUi, self.app)
 
         if app.ui_log_handler is None:
-            logging.getLogger("exosphere.ui").error(
-                "UI Log handler is not initialized. Cannot set log widget!"
-            )
+            logger.error("UI Log handler is not initialized. Cannot set log widget!")
             return
 
         app.ui_log_handler.set_log_widget(self.log_widget)
 
-        logging.getLogger("exosphere.ui").debug("Log view initialized")
+        logger.debug("Log view initialized")
 
     def on_unmount(self) -> None:
         """Clean up the log widget when the screen is unmounted."""
@@ -103,9 +103,7 @@ class LogsScreen(Screen):
         app = cast(ExosphereUi, self.app)
 
         if app.ui_log_handler is None:
-            logging.getLogger("exosphere.ui").debug(
-                "UI Log handler is not initialized, nothing to clean up"
-            )
+            logger.debug("UI Log handler is not initialized, nothing to clean up")
             return
 
         app.ui_log_handler.set_log_widget(None)
