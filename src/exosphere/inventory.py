@@ -1,7 +1,9 @@
+import inspect
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Generator
 
+from exosphere import app_config
 from exosphere.config import Configuration
 from exosphere.database import DiskCache
 from exosphere.objects import Host
@@ -114,16 +116,50 @@ class Inventory:
         The new host's other configuration properties will be updated
         if they have changed from config since (i.e. ip address, port etc)
         """
+
+        # Return early on cache miss
         if name not in cache:
             self.logger.debug("Host %s not found in cache, creating new", name)
             return Host(**host_cfg)
 
+        def reset_property(host_obj: Host, attr_name: str, default_value: Any) -> None:
+            if getattr(host_obj, attr_name) != default_value:
+                self.logger.debug(
+                    "Resetting %s on host %s as it is no longer in config",
+                    attr_name,
+                    name,
+                )
+                setattr(host_obj, attr_name, default_value)
+
         try:
             self.logger.debug("Loading host state for %s from cache", name)
             host_obj = cache[name]
-            # Also update properties from config
+
+            # Update host properties with configuration values
             for k, v in host_cfg.items():
+                if k == "name":
+                    continue
                 setattr(host_obj, k, v)
+
+            # Return properties to defaults if they are not in config
+            port_default = inspect.signature(Host.__init__).parameters["port"].default
+            connect_timeout_default = int(app_config["options"]["default_timeout"])
+
+            if "port" not in host_cfg:
+                reset_property(host_obj, "port", port_default)
+
+            if "connect_timeout" not in host_cfg:
+                reset_property(host_obj, "connect_timeout", connect_timeout_default)
+
+            # Also remove optional properties that are no longer in config
+            # by resetting them to None
+            for k in [
+                "username",
+                "description",
+            ]:
+                if k not in host_cfg:
+                    reset_property(host_obj, k, None)
+
         except Exception as e:
             self.logger.warning(
                 "Failed to load host state for %s from cache: %s, recreating anew.",
@@ -264,7 +300,7 @@ class Inventory:
         # TODO: I honestly feel these checks could be removed entirely.
         #       It is better to just let the returned exc field contain the
         #       error and treat it like any other issue, but I'm leaving them
-        #       in since this is can difficult to debug in context.
+        #       in since this can be difficult to debug in context.
 
         # Ensure the host_method exists in the base class
         if not hasattr(Host, host_method):

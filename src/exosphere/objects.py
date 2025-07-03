@@ -1,3 +1,4 @@
+import inspect
 import logging
 from datetime import datetime
 
@@ -28,6 +29,15 @@ class Host:
         The host will be marked at offline until the first discovery
         operation is performed. Errors in processing will update
         this status automatically.
+
+        Note: The paramaters of the Host object can and will be
+        affected by the process of reloading them from cache!
+        See: `exosphere.inventory.Inventory.load_or_create_host`
+
+        Keep in mind the need to verify this process if you make
+        changes to the constructor signature or default values.
+
+        Intended to be serializable!
 
         :param name: Name of the host
         :param ip: IP address or FQDN of the host
@@ -86,17 +96,42 @@ class Host:
         state = self.__dict__.copy()
         state["_connection"] = None  # Do not serialize the connection
         state["_pkginst"] = None  # Do not serialize the package manager instance
+        state["logger"] = None  # Do not serialize the logger
         return state
 
     def __setstate__(self, state: dict) -> None:
         """
         Custom setstate method to restore the state of the object.
         Resets properties and members that are not serializable
+
+        Additionally, ensures that all parameters with defaults
+        are properly set, to avoid issues during deserialization
+        between different versions of the Host class.
         """
+
         self.__dict__.update(state)
+
+        # Reset unserializables
+        self.logger = logging.getLogger(__name__)
         self._connection = None
         if "package_manager" in state:
             self._pkginst = PkgManagerFactory.create(state["package_manager"])
+
+        # Ensure all parameters with defaults are properly set
+        # This helps during version/signature changes.
+        signature = inspect.signature(self.__init__)
+
+        for name, param in signature.parameters.items():
+            if name == "self":
+                continue
+            if not hasattr(self, name):
+                if param.default is not inspect.Parameter.empty:
+                    setattr(self, name, param.default)
+                else:
+                    raise ValueError(
+                        "Unable to deserialize Host object state: "
+                        f"Missing required parameter '{name}' in Host object state"
+                    )
 
     @property
     def connection(self) -> Connection:
