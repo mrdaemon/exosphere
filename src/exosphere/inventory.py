@@ -155,10 +155,7 @@ class Inventory:
 
             # Also remove optional properties that are no longer in config
             # by resetting them to None
-            for k in [
-                "username",
-                "description",
-            ]:
+            for k in Host.OPTIONAL_PARAMS:
                 if k not in host_cfg:
                     reset_property(host_obj, k, None)
 
