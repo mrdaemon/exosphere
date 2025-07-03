@@ -108,7 +108,9 @@ class Inventory:
                     self.logger.info("Removing stale host %s from cache", host)
                     del cache[host]
 
-    def load_or_create_host(self, name: str, host_cfg: dict, cache: DiskCache) -> Host:
+    def load_or_create_host(
+        self, name: str, host_cfg: dict[str, Any], cache: DiskCache
+    ) -> Host:
         """
         Attempt to load a host from the cache, or create a new one if that fails
         in any meaningful way.
