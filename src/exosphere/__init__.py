@@ -9,6 +9,6 @@ from .config import Configuration
 app_config = Configuration()  # Has default values out of the box
 
 # Current software version, imported from pyproject metadata
-__version__ = importlib.metadata.version("exosphere")
+__version__ = importlib.metadata.version("exosphere_cli")
 
 __all__ = ["__version__", "app_config"]

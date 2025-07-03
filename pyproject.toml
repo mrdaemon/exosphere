@@ -1,6 +1,6 @@
 [project]
-name = "exosphere"
-version = "0.1.0"
+name = "exosphere-cli"
+version = "1.0.0"
 description = "The highest level tool for patch reporting on Unix-like systems"
 readme = "README.md"
 authors = [
@@ -66,6 +66,9 @@ exosphere = "exosphere.main:main"
 [build-system]
 requires = ["uv_build>=0.7.19,<0.8.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "exosphere"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
