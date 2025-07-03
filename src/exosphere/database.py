@@ -7,9 +7,10 @@ class DiskCache(shelve.DbfilenameShelf):
     """
     Shelf-based disk cache with LZMA compression persistence
 
-    This class wraps `shelve.DbfilenameShelf` to provide lzma compression, but
-    does not otherwise change the interface. Would recommend not using
-    writeback=True given the overhead. It is also entirely untested.
+    This class wraps `shelve.DbfilenameShelf` to provide lzma
+    compression, but does not otherwise change the interface.
+    Would recommend not using writeback=True given the overhead.
+    Doing so is also entirely untested, so good luck.
     """
 
     def __getitem__(self, key):
