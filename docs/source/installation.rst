@@ -27,6 +27,8 @@ Installing from PyPI
 Exosphere is available on the `Python Package Index`_ (PyPI) for convenience,
 and can be installed using various methods.
 
+The package name is `exosphere-cli`.
+
 One major pitfall here is that Exosphere **requires Python 3.13 or later**.
 
 If you do not have Python 3.13 or later available on your system, fear not,
@@ -42,7 +44,7 @@ the necessary Python runtime and dependencies for you.
 
         .. code-block:: bash
 
-            pipx install exosphere
+            pipx install exosphere-cli
 
     .. group-tab:: uv
 
@@ -52,7 +54,7 @@ the necessary Python runtime and dependencies for you.
 
         .. code-block:: bash
 
-            uv tool install exosphere
+            uv tool install exosphere-cli
 
         `uv`_ will handle downloading and installing the necessary Python
         runtime and dependencies for you, and then make the `exosphere`
@@ -66,7 +68,7 @@ the necessary Python runtime and dependencies for you.
 
         .. code-block:: bash
 
-            pip install --user exosphere
+            pip install --user exosphere-cli
 
 The `pipx` command is recommended as it creates a virtual environment and
 isolates the application, making it readily available without having to
@@ -87,11 +89,6 @@ You will require the following tools installed:
 
 - `git`_ - to clone the repository
 - `uv`_ - to install the application and manage its dependencies
-
-.. _git: https://git-scm.com/
-.. _uv: https://docs.astral.sh/uv/getting-started/installation/
-.. _Python Package Index: https://pypi.org/project/exosphere/
-
 
 First, Clone the repository into a directory of your choice.
 
@@ -129,6 +126,11 @@ If you want the stable version, you can switch to the latest tag.
 
             git checkout |CurrentVersionTag|
 
+        You can substitute |CurrentVersionTag| with a specific tag or
+        version to use a specific release, e.g, `v0.8.1`.
+
+        You can find the list of tags on the `GitHub releases page`_.
+
     .. group-tab:: Latest Development
 
         If you want the latest development version, you can switch to the
@@ -142,5 +144,50 @@ If you want the stable version, you can switch to the latest tag.
 
             git checkout main
 
+    
+Once that is done, you can simply setup Exosphere using `uv`_:
+
+.. code-block:: text
+
+    uv sync --no-dev
+
+This will download and install the necessary Python runtime and dependencies.
+
+You can then either run Exosphere through `uv`_:
+
+.. code-block:: text
+
+    uv run --no-dev exosphere
+
+Or, you can activate the virtual environment created by `uv`_ and run
+Exosphere directly:
+
+.. tabs::
+
+    .. group-tab:: Unix/MacOS
+
+        .. code-block:: text
+
+            source .venv/bin/activate
+            exosphere
+
+    .. group-tab:: Windows/PowerShell
+
+        .. code-block:: text
+
+            . .venv\Scripts\activate.ps1
+            exosphere
+
+    .. group-tab:: Windows/cmd
+
+        .. code-block:: text
+
+            .venv\Scripts\activate.bat
+            exosphere
+            
 
 
+.. _git: https://git-scm.com/
+.. _uv: https://docs.astral.sh/uv/getting-started/installation/
+.. _Python Package Index: https://pypi.org/project/exosphere-cli/
+.. _GitHub releases page: httpsL//github.com/mrdaemon/exosphere/releases
