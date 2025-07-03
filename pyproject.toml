@@ -1,5 +1,5 @@
 [project]
-name = "exosphere"
+name = "exosphere-cli"
 version = "0.1.0"
 description = "The highest level tool for patch reporting on Unix-like systems"
 readme = "README.md"
@@ -38,6 +38,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "doc8>=2.0.0",
+    "esbonio>=0.16.5",
     "fabric[pytest]>=3.2.2",
     "poethepoet>=0.33.1",
     "pyright>=1.1.400",
@@ -45,9 +47,11 @@ dev = [
     "pytest-cov>=6.1.1",
     "pytest-json-ctrf>=0.3.5",
     "pytest-mock>=3.14.0",
+    "renku-sphinx-theme>=0.5.0",
+    "rstcheck>=6.2.5",
     "ruff>=0.11.5",
     "sphinx>=8.2.3",
-    "sphinx-rtd-theme>=3.0.2",
+    "sphinx-tabs>=3.4.7",
     "textual-dev>=1.7.0",
 ]
 
