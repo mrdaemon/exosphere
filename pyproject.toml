@@ -1,5 +1,5 @@
 [project]
-name = "exosphere-cli"
+name = "exosphere"
 version = "0.1.0"
 description = "The highest level tool for patch reporting on Unix-like systems"
 readme = "README.md"
