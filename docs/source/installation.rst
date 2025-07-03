@@ -186,6 +186,12 @@ Exosphere directly:
             exosphere
             
 
+Using a Docker Container
+------------------------
+
+If you prefer to run Exosphere in a container, you can use the official images.
+This configuration is not frequently used and is provided for convenience.
+
 
 .. _git: https://git-scm.com/
 .. _uv: https://docs.astral.sh/uv/getting-started/installation/

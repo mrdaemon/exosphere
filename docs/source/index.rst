@@ -56,6 +56,7 @@ as well as `Rich`_ and `Textual`_ for the Text User Interface (TUI).
    ui
    webui
    faq
+   glossary
 
 .. toctree::
    :maxdepth: 2
