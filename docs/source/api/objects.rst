@@ -1,9 +1,11 @@
 Exopshere objects
 ==================
 
-The primary low level objects used by Exosphere are `Host` and `Inventory` objects.
+The primary low level objects used by Exosphere are `Host` and `Inventory`
+objects.
 
-They provide the main functionality to interact with the hosts and perform operations on them.
+They provide the main functionality to interact with the hosts and perform
+operations on them.
 
 .. automodule:: exosphere.objects
    :members:

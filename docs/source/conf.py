@@ -1,6 +1,8 @@
 import os
 import sys
 
+from exosphere import __version__
+
 # Insert the path to the source directory to allow importing modules
 sys.path.insert(0, os.path.abspath('../../src/exosphere'))
 
@@ -15,6 +17,7 @@ sys.path.insert(0, os.path.abspath('../../src/exosphere'))
 project = 'Exosphere'
 copyright = '2025, Alexandre Gauthier'
 author = 'Alexandre Gauthier'
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -22,7 +25,7 @@ author = 'Alexandre Gauthier'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
-    'sphinx_rtd_theme',
+    'sphinx_tabs.tabs',
 ]
 
 templates_path = ['_templates']
@@ -33,5 +36,11 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'renku'
 html_static_path = ['_static']
+
+# Epilog macros for documentation references
+rst_epilog = """
+.. |CurrentVersion| replace:: {version}
+.. |CurrentVersionTag| replace:: v{version}
+""".format(version=__version__)

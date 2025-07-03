@@ -44,6 +44,11 @@ class Configuration(dict):
         for the from_file method, with tomllib.load() as the loader.
 
         see `from_file()` for details.
+
+        :param filepath: Path to the toml file to load
+        :param silent: If True, suppress IOError exceptions for missing files
+        :return: True if the configuration was successfully updated,
+                 False if the file was not found
         """
         return self.from_file(filepath, tomllib.load, silent=silent)
 
@@ -55,6 +60,11 @@ class Configuration(dict):
         for the `from_file` method, with `yaml.safe_load()` as the loader.
 
         see `from_file` for details.
+
+        :param filepath: Path to the yaml file to load
+        :param silent: If True, suppress IOError exceptions for missing files
+        :return: True if the configuration was successfully updated,
+                 False if the file was not found
         """
         return self.from_file(filepath, yaml.safe_load, silent=silent)
 
@@ -66,6 +76,11 @@ class Configuration(dict):
         for the `from_file` method, with `json.load()` as the loader.
 
         see `from_file` for details.
+
+        :param filepath: Path to the json file to load
+        :param silent: If True, suppress IOError exceptions for missing files
+        :return: True if the configuration was successfully updated,
+                 False if the file was not found
         """
         return self.from_file(filepath, json.load, silent=silent)
 
@@ -84,6 +99,11 @@ class Configuration(dict):
         This allows for the format of the configuration file to be
         essentially decoupled from the validation and internal
         representation of the data.
+
+        :param filepath: Path to the file to load
+        :param loader: A callable that takes a file handle and returns a dict
+        :param silent: If True, suppress IOError exceptions for missing files
+        :return: True if the configuration was successfully updated,
         """
         try:
             with open(filepath, "rb") as f:
@@ -105,6 +125,10 @@ class Configuration(dict):
 
         This will also deep merge the values from the mapping
         if they are also dicts.
+
+        :param mapping: A single mapping to update the configuration with
+        :param kwargs: Additional keyword arguments to update the configuration with
+        :return: True if the configuration was successfully updated
         """
         mappings = []
 
@@ -154,6 +178,10 @@ class Configuration(dict):
         """
         Recursively update a dictionary with another dictionary.
         Ensures nested dicts are updated rather than replaced.
+
+        :param d: The dictionary to update
+        :param u: The dictionary with updates
+        :return: The updated dictionary
         """
         for k, v in u.items():
             if isinstance(v, dict) and k in d and isinstance(d[k], dict):

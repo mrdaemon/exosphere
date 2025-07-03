@@ -36,6 +36,12 @@ class PkgManager(ABC):
         This method should be implemented by subclasses to provide
         the specific synchronization logic for different package managers.
 
+        Some package managers may not require explicit synchronization,
+        in which case this method can be a no-op that returns True.
+
+        If it is possible to perform the synchronization without
+        elevated privileges, it is vastly preferable to do so.
+
         :param cx: Fabric Connection object
         :return: True if synchronization is successful, False otherwise.
         """

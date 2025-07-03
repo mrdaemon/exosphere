@@ -13,6 +13,18 @@ from exosphere.setup import detect
 
 
 class Host:
+    """
+    Host object representing a remote system.
+
+    This object can be used to query the host for information,
+    perform operations on it as well as manage its state.
+
+    The host will be marked as offline until the first discovery
+    operation is performed. Errors in processing will update
+    this status automatically.
+
+    """
+
     # Serialization hint for optional parameters
     # of this class that can safely be set to None
     # if they are missing from the serialized state.
@@ -31,12 +43,7 @@ class Host:
         connect_timeout: int | None = None,
     ) -> None:
         """
-        Create a Host object, which then can be used to query
-        the host for information, and perform operations on it.
-
-        The host will be marked at offline until the first discovery
-        operation is performed. Errors in processing will update
-        this status automatically.
+        Create a new Host Object
 
         Note: The paramaters of the Host object can and will be
         affected by the process of reloading them from cache!
@@ -216,8 +223,6 @@ class Host:
         operating system, version, flavor, and package manager.
 
         Online status is also updated in the process.
-
-        :return: None
         """
 
         # Check if the host is reachable before attempting anything else
@@ -299,7 +304,6 @@ class Host:
         This method retrieves the list of available updates and
         populates the `updates` attribute.
 
-        :return: None
         """
         if not self.online:
             raise OfflineHostError(f"Host {self.name} is offline.")

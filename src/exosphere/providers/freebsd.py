@@ -11,22 +11,22 @@ from .api import PkgManager
 class Pkg(PkgManager):
     """
     Package manager for FreeBSD using pkg
+
+    On FreeBSD, the reposync operation is not needed as the package
+    manager automatically syncs the repositories.
+
+    Limitations:
+        - Does not include packages changed as a result of a direct dependency
+        update, only the top-level packages.
+        - Does not include ports, only packages installed via pkg.
+        - Does not handle system or kernel updates. Maybe one day we'll wrap
+          freebsd-update(8) for that, but for now you get nice emails about these
+          anyways, when properly configured, and it's easier to track.
     """
 
     def __init__(self, sudo: bool = True, password: str | None = None) -> None:
         """
         Initialize the Pkg package manager.
-
-        On FreeBSD, the reposync operation is not needed as the package
-        manager automatically syncs the repositories.
-
-        Limitations:
-          - Does not include packages changed as a result of a direct dependency
-            update, only the top-level packages.
-          - Does not include ports, only packages installed via pkg.
-          - Does not handle system or kernel updates. Maybe one day we'll wrap
-            freebsd-update(8) for that, but for now you get nice emails about these
-            anyways, when properly configured, and it's easier to track.
 
         :param sudo: Whether to use sudo for package refresh operations (default is True).
         :param password: Optional password for sudo operations, if not using NOPASSWD.

@@ -31,6 +31,8 @@ class Inventory:
     def __init__(self, config: Configuration) -> None:
         """
         Initialize the Inventory object with default values.
+
+        :param config: The configuration object containing the inventory
         """
         self.configuration = config
         self.cache_file = config["options"]["cache_file"]
@@ -117,6 +119,11 @@ class Inventory:
 
         The new host's other configuration properties will be updated
         if they have changed from config since (i.e. ip address, port etc)
+
+        :param name: The name of the host to load or create
+        :param host_cfg: The configuration dictionary for the host
+        :param cache: The DiskCache instance to use for loading the host
+        :return: An instance of Host
         """
 
         # Return early on cache miss
@@ -179,6 +186,7 @@ class Inventory:
         duplicates.
 
         :param name: The name of the host to retrieve, e.g. "webserver1"
+        :return: The Host object if found, None otherwise
         """
 
         host = next((h for h in self.hosts if h.name == name), None)
@@ -274,12 +282,15 @@ class Inventory:
         Run a method on specified hosts in the inventory.
         If none are specified, run on all hosts.
 
-        Uses a ThreadPoolExecutor to run the provided method concurrently.
+        Uses a ThreadPoolExecutor to run the provided method concurrently,
+        and returns a generator that can be safely iterated over to process
+        the results as the tasks complete.
 
         :param host_method: The method to run on each host
         :param hosts: Optional list of Host objects to run the method on.
                       If unspecified, runs on all hosts in the inventory.
 
+        :return: A generator yielding tuples of (host, result, exception)
         """
 
         target_hosts = hosts if hosts is not None else self.hosts
