@@ -1,10 +1,5 @@
-.. rst-class:: hide-header
-
 Welcome to Exosphere
 =====================
-
-.. epigraph::
-  The highest level infrastructure tool
 
 Exosphere is a utility program for aggregating and reporting state of
 patches/security updates as well as basic online status for Unix-like
@@ -36,14 +31,6 @@ with :doc:`quickstart` to get an overview of how to use Exosphere.
 
 :doc:`configuration` details are also available, alongside the
 :doc:`api/index` if you wish to implement your own providers.
-
-Exosphere's interfaces are built with `Typer`_ ( a superset of `Click`_ ),
-as well as `Rich`_ and `Textual`_ for the Text User Interface (TUI).
-
-.. _Typer: https://typer.tiangolo.com/
-.. _Click: https://click.palletsprojects.com/
-.. _Rich: https://rich.readthedocs.io/
-.. _Textual: https://textual.textualize.io/
 
 .. toctree::
    :maxdepth: 2
