@@ -18,8 +18,10 @@ WORKDIR /opt/exosphere
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
-# Container Hint, affects the default config and data paths
-ENV EXOSPHERE_CONTAINER=1
+# Override configuration options for container environment
+ENV EXOSPHERE_CONFIG_PATH="/data"
+ENV EXOSPHERE_OPTIONS_LOG_FILE="/data/exosphere.log"
+ENV EXOSPHERE_OPTIONS_CACHE_FILE="/data/exosphere.db"
 
 # Install project dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
