@@ -1,9 +1,10 @@
 import errno
 import json
 import logging
+import os
 import tomllib
 from collections.abc import Callable
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 import yaml
 
@@ -13,6 +14,18 @@ class Configuration(dict):
     Hold configuration values for the application.
     Extends a native dict to store the global options section of the
     inventory toml file.
+
+    Has the following peculiarities vs a native dict:
+
+    - Has many from_* methods to populate itself from various sources
+      such as environment variables, files of various formats, etc
+    - Enforces a set of default values for the nested "options" dict
+    - Enforces unicity for name keys in the "hosts" dict.
+    - Has a deep_update method to recursively update nested dicts
+      without replacing them entirely.
+
+    This configuration structure is strongly inspired by the one used
+    by Flask, because good things are worth replicating.
     """
 
     DEFAULTS: dict = {
@@ -35,6 +48,79 @@ class Configuration(dict):
         """
         dict.__init__(self, self.DEFAULTS)
         self.logger = logging.getLogger(__name__)
+
+    def from_env(
+        self,
+        prefix: str = "EXOSPHERE_OPTIONS",
+        parser: Callable[[str], Any] = json.loads,
+    ) -> bool:
+        """
+        Populate the configuration structure from environment variables.
+
+        This method is used mostly to override configuration OPTIONS via
+        environment variables, which is useful for containerized deployments.
+
+        Any environment variable that starts with the specified prefix
+        (e.g., "EXOSPHERE_OPTIONS_*") will be considered for updating the
+        configuration.
+
+        Note that this is, currently, limited to the `options` section
+        of the configuration. The inventory cannot be updated this way.
+
+        If there are any nested dictionaries in the configuration,
+        you can specify them using a double underscore (`__`) to
+        separate the keys.
+
+        The values for the keys are parsed as JSON types by default,
+        but you can specify a custom loader function to parse the values,
+        as long as it operates on strings.
+
+        :param prefix: The prefix to look for in environment variables
+        :param loader: A callable that takes a string and returns a parsed value
+        :return: True if the configuration was successfully updated
+        """
+        prefix = prefix.upper() + "_"
+
+        for key in os.environ:
+            if not key.startswith(prefix):
+                continue
+
+            value = os.environ[key]
+            key = key.removeprefix(prefix).lower()
+
+            try:
+                value = parser(value)
+            except Exception:
+                self.logger.debug(
+                    "Could not parse environment variable %s: %s, keeping as string",
+                    key,
+                    value,
+                )
+
+            if "__" not in key:
+                # Not a nested key, update
+                if key in self.DEFAULTS["options"]:
+                    self["options"][key] = value
+                else:
+                    self.logger.warning(
+                        "Configuration key %s is not a valid options key, ignoring", key
+                    )
+                continue
+
+            # We have a nested key
+            current = self["options"]
+            *parent_keys, leaf_key = key.split("__")
+
+            for parent in parent_keys:
+                # Create nested dict if it doesn't exist
+                if parent not in current:
+                    current[parent] = {}
+
+                current = current[parent]
+
+            current[leaf_key] = value
+
+        return True
 
     def from_toml(self, filepath: str, silent: bool = False) -> bool:
         """

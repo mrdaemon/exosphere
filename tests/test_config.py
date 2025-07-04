@@ -414,3 +414,38 @@ class TestConfiguration:
                     ]
                 }
             )
+
+    def test_update_from_env(self, mocker, monkeypatch):
+        """
+        Ensure that the Configuration object can be updated
+        from environment variables.
+        """
+        # Mock environment variables
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_LOG_LEVEL", "DEBUG")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_DEBUG", "true")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_CACHE_FILE", "bigtest.db")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_MAX_THREADS", "8")
+
+        config = Configuration()
+        result = config.from_env()
+
+        assert result is True
+        assert config["options"]["log_level"] == "DEBUG"
+        assert config["options"]["debug"] is True
+        assert config["options"]["cache_file"] == "bigtest.db"
+        assert config["options"]["max_threads"] == 8
+
+    def test_update_from_env_invalid_key(self, mocker, monkeypatch, caplog):
+        """
+        Ensure that the Configuration object logs a warning
+        when an invalid environment variable is encountered.
+        """
+        # Mock environment variables
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_INVALID_KEY", "some_value")
+
+        config = Configuration()
+        result = config.from_env()
+
+        assert result is True
+        assert "invalid_key" not in config["options"]
+        assert "is not a valid options key" in caplog.text
