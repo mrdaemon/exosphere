@@ -221,9 +221,26 @@ class TestConfiguration:
             assert config[key] == expected_config[key]
 
     def test_from_yaml(self, yaml_config_file, expected_config):
+        """
+        Ensure that the Configuration object can be populated
+        from a yaml file.
+        """
         config = Configuration()
 
         assert config.from_yaml(yaml_config_file) is True
+
+        for key in expected_config:
+            assert key in config
+            assert config[key] == expected_config[key]
+
+    def test_from_json(self, json_config_file, expected_config):
+        """
+        Ensure that the Configuration object can be populated
+        from a json file.
+        """
+        config = Configuration()
+
+        assert config.from_json(json_config_file) is True
 
         for key in expected_config:
             assert key in config
