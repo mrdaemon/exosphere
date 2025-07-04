@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 import tomllib
 from pathlib import Path
@@ -15,16 +16,12 @@ logger = logging.getLogger(__name__)
 
 # List of configuration file paths to check, in order of precedence
 # The search stops at first match, so ordering matters.
-# TODO: Add support for environment variables
+# TODO: SETTLE ON A STANDARD CONFIG PATH + ~/.exosphere.xyz
 CONFPATHS: list[Path] = [
     Path.home() / ".config" / "exosphere" / "config.yaml",
     Path.home() / ".config" / "exosphere" / "config.yml",
     Path.home() / ".config" / "exosphere" / "config.toml",
     Path.home() / ".config" / "exosphere" / "config.json",
-    Path.home() / ".exosphere.yaml",
-    Path.home() / ".exosphere.yml",
-    Path.home() / ".exosphere.toml",
-    Path.home() / ".exosphere.json",
     Path.cwd() / "config.yaml",
     Path.cwd() / "config.yml",
     Path.cwd() / "config.toml",
@@ -69,7 +66,14 @@ def setup_logging(log_level: str, log_file: str | None = None) -> None:
 
 def load_first_config(config: Configuration) -> bool:
     """
-    Load the first configuration file found in the list of paths.
+    Load the first configuration file found in either:
+
+    - Environment variable EXOSPHERE_CONFIG_FILE (if set)
+    - The list of predefined paths (CONFPATHS).
+
+    Those two are mutually exclusive, meaning if the environment variable
+    is set, it will be used instead of the predefined paths.
+
     Brutally exits with non-zero status in case of issues beyond
     ENOENT and EISDIR.
 
@@ -77,7 +81,18 @@ def load_first_config(config: Configuration) -> bool:
 
     :return: True if a configuration file was loaded, False otherwise.
     """
-    for confpath in CONFPATHS:
+
+    env_config_file = os.environ.get("EXOSPHERE_CONFIG_FILE")
+    if env_config_file:
+        logger.info(
+            "Using configuration file from environment variable: %s", env_config_file
+        )
+        paths = [Path(env_config_file)]
+    else:
+        logger.debug("Using default configuration paths")
+        paths = CONFPATHS
+
+    for confpath in paths:
         logger.debug("Trying config file at %s", confpath)
         if not confpath.exists():
             continue
@@ -113,6 +128,9 @@ def main() -> None:
     # Load the first configuration file found
     if not load_first_config(app_config):
         logger.warning("No configuration file found. Using defaults.")
+
+    # Override configuration options with environment variables, if any
+    app_config.from_env()
 
     # initialize logging and setup handlers depending on config
     log_file: str | None = app_config["options"].get("log_file")

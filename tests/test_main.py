@@ -12,10 +12,10 @@ class TestMain:
         """
         from exosphere.config import Configuration
 
-        mocker.patch.object(
-            Configuration, "from_file", return_value=True, autospec=True
-        )
-        mock_config = Configuration()
+        mock_config = mocker.create_autospec(Configuration, instance=True)
+        mock_config.from_file.return_value = True
+        mock_config.from_env.return_value = True
+
         return mock_config
 
     @pytest.fixture()
@@ -25,10 +25,10 @@ class TestMain:
         """
         from exosphere.config import Configuration
 
-        mocker.patch.object(
-            Configuration, "from_file", side_effect=Exception("Test exception")
-        )
-        mock_config = Configuration()
+        mock_config = mocker.create_autospec(Configuration, instance=True)
+        mock_config.from_file.side_effect = Exception("Test exception")
+        mock_config.from_env.return_value = True
+
         return mock_config
 
     def test_main(self, mocker):
@@ -63,7 +63,7 @@ class TestMain:
 
         assert result is True
         mock_config.from_file.assert_called_once_with(
-            mock_config, str(first_path), yaml.safe_load, silent=True
+            str(first_path), yaml.safe_load, silent=True
         )
 
     def test_load_first_config_no_file(self, mocker, mock_config):
@@ -71,6 +71,47 @@ class TestMain:
         Test the load_first_config function when no file is found.
         """
         mocker.patch("pathlib.Path.exists", return_value=False)
+
+        from exosphere.main import load_first_config
+
+        result = load_first_config(mock_config)
+
+        assert result is False
+        mock_config.from_file.assert_not_called()
+
+    def test_load_first_config_env_var(self, mocker, monkeypatch, mock_config):
+        """
+        Test the load_first_config function when an environment variable is set.
+        It should use the file specified in the environment variable.
+        """
+        config_path = Path.home() / ".my_config.yaml"
+
+        mocker.patch("pathlib.Path.exists", return_value=True)
+
+        monkeypatch.setenv("EXOSPHERE_CONFIG_FILE", str(config_path))
+
+        from exosphere.main import load_first_config
+
+        result = load_first_config(mock_config)
+
+        assert result is True
+        mock_config.from_file.assert_called_once_with(
+            str(config_path), yaml.safe_load, silent=True
+        )
+
+    def test_load_first_config_env_var_not_found(
+        self, mocker, monkeypatch, mock_config
+    ):
+        """
+        Test the load_first_config function when an environment variable is set
+        but the file does not exist.
+        It should fail, not fall through to default paths, and return False.
+        """
+        config_path = Path.home() / ".my_config.yaml"
+
+        mocker.patch("pathlib.Path.exists", return_value=False)
+
+        monkeypatch.setenv("EXOSPHERE_CONFIG_FILE", str(config_path))
 
         from exosphere.main import load_first_config
 
@@ -90,6 +131,37 @@ class TestMain:
 
         with pytest.raises(SystemExit):
             load_first_config(mock_config_exception)
+
+    def test_load_first_config_does_not_load(self, mocker, mock_config, caplog):
+        """
+        Test the load_first_config function when the file exists but does not load.
+        It should log a warning and return False.
+        """
+        mocker.patch("pathlib.Path.exists", return_value=True)
+        mock_config.from_file.return_value = False
+
+        from exosphere.main import load_first_config
+
+        result = load_first_config(mock_config)
+
+        assert result is False
+        mock_config.from_file.assert_called()
+        assert "Failed to load config file" in caplog.text
+
+    def test_load_first_config_no_loaders(self, mocker, mock_config):
+        """
+        Test the load_first_config function when no loaders are available.
+        It should log an error and return False.
+        """
+        mocker.patch("pathlib.Path.exists", return_value=True)
+        mocker.patch("exosphere.main.LOADERS", {})
+
+        from exosphere.main import load_first_config
+
+        result = load_first_config(mock_config)
+
+        assert result is False
+        mock_config.from_file.assert_not_called()
 
     def test_setup_logging_stream_handler(self, mocker):
         """
@@ -123,16 +195,13 @@ class TestMain:
         get_logger.assert_any_call("exosphere")
         get_logger.assert_any_call("exosphere.main")
 
-    def test_main_inventory_exception(self, mocker):
+    def test_main_inventory_exception(self, mocker, mock_config):
         """
         Test main exits if Inventory raises an exception.
         """
+
         mocker.patch("exosphere.main.load_first_config", return_value=True)
         mocker.patch("exosphere.main.setup_logging")
-        mocker.patch(
-            "exosphere.main.app_config",
-            {"options": {"log_level": "INFO", "debug": False, "log_file": None}},
-        )
         mocker.patch("exosphere.main.cli.app")
         mocker.patch(
             "exosphere.main.Inventory", side_effect=Exception("Inventory error")
