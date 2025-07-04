@@ -1,3 +1,4 @@
+import copy
 import errno
 import json
 import logging
@@ -46,7 +47,7 @@ class Configuration(dict):
         """
         Initialize the Configuration object with default values.
         """
-        dict.__init__(self, self.DEFAULTS)
+        dict.__init__(self, copy.deepcopy(self.DEFAULTS))
         self.logger = logging.getLogger(__name__)
 
     def from_env(
