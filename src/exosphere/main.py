@@ -129,6 +129,8 @@ def main() -> None:
     if not load_first_config(app_config):
         logger.warning("No configuration file found. Using defaults.")
 
+    logger.info("Configuration loaded from: %s", context.confpath)
+
     # Override configuration options with environment variables, if any
     app_config.from_env()
 

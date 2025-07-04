@@ -31,10 +31,12 @@ class TestMain:
 
         return mock_config
 
-    def test_main(self, mocker):
+    def test_main(self, mocker, caplog):
         """
         Test the main function of the Exosphere application.
         """
+        caplog.set_level("INFO", logger="exosphere.main")
+
         mock_load_first_config = mocker.patch(
             "exosphere.main.load_first_config", return_value=True
         )
@@ -49,6 +51,8 @@ class TestMain:
         mock_load_first_config.assert_called_once()
         mock_setup_logging.assert_called_once()
         mock_cli_app.assert_called_once()
+
+        assert "Configuration loaded from:" in caplog.text
 
     def test_load_first_config(self, mocker, mock_config):
         """
