@@ -3,6 +3,8 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.pretty import Pretty
+from rich.text import Text
 
 from exosphere import app_config, context
 from exosphere.config import Configuration
@@ -24,11 +26,21 @@ def show(
     ] = None,
     full: Annotated[
         bool,
-        typer.Option(help="Show full configuration structure, including inventory."),
+        typer.Option(
+            "--full",
+            "-f",
+            help="Show full configuration structure, including inventory.",
+        ),
     ] = False,
 ) -> None:
     """
     Show the current configuration.
+
+    Displays the current configuration options, or the value of a specific option
+    if specified.
+
+    If `--full` is specified, it will show the entire configuration structure,
+    including the inventory, beyond just the "options" section.
     """
 
     if full:
@@ -36,7 +48,7 @@ def show(
             err_console.print(
                 "[yellow]Full configuration requested, ignoring option.[/yellow]"
             )
-        console.print(app_config)
+        console.print(Pretty(app_config, expand_all=True, max_depth=None))
         return
 
     if option:
@@ -49,7 +61,7 @@ def show(
 
         return
 
-    console.print(app_config["options"])
+    console.print(Pretty(app_config["options"], expand_all=True))
 
 
 @app.command()
@@ -86,7 +98,16 @@ def source() -> None:
 
 
 @app.command()
-def diff():
+def diff(
+    full: Annotated[
+        bool,
+        typer.Option(
+            "--full",
+            "-f",
+            help="Show full configuration diff, including unmodified options.",
+        ),
+    ] = False,
+):
     """
     Show the differences between the current configuration and the default one.
     """
@@ -94,24 +115,31 @@ def diff():
     default_config = Configuration.DEFAULTS["options"]
     current_config = app_config["options"]
 
-    differences = {}
-    keys = set(default_config.keys()).union(current_config.keys())
-
-    for key in keys:
-        if default_config[key] != current_config[key]:
-            differences[key] = {
-                "default": default_config.get(key),
-                "current": current_config.get(key),
-            }
-
-    if not differences:
+    for key in set(default_config) | set(current_config):
+        if default_config.get(key, None) != current_config.get(key, None):
+            break
+    else:
         console.print("No differences found between current and default configuration.")
         return
 
-    console.print("Differences between current and default configuration:\n")
+    lines = []
+    for key in sorted(set(default_config) | set(current_config)):
+        default_value = default_config.get(key, None)
+        current_value = current_config.get(key, None)
 
-    for key, value in differences.items():
-        console.print(f"{key}:")
-        console.print(f"  [yellow]Default: {value['default']}[/yellow]")
-        console.print(f"  [green]Current: {value['current']}[/green]")
-        console.print()
+        line: Text | None
+
+        if default_value != current_value:
+            line = Text(f"{key!r}: {current_value!r},", style="bold green")
+            line.append(f"  # default: {default_value!r}", style="yellow")
+        else:
+            line = Text(f"{key!r}: {current_value!r},", style="dim") if full else None
+
+        if line:
+            lines.append(line)
+
+    console.print("{")
+    for line in lines:
+        console.print("    ", end="")
+        console.print(line)
+    console.print("}")
