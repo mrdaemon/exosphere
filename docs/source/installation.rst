@@ -74,6 +74,12 @@ The `pipx` command is recommended as it creates a virtual environment and
 isolates the application, making it readily available without having to
 contend with potential conflicts with other Python packages.
 
+Once installed, you can run Exosphere using the `exosphere` command, like so:
+
+.. code-block:: bash
+
+    exosphere --help
+
 
 Installing from Git Repository
 ------------------------------
@@ -190,10 +196,20 @@ Using a Docker Container
 ------------------------
 
 If you prefer to run Exosphere in a container, you can use the official images.
-This configuration is not frequently used and is provided for convenience.
+This configuration is provided mostly for convenience, as it may be preferred
+by some. Note that it does imply more complexity in terms of having Exosphere
+communicate with your ssh agent for authentication, and will require some
+volumes and port forwarding to be configured at launch.
+
+To run Exosphere in a Docker container, you will need to have `docker`_
+or compatible container runtime on your system (`podman`_, etc).
+
+You can pull the latest image from `gcrh.io/mrdaemon/exosphere`.
 
 
 .. _git: https://git-scm.com/
 .. _uv: https://docs.astral.sh/uv/getting-started/installation/
+.. _podman: https://podman.io/
+.. _docker: https://www.docker.com/ 
 .. _Python Package Index: https://pypi.org/project/exosphere-cli/
 .. _GitHub releases page: httpsL//github.com/mrdaemon/exosphere/releases
