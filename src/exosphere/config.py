@@ -100,6 +100,9 @@ class Configuration(dict):
             if "__" not in key:
                 # Not a nested key, update
                 if key in self.DEFAULTS["options"]:
+                    self.logger.debug(
+                        "Updating configuration key from env %s: %s", key, value
+                    )
                     self["options"][key] = value
                 else:
                     self.logger.warning(
