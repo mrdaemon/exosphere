@@ -438,7 +438,7 @@ class TestConfiguration:
     def test_update_from_env_invalid_key(self, mocker, monkeypatch, caplog):
         """
         Ensure that the Configuration object logs a warning
-        when an invalid environment variable is encountered.
+        when an invalid environment variable key is encountered.
         """
         # Mock environment variables
         monkeypatch.setenv("EXOSPHERE_OPTIONS_INVALID_KEY", "some_value")
