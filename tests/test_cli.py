@@ -107,6 +107,23 @@ def test_help_no_command(mocker):
     assert "Use '<command> --help'" in result.output
 
 
+def test_help_command(mocker):
+    """
+    Test the 'help' command with a specific subcommand.
+    Should print the help text for that command.
+    """
+    from exosphere.cli import app as repl_cli
+
+    # Patch Panel.fit to just return its content for easier assertion
+    mocker.patch("rich.panel.Panel.fit", side_effect=lambda content, **kwargs: content)
+
+    result = runner.invoke(repl_cli, ["help", "config"])
+    assert result.exit_code == 0
+
+    # Should mention the help text for the 'config' command
+    assert "Runtime Configuration Commands" in result.output
+
+
 def test_help_unknown_command(monkeypatch):
     """
     Test the 'help' command with an unknown subcommand.
