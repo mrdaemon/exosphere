@@ -7,22 +7,26 @@ get ad-hoc reports from server infrastructure.
 
 It can, so far, be used to:
 
-- Get an overview of pending system updates
-- Get a quick dashboard of host status (online/offline)
+- Get an overview of pending package and security updates
+- Aggregate host online status and basic information
 
 It is meant to be simple and foregoes any rich features that could otherwise be
-serviced by other, better written tools. If you want a full dashboard, use
-something else, if you want metrics, use something else, etc.
+serviced by other, better written tools.
 
 It is meant to give a high level view of your infrastructure and how it's going,
 as well as query information about state that is otherwise difficult
 to aggregate or obtain ad-hoc.
 
-Reporting sucks, just tell me what I need to know.
+Because reporting sucks, and things could be better.
+
+  > ## Pre-release Version
+  > This is a pre-release version of Exosphere
+  > It can be used but is under-documented, and still changing rapidly
+  > You may not want to use this this just yet, and wait for 1.0
 
 ## Development Quick Start
 
-tl;dr
+tl;dr, use [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
 ```bash
 uv sync
@@ -32,6 +36,7 @@ uv run exosphere
 Linting, formatting and testing can be done with poe tasks:
 
 ```bash
+uv run poe format
 uv run poe check
 uv run poe test
 ```
