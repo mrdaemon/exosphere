@@ -46,7 +46,7 @@ def show(
     if full:
         if option:
             err_console.print(
-                "[yellow]Full configuration requested, ignoring option.[/yellow]"
+                "[yellow]Full configuration requested, ignoring option name.[/yellow]"
             )
         console.print(Pretty(app_config, expand_all=True, max_depth=None))
         return
@@ -65,7 +65,14 @@ def show(
 
 
 @app.command()
-def source() -> None:
+def source(
+    env: Annotated[
+        bool,
+        typer.Option(
+            help="Show environment variables that affect the configuration.",
+        ),
+    ] = True,
+) -> None:
     """
     Show the configuration source, where it was loaded from
 
@@ -74,9 +81,12 @@ def source() -> None:
     """
 
     if context.confpath:
-        console.print(f"Configuration loaded from: {context.confpath}")
+        console.print(f"{context.confpath}")
     else:
-        console.print("No configuration loaded, using defaults.")
+        err_console.print("No configuration loaded, using defaults.")
+
+    if not env:
+        return
 
     env_lines: list[str] = []
 
@@ -91,7 +101,7 @@ def source() -> None:
 
     if env_lines:
         console.print()
-        console.print("Environment variables affecting configuration:\n")
+        console.print("Environment variable overrides:\n")
         for line in env_lines:
             console.print(f"  {line}")
         console.print()
@@ -109,7 +119,15 @@ def diff(
     ] = False,
 ):
     """
-    Show the differences between the current configuration and the default one.
+    Show the differences between the current configuration and the defaults.
+
+    Exosphere follows convention over configuration, so your configuration
+    file can exclusively contain the options you want to change.
+
+    This command allows you to see exactly what has been changed, and optionally
+    everything else too.
+
+    For a full config dump, use the `show` command instead.
     """
 
     default_config = Configuration.DEFAULTS["options"]
