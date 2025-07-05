@@ -206,6 +206,11 @@ or compatible container runtime on your system (`podman`_, etc).
 
 You can pull the latest image from `gcrh.io/mrdaemon/exosphere`.
 
+.. warning::
+
+    It is likely that this functionality will be canned by release.
+    It is difficult to handle ssh agent forwarding in this context.
+
 
 .. _git: https://git-scm.com/
 .. _uv: https://docs.astral.sh/uv/getting-started/installation/
