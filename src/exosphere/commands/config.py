@@ -74,7 +74,7 @@ def source(
     ] = True,
 ) -> None:
     """
-    Show the configuration source, where it was loaded from
+    Show the configuration source, where it was loaded from.
 
     Displays the path of the configuration file loaded, if any, and
     any environment variables that affect the configuration.
