@@ -124,8 +124,8 @@ def diff(
     Exosphere follows convention over configuration, so your configuration
     file can exclusively contain the options you want to change.
 
-    This command allows you to see exactly what has been changed, and optionally
-    everything else too.
+    This command allows you to see exactly what has been changed, optionally
+    in its context, using the `--full` option.
 
     For a full config dump, use the `show` command instead.
     """
