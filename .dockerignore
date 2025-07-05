@@ -13,6 +13,7 @@ htmlcov/
 .pytest_cache/
 .test_report.json
 docs/build
+volume/
 
 .ruff_cache/
 

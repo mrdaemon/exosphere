@@ -38,3 +38,6 @@ config.json
 exosphere.db
 exosphere.log
 test_cache.db
+
+# In dir volumes
+volume/
