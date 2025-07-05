@@ -83,11 +83,24 @@ def load_first_config(config: Configuration) -> bool:
     """
 
     env_config_file = os.environ.get("EXOSPHERE_CONFIG_FILE")
+    env_config_path = os.environ.get("EXOSPHERE_CONFIG_PATH")
+
     if env_config_file:
         logger.info(
             "Using configuration file from environment variable: %s", env_config_file
         )
         paths = [Path(env_config_file)]
+    elif env_config_path:
+        logger.info(
+            "Using configuration path from environment variable: %s", env_config_path
+        )
+        paths = [
+            # FIXME: Refactor this shit and CONFPATHS
+            Path(env_config_path) / "config.yaml",
+            Path(env_config_path) / "config.yml",
+            Path(env_config_path) / "config.toml",
+            Path(env_config_path) / "config.json",
+        ]
     else:
         logger.debug("Using default configuration paths")
         paths = CONFPATHS

@@ -88,7 +88,7 @@ class TestMain:
         Test the load_first_config function when an environment variable is set.
         It should use the file specified in the environment variable.
         """
-        config_path = Path.home() / ".my_config.yaml"
+        config_path = Path.home() / "configs" / "my_config.yaml"
 
         mocker.patch("pathlib.Path.exists", return_value=True)
 
@@ -123,6 +123,26 @@ class TestMain:
 
         assert result is False
         mock_config.from_file.assert_not_called()
+
+    def test_load_first_config_env_path(self, mocker, monkeypatch, mock_config):
+        """
+        Test the load_first_config function when an environment variable is set
+        for a config path. It should use the file specified in the environment variable.
+        """
+        config_path = Path.home()
+
+        mocker.patch("pathlib.Path.exists", return_value=True)
+
+        monkeypatch.setenv("EXOSPHERE_CONFIG_PATH", str(config_path))
+
+        from exosphere.main import load_first_config
+
+        result = load_first_config(mock_config)
+
+        assert result is True
+        mock_config.from_file.assert_called_once_with(
+            str(config_path / "config.yaml"), yaml.safe_load, silent=True
+        )
 
     def test_load_first_config_invalid_file(self, mocker, mock_config_exception):
         """
