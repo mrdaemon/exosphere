@@ -280,6 +280,10 @@ class InventoryScreen(Screen):
 
     def action_redraw(self) -> None:
         """Action to redraw the inventory screen."""
+        if not getattr(context.inventory, "hosts", []):
+            self.app.notify("Inventory is empty.", severity="warning")
+            return
+
         self.refresh_rows()
 
     def action_refresh_updates_all(self) -> None:
