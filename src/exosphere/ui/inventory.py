@@ -249,7 +249,6 @@ class InventoryScreen(Screen):
 
     def refresh_rows(self, task: str | None = None) -> None:
         """Repopulate all rows in the data table from the inventory."""
-        table = self.query_one(DataTable)
 
         if not context.inventory:
             logger.error("Inventory is not initialized, cannot update rows.")
@@ -264,6 +263,8 @@ class InventoryScreen(Screen):
             logger.warning("No hosts available to update rows.")
             self.app.push_screen(ErrorScreen("No hosts available to update rows."))
             return
+
+        table = self.query_one(DataTable)
 
         # Clear table but keep columns
         table.clear(columns=False)
@@ -280,10 +281,6 @@ class InventoryScreen(Screen):
 
     def action_redraw(self) -> None:
         """Action to redraw the inventory screen."""
-        if not getattr(context.inventory, "hosts", []):
-            self.app.notify("Inventory is empty.", severity="warning")
-            return
-
         self.refresh_rows()
 
     def action_refresh_updates_all(self) -> None:
