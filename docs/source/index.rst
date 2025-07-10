@@ -38,10 +38,12 @@ with :doc:`quickstart` to get an overview of how to use Exosphere.
 
    installation
    quickstart
+   connections
    configuration
    cli
    ui
    webui
+   cachefile
    faq
    glossary
 
