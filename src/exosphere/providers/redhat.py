@@ -17,13 +17,16 @@ class Dnf(PkgManager):
     It is what it is.
     """
 
-    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
+    def __init__(
+        self, sudo: bool = True, password: str | None = None, use_yum: bool = False
+    ) -> None:
         """
         Initialize the DNF package manager.
 
         :param sudo: Whether to use sudo for package refresh operations (default is True).
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
+        self.pkgbin = "yum" if use_yum else "dnf"
         super().__init__(sudo, password)
         self.logger.debug("Initializing RedHat DNF package manager")
 
@@ -35,7 +38,7 @@ class Dnf(PkgManager):
         :return: True if synchronization is successful, False otherwise.
         """
         self.logger.debug("Synchronizing dnf repositories")
-        update = cx.run("dnf makecache", hide=True, warn=True)
+        update = cx.run(f"{self.pkgbin} makecache --refresh", hide=True, warn=True)
 
         if update.failed:
             self.logger.error(
@@ -60,7 +63,7 @@ class Dnf(PkgManager):
         security_updates = self._get_security_updates(cx)
 
         # Get all other updates
-        raw_query = cx.run("dnf check-update --refresh --quiet", hide=True, warn=True)
+        raw_query = cx.run(f"{self.pkgbin} check-update --quiet", hide=True, warn=True)
 
         if raw_query.return_code == 0:
             self.logger.debug("No updates available")
@@ -128,7 +131,9 @@ class Dnf(PkgManager):
 
         updates: list[str] = []
 
-        raw_query = cx.run("dnf check-update --security --quiet", hide=True, warn=True)
+        raw_query = cx.run(
+            f"{self.pkgbin} check-update --security --quiet", hide=True, warn=True
+        )
 
         if raw_query.return_code == 0:
             self.logger.debug("No security updates available")
@@ -193,7 +198,7 @@ class Dnf(PkgManager):
         :return: Currently installed version of the package.
         """
         result = cx.run(
-            f"dnf list installed --quiet {' '.join(package_names)}",
+            f"{self.pkgbin} list installed --quiet {' '.join(package_names)}",
             hide=True,
             warn=True,
         )
@@ -224,3 +229,23 @@ class Dnf(PkgManager):
 
         self.logger.debug("Current versions: %s", current_versions)
         return current_versions
+
+
+class Yum(Dnf):
+    """
+    Yum Package Manager
+
+    Implements the Yum package manager interface.
+    Wraps Dnf, and is mainly a compatibility layer for older systems.
+    Yum and DNF thankfully have identical interfaces, but if any
+    disreptancies reveal themselves, they can be implemented here.
+    """
+
+    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
+        """
+        Initialize the Yum package manager.
+
+        :param sudo: Whether to use sudo for package refresh operations (default is True).
+        :param password: Optional password for sudo operations, if not using NOPASSWD.
+        """
+        super().__init__(sudo, password, use_yum=True)

@@ -1,13 +1,20 @@
 from exosphere.providers.api import PkgManager
 from exosphere.providers.debian import Apt
 from exosphere.providers.freebsd import Pkg
-from exosphere.providers.redhat import Dnf
+from exosphere.providers.redhat import Dnf, Yum
 
 
 class PkgManagerFactory:
     """
     Factory class for creating package manager instances.
     """
+
+    _REGISTRY = {
+        "apt": Apt,
+        "pkg": Pkg,
+        "dnf": Dnf,
+        "yum": Yum,
+    }
 
     @staticmethod
     def create(name: str, sudo: bool = True, password: str | None = None) -> PkgManager:
@@ -19,11 +26,8 @@ class PkgManagerFactory:
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         :return: An instance of the specified package manager.
         """
-        if name == "apt":
-            return Apt(sudo=sudo, password=password)
-        elif name == "pkg":
-            return Pkg(sudo=sudo, password=password)
-        elif name == "dnf" or name == "yum":
-            return Dnf(sudo=sudo, password=password)
-        else:
+        if name not in PkgManagerFactory._REGISTRY:
             raise ValueError(f"Unsupported package manager: {name}")
+
+        pkg_impl = PkgManagerFactory._REGISTRY[name]
+        return pkg_impl(sudo=sudo, password=password)

@@ -2,13 +2,13 @@ import pytest
 
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
-from exosphere.providers import Apt, Dnf, Pkg, PkgManagerFactory
+from exosphere.providers import Apt, Dnf, Pkg, PkgManagerFactory, Yum
 
 
 class TestPkgManagerFactory:
     @pytest.mark.parametrize(
         "name, expected_class",
-        [("apt", Apt), ("pkg", Pkg), ("dnf", Dnf), ("yum", Dnf)],
+        [("apt", Apt), ("pkg", Pkg), ("dnf", Dnf), ("yum", Yum)],
         ids=["apt", "pkg", "dnf", "yum"],
     )
     def test_create(self, name, expected_class):
@@ -556,7 +556,7 @@ class TestDnfProvider:
         result = dnf.reposync(mock_connection)
 
         mock_connection.run.assert_called_once_with(
-            "dnf makecache", hide=True, warn=True
+            "dnf makecache --refresh", hide=True, warn=True
         )
 
         assert result is expected
@@ -616,3 +616,36 @@ class TestDnfProvider:
         results = dnf.get_updates(mock_connection)
 
         assert results == []
+
+    @pytest.mark.parametrize(
+        "provider, expected_command",
+        [
+            (Dnf, "dnf"),
+            (Yum, "yum"),
+        ],
+        ids=["dnf", "yum"],
+    )
+    def test_compatibility_mode(
+        self,
+        mocker,
+        mock_dnf_output_no_updates,
+        provider,
+        expected_command,
+    ):
+        """
+        Test the Yum compat mode of the DNF provider.
+        This is not a very exhaustive test, but it ensures the command
+        being ran is appropriate.
+
+        If the APIs diverge in the future this will need expanded.
+        """
+
+        implementation = provider(sudo=True, password=None)
+
+        _ = implementation.get_updates(mock_dnf_output_no_updates)
+
+        assert implementation.pkgbin == expected_command
+
+        mock_dnf_output_no_updates.run.assert_called_with(
+            f"{expected_command} check-update --quiet", hide=True, warn=True
+        )
