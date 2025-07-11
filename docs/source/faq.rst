@@ -16,21 +16,6 @@ make informed decisions about what needs patching, and when.
 This functionality is not planned, and left to frankly better tooling that
 already exists, such as UnattendedUpgrades, Ansible, RunDeck, etc.
 
-Why Python 3.13?
-----------------
-
-For completely selfish reasons such as:
-
-- Wanting to use the latest and greatest Python features
-- Not wanting to bother with multi version support
-
-Exosphere was written mostly to scratch the author's own itch.
-While it is made public in the hopes that it will be useful to others,
-and great care and effort has been spent on documentation and ease of use, 
-the focus at this time remains to keep the author happy.
-
-Compatibility test matrices are not a source of happiness.
-
 My system using `dnf` or `yum` hangs when refreshing
 ----------------------------------------------------
 
@@ -77,3 +62,18 @@ happy, if at all possible.
 
 They all deserialize to exactly the same data structure (and this is validated with unit tests),
 so you can use whichever of the formats you feel strongest about.
+
+Why Python 3.13?
+----------------
+
+For completely selfish reasons such as:
+
+- Wanting to use the latest and greatest Python features
+- Not wanting to bother with multi version support
+
+Exosphere was written mostly to scratch the author's own itch.
+While it is made public in the hopes that it will be useful to others,
+and great care and effort has been spent on documentation and ease of use, 
+the focus at this time remains to keep the author happy.
+
+Compatibility test matrices are not a source of happiness.
