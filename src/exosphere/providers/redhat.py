@@ -38,7 +38,9 @@ class Dnf(PkgManager):
         :return: True if synchronization is successful, False otherwise.
         """
         self.logger.debug("Synchronizing dnf repositories")
-        update = cx.run(f"{self.pkgbin} makecache --refresh --quiet -y", hide=True, warn=True)
+        update = cx.run(
+            f"{self.pkgbin} makecache --refresh --quiet -y", hide=True, warn=True
+        )
 
         if update.failed:
             self.logger.error(
@@ -63,7 +65,9 @@ class Dnf(PkgManager):
         security_updates = self._get_security_updates(cx)
 
         # Get all other updates
-        raw_query = cx.run(f"{self.pkgbin} check-update --quiet -y", hide=True, warn=True)
+        raw_query = cx.run(
+            f"{self.pkgbin} check-update --quiet -y", hide=True, warn=True
+        )
 
         if raw_query.return_code == 0:
             self.logger.debug("No updates available")
