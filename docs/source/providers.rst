@@ -51,10 +51,10 @@ elevated privileges.
 Exact Commands ran on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- ``yum makecache --refresh`` or ``dnf makecache --refresh``
-- ``yum check-update --quiet`` or ``dnf check-update --quiet``
-- ``yum check-update --security --quiet`` or ``dnf check-update --security --quiet``
-- ``yum list installed --quiet`` or ``dnf list installed --quiet``
+- ``yum makecache --refresh --quiet -y`` or ``dnf makecache --refresh --quiet -y``
+- ``yum check-update --quiet -y`` or ``dnf check-update --quiet -y``
+- ``yum check-update --security --quiet -y`` or ``dnf check-update --security --quiet -y``
+- ``yum list installed --quiet -y`` or ``dnf list installed --quiet -y``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
@@ -64,15 +64,14 @@ Command dependencies
 Usage Notes and Issues
 ^^^^^^^^^^^^^^^^^^^^^^
 
-If you have third party repositories enabled, it may be a good idea to connection
-to the system as the user Exosphere is configured to use, and issue a manual
-run of the ``yum/dnf makecache --refresh`` command **once**, ahead of time.
+In some scenarios, the `yum` or `dnf` commands may hang when running due to
+unexpectedly prompting for user input interactively, which Exosphere cannot handle.
 
-If you do not do this, it is likely the command will start prompting to accept
-repository keys, which will cause the connection to hang indefinitely.
+The provider is written to avoid this, but if you do encounter this, simply run 
+``dnf makecache --refresh`` or ``yum makecache --refresh`` manually on the remote system
+and answer any prompts that may appear.
 
-If you encounter this, simply run ``dnf makecache --refresh`` or ``yum makecache --refresh``
-manually before running Exosphere.
+Once that is done, you should be able to run Exosphere commands without issues.
 
 FreeBSD (Pkg)
 -------------

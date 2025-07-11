@@ -24,11 +24,11 @@ system.
 The common prerequisites for management are:
 
 - SSH access to the remote host
-- sudoers privilege for synchronizing package catalogs (optional)
+- sudoers privilege for synchronizing package catalogs (optional, and only for some providers)
 - Package manager binaries installed and available in the PATH (this should be the case by default)
+- Standard unix utilities are often expected, such as `grep` and friends.
 
 .. note::
 
-    Some providers may have small pre-requisites such as running a command once to establish
-    cache, but they generally do not require any specific extra setup.
-    Check out the :doc:`Providers Documentation <providers>` for more details on each provider.
+    Check out the :doc:`Providers Documentation <providers>` for more details on each provider,
+    including the exact commands that are run.
