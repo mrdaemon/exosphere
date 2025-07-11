@@ -1,3 +1,79 @@
 Frequently Asked Questions
 ==========================
 
+And also troubleshooting tips, in general.
+
+Can Exosphere help me apply the updates and patches?
+----------------------------------------------------
+
+Unfortunately, no. Exosphere is not a configuration management or automation
+tool, simply a reporting and aggregation tool.
+
+The gap it exists to fill is providing you with a unified, centralized view
+of the `state` of updates and patches across your systems, so you can
+make informed decisions about what needs patching, and when.
+
+This functionality is not planned, and left to frankly better tooling that
+already exists, such as UnattendedUpgrades, Ansible, RunDeck, etc.
+
+Why Python 3.13?
+----------------
+
+For completely selfish reasons such as:
+
+- Wanting to use the latest and greatest Python features
+- Not wanting to bother with multi version support
+
+Exosphere was written mostly to scratch the author's own itch.
+While it is made public in the hopes that it will be useful to others,
+and great care and effort has been spent on documentation and ease of use, 
+the focus at this time remains to keep the author happy.
+
+Compatibility test matrices are not a source of happiness.
+
+My system using `dnf` or `yum` hangs when refreshing
+----------------------------------------------------
+
+The `dnf` and `yum` providers do a best effort to prevent interactive
+prompts when running the commands they need to refresh catalog and cache, but
+sometimes, they will still prompt for user input, which Exosphere cannot handle.
+
+To resolve this, you can simply connect to the remote system as the same user you use
+within Exosphere, and manually run the following commands:
+
+.. code-block:: bash
+
+    dnf makecache --refresh
+    dnf check-update
+
+And answer all the prompts that may appear. The provider should no longer hang
+past this point.
+
+When managing Ubuntu systems, will this handle snaps?
+-----------------------------------------------------
+
+Exosphere does not currently support snaps or flatpaks.
+There are no immediate plans to add support for these, but it is certainly possible
+in the future, if this becomes a common facet of server management.
+
+Is Windows support planned or even possible?
+------------------------------------------------
+
+The application runs fine on windows, and while managing Windows is something we would love
+to implement, the connection methods are not incredibly straightforward, and the APIs and
+interfaces for update and patch management are not great. Microsoft continues to hope you
+will buy into their management tools, so the core APIs are not very accessible as a result.
+
+Windows support remains an eventual goal, but it is not currently planned.
+
+Why all the different config file formats?
+------------------------------------------
+
+The author is fond of yaml, but recognizes toml is gaining traction in the Python community.
+At this point also supporting json was so low effort that it was added in.
+
+The overhead of supporting this is so negligible that we'd prefer to make everyone
+happy, if at all possible.
+
+They all deserialize to exactly the same data structure (and this is validated with unit tests),
+so you can use whichever of the formats you feel strongest about.
