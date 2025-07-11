@@ -556,7 +556,7 @@ class TestDnfProvider:
         result = dnf.reposync(mock_connection)
 
         mock_connection.run.assert_called_once_with(
-            "dnf makecache --refresh", hide=True, warn=True
+            "dnf makecache --refresh --quiet -y", hide=True, warn=True
         )
 
         assert result is expected
@@ -647,5 +647,5 @@ class TestDnfProvider:
         assert implementation.pkgbin == expected_command
 
         mock_dnf_output_no_updates.run.assert_called_with(
-            f"{expected_command} check-update --quiet", hide=True, warn=True
+            f"{expected_command} check-update --quiet -y", hide=True, warn=True
         )
