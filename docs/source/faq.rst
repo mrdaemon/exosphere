@@ -14,7 +14,7 @@ of the `state` of updates and patches across your systems, so you can
 make informed decisions about what needs patching, and when.
 
 This functionality is not planned, and left to frankly better tooling that
-already exists, such as UnattendedUpgrades, Ansible, RunDeck, etc.
+already exists, such as `UnattendedUpgrades`_, `Ansible`_, `RunDeck`_, etc.
 
 My system using `dnf` or `yum` hangs when refreshing
 ----------------------------------------------------
@@ -26,10 +26,20 @@ sometimes, they will still prompt for user input, which Exosphere cannot handle.
 To resolve this, you can simply connect to the remote system as the same user you use
 within Exosphere, and manually run the following commands:
 
-.. code-block:: bash
+.. tabs::
 
-    dnf makecache --refresh
-    dnf check-update
+    .. group-tab:: dnf
+
+        .. code-block:: bash
+
+            dnf makecache --refresh
+            dnf check-update
+
+    .. group-tab:: yum
+        .. code-block:: bash
+
+            yum makecache --refresh
+            yum check-update
 
 And answer all the prompts that may appear. The provider should no longer hang
 past this point.
@@ -40,6 +50,15 @@ When managing Ubuntu systems, will this handle snaps?
 Exosphere does not currently support snaps or flatpaks.
 There are no immediate plans to add support for these, but it is certainly possible
 in the future, if this becomes a common facet of server management.
+
+On FreeBSD systems, will this handle system updates and source ports?
+---------------------------------------------------------------------
+
+Exosphere does not currently support FreeBSD system updates or source ports.
+It only supports FreeBSD Binary Packages, using `pkg`.
+
+There are plans to add support for system updates in the future, presenting
+them as a synthentic package in the updates view, but this needs more work.
 
 Is Windows support planned or even possible?
 ------------------------------------------------
@@ -77,3 +96,8 @@ and great care and effort has been spent on documentation and ease of use,
 the focus at this time remains to keep the author happy.
 
 Compatibility test matrices are not a source of happiness.
+
+.. _UnattendedUpgrades: https://wiki.debian.org/UnattendedUpgrades
+.. _Ansible: https://www.ansible.com/
+.. _RunDeck: https://www.rundeck.com/
+
