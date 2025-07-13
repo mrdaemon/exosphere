@@ -128,6 +128,12 @@ and examples of how to set them in the configuration file.
     Normally, there's very little reason to enable this unless you are
     actively developing Exosphere or troubleshooting a specific issue.
 
+    .. caution::
+
+        Enabling debug mode will absolutely flood your logs with
+        debug messages from both Exosphere and *all* of its dependencies.
+        We do not recommend enabling this unless you know what you are doing.
+
     **Default**: ``false``
 
     **Example**:
@@ -203,8 +209,15 @@ and examples of how to set them in the configuration file.
     unless you have a very specific reason to do so.
 
     If this is disabled, you will need to manually save the state
-    with `exosphere inventory save` for changes to systems state
-    to persist across executions.
+    with ``inventory save`` from the interactive mode for changes 
+    to systems state to persist across executions.
+
+    .. caution::
+
+        Note that a manual save can only be done in interactive mode.
+        Running Exosphere in non-interactive mode with this option disabled
+        will not save the state at all between executions.
+
 
     **Default**: ``true``
 
@@ -415,7 +428,7 @@ Inventory
 ---------
 
 The second section of the configuration file is the `Hosts` section, which is
-refered throughout the documentation as the Inventory.
+refered throughout the documentation as **The Inventory**.
 
 The `Hosts` section contains a list of hosts that Exosphere will connect to, as well
 as their connection parameters and any specific option for each host.
@@ -467,12 +480,12 @@ has a custom connection timeout value set, overriding :option:`default_timeout`.
                 ]
             }
 
-Mandatory fields for each host entry are:
+**Mandatory** fields for each host entry are:
 
 - :option:`name`: The name of the host, which is used to identify it in the UI and logs.
 - :option:`ip`: The address of the host, which can be a hostname or an IP address.
 
-Optional fields for each host entry include:
+*Optional* fields for each host entry include:
 
 - :option:`port`: The SSH port to connect to the host. Defaults to 22.
 - :option:`username`: An optional SSH username to use when connecting to the host
