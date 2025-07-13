@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.pretty import Pretty
 from rich.text import Text
 
-from exosphere import app_config, context
+from exosphere import app_config, context, paths
 from exosphere.config import Configuration
 
 app = typer.Typer(
@@ -105,6 +105,28 @@ def source(
         for line in env_lines:
             console.print(f"  {line}")
         console.print()
+
+
+@app.command()
+def dirs() -> None:
+    """
+    Show the configuration directory paths
+
+    Will give you the path to the configuration directory
+    where Exosphere expects to find its configuration file.
+    """
+    console.print("Application directories:")
+    console.print()
+
+    for name, path in paths.get_dirs().items():
+        console.print(f"  {name.capitalize()}: {path}")
+
+    console.print()
+
+    if context.confpath:
+        console.print(f"Current configuration file path: {context.confpath}")
+    else:
+        err_console.print("No configuration file loaded.")
 
 
 @app.command()
