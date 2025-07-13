@@ -1,4 +1,4 @@
-Exopshere API Reference
+Exosphere API Reference
 ========================
 
 ..module:: exosphere

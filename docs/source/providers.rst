@@ -14,10 +14,10 @@ Debian/Ubuntu (Apt)
 The Debian/Ubuntu provider is implemented in the `exosphere.providers.debian` module.
 
 Catalog Update *requires* sudo privileges, as it needs to run ``apt-get update`` to
-update the package cache from repositofy.
+update the package cache from repository.
 
 Updates retrieval is done using ``apt-get dist-upgrade`` in simulation mode, 
-and does *not* require elevated privleges.
+and does *not* require elevated privileges.
 
 Exact Commands ran on remote hosts
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -42,7 +42,7 @@ an interface for the relevant commands. The only distinction is the command name
 
 Internally, using Yum as a provider wraps Dnf, but with a different command name.
 
-Catalog Update *does not* require sudo provileges, as it runs ``yum/dnf makecache``
+Catalog Update *does not* require sudo privileges, as it runs ``yum/dnf makecache``
 as the connection user to retrieve the information.
 
 Updates retrieval is done using ``yum/dnf check-update``, and does *not* require

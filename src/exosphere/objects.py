@@ -144,7 +144,7 @@ class Host:
                     setattr(self, name, param.default)
                 else:
                     raise ValueError(
-                        "Unable to deserialize Host object state: "
+                        "Unable to de-serialize Host object state: "
                         f"Missing required parameter '{name}' in Host object state"
                     )
 
@@ -203,7 +203,7 @@ class Host:
         Check if the host is staled based on refresh timestamp
 
         A host is considered stale if it has not been refreshed
-        within the "stale_treshold" value in seconds set in the
+        within the "stale_threshold" value in seconds set in the
         configuration. Default is 86400 seconds (24 hours).
 
         :return: True if the host is stale, False otherwise

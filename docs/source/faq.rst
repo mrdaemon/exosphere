@@ -88,7 +88,7 @@ At this point also supporting json was so low effort that it was added in.
 The overhead of supporting this is so negligible that we'd prefer to make everyone
 happy, if at all possible.
 
-They all deserialize to exactly the same data structure (and this is validated with unit tests),
+They all de-serialize to exactly the same data structure (and this is validated with unit tests),
 so you can use whichever of the formats you feel strongest about, or hate the least.
 
 Why Python 3.13?

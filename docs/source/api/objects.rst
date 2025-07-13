@@ -1,4 +1,4 @@
-Exopshere objects
+Exosphere objects
 ==================
 
 The primary low level objects used by Exosphere are `Host` and `Inventory`

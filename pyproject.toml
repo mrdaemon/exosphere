@@ -51,6 +51,7 @@ dev = [
     "sphinx>=8.2.3",
     "sphinx-autobuild>=2024.10.3",
     "sphinx-tabs>=3.4.7",
+    "sphinxcontrib-spelling>=8.0.1",
     "textual-dev>=1.7.0",
 ]
 
@@ -85,4 +86,5 @@ check = ['format-check', 'lint', 'typecheck']
 test = "pytest -v --ctrf .tests_report.json"
 coverage = "pytest --cov-report term-missing --cov-report html --cov=src tests/"
 docs = "sphinx-build -b html docs/source docs/build/html" 
-livedocs = "sphinx-autobuild -b html docs/source docs/build/html --port 8000 --open-browser"
+docs-spellcheck = "sphinx-build -b spelling docs/source docs/build"
+docs-serve = "sphinx-autobuild -b html docs/source docs/build/html --port 8000 --open-browser"

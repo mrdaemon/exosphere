@@ -14,7 +14,7 @@ class ExosphereUi(App):
     ui_log_handler: UILogHandler | None
 
     # Global Bindings - These are available in all modes,
-    # unless overriden by a mode-specific binding.
+    # unless overridden by a mode-specific binding.
     BINDINGS = [
         ("d", "switch_mode('dashboard')", "Dashboard"),
         ("i", "switch_mode('inventory')", "Inventory"),

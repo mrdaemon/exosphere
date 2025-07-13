@@ -36,7 +36,7 @@ Discovery
     Discovery is the initial process through which Exosphere connects to a host
     and tries to determine platform details. This usually consists of:
 
-    - Operating System: The Operating System installed on the host (linux, FreeBSD, etc)
+    - Operating System: The Operating System installed on the host (Linux, FreeBSD, etc)
     - Version: The version of the operating system (20.04, 22.04, 8, etc)
     - Flavor: The distribution or flavor (Debian, Ubuntu, RedHat, etc)
     - Package Manager: The package manager in use (apt, dnf, yum, etc)
@@ -46,7 +46,7 @@ Discovery
 
 Catalog
     The Catalog is the generic term for the authoritative list of packages on the
-    host platform. This generally consists of repostories. For instance, on Debian
+    host platform. This generally consists of repositories. For instance, on Debian
     and Ubuntu systems, the catalog refers to the repositories configured in the
     `/etc/apt/sources.list` and friends. On RedHat-likes, it refers to the
     repositories configured in `/etc/yum.repos.d/` and so on.

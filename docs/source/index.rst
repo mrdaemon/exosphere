@@ -9,6 +9,9 @@ It essentially allows you to have a single, centralized view of the
 state of your hosts, and what pending patches or package updates are
 available for them.
 
+It has both a very nice interactive command line interface (CLI)
+as well as a Text UI with menus and tables.
+
 Exosphere is designed to abstract away the technical details involved in
 obtaining this information, presenting consistent views of the state
 across supported operating systems.

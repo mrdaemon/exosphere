@@ -26,11 +26,17 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
+    'sphinxcontrib.spelling',
 ]
 
 templates_path = ['_templates']
 exclude_patterns = []
 
+# -- Spell checking configuration ---------------------------------------------
+# https://sphinxcontrib-spelling.readthedocs.io/en/stable/customize.html
+spelling_lang = 'en_US'
+spelling_word_list_filename = 'spelling_wordlist.txt'
+spelling_show_suggestions = True
 
 
 # -- Options for HTML output -------------------------------------------------
