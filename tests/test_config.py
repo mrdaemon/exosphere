@@ -442,6 +442,7 @@ class TestConfiguration:
         monkeypatch.setenv("EXOSPHERE_OPTIONS_DEBUG", "true")
         monkeypatch.setenv("EXOSPHERE_OPTIONS_CACHE_FILE", "bigtest.db")
         monkeypatch.setenv("EXOSPHERE_OPTIONS_MAX_THREADS", "8")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_DEFAULT_USERNAME", "testuser")
 
         config = Configuration()
         result = config.from_env()
@@ -451,6 +452,7 @@ class TestConfiguration:
         assert config["options"]["debug"] is True
         assert config["options"]["cache_file"] == "bigtest.db"
         assert config["options"]["max_threads"] == 8
+        assert config["options"]["default_username"] == "testuser"
 
     def test_update_from_env_invalid_key(self, mocker, monkeypatch, caplog):
         """
