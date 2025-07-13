@@ -13,7 +13,7 @@ Exosphere is designed to abstract away the technical details involved in
 obtaining this information, presenting consistent views of the state
 across supported operating systems.
 
-Exosphere is written in Python and is designed to be be platform
+The application is written in Python and is designed to be platform
 agnostic, and can be run nearly everywhere Python runs, including
 Linux, BSDs, MacOS and Windows.
 
@@ -27,7 +27,7 @@ exosphere can query and manage include:
 Connectivity to hosts is handled via SSH.
 
 You can get started with :doc:`installation` and then follow up
-with :doc:`quickstart` to get an overview of how to use Exosphere.
+with the :doc:`quickstart` to get an overview of how to use Exosphere.
 
 :doc:`configuration` details are also available, alongside the
 :doc:`api/index` if you wish to implement your own providers.
