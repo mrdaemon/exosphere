@@ -23,12 +23,16 @@ system.
 
 The common prerequisites for management are:
 
-- SSH access to the remote host
+- SSH access to the remote host (with a ssh `agent`_ for authentication)
 - sudoers privilege for synchronizing package catalogs (optional, and only for some providers)
 - Package manager binaries installed and available in the PATH (this should be the case by default)
 - Standard unix utilities are often expected, such as `grep` and friends.
+
+Connection and authentication details are covered in the :doc:`Connections <connections>` section.
 
 .. note::
 
     Check out the :doc:`Providers Documentation <providers>` for more details on each provider,
     including the exact commands that are run.
+
+.. _agent: https://en.wikipedia.org/wiki/Ssh-agent
