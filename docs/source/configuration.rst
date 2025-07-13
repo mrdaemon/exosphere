@@ -6,7 +6,7 @@ The configuration file can be provided in multiple formats, including
 `yaml`_, `toml`_, and `json`_.
 
 Where the configuration file lives will depend on your platform.
-For instance, for a yaml configuration file, the default locations are:
+For instance, for a **yaml** configuration file, the default locations are:
 
 .. tabs::
 
@@ -21,6 +21,9 @@ For instance, for a yaml configuration file, the default locations are:
     .. group-tab:: Windows
 
         ``%LOCALAPPDATA%/exosphere/config.yaml``
+
+You can of course substitute the file extension with `.toml` or `.json` if you wish
+to use those formats instead.
 
 You can also ask exosphere where it expects the configuration file to be on your
 platform by running:
@@ -331,7 +334,7 @@ and examples of how to set them in the configuration file.
 
         This is the global value that, by default, applies to all hosts.
         It can be overriden on a per-host basis in the inventory, inside
-        the `hosts` section, via ``connect_timeout``.
+        the `hosts` section, via :option:`connect_timeout`.
 
 
     **Default**: ``10`` (seconds)
@@ -411,8 +414,337 @@ and examples of how to set them in the configuration file.
 Inventory
 ---------
 
-Inventory details, mostly just a link to the Inventory section.
-Maybe it doesn't need to be a file.
+The second section of the configuration file is the `Hosts` section, which is
+refered throughout the documentation as the Inventory.
+
+The `Hosts` section contains a list of hosts that Exosphere will connect to, as well
+as their connection parameters and any specific option for each host.
+
+Host entries are structured as follows. This example describes two hosts, one of which
+has a custom connection timeout value set, overriding :option:`default_timeout`.
+
+.. tabs::
+    .. group-tab:: YAML
+
+        .. code-block:: yaml
+
+            hosts:
+              - name: myhost
+                ip: myhost.example.com
+              - name: anotherhost
+                ip: 127.0.1.8
+                connect_timeout: 30 
+
+    .. group-tab:: TOML
+
+        .. code-block:: toml
+
+            [[hosts]]
+            name = "myhost"
+            ip = "myhost.example.com"
+
+            [[hosts]]
+            name = "anotherhost"
+            ip = "127.0.1.8"
+            connect_timeout = 30
+
+
+    .. group-tab:: JSON
+
+        .. code-block:: json
+
+            {
+                "hosts": [
+                    {
+                        "name": "myhost",
+                        "ip": "myhost.example.com"
+                    },
+                    {
+                        "name": "anotherhost",
+                        "ip": "127.0.1.8",
+                        "connect_timeout": 30
+                    }
+                ]
+            }
+
+Mandatory fields for each host entry are:
+
+- :option:`name`: The name of the host, which is used to identify it in the UI and logs.
+- :option:`ip`: The address of the host, which can be a hostname or an IP address.
+
+Optional fields for each host entry include:
+
+- :option:`port`: The SSH port to connect to the host. Defaults to 22.
+- :option:`username`: An optional SSH username to use when connecting to the host
+- :option:`description`: A short string describing the host, to be displayed in UIs
+- :option:`connect_timeout`: The number of seconds to wait for a response from the host over SSH.
+
+You will find below the detailed list of all available host options and their defaults.
+
+.. option:: name
+
+    The name of the host, which uniquely identifies the host within the inventory.
+    It is recommended that you keep this to a short string, and not a fully qualified domain name,
+    although it can be arbitrary.
+
+    .. attention::
+
+        The **name** field has a unicity constraint within the inventory!
+        You cannot have two hosts with the same name value, and Exsosphere will
+        inform you of this if it is the case, before promptly refusing to load the
+        configuration file.
+
+    **Mandatory**: Yes
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                hosts:
+                  - name: myhost
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [[hosts]]
+                name = "myhost"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "hosts": [
+                        {
+                            "name": "myhost"
+                        }
+                    ]
+                }
+
+.. option:: ip
+
+    The IP address or hostname of the host to connect to over ssh
+    This can be a fully qualified domain name, an IP address, or a short hostname.
+    It is recommended that you use a fully qualified domain name or an IP address
+    to avoid issues with DNS resolution.
+
+    **Mandatory**: Yes
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                hosts:
+                  - name: myhost
+                    ip: myhost.example.com
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [[hosts]]
+                name = "myhost"
+                ip = "myhost.example.com"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "hosts": [
+                        {
+                            "name": "myhost",
+                            "ip": "myhost.example.com"
+                        }
+                    ]
+                }
+
+.. option:: port
+
+    The SSH port to connect to the host. This is optional, and defaults to 22.
+    If your host uses a different port for SSH, you can specify it here.
+
+    **Default**: ``22``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                hosts:
+                  - name: myhost
+                    ip: myhost.example.com
+                    port: 2222
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [[hosts]]
+                name = "myhost"
+                ip = "myhost.example.com"
+                port = 2222
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "hosts": [
+                        {
+                            "name": "myhost",
+                            "ip": "myhost.example.com",
+                            "port": 2222
+                        }
+                    ]
+                }
+
+.. option:: username
+
+    An optional SSH username to use when connecting to the host.
+
+    This is useful if you need to connect to the host with a different user
+    than the one you are running Exosphere as.
+
+    **Default**: Current user's username
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                hosts:
+                  - name: myhost
+                    ip: myhost.example.com
+                    username: alice
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [[hosts]]
+                name = "myhost"
+                ip = "myhost.example.com"
+                username = "alice"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "hosts": [
+                        {
+                            "name": "myhost",
+                            "ip": "myhost.example.com",
+                            "username": "alice"
+                        }
+                    ]
+                }
+
+.. option:: description
+
+    A short string describing the host, to be displayed in UIs.
+    This is optional, but can be useful to provide additional context
+    about the host, such as its role or purpose.
+
+    **Default**: `None`
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                hosts:
+                  - name: myhost
+                    ip: myhost.example.com
+                    description: "Web Server"
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [[hosts]]
+                name = "myhost"
+                ip = "myhost.example.com"
+                description = "Web Server"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "hosts": [
+                        {
+                            "name": "myhost",
+                            "ip": "myhost.example.com",
+                            "description": "Web Server"
+                        }
+                    ]
+                }
+
+.. option:: connect_timeout
+
+    The number of seconds to wait for a response from the host over SSH.
+    This is optional, and defaults to the value set in :option:`default_timeout`.
+
+    If you have hosts that are particularly slow to respond, you can increase this value
+    on a per-host basis.
+
+    **Default**: Value of :option:`default_timeout`
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                hosts:
+                  - name: myhost
+                    ip: myhost.example.com
+                    connect_timeout: 30  # 30 seconds
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [[hosts]]
+                name = "myhost"
+                ip = "myhost.example.com"
+                connect_timeout = 30  # 30 seconds
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "hosts": [
+                        {
+                            "name": "myhost",
+                            "ip": "myhost.example.com",
+                            "connect_timeout": 30
+                        }
+                    ]
+                }
 
 .. _yaml: https://yaml.org/
 .. _toml: https://toml.io/
