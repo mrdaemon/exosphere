@@ -5,6 +5,9 @@ Exosphere loads all of its settings and inventory from a configuration file.
 The configuration file can be provided in multiple formats, including
 `yaml`_, `toml`_, and `json`_.
 
+Location
+--------
+
 Where the configuration file lives will depend on your platform.
 For instance, for a **yaml** configuration file, the default locations are:
 
@@ -28,10 +31,13 @@ to use those formats instead.
 You can also ask exosphere where it expects the configuration file to be on your
 platform by running:
 
-.. code-block:: console
+.. code-block:: bash
 
     exosphere config dirs
 
+Additionally, you can specify a custom configuration file location via the
+``EXOSPHERE_CONFIG_FILE`` environment variable, with the full path to the file
+as the value.
 
 Structure
 ---------
@@ -56,6 +62,56 @@ Any option left out will use the default values, which are documented below.
     .. group-tab:: JSON
 
         .. literalinclude:: ../../examples/config.json
+
+Environment Variables
+---------------------
+
+Exosphere also supports loading configuration options from environment variables.
+You can use this to override any specific `Option` from the configuration file.
+You cannot use environment variables to override the `Hosts` section.
+
+The environment variable names are prefixed with ``EXOSPHERE_OPTIONS_`` and
+the option name in uppercase.
+
+For instance, to override the ``log_level`` option, you can set the following
+environment variable:
+
+.. tabs::
+
+    .. group-tab:: Unix/MacOS
+
+        .. code-block:: shell
+
+            export EXOSPHERE_OPTIONS_LOG_LEVEL="DEBUG"
+
+    .. group-tab:: Windows/PowerShell
+
+        .. code-block:: powershell
+
+            $env:EXOSPHERE_OPTIONS_LOG_LEVEL = "DEBUG"
+
+    .. group-tab:: Windows/cmd
+
+        .. code-block:: batch
+
+            set EXOSPHERE_OPTIONS_LOG_LEVEL=DEBUG
+
+
+And so on and so forth.
+
+.. admonition:: Note
+
+    Option types are all strings in this context, but they will be parsed
+    as `json`_ types when loaded. This means "true" and "false" will correctly
+    be interpreted as booleans, and "null" will be interpreted as ``None``.
+    Essentially, you do not need to worry about it.
+
+Exosphere will allow you to display which environment variables are influencing
+the configuration (if any) by running:
+
+.. code-block:: shell
+
+    exosphere config source
 
 
 Options
@@ -133,6 +189,8 @@ and examples of how to set them in the configuration file.
         Enabling debug mode will absolutely flood your logs with
         debug messages from both Exosphere and *all* of its dependencies.
         We do not recommend enabling this unless you know what you are doing.
+
+        You probably want to set :option:`log_level` to ``DEBUG`` instead.
 
     **Default**: ``false``
 
@@ -259,7 +317,7 @@ and examples of how to set them in the configuration file.
 
     The file is lzma compressed to save space, and is not human readable.
 
-    It can be cleared with the `exosphere inventory clear` command, without
+    It can be cleared with the ``exosphere inventory clear`` command, without
     having to delete the file manually.
 
     **Default**: (Platform Default)
@@ -428,7 +486,7 @@ Inventory
 ---------
 
 The second section of the configuration file is the `Hosts` section, which is
-refered throughout the documentation as **The Inventory**.
+referred throughout the documentation as **The Inventory**.
 
 The `Hosts` section contains a list of hosts that Exosphere will connect to, as well
 as their connection parameters and any specific option for each host.
@@ -503,7 +561,7 @@ You will find below the detailed list of all available host options and their de
     .. attention::
 
         The **name** field has a unicity constraint within the inventory!
-        You cannot have two hosts with the same name value, and Exsosphere will
+        You cannot have two hosts with the same name value, and Exosphere will
         inform you of this if it is the case, before promptly refusing to load the
         configuration file.
 
@@ -542,7 +600,8 @@ You will find below the detailed list of all available host options and their de
 .. option:: ip
 
     The IP address or hostname of the host to connect to over ssh
-    This can be a fully qualified domain name, an IP address, or a short hostname.
+    This can be a fully qualified domain name, an IP address, or a short hostname,
+    so long as it resolves.
     It is recommended that you use a fully qualified domain name or an IP address
     to avoid issues with DNS resolution.
 

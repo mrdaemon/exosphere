@@ -58,7 +58,7 @@ Exosphere does not currently support FreeBSD system updates or source ports.
 It only supports FreeBSD Binary Packages, using `pkg`.
 
 There are plans to add support for system updates in the future, presenting
-them as a synthentic package in the updates view, but this needs more work.
+them as a synthetic package in the updates view, but this needs more work.
 
 Is Windows support planned or even possible?
 ------------------------------------------------
@@ -70,6 +70,15 @@ will buy into their management tools, so the core APIs are not very accessible a
 
 Windows support remains an eventual goal, but it is not currently planned.
 
+Can I specify a custom path for the configuration file?
+-------------------------------------------------------
+
+Yes! You can specify a custom path for the configuration file by setting the
+``EXOSPHERE_CONFIG_FILE`` environment variable to the full path of the file you wish to use.
+
+See :doc:`configuration` for more details on other environment variables
+you can define to influence or override the configuration.
+
 Why all the different config file formats?
 ------------------------------------------
 
@@ -80,7 +89,7 @@ The overhead of supporting this is so negligible that we'd prefer to make everyo
 happy, if at all possible.
 
 They all deserialize to exactly the same data structure (and this is validated with unit tests),
-so you can use whichever of the formats you feel strongest about.
+so you can use whichever of the formats you feel strongest about, or hate the least.
 
 Why Python 3.13?
 ----------------
@@ -95,7 +104,7 @@ While it is made public in the hopes that it will be useful to others,
 and great care and effort has been spent on documentation and ease of use, 
 the focus at this time remains to keep the author happy.
 
-Compatibility test matrices are not a source of happiness.
+Compatibility test matrices are unfortunately not a source of happiness.
 
 .. _UnattendedUpgrades: https://wiki.debian.org/UnattendedUpgrades
 .. _Ansible: https://www.ansible.com/
