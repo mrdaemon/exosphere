@@ -34,6 +34,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "textual-serve>=1.1.2",
     "pyreadline3>=3.5.4 ; sys_platform == 'win32'",
+    "platformdirs>=4.3.8",
 ]
 
 [dependency-groups]

@@ -8,7 +8,7 @@ from typing import Callable
 
 import yaml
 
-from exosphere import app_config, cli, context
+from exosphere import app_config, cli, context, paths
 from exosphere.config import Configuration
 from exosphere.inventory import Inventory
 
@@ -16,16 +16,11 @@ logger = logging.getLogger(__name__)
 
 # List of configuration file paths to check, in order of precedence
 # The search stops at first match, so ordering matters.
-# TODO: SETTLE ON A STANDARD CONFIG PATH + ~/.exosphere.xyz
 CONFPATHS: list[Path] = [
-    Path.home() / ".config" / "exosphere" / "config.yaml",
-    Path.home() / ".config" / "exosphere" / "config.yml",
-    Path.home() / ".config" / "exosphere" / "config.toml",
-    Path.home() / ".config" / "exosphere" / "config.json",
-    Path.cwd() / "config.yaml",
-    Path.cwd() / "config.yml",
-    Path.cwd() / "config.toml",
-    Path.cwd() / "config.json",
+    paths.CONFIG_DIR / "config.yaml",
+    paths.CONFIG_DIR / "config.yml",
+    paths.CONFIG_DIR / "config.toml",
+    paths.CONFIG_DIR / "config.json",
 ]
 
 LOADERS: dict[str, Callable] = {
@@ -138,6 +133,13 @@ def main() -> None:
     """
     Program Entry Point
     """
+    # Ensure all required directories exist
+    try:
+        paths.ensure_dirs()
+    except Exception as e:
+        logger.error("Failed to create required directories: %s", e)
+        sys.exit(1)
+
     # Load the first configuration file found
     if not load_first_config(app_config):
         logger.warning("No configuration file found. Using defaults.")

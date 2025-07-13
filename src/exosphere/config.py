@@ -9,6 +9,8 @@ from typing import Any, BinaryIO
 
 import yaml
 
+from exosphere import paths
+
 
 class Configuration(dict):
     """
@@ -33,9 +35,13 @@ class Configuration(dict):
         "options": {
             "debug": False,  # Debug mode, enable verbose on root logger
             "log_level": "INFO",  # Default log level for the application
-            "log_file": "exosphere.log",  # Default log file for the application
+            "log_file": str(
+                paths.LOG_DIR / "exosphere.log"
+            ),  # Default log file for the application
             "cache_autosave": True,  # Automatically save cache to disk after changes
-            "cache_file": "exosphere.db",  # Default cache file for the application
+            "cache_file": str(
+                paths.STATE_DIR / "exosphere.db"
+            ),  # Default cache file for the application
             "stale_threshold": 86400,  # How long before a host is considered stale (in seconds)
             "default_timeout": 10,  # Default ssh connection timeout (in seconds)
             "max_threads": 15,  # Maximum number of threads to use for parallel operations

@@ -31,6 +31,17 @@ class TestMain:
 
         return mock_config
 
+    @pytest.fixture(autouse=True, scope="function")
+    def patch_config_dir(self, monkeypatch):
+        """
+        Fixture to patch the CONFIG_DIR to a specific path for testing.
+        This ensures that tests do not depend on platform-specific paths.
+
+        """
+        monkeypatch.setattr(
+            "exosphere.paths.CONFIG_DIR", Path.home() / ".config" / "exosphere"
+        )
+
     def test_main(self, mocker, caplog):
         """
         Test the main function of the Exosphere application.
@@ -58,16 +69,17 @@ class TestMain:
         """
         Test the load_first_config function.
         """
+
         from exosphere.main import load_first_config
 
         mocker.patch("pathlib.Path.exists", return_value=True)
-        first_path = Path.home() / ".config" / "exosphere" / "config.yaml"
+        expected_path = Path.home() / ".config" / "exosphere" / "config.yaml"
 
         result = load_first_config(mock_config)
 
         assert result is True
         mock_config.from_file.assert_called_once_with(
-            str(first_path), yaml.safe_load, silent=True
+            str(expected_path), yaml.safe_load, silent=True
         )
 
     def test_load_first_config_no_file(self, mocker, mock_config):
