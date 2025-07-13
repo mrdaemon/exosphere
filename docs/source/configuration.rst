@@ -270,6 +270,8 @@ and examples of how to set them in the configuration file.
     with ``inventory save`` from the interactive mode for changes 
     to systems state to persist across executions.
 
+    See :doc:`cachefile` for more details on the cache file
+
     .. caution::
 
         Note that a manual save can only be done in interactive mode.
@@ -319,6 +321,8 @@ and examples of how to set them in the configuration file.
 
     It can be cleared with the ``exosphere inventory clear`` command, without
     having to delete the file manually.
+
+    See :doc:`cachefile` for more details on the cache file
 
     **Default**: (Platform Default)
 
@@ -404,7 +408,7 @@ and examples of how to set them in the configuration file.
     .. admonition:: Note
 
         This is the global value that, by default, applies to all hosts.
-        It can be overriden on a per-host basis in the inventory, inside
+        It can be overridden on a per-host basis in the inventory, inside
         the `hosts` section, via :option:`connect_timeout`.
 
 
