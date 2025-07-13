@@ -9,10 +9,11 @@ The constants all contain Path objects, but can be cast to string
 as needed.
 
 Example:
+
     from exosphere import paths
 
     path = str(paths.CONFIG_DIR / "config.yaml") # string path
-    print(paths.CONFIG_DIR_PATH)  # Path object to the config directory
+
 """
 
 from pathlib import Path
