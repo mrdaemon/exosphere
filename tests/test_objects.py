@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from exosphere.config import Configuration
 from exosphere.data import HostInfo
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.objects import Host
@@ -32,6 +33,22 @@ class TestHostObject:
         mocker.patch("exosphere.setup.detect.platform_detect", return_value=hostinfo)
 
         return hostinfo
+
+    @pytest.fixture
+    def mock_config_with_username(self, mocker):
+        """
+        Fixture to mock the application configuration with all its
+        default values, but also includes a set default_username.
+        """
+
+        # Create a fresh configuration object with defaults
+        config = Configuration()
+
+        # Set a default username for testing
+        config["options"]["default_username"] = "test_user"
+
+        # Patch the app_config to return this configuration
+        return mocker.patch("exosphere.objects.app_config", config)
 
     def test_host_initialization(self):
         """
@@ -118,6 +135,47 @@ class TestHostObject:
         mock_connection.assert_called_once_with(
             host=host.ip,
             port=22,  # Default port
+            connect_timeout=10,  # Default connect timeout
+        )
+
+    def test_host_connection_global_username(
+        self, mocker, mock_connection, mock_config_with_username
+    ):
+        """
+        Test the connection property of the Host object with a global username.
+        """
+        host = Host(
+            name="test_host",
+            ip="127.0.0.8",
+        )
+
+        _ = host.connection
+
+        mock_connection.assert_called_once_with(
+            host=host.ip,
+            port=22,  # Default port
+            user="test_user",  # Global username from config
+            connect_timeout=10,  # Default connect timeout
+        )
+
+    def test_host_connection_username_overrides_global(
+        self, mocker, mock_connection, mock_config_with_username
+    ):
+        """
+        Test the connection property of the Host object with a specific username
+        and ensure it overrides the global username.
+        """
+        host = Host(
+            name="test_host",
+            ip="127.0.0.8",
+            username="specific_user",  # Specific username
+        )
+
+        _ = host.connection
+        mock_connection.assert_called_once_with(
+            host=host.ip,
+            port=22,  # Default port
+            user="specific_user",  # Specific username overrides global
             connect_timeout=10,  # Default connect timeout
         )
 

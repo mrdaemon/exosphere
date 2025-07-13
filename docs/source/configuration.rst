@@ -127,6 +127,7 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`cache_file`
 - :option:`stale_threshold`
 - :option:`default_timeout`
+- :option:`default_username`
 - :option:`max_threads`
 
 You will find below a detailed list of all available options, their defaults,
@@ -442,6 +443,52 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. option:: default_username
+
+    The default SSH username to use when connecting to hosts.
+    This is useful if you have a common username across all hosts,
+    and do not want to specify it for each host in the inventory.
+
+    If not set, Exosphere will try to use the current user's username
+    on the system where Exosphere is running.
+
+    .. admonition:: Note
+
+        This is the global value that, by default, applies to all hosts.
+        It can be overridden on a per-host basis in the inventory, inside
+        the `hosts` section, via :option:`username`.
+
+    **Default**: ``None`` (Current user's username)
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  default_username: alice  # Use 'alice' as the default SSH username
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                default_username = "alice"  # Use 'alice' as the default SSH username
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "default_username": "alice"
+                    }
+                }
+
+
 .. option:: max_threads
 
     The maximum number of threads to use for parallel operations.
@@ -691,8 +738,13 @@ You will find below the detailed list of all available host options and their de
 
     An optional SSH username to use when connecting to the host.
 
-    This is useful if you need to connect to the host with a different user
-    than the one you are running Exosphere as.
+    .. admonition:: Note
+
+        This option has precendence over :option:`default_username`
+
+    This is useful if you need to connect to a particular host with a different
+    user than the one you are running Exosphere as, or the one configured
+    globally in :option:`default_username`.
 
     **Default**: Current user's username
 

@@ -169,12 +169,32 @@ class Host:
                 "connect_timeout": self.connect_timeout,
             }
 
+            # Determine which username to use for the connection.
+            # In the absence of either a provided or global default username,
+            # Fabric will use the current system user, as you would expect.
+            user_param: str | None = None
             if self.username:
-                conn_args["user"] = self.username
+                user_param = self.username
+                self.logger.debug(
+                    "Using provided username '%s' for connection to %s",
+                    self.username,
+                    self.name,
+                )
+            elif app_config["options"]["default_username"]:
+                # Use the default global username if set
+                user_param = app_config["options"]["default_username"]
+                self.logger.debug(
+                    "Using default global username '%s' for connection to %s",
+                    app_config["options"]["default_username"],
+                    self.name,
+                )
+
+            if user_param:
+                conn_args["user"] = user_param
 
             conn_string = (
-                f"{self.username}@{self.ip}:{self.port}"
-                if self.username
+                f"{user_param}@{self.ip}:{self.port}"
+                if user_param
                 else f"{self.ip}:{self.port}"
             )
 

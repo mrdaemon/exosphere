@@ -31,7 +31,7 @@ class Configuration(dict):
     by Flask, because good things are worth replicating.
     """
 
-    DEFAULTS: dict = {
+    DEFAULTS: dict[str, Any] = {
         "options": {
             "debug": False,  # Debug mode, enable verbose on root logger
             "log_level": "INFO",  # Default log level for the application
@@ -44,6 +44,7 @@ class Configuration(dict):
             ),  # Default cache file for the application
             "stale_threshold": 86400,  # How long before a host is considered stale (in seconds)
             "default_timeout": 10,  # Default ssh connection timeout (in seconds)
+            "default_username": None,  # Default global username to use for SSH connections
             "max_threads": 15,  # Maximum number of threads to use for parallel operations
         },
         "hosts": [],
