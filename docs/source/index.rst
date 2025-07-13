@@ -1,33 +1,37 @@
 Welcome to Exosphere
 =====================
 
-Exosphere is a utility program for aggregating and reporting state of
-patches/security updates as well as basic online status for Unix-like
-hosts on a network.
+Exosphere offers aggregated patch and security update reporting as
+well as basic system status across multiple Unix-like hosts via SSH.
 
-It essentially allows you to have a single, centralized view of the
-state of your hosts, and what pending patches or package updates are
-available for them.
+It is targeted at small to medium sized networks.
 
-It has both a very nice interactive command line interface (CLI)
-as well as a Text UI with menus and tables.
+It is meant to be simple to deploy and use, requiring no central server,
+agents or complex dependencies on remote hosts.
 
-Exosphere is designed to abstract away the technical details involved in
-obtaining this information, presenting consistent views of the state
-across supported operating systems.
+If you have SSH access to the hosts with an `agent`_, you are good to go!
 
-The application is written in Python and is designed to be platform
-agnostic, and can be run nearly everywhere Python runs, including
-Linux, BSDs, MacOS and Windows.
+**Key Features**
 
-Supported operating systems and Package Managers for systems that
-exosphere can query and manage include:
+- Rich interactive command line interface (CLI)
+- Text-based user interface (TUI) offering menus, tables and dashboards
+- Consistent view across different platforms and package managers
+- See everything in one spot, at a glance, without complex automation
+  or enterprise solutions.
 
-- Debian/Ubuntu and Derivatives (Apt)
-- Red Hat/CentOS/Alma/Rocky and Derivatives (Yum/DNF)
-- FreeBSD (pkg)
 
-Connectivity to hosts is handled via SSH.
+**Compatibility**
+
+- **Exosphere**: Linux, BSDs, MacOS, Windows (and more!)
+- **Target systems**: Debian/Ubuntu-likes (apt), RedHat-Likes (yum/dnf), FreeBSD (pkg)
+
+.. note::
+
+   For more details on supported platforms, see the :doc:`supportedos` page.
+
+Exosphere is written in Python and abstracts away the technical details
+of collecting this information across platforms, allowing you to focus
+on management of your systems.
 
 You can get started with :doc:`installation` and then follow up
 with the :doc:`quickstart` to get an overview of how to use Exosphere.
@@ -57,3 +61,6 @@ with the :doc:`quickstart` to get an overview of how to use Exosphere.
    :caption: API Documentation:
 
    api/index
+
+
+.. _agent: https://en.wikipedia.org/wiki/Ssh-agent
