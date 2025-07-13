@@ -29,15 +29,15 @@ docs/build/
 .tangent/
 
 # in-dir configs
-config.toml
-config.yaml
-config.yml
-config.json
+/config.toml
+/config.yaml
+/config.yml
+/config.json
 
 # in-dir exosphere runtime data
-exosphere.db
-exosphere.log
-test_cache.db
+/exosphere.db
+/exosphere.log
+/test_cache.db
 
 # In dir volumes
-volume/
+/volume/

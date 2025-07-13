@@ -1,5 +1,6 @@
 [options]
 log_level = "INFO"
+max_threads = 5 # Limit parallel actions to 5 threads
 
 [[hosts]]
 name = "host1"
@@ -9,10 +10,9 @@ ip = "host1.example.com"
 name = "host2"
 ip = "host2.example.com"
 port = 2222
+description = "Example Host"
 
 [[hosts]]
 name = "host3"
 ip = "host3.example.com"
-
-[[hosts.options]]
-log_level = "DEBUG"
+description = "Another Example Host"

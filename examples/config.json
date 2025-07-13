@@ -1,0 +1,24 @@
+{
+    "options": {
+        "log_level": "INFO",
+        "max_threads": 5
+    },
+    "hosts": [
+        {
+            "name": "host1",
+            "ip": "host1.example.com",
+            "description": "Example Host"
+        },
+        {
+            "name": "host2",
+            "ip": "host2.example.com",
+            "port": 2222,
+            "description": "Example Host"
+        },
+        {
+            "name": "host3",
+            "ip": "host3.example.com",
+            "description": "Another Example Host"
+        }
+    ]
+}
