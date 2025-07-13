@@ -1,9 +1,9 @@
 Installation
 =============
 
-Exopshere is a Python package, and **requires** Python 3.13 or later to run.
-Given that this particular version of Python is not widely available on
-some operating systems, we provide multiple options for installation.
+Exosphere is written in Python, and can easily be installed using a handful
+of methods. This guide will walk you through the installation process for each
+of them.
 
 Supported Platforms
 -------------------
@@ -29,11 +29,13 @@ and can be installed using various methods.
 
 The package name is `exosphere-cli`.
 
-One major pitfall here is that Exosphere **requires Python 3.13 or later**.
+.. admonition:: Note
 
-If you do not have Python 3.13 or later available on your system, fear not,
-you can still install Exosphere using `uv`_, which will download and manage
-the necessary Python runtime and dependencies for you.
+    Exosphere requires **Python 3.13 or later** or run.
+    If you do not have it available on your system, you can still install
+    Exosphere using `uv`_, which will download and manage the necessary Python
+    runtime and dependencies for you.
+
 
 .. tabs::
 
@@ -193,9 +195,80 @@ Exosphere directly:
 
 
     From that point on, you can run Exosphere using the `exosphere` command.
+
+
+Updating Exosphere
+===================
+
+Updating Exosphere is generally as simple as installing it, depending on the installation
+method you used.
+
+From PyPI Repository
+--------------------
+
+
+.. tabs::
+
+    .. group-tab:: pipx
+
+        If you installed Exosphere using `pipx`, you can update it with:
+
+        .. code-block:: bash
+
+            pipx upgrade exosphere-cli
+
+    .. group-tab:: uv
+
+        If you installed Exosphere using `uv`, you can update it with:
+
+        .. code-block:: bash
+
+            uv tool upgrade exosphere-cli
+
+    .. group-tab:: pip
+
+        If you installed Exosphere using `pip`, you can update it with:
+
+        .. code-block:: bash
+
+            pip install --user --upgrade exosphere-cli
+
+From Git Repository
+-------------------
+
+If you installed Exosphere from the Git repository, you can update it by
+pulling the latest changes and then syncing with `uv`_:
+
+.. tabs::
+
+    .. group-tab:: Stable Release
+
+        If you are on a stable release, you can update it with:
+
+        .. parsed-literal::
+
+            git fetch --tags
+            git checkout |CurrentVersionTag|
+            uv sync --no-dev
+
+        You can substitute |CurrentVersionTag| with the latest tag or
+        version you want to use, e.g, `v0.8.1`.
+
+        You can find the list of tags on the `GitHub releases page`_.
+
+    .. group-tab:: Latest Development
+
+        If you are on the `main` branch, you can update it with:
+
+        .. code-block:: bash
+
+            git pull --rebase
+            uv sync --no-dev
             
+
+That's it! Your installation of Exosphere is now up to date.
 
 .. _git: https://git-scm.com/
 .. _uv: https://docs.astral.sh/uv/getting-started/installation/
 .. _Python Package Index: https://pypi.org/project/exosphere-cli/
-.. _GitHub releases page: httpsL//github.com/mrdaemon/exosphere/releases
+.. _GitHub releases page: https://github.com/mrdaemon/exosphere/releases
