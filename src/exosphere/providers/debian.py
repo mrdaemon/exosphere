@@ -4,7 +4,7 @@ from fabric import Connection
 
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
-from exosphere.providers.api import PkgManager
+from exosphere.providers.api import PkgManager, require_sudo
 
 
 class Apt(PkgManager):
@@ -14,16 +14,17 @@ class Apt(PkgManager):
     Implements the Apt package manager interface.
     """
 
-    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
+    def __init__(self) -> None:
         """
         Initialize the Apt package manager.
 
         :param sudo: Whether to use sudo for package refresh operations (default is True).
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
-        super().__init__(sudo, password)
+        super().__init__()
         self.logger.debug("Initializing Debian Apt package manager")
 
+    @require_sudo
     def reposync(self, cx: Connection) -> bool:
         """
         Synchronize the APT package repository.

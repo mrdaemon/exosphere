@@ -17,17 +17,14 @@ class Dnf(PkgManager):
     It is what it is.
     """
 
-    def __init__(
-        self, sudo: bool = True, password: str | None = None, use_yum: bool = False
-    ) -> None:
+    def __init__(self, use_yum: bool = False) -> None:
         """
         Initialize the DNF package manager.
 
-        :param sudo: Whether to use sudo for package refresh operations (default is True).
-        :param password: Optional password for sudo operations, if not using NOPASSWD.
+        :param use_yum: Use yum instead of dnf for compatibility
         """
         self.pkgbin = "yum" if use_yum else "dnf"
-        super().__init__(sudo, password)
+        super().__init__()
         self.logger.debug("Initializing RedHat DNF package manager")
 
     def reposync(self, cx: Connection) -> bool:
@@ -245,11 +242,11 @@ class Yum(Dnf):
     disreptancies reveal themselves, they can be implemented here.
     """
 
-    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
+    def __init__(self) -> None:
         """
         Initialize the Yum package manager.
 
         :param sudo: Whether to use sudo for package refresh operations (default is True).
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
-        super().__init__(sudo, password, use_yum=True)
+        super().__init__(use_yum=True)

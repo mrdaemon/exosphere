@@ -1,9 +1,23 @@
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 from fabric import Connection
 
 from exosphere.data import Update
+
+
+def require_sudo(func: Callable) -> Callable:
+    """
+    Decorator to mark a function as requiring sudo privileges.
+
+    This decorator sets an attribute on the function to indicate that
+    it requires sudo privileges to execute. You should add it to any
+    method that requires elevated privileges, i.e. whenever you are
+    using 'cx.sudo()' instead of 'cx.run()'.
+    """
+    setattr(func, "__requires_sudo__", True)
+    return func
 
 
 class PkgManager(ABC):
@@ -13,20 +27,32 @@ class PkgManager(ABC):
     Defines the interface for Package Manager implementations.
     """
 
-    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
+    def __init__(self) -> None:
         """
         Initialize the Package Manager.
-
-        :param sudo: Whether to use sudo for package refresh operations (default is True).
-        :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
-        self.sudo = sudo
-        self.__password = password
 
         # Setup logging
         self.logger = logging.getLogger(
             f"exosphere.providers.{self.__class__.__name__.lower()}"
         )
+
+    def requires_sudo(self, func_name: str) -> bool:
+        """
+        Check if the function requires sudo privileges.
+
+        This method checks if the function has the `__require_sudo__`
+        attribute set to True.
+
+        :param func: The function to check.
+        :return: True if the function requires sudo, False otherwise.
+        """
+        func = getattr(self, func_name, None)
+        if func is None:
+            raise ValueError(
+                f"No method named '{func_name}' in {self.__class__.__name__}"
+            )
+        return getattr(func, "__requires_sudo__", False)
 
     @abstractmethod
     def reposync(self, cx: Connection) -> bool:

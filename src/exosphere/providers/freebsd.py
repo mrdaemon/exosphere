@@ -24,14 +24,14 @@ class Pkg(PkgManager):
           anyways, when properly configured, and it's easier to track.
     """
 
-    def __init__(self, sudo: bool = True, password: str | None = None) -> None:
+    def __init__(self) -> None:
         """
         Initialize the Pkg package manager.
 
         :param sudo: Whether to use sudo for package refresh operations (default is True).
         :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
-        super().__init__(sudo, password)
+        super().__init__()
         self.logger.debug("Initializing FreeBSD pkg package manager")
         self.vulnerable: list[str] = []
 
