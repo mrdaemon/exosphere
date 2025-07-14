@@ -117,6 +117,12 @@ class Inventory:
         Attempt to load a host from the cache, or create a new one if that fails
         in any meaningful way.
 
+        Is also responsible for binding the host configuration parameters
+        to the Host object ones, and will log a warning if invalid parameters
+        are found in the configuration dictionary.
+
+        Invalid parameters will be ignored.
+
         The new host's other configuration properties will be updated
         if they have changed from config since (i.e. ip address, port etc)
 
@@ -125,6 +131,20 @@ class Inventory:
         :param cache: The DiskCache instance to use for loading the host
         :return: An instance of Host
         """
+
+        # Validate the host configuration, remove entries that are not
+        # parameters to the Host class constructor with a warning
+        valid_params = {
+            k for k in inspect.signature(Host.__init__).parameters.keys() if k != "self"
+        }
+        for key in list(host_cfg.keys()):
+            if key not in valid_params:
+                self.logger.warning(
+                    "Invalid host configuration option '%s' for host '%s', ignoring.",
+                    key,
+                    name,
+                )
+                del host_cfg[key]
 
         # Return early on cache miss
         if name not in cache:

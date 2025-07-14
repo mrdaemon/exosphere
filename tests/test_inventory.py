@@ -231,6 +231,36 @@ class TestInventory:
                 for m in caplog.messages
             )
 
+    def test_load_or_create_host_with_unknown_option(
+        self, mocker, mock_diskcache, mock_config, caplog
+    ):
+        """
+        Test that load_or_create_host ignores unknown options in host configuration.
+        """
+        inventory = Inventory(mock_config)
+
+        host_cfg = {
+            "name": "host5",
+            "ip": "127.0.0.8",
+            "port": 22,
+            "unknown_option": "should_be_ignored",
+        }
+        with caplog.at_level("WARNING"):
+            result = inventory.load_or_create_host("host5", host_cfg, mock_diskcache)
+
+        # Ensure the host is created without the unknown option
+        assert result.name == "host5"
+        assert result.ip == "127.0.0.8"
+        assert result.port == 22
+        assert not hasattr(result, "unknown_option")
+
+        # Ensure the warning is logged
+        assert any(
+            "Invalid host configuration option 'unknown_option' for host 'host5', ignoring."
+            in message
+            for message in caplog.messages
+        )
+
     def test_get_host(self, mocker, mock_config):
         """
         Test that get_host retrieves a host by name from the inventory.
