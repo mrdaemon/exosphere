@@ -46,6 +46,7 @@ class Configuration(dict):
             "default_timeout": 10,  # Default ssh connection timeout (in seconds)
             "default_username": None,  # Default global username to use for SSH connections
             "max_threads": 15,  # Maximum number of threads to use for parallel operations
+            "sudo_policy": None,  # Global sudo policy for operations, can be "prompt" or None.
         },
         "hosts": [],
     }

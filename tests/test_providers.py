@@ -640,7 +640,7 @@ class TestDnfProvider:
         If the APIs diverge in the future this will need expanded.
         """
 
-        implementation = provider(sudo=True, password=None)
+        implementation = provider()
 
         _ = implementation.get_updates(mock_dnf_output_no_updates)
 

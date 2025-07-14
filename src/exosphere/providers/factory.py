@@ -17,7 +17,7 @@ class PkgManagerFactory:
     }
 
     @staticmethod
-    def create(name: str, sudo: bool = True, password: str | None = None) -> PkgManager:
+    def create(name: str) -> PkgManager:
         """
         Create a package manager instance based on the provided name.
 
@@ -30,4 +30,4 @@ class PkgManagerFactory:
             raise ValueError(f"Unsupported package manager: {name}")
 
         pkg_impl = PkgManagerFactory._REGISTRY[name]
-        return pkg_impl(sudo=sudo, password=password)
+        return pkg_impl()
