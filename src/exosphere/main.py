@@ -164,6 +164,7 @@ def main() -> None:
         context.inventory = Inventory(app_config)
     except Exception as e:
         logger.error("Startup Error loading inventory: %s", e)
+        print(f"FATAL: Startup Error loading inventory: {e}", file=sys.stderr)
         sys.exit(1)
 
     # Launch CLI application
