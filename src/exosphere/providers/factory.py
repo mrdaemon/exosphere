@@ -17,6 +17,15 @@ class PkgManagerFactory:
     }
 
     @staticmethod
+    def get_registry() -> dict[str, PkgManager]:
+        """
+        Get the registry of available package manager implementations.
+
+        :return: Dictionary of package manager class names keyed by their names.
+        """
+        return PkgManagerFactory._REGISTRY.copy()
+
+    @staticmethod
     def create(name: str) -> PkgManager:
         """
         Create a package manager instance based on the provided name.
