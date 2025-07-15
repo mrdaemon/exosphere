@@ -104,11 +104,11 @@ class Inventory:
                 cached_hosts.add(name)
 
             # If hosts are in cache but not in config, remove them
-            # TODO: Maybe make this explicit, or configurable
-            for host in list(cache.keys()):
-                if host not in cached_hosts:
-                    self.logger.info("Removing stale host %s from cache", host)
-                    del cache[host]
+            if self.configuration["options"].get("cache_autopurge"):
+                for host in list(cache.keys()):
+                    if host not in cached_hosts:
+                        self.logger.info("Removing stale host %s from cache", host)
+                        del cache[host]
 
     def load_or_create_host(
         self, name: str, host_cfg: dict[str, Any], cache: DiskCache
