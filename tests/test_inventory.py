@@ -38,8 +38,9 @@ class TestInventory:
         Mock the Host class fairly in depth to ensure it behaves like the real one.
         This includes faking the signature of the __init__ method.
         """
+        from inspect import Parameter, Signature
+
         import exosphere.objects
-        from inspect import Signature, Parameter
 
         def make_mock_host(**kwargs):
             m = mocker.create_autospec(exosphere.objects.Host, instance=True, **kwargs)
@@ -54,17 +55,21 @@ class TestInventory:
 
         mock_signature = Signature(
             parameters=[
-                Parameter('self', Parameter.POSITIONAL_OR_KEYWORD),
-                Parameter('name', Parameter.POSITIONAL_OR_KEYWORD),
-                Parameter('ip', Parameter.POSITIONAL_OR_KEYWORD),
-                Parameter('port', Parameter.POSITIONAL_OR_KEYWORD, default=22),
-                Parameter('username', Parameter.POSITIONAL_OR_KEYWORD, default=None),
-                Parameter('description', Parameter.POSITIONAL_OR_KEYWORD, default=None),
-                Parameter('connect_timeout', Parameter.POSITIONAL_OR_KEYWORD, default=30),
+                Parameter("self", Parameter.POSITIONAL_OR_KEYWORD),
+                Parameter("name", Parameter.POSITIONAL_OR_KEYWORD),
+                Parameter("ip", Parameter.POSITIONAL_OR_KEYWORD),
+                Parameter("port", Parameter.POSITIONAL_OR_KEYWORD, default=22),
+                Parameter("username", Parameter.POSITIONAL_OR_KEYWORD, default=None),
+                Parameter("description", Parameter.POSITIONAL_OR_KEYWORD, default=None),
+                Parameter(
+                    "connect_timeout", Parameter.POSITIONAL_OR_KEYWORD, default=30
+                ),
             ]
         )
 
-        mocker.patch("exosphere.inventory.inspect.signature", return_value=mock_signature)
+        mocker.patch(
+            "exosphere.inventory.inspect.signature", return_value=mock_signature
+        )
 
         return patcher
 
@@ -188,9 +193,7 @@ class TestInventory:
                 "host1",
                 {"name": "host1", "ip": "127.0.0.1", "port": 2222},
                 lambda k: k == "host1",
-                lambda k: mock.Mock(name="host1", ip="127.0.0.1", port=2222)
-                if k == "host1"
-                else KeyError,
+                lambda k: mock.Mock(name="host1_mock") if k == "host1" else KeyError,
                 False,
                 False,
             ),
@@ -241,12 +244,13 @@ class TestInventory:
         cache_mock.__contains__.side_effect = cache_contains
 
         if callable(cache_getitem_side_effect):
+
             def modified_getitem(k):
                 if k == host_name:
                     return mock_host_class(**host_cfg)
                 else:
                     raise KeyError(k)
-                
+
             cache_mock.__getitem__.side_effect = modified_getitem
 
         if isinstance(cache_getitem_side_effect, Exception):
