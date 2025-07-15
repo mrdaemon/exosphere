@@ -121,6 +121,7 @@ The options section contains general settings for Exosphere.
 These options are applied globally, and affect how Exosphere behaves at runtime.
 
 - :option:`log_level`
+- :option:`default_sudo_policy`
 - :option:`debug`
 - :option:`log_file`
 - :option:`cache_autosave`
@@ -173,6 +174,66 @@ and examples of how to set them in the configuration file.
                 {
                     "options": {
                         "log_level": "DEBUG"
+                    }
+                }
+
+.. option:: default_sudo_policy
+
+    The global sudo policy to use when running commands on hosts.
+    This can be set to one of the following values:
+
+    - ``skip``: Do not run commands that require sudo at all
+    - ``nopasswd``: Assume sudoers configuration allows running the provider
+      commands without a password
+
+    This controls how Exosphere will handle sudo permissions when running commands
+    on hosts. The default is `skip`, which means Exosphere will not attempt to use
+    sudo at all.
+
+    If you want Exosphere to run commands that require elevated privileges at all,
+    you must configure your sudoers file to allow the user Exosphere connects as
+    to run those commands with ``NOPASSWD:`` in the sudoers file.
+
+    More details on how to configure this can be found in the :doc:`connections` 
+    documentation.
+
+    .. admonition:: Note
+
+        Depending your used Providers, you may not need to configure this at all!
+        See the :doc:`providers` documentation for more details.
+
+        This is the global value that, by default, applies to all hosts.
+        It can be overridden on a per-host basis in the inventory, inside
+        the `hosts` section, via :option:`sudo_policy`.
+
+
+    **Default**: ``skip``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  sudo_policy: nopasswd
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                sudo_policy = "nopasswd"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "sudo_policy": "nopasswd"
                     }
                 }
 
@@ -600,6 +661,7 @@ has a custom connection timeout value set, overriding :option:`default_timeout`.
 - :option:`username`: An optional SSH username to use when connecting to the host
 - :option:`description`: A short string describing the host, to be displayed in UIs
 - :option:`connect_timeout`: The number of seconds to wait for a response from the host over SSH.
+- :option:`sudo_policy`: The sudo policy to use when running commands on the host
 
 You will find below the detailed list of all available host options and their defaults.
 
@@ -740,7 +802,7 @@ You will find below the detailed list of all available host options and their de
 
     .. admonition:: Note
 
-        This option has precendence over :option:`default_username`
+        This option has precedence over :option:`default_username`
 
     This is useful if you need to connect to a particular host with a different
     user than the one you are running Exosphere as, or the one configured
@@ -870,6 +932,55 @@ You will find below the detailed list of all available host options and their de
                             "name": "myhost",
                             "ip": "myhost.example.com",
                             "connect_timeout": 30
+                        }
+                    ]
+                }
+
+.. option:: sudo_policy
+
+    The sudo policy to use when running commands on the host.
+    
+    .. admonition:: Note
+
+        This option has precedence over the global option,
+        see :option:`default_sudo_policy` for documentation and
+        usage details.
+
+
+    **Default**: Value of :option:`default_sudo_policy`
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                hosts:
+                  - name: myhost
+                    ip: myhost.example.com
+                    sudo_policy: nopasswd
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [[hosts]]
+                name = "myhost"
+                ip = "myhost.example.com"
+                sudo_policy = "nopasswd"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "hosts": [
+                        {
+                            "name": "myhost",
+                            "ip": "myhost.example.com",
+                            "sudo_policy": "nopasswd"
                         }
                     ]
                 }

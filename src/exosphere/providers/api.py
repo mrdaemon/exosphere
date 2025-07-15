@@ -16,7 +16,7 @@ def require_sudo(func: Callable) -> Callable:
     method that requires elevated privileges, i.e. whenever you are
     using 'cx.sudo()' instead of 'cx.run()'.
     """
-    setattr(func, "__requires_sudo__", True)
+    setattr(func, "__requires_sudo", True)
     return func
 
 

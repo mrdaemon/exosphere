@@ -43,11 +43,11 @@ class Configuration(dict):
             "cache_file": str(
                 paths.STATE_DIR / "exosphere.db"
             ),  # Default cache file for the application
-            "stale_threshold": 86400,  # How long before a host is considered stale (in seconds)
+            "stale_threshold": 86400,  # How long before a host is considered stale
             "default_timeout": 10,  # Default ssh connection timeout (in seconds)
-            "default_username": None,  # Default global username to use for SSH connections
-            "max_threads": 15,  # Maximum number of threads to use for parallel operations
-            "sudo_policy": None,  # Global sudo policy for operations, can be "prompt" or None.
+            "default_username": None,  # Default global username to use for SSH
+            "default_sudo_policy": "skip",  # Global sudo policy for package manager ops
+            "max_threads": 15,  # Maximum number of threads to use for parallel ops
         },
         "hosts": [],
     }

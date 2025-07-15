@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Generator
 
 from exosphere import app_config
+from exosphere.auth import SudoPolicy
 from exosphere.config import Configuration
 from exosphere.database import DiskCache
 from exosphere.objects import Host
@@ -173,12 +174,18 @@ class Inventory:
             # Return properties to defaults if they are not in config
             port_default = inspect.signature(Host.__init__).parameters["port"].default
             connect_timeout_default = int(app_config["options"]["default_timeout"])
+            sudo_policy_default = SudoPolicy(
+                app_config["options"]["default_sudo_policy"].lower()
+            )
 
             if "port" not in host_cfg:
                 reset_property(host_obj, "port", port_default)
 
             if "connect_timeout" not in host_cfg:
                 reset_property(host_obj, "connect_timeout", connect_timeout_default)
+
+            if "sudo_policy" not in host_cfg:
+                reset_property(host_obj, "sudo_policy", sudo_policy_default)
 
             # Also remove optional properties that are no longer in config
             # by resetting them to None
