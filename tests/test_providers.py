@@ -25,6 +25,23 @@ class TestPkgManagerFactory:
         with pytest.raises(ValueError):
             PkgManagerFactory.create("invalid_pkg_manager")
 
+    def test_get_registry(self):
+        """
+        Test the ability to get available package managers.
+        """
+        registry = PkgManagerFactory.get_registry()
+
+        assert isinstance(registry, dict)
+        assert len(registry) == 4
+        assert "apt" in registry
+        assert "pkg" in registry
+        assert "dnf" in registry
+        assert "yum" in registry
+
+        # Ensure we got a copy and not the original
+        registry["apt"] = "modified"  # type: ignore
+        assert PkgManagerFactory.get_registry()["apt"] != "modified"
+
 
 class TestAptProvider:
     @pytest.fixture
