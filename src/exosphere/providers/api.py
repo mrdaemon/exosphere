@@ -41,7 +41,7 @@ class PkgManager(ABC):
         """
         Check if the function requires sudo privileges.
 
-        This method checks if the function has the `__require_sudo__`
+        This method checks if the function has the `__require_sudo`
         attribute set to True.
 
         :param func: The function to check.
@@ -52,7 +52,7 @@ class PkgManager(ABC):
             raise ValueError(
                 f"No method named '{func_name}' in {self.__class__.__name__}"
             )
-        return getattr(func, "__requires_sudo__", False)
+        return getattr(func, "__requires_sudo", False)
 
     @abstractmethod
     def reposync(self, cx: Connection) -> bool:
