@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 
+from exosphere.auth import SudoPolicy
 from exosphere.config import Configuration
 from exosphere.inventory import Inventory
 
@@ -21,6 +22,7 @@ class TestInventory:
                     "port": 2222,
                 },
                 {"name": "host4", "ip": "127.0.0.4", "username": "test_user"},
+                {"name": "host5", "ip": "127.0.0.5", "sudo_policy": "nopasswd"},
             ],
         }
         config = Configuration()
@@ -42,6 +44,8 @@ class TestInventory:
 
         import exosphere.objects
 
+        original_optional_params = exosphere.objects.Host.OPTIONAL_PARAMS
+
         def make_mock_host(**kwargs):
             m = mocker.create_autospec(exosphere.objects.Host, instance=True, **kwargs)
             m.name = kwargs.get("name", "mock_host")
@@ -49,9 +53,14 @@ class TestInventory:
             m.port = kwargs.get("port", 22)
             m.description = kwargs.get("description", None)
             m.username = kwargs.get("username", None)
+            m.sudo_policy = kwargs.get("sudo_policy", SudoPolicy.SKIP)
             return m
 
         patcher = mocker.patch("exosphere.inventory.Host", side_effect=make_mock_host)
+
+        # Conserve the original OPTIONAL_PARAMS constant from the Host class
+        # Those are serialization hints
+        patcher.OPTIONAL_PARAMS = original_optional_params
 
         mock_signature = Signature(
             parameters=[
@@ -63,6 +72,11 @@ class TestInventory:
                 Parameter("description", Parameter.POSITIONAL_OR_KEYWORD, default=None),
                 Parameter(
                     "connect_timeout", Parameter.POSITIONAL_OR_KEYWORD, default=30
+                ),
+                Parameter(
+                    "sudo_policy",
+                    Parameter.POSITIONAL_OR_KEYWORD,
+                    default=SudoPolicy.SKIP,
                 ),
             ]
         )
@@ -79,7 +93,7 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
 
-        assert len(inventory.hosts) == 4
+        assert len(inventory.hosts) == 5
 
         assert inventory.hosts[0].name == "host1"
         assert inventory.hosts[0].ip == "127.0.0.1"
@@ -104,6 +118,10 @@ class TestInventory:
         assert inventory.hosts[3].username == "test_user"
         assert inventory.hosts[3].description is None
         assert inventory.hosts[3].port == 22
+
+        assert inventory.hosts[4].name == "host5"
+        assert inventory.hosts[4].ip == "127.0.0.5"
+        assert inventory.hosts[4].sudo_policy == SudoPolicy.NOPASSWD
 
     def test_init_all_removes_stale_hosts(
         self, mocker, mock_config, mock_diskcache, mock_host_class
@@ -155,7 +173,7 @@ class TestInventory:
         inventory.clear_state()
 
         cache_mock.clear.assert_called_once()
-        assert len(inventory.hosts) == 4
+        assert len(inventory.hosts) == 5
 
     def test_clear_state_handles_file_not_found(
         self, mocker, mock_config, mock_diskcache, mock_host_class
@@ -306,6 +324,76 @@ class TestInventory:
             "Invalid host configuration option 'unknown_option' for host 'host5', ignoring."
             in message
             for message in caplog.messages
+        )
+
+    def test_load_or_create_host_with_removed_option_in_cache(
+        self,
+        mocker,
+        mock_diskcache,
+        mock_host_class,
+        caplog,
+    ):
+        """
+        Test that load_or_create_host handles removed options from config
+        that are present in the cache gracefully. They are expected to be
+        reset to their default values.
+        """
+
+        # Configuration with a single host with no options
+        config_data = {
+            "options": {
+                "cache_file": "test_cache.db",
+            },
+            "hosts": [
+                {
+                    "name": "host99",
+                    "ip": "127.0.0.99",
+                },
+            ],
+        }
+
+        config = Configuration()
+        config.update_from_mapping(config_data)
+
+        inventory = Inventory(config)
+
+        # Simulate a host in the cache with options that have been removed from config
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+
+        cached_host = mocker.create_autospec(
+            spec="exosphere.objects.Host", instance=True
+        )
+        cached_host.name = "host99"
+        cached_host.ip = "127.0.0.99"
+        cached_host.port = 2222
+        cached_host.username = "megaroot"
+        cached_host.description = "test host"
+        cached_host.connect_timeout = 999
+        cached_host.sudo_policy = SudoPolicy.NOPASSWD
+
+        # Cache returns cached host
+        cache_mock.__contains__.side_effect = lambda k: k == "host99"
+        cache_mock.__getitem__.side_effect = (
+            lambda k: cached_host if k == "host99" else KeyError(k)
+        )
+
+        # Reset mock before actual test
+        mock_host_class.reset_mock()
+
+        result = inventory.load_or_create_host("host99", config["hosts"][0], cache_mock)
+
+        # Ensure the host is loaded from cache and not actually created
+        mock_host_class.assert_not_called()
+
+        # Ensure the host is created with default values for removed options
+        assert result.name == "host99"
+        assert result.ip == "127.0.0.99"
+        assert result.port == 22  # Default port
+        assert result.username is None
+        assert result.description is None
+        assert result.connect_timeout == config["options"]["default_timeout"]
+        assert result.sudo_policy == SudoPolicy(
+            config["options"]["default_sudo_policy"]
         )
 
     def test_get_host(self, mocker, mock_config):

@@ -2,10 +2,12 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from exosphere.auth import SudoPolicy
 from exosphere.config import Configuration
 from exosphere.data import HostInfo
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.objects import Host
+from exosphere.providers.api import require_sudo
 
 
 class TestHostObject:
@@ -34,21 +36,49 @@ class TestHostObject:
 
         return hostinfo
 
-    @pytest.fixture
-    def mock_config_with_username(self, mocker):
+    @pytest.fixture(autouse=True)
+    def mock_config(self, mocker):
         """
         Fixture to mock the application configuration with all its
-        default values, but also includes a set default_username.
+        default values.
         """
 
         # Create a fresh configuration object with defaults
         config = Configuration()
 
-        # Set a default username for testing
-        config["options"]["default_username"] = "test_user"
-
         # Patch the app_config to return this configuration
         return mocker.patch("exosphere.objects.app_config", config)
+
+    @pytest.fixture()
+    def mock_config_with_sudopolicy_pass(self, mocker, mock_config):
+        """
+        Fixture to mock the application configuration with all its
+        default values, but with a sudo_policy set to NOPASSWD.
+        """
+
+        settings = {
+            "options": {
+                "default_sudo_policy": "nopasswd",
+            },
+        }
+
+        mock_config.update_from_mapping(settings)
+
+    @pytest.fixture
+    def mock_config_with_username(self, mocker, mock_config):
+        """
+        Fixture to mock the application configuration with all its
+        default values, but also includes a set default_username.
+        """
+
+        # Set a default username for testing
+        settings = {
+            "options": {
+                "default_username": "test_user",
+            },
+        }
+
+        mock_config.update_from_mapping(settings)
 
     def test_host_initialization(self):
         """
@@ -61,6 +91,7 @@ class TestHostObject:
             port=2222,
             username="test_user",
             connect_timeout=32,
+            sudo_policy="skip",
         )
 
         assert host.name == "test_host"
@@ -69,6 +100,7 @@ class TestHostObject:
         assert host.connect_timeout == 32
         assert host.username == "test_user"
         assert host.description == "Test host"
+        assert host.sudo_policy == SudoPolicy.SKIP
 
         # Ensure Discovery attributes are initialized to None
         assert host.os is None
@@ -96,6 +128,7 @@ class TestHostObject:
         assert host.connect_timeout == 10  # Default connect timeout
         assert host.username is None  # Default username is None
         assert host.description is None  # Default description is None
+        assert host.sudo_policy == SudoPolicy.SKIP
 
     def test_host_connection(self, mocker, mock_connection):
         """
@@ -178,6 +211,23 @@ class TestHostObject:
             user="specific_user",  # Specific username overrides global
             connect_timeout=10,  # Default connect timeout
         )
+
+    def test_host_config_sudo_policy(self, mocker):
+        """
+        Test that the Host object uses the sudo policy from the configuration.
+        """
+        host = Host(name="test_host", ip="127.0.0.8")
+
+        assert host.sudo_policy == SudoPolicy.SKIP
+
+    def test_host_config_sudo_policy_overrides_global(self, mocker):
+        """
+        Test that the Host object can override the global sudo policy
+        with a specific one.
+        """
+        host = Host(name="test_host", ip="127.0.0.8", sudo_policy="nopasswd")
+
+        assert host.sudo_policy == SudoPolicy.NOPASSWD
 
     def test_host_ping(self, mocker, mock_connection):
         """
@@ -277,7 +327,9 @@ class TestHostObject:
 
         assert host.online is False
 
-    def test_host_discovery_data_refresh_error(self, mocker, mock_connection):
+    def test_host_discovery_data_refresh_error(
+        self, mocker, mock_connection, mock_config_with_sudopolicy_pass
+    ):
         """
         Test behavior of discovery when a DataRefreshError is raised.
         It should re-raise the exception and set the online status to False.
@@ -364,6 +416,52 @@ class TestHostObject:
         mock_factory.assert_called_once_with("apt")
         assert host._pkginst == fake_pkginst
 
+    def test_host_setstate_restores_state_and_new_defaults(self, mocker):
+        """
+        test that __setstate__ restores state but also applies new default
+        parameters that were not present when last serialized.
+        """
+
+        # State without sudo_policy and connect_timeout
+        legacy_state = {
+            "name": "test_host",
+            "ip": "127.0.0.1",
+            "port": 22,
+            "online": True,
+            "os": "linux",
+            "version": "12",
+            "flavor": "debian",
+            "package_manager": "apt",
+            "updates": [],
+            "last_refresh": None,
+        }
+
+        host = Host.__new__(Host)
+        host.__setstate__(legacy_state)
+
+        # Ensure new defaults are applied
+        assert host.connect_timeout == 10
+        assert host.sudo_policy == SudoPolicy.SKIP
+
+    def test_host_setstate_valueerror_on_missing_required(self, mocker):
+        """
+        Test that __setstate__ raises ValueError if required parameters are missing.
+        Ensures de-serialization fails agressively if required parameters are not present.
+        """
+        state = {
+            "name": "test_host",
+            # Missing 'ip' parameter
+            "port": 22,
+        }
+
+        host = Host.__new__(Host)
+
+        with pytest.raises(
+            ValueError,
+            match="Unable to de-serialize Host object state: Missing required parameter 'ip'",
+        ):
+            host.__setstate__(state)
+
     def test_security_update_property(self, mocker):
         """
         Test that security_updates property returns only updates marked as security.
@@ -436,14 +534,16 @@ class TestHostObject:
 
         assert host.is_stale is False
 
-    def test_refresh_catalog_success(self, mocker, mock_connection):
+    def test_refresh_catalog_success(
+        self, mocker, mock_connection, mock_config_with_sudopolicy_pass
+    ):
         """
         Test that refresh_catalog calls reposync and succeeds when online and _pkginst is set.
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
 
-        pkg_manager = mocker.MagicMock()
+        pkg_manager = mocker.Mock()
         pkg_manager.reposync.return_value = True
 
         host._pkginst = pkg_manager
@@ -452,7 +552,7 @@ class TestHostObject:
 
         pkg_manager.reposync.assert_called_once_with(host.connection)
 
-    def test_refresh_catalog_offline_raises(self):
+    def test_refresh_catalog_offline_raises(self, mock_config_with_sudopolicy_pass):
         """
         Test that refresh_catalog raises OfflineHostError if host is offline.
         """
@@ -462,7 +562,9 @@ class TestHostObject:
         with pytest.raises(OfflineHostError):
             host.refresh_catalog()
 
-    def test_refresh_catalog_no_pkginst_raises(self, caplog):
+    def test_refresh_catalog_no_pkginst_raises(
+        self, caplog, mock_config_with_sudopolicy_pass
+    ):
         """
         Test that refresh_catalog raises DataRefreshError if _pkginst is None.
         """
@@ -477,7 +579,9 @@ class TestHostObject:
         logs = caplog.text
         assert "Package manager implementation unavailable" in logs
 
-    def test_refresh_catalog_reposync_failure_raises(self, mocker, mock_connection):
+    def test_refresh_catalog_reposync_failure_raises(
+        self, mocker, mock_connection, mock_config_with_sudopolicy_pass
+    ):
         """
         Test that refresh_catalog raises DataRefreshError if reposync returns False.
         """
@@ -492,7 +596,38 @@ class TestHostObject:
         with pytest.raises(DataRefreshError):
             host.refresh_catalog()
 
-    def test_refresh_updates_success_with_updates(self, mocker, mock_connection):
+    def test_refresh_catalog_sudopolicy_disallowed(
+        self, mocker, mock_connection, caplog
+    ):
+        """
+        Test that refresh_catalog skips the task if sudo policy disallows it
+        """
+
+        @require_sudo
+        def reposync(cx):
+            raise AssertionError("Should not be called!")
+
+        mock_pkg = mocker.Mock()
+        mock_pkg.reposync = mocker.Mock(side_effect=reposync)
+
+        host = Host(name="test_host", ip="127.0.0.1", sudo_policy=SudoPolicy.SKIP)
+        host.online = True
+
+        host._pkginst = mock_pkg
+
+        with caplog.at_level("WARNING"):
+            result = host.refresh_catalog()
+
+        assert result is None
+        mock_pkg.reposync.assert_not_called()
+        assert (
+            "Skipping package catalog refresh on test_host due to SudoPolicy: skip"
+            in caplog.text
+        )
+
+    def test_refresh_updates_success_with_updates(
+        self, mocker, mock_connection, mock_config_with_sudopolicy_pass
+    ):
         """
         Test that refresh_updates populates updates and sets last_refresh when updates are found.
         """
@@ -514,7 +649,9 @@ class TestHostObject:
         assert host.last_refresh is not None
         assert before <= host.last_refresh <= after
 
-    def test_refresh_updates_success_no_updates(self, mocker, mock_connection, caplog):
+    def test_refresh_updates_success_no_updates(
+        self, mocker, mock_connection, caplog, mock_config_with_sudopolicy_pass
+    ):
         """
         Test that refresh_updates logs info when no updates are found.
         """
@@ -531,7 +668,9 @@ class TestHostObject:
         assert host.updates == []
         assert "No updates available for test_host" in caplog.text
 
-    def test_refresh_updates_offline_raises(self, mocker):
+    def test_refresh_updates_offline_raises(
+        self, mocker, mock_config_with_sudopolicy_pass
+    ):
         """
         Test that refresh_updates raises OfflineHostError if host is offline.
         """
@@ -542,7 +681,9 @@ class TestHostObject:
         with pytest.raises(OfflineHostError):
             host.refresh_updates()
 
-    def test_refresh_updates_no_pkginst_raises(self, mocker, caplog):
+    def test_refresh_updates_no_pkginst_raises(
+        self, mocker, caplog, mock_config_with_sudopolicy_pass
+    ):
         """
         Test that refresh_updates raises DataRefreshError if _pkginst is None.
         """
@@ -556,3 +697,32 @@ class TestHostObject:
             host.refresh_updates()
 
         assert "Package manager implementation unavailable" in caplog.text
+
+    def test_refresh_updates_sudopolicy_disallowed(
+        self, mocker, mock_connection, caplog
+    ):
+        """
+        Test that refresh_updates skips the task if sudo policy disallows it
+        """
+
+        @require_sudo
+        def get_updates(cx):
+            raise AssertionError("Should not be called!")
+
+        mock_pkg = mocker.Mock()
+        mock_pkg.get_updates = mocker.Mock(side_effect=get_updates)
+
+        host = Host(name="test_host", ip="127.0.0.8", sudo_policy=SudoPolicy.SKIP)
+        host.online = True
+
+        host._pkginst = mock_pkg
+
+        with caplog.at_level("WARNING"):
+            result = host.refresh_updates()
+
+        assert result is None
+        mock_pkg.get_updates.assert_not_called()
+        assert (
+            "Skipping updates refresh on test_host due to SudoPolicy: skip"
+            in caplog.text
+        )

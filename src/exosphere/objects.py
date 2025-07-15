@@ -5,6 +5,7 @@ from datetime import datetime
 from fabric import Connection
 
 from exosphere import app_config
+from exosphere.auth import SudoPolicy, check_sudo_policy
 from exosphere.data import HostInfo, Update
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.providers import PkgManagerFactory
@@ -41,6 +42,7 @@ class Host:
         username: str | None = None,
         description: str | None = None,
         connect_timeout: int | None = None,
+        sudo_policy: str | None = None,
     ) -> None:
         """
         Create a new Host Object
@@ -60,6 +62,7 @@ class Host:
         :param username: SSH username (optional, will use current if not provided)
         :param description: Optional description for the host
         :param connect_timeout: Connection timeout in seconds (optional)
+        :param sudo_policy: Sudo policy for package manager operations (skip, nopasswd)
         """
         # Setup logging
         self.logger = logging.getLogger(__name__)
@@ -81,6 +84,10 @@ class Host:
         self.connect_timeout: int = (
             connect_timeout or app_config["options"]["default_timeout"]
         )
+
+        # Sudo Policy for package manager operations
+        target_policy: str = sudo_policy or app_config["options"]["default_sudo_policy"]
+        self.sudo_policy: SudoPolicy = SudoPolicy(target_policy.lower())
 
         # online status, defaults to False
         # until first discovery.
@@ -140,12 +147,27 @@ class Host:
             if name == "self":
                 continue
             if not hasattr(self, name):
+                # Handle optional parameters that are processed in the constructor
+                # and use the default value from the configuration if not set
+                if name == "connect_timeout":
+                    setattr(self, name, app_config["options"]["default_timeout"])
+                    continue
+
+                if name == "sudo_policy":
+                    setattr(
+                        self,
+                        name,
+                        SudoPolicy(app_config["options"]["default_sudo_policy"]),
+                    )
+                    continue
+
+                # Handle everything else that eats the default value from the constructor
                 if param.default is not inspect.Parameter.empty:
                     setattr(self, name, param.default)
                 else:
                     raise ValueError(
                         "Unable to de-serialize Host object state: "
-                        f"Missing required parameter '{name}' in Host object state"
+                        f"Missing required parameter '{name}'"
                     )
 
     @property
@@ -312,6 +334,15 @@ class Host:
             )
 
         if self._pkginst is not None:
+            # Check if we can run this with the current SudoPolicy
+            if not check_sudo_policy(self._pkginst.reposync, self.sudo_policy):
+                self.logger.warning(
+                    "Skipping package catalog refresh on %s due to SudoPolicy: %s",
+                    self.name,
+                    self.sudo_policy,
+                )
+                return
+
             pkg_manager = self._pkginst
             if not pkg_manager.reposync(self.connection):
                 raise DataRefreshError(
@@ -329,6 +360,15 @@ class Host:
             raise OfflineHostError(f"Host {self.name} is offline.")
 
         if self._pkginst is not None:
+            # Check if we can run this with the current SudoPolicy
+            if not check_sudo_policy(self._pkginst.get_updates, self.sudo_policy):
+                self.logger.warning(
+                    "Skipping updates refresh on %s due to SudoPolicy: %s",
+                    self.name,
+                    self.sudo_policy,
+                )
+                return
+
             pkg_manager = self._pkginst
             self.updates = pkg_manager.get_updates(self.connection)
         else:
