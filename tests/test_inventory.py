@@ -34,7 +34,12 @@ class TestInventory:
 
     @pytest.fixture
     def mock_host_class(self, mocker):
+        """
+        Mock the Host class fairly in depth to ensure it behaves like the real one.
+        This includes faking the signature of the __init__ method.
+        """
         import exosphere.objects
+        from inspect import Signature, Parameter
 
         def make_mock_host(**kwargs):
             m = mocker.create_autospec(exosphere.objects.Host, instance=True, **kwargs)
@@ -46,6 +51,21 @@ class TestInventory:
             return m
 
         patcher = mocker.patch("exosphere.inventory.Host", side_effect=make_mock_host)
+
+        mock_signature = Signature(
+            parameters=[
+                Parameter('self', Parameter.POSITIONAL_OR_KEYWORD),
+                Parameter('name', Parameter.POSITIONAL_OR_KEYWORD),
+                Parameter('ip', Parameter.POSITIONAL_OR_KEYWORD),
+                Parameter('port', Parameter.POSITIONAL_OR_KEYWORD, default=22),
+                Parameter('username', Parameter.POSITIONAL_OR_KEYWORD, default=None),
+                Parameter('description', Parameter.POSITIONAL_OR_KEYWORD, default=None),
+                Parameter('connect_timeout', Parameter.POSITIONAL_OR_KEYWORD, default=30),
+            ]
+        )
+
+        mocker.patch("exosphere.inventory.inspect.signature", return_value=mock_signature)
+
         return patcher
 
     def test_init_all(self, mocker, mock_config, mock_diskcache, mock_host_class):
@@ -204,9 +224,17 @@ class TestInventory:
 
         # Horrying kludge to mock cache behavior
         cache_mock.__contains__.side_effect = cache_contains
+
+        if callable(cache_getitem_side_effect):
+            def modified_getitem(k):
+                if k == host_name:
+                    return mock_host_class(**host_cfg)
+                else:
+                    raise KeyError(k)
+                
+            cache_mock.__getitem__.side_effect = modified_getitem
+
         if isinstance(cache_getitem_side_effect, Exception):
-            cache_mock.__getitem__.side_effect = cache_getitem_side_effect
-        elif callable(cache_getitem_side_effect):
             cache_mock.__getitem__.side_effect = cache_getitem_side_effect
 
         if expect_warning:
