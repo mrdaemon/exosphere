@@ -39,6 +39,7 @@ class Configuration(dict):
                 paths.LOG_DIR / "exosphere.log"
             ),  # Default log file for the application
             "cache_autosave": True,  # Automatically save cache to disk after changes
+            "cache_autopurge": True,  # Automatically purge hosts removed from inventory
             "cache_file": str(
                 paths.STATE_DIR / "exosphere.db"
             ),  # Default cache file for the application

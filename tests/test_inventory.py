@@ -104,7 +104,8 @@ class TestInventory:
         self, mocker, mock_config, mock_diskcache, mock_host_class
     ):
         """
-        Test that init_all removes hosts that are not in the configuration from cache.
+        Test that init_all removes hosts that are not in the configuration from cache
+        by default
         """
         cache_mock = mock_diskcache.return_value.__enter__.return_value
         cache_mock.keys.return_value = ["host1", "host2", "stalehost"]
@@ -112,6 +113,20 @@ class TestInventory:
         _ = Inventory(mock_config)
 
         cache_mock.__delitem__.assert_any_call("stalehost")
+
+    def test_init_all_does_not_remove_stale_hosts(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that init_all does not remove stale hosts from cache if configured to do so.
+        """
+        mock_config["options"]["cache_autopurge"] = False
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+        cache_mock.keys.return_value = ["host1", "host2", "stalehost"]
+
+        _ = Inventory(mock_config)
+
+        cache_mock.__delitem__.assert_not_called()
 
     def test_save_state(self, mocker, mock_config, mock_diskcache, mock_host_class):
         """
