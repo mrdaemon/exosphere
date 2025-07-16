@@ -324,30 +324,24 @@ class Host:
         # refuse the temptation to guess or force a sync, and throw
         # an exception instead. Caller can deal with it.
         if self._pkginst is None:
-            self.logger.error(
-                "Package manager implementation unavailable, "
-                "this is likely due to sync failure."
-            )
+            self.logger.error("Package manager implementation unavailable!")
             raise DataRefreshError(
                 f"Failed to refresh updates on {self.name}: "
                 "No package manager implementation could be used."
             )
 
-        if self._pkginst is not None:
-            # Check if we can run this with the current SudoPolicy
-            if not check_sudo_policy(self._pkginst.reposync, self.sudo_policy):
-                self.logger.warning(
-                    "Skipping package catalog refresh on %s due to SudoPolicy: %s",
-                    self.name,
-                    self.sudo_policy,
-                )
-                return
+        # Check if we can run this with the current SudoPolicy
+        if not check_sudo_policy(self._pkginst.reposync, self.sudo_policy):
+            self.logger.warning(
+                "Skipping package catalog refresh on %s due to SudoPolicy: %s",
+                self.name,
+                self.sudo_policy,
+            )
+            return
 
-            pkg_manager = self._pkginst
-            if not pkg_manager.reposync(self.connection):
-                raise DataRefreshError(
-                    f"Failed to refresh package catalog on {self.name}"
-                )
+        pkg_manager = self._pkginst
+        if not pkg_manager.reposync(self.connection):
+            raise DataRefreshError(f"Failed to refresh package catalog on {self.name}")
 
     def refresh_updates(self) -> None:
         """
@@ -359,27 +353,24 @@ class Host:
         if not self.online:
             raise OfflineHostError(f"Host {self.name} is offline.")
 
-        if self._pkginst is not None:
-            # Check if we can run this with the current SudoPolicy
-            if not check_sudo_policy(self._pkginst.get_updates, self.sudo_policy):
-                self.logger.warning(
-                    "Skipping updates refresh on %s due to SudoPolicy: %s",
-                    self.name,
-                    self.sudo_policy,
-                )
-                return
-
-            pkg_manager = self._pkginst
-            self.updates = pkg_manager.get_updates(self.connection)
-        else:
-            self.logger.error(
-                "Package manager implementation unavailable, "
-                "this is likely due to sync failure."
-            )
+        if self._pkginst is None:
+            self.logger.error("Package manager implementation unavailable!")
             raise DataRefreshError(
                 f"Failed to refresh updates on {self.name}: "
                 "No package manager implementation could be used."
             )
+
+        # Check if we can run this with the current SudoPolicy
+        if not check_sudo_policy(self._pkginst.get_updates, self.sudo_policy):
+            self.logger.warning(
+                "Skipping updates refresh on %s due to SudoPolicy: %s",
+                self.name,
+                self.sudo_policy,
+            )
+            return
+
+        pkg_manager = self._pkginst
+        self.updates = pkg_manager.get_updates(self.connection)
 
         if not self.updates:
             self.logger.info("No updates available for %s", self.name)
