@@ -35,9 +35,11 @@ class Dnf(PkgManager):
         :return: True if synchronization is successful, False otherwise.
         """
         self.logger.debug("Synchronizing dnf repositories")
-        update = cx.run(
-            f"{self.pkgbin} makecache --refresh --quiet -y", hide=True, warn=True
-        )
+
+        with cx as c:
+            update = c.run(
+                f"{self.pkgbin} makecache --refresh --quiet -y", hide=True, warn=True
+            )
 
         if update.failed:
             self.logger.error(
@@ -62,9 +64,10 @@ class Dnf(PkgManager):
         security_updates = self._get_security_updates(cx)
 
         # Get all other updates
-        raw_query = cx.run(
-            f"{self.pkgbin} check-update --quiet -y", hide=True, warn=True
-        )
+        with cx as c:
+            raw_query = c.run(
+                f"{self.pkgbin} check-update --quiet -y", hide=True, warn=True
+            )
 
         if raw_query.return_code == 0:
             self.logger.debug("No updates available")
@@ -132,9 +135,12 @@ class Dnf(PkgManager):
 
         updates: list[str] = []
 
-        raw_query = cx.run(
-            f"{self.pkgbin} check-update --security --quiet -y", hide=True, warn=True
-        )
+        with cx as c:
+            raw_query = c.run(
+                f"{self.pkgbin} check-update --security --quiet -y",
+                hide=True,
+                warn=True,
+            )
 
         if raw_query.return_code == 0:
             self.logger.debug("No security updates available")
@@ -198,11 +204,13 @@ class Dnf(PkgManager):
         :param package_name: Name of the package.
         :return: Currently installed version of the package.
         """
-        result = cx.run(
-            f"{self.pkgbin} list installed --quiet -y {' '.join(package_names)}",
-            hide=True,
-            warn=True,
-        )
+
+        with cx as c:
+            result = c.run(
+                f"{self.pkgbin} list installed --quiet -y {' '.join(package_names)}",
+                hide=True,
+                warn=True,
+            )
 
         if result.failed:
             raise DataRefreshError(f"Failed to get current versions: {result.stderr}")
@@ -222,10 +230,12 @@ class Dnf(PkgManager):
             name = parts[0]
             version = parts[1]
 
-            # If a package shows up more than once in the list, we
-            # just clobber it and keep the last instance.
-            # This looks like a bug, but is intended, due to how dnf
-            # handles packages with slotted versions.
+            # If a package shows up more than once in the list, we just
+            # clobber it and keep the last instance.
+            # This looks like a bug, but is intended behavior:
+            # DNF may list both the old and new versions during some
+            # transitions, so we intentionally keep the last listed
+            # version for each package.
             current_versions[name] = version
 
         self.logger.debug("Current versions: %s", current_versions)

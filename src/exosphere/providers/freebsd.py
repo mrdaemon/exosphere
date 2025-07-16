@@ -17,7 +17,7 @@ class Pkg(PkgManager):
 
     Limitations:
         - Does not include packages changed as a result of a direct dependency
-        update, only the top-level packages.
+          update, only the top-level packages.
         - Does not include ports, only packages installed via pkg.
         - Does not handle system or kernel updates. Maybe one day we'll wrap
           freebsd-update(8) for that, but for now you get nice emails about these
@@ -63,22 +63,25 @@ class Pkg(PkgManager):
         updates: list[Update] = []
         vulnerable: list[str] = []
 
-        # Check for vulnerable packages via
-        # pkg audit -q
-        self.logger.debug("Running pkg audit to inventory vulnerable packages")
-        result_audit = cx.run("pkg audit -q", hide=True, warn=True)
+        # Collect required data for audit and updates
+        # We batch this to reuse the same connection
+        with cx as c:
+            audit_result = c.run("pkg audit -q", hide=True, warn=True)
+            query_result = c.run(
+                "pkg upgrade -qn | grep -e '^\\s'", hide=True, warn=True
+            )
 
-        if result_audit.failed:
+        if audit_result.failed:
             # We check for stderr here, as pkg audit will return
             # non-zero exit code if vulnerable packages are found.
-            if result_audit.stderr:
-                self.logger.error("pkg audit failed: %s", result_audit.stderr)
-                cx.close()
+            if audit_result.stderr:
+                self.logger.error("pkg audit failed: %s", audit_result.stderr)
                 raise DataRefreshError(
-                    f"Failed to get vulnerable packages from pkg: {result_audit.stdout} {result_audit.stderr}"
+                    f"Failed to get vulnerable packages from pkg: {audit_result.stdout} {audit_result.stderr}"
                 )
 
-        for line in result_audit.stdout.splitlines():
+        # Check pkg audit output for known vulnerable packages
+        for line in audit_result.stdout.splitlines():
             line = line.strip()
 
             # Skip blank lines
@@ -99,21 +102,19 @@ class Pkg(PkgManager):
             ", ".join(vulnerable),
         )
 
-        result = cx.run("pkg upgrade -qn | grep -e '^\\s'", hide=True, warn=True)
-
-        if result.failed:
-            cx.close()
+        # Check package updates
+        if query_result.failed:
             # Nonzero exit can mean grep found no matches.
-            if result.stderr:
+            if query_result.stderr:
                 raise DataRefreshError(
-                    f"Failed to get updates from pkg: {result.stderr}"
+                    f"Failed to get updates from pkg: {query_result.stderr}"
                 )
 
             # We're probably good, no updates available.
             self.logger.debug("No updates available or no matches in output.")
             return updates
 
-        for line in result.stdout.splitlines():
+        for line in query_result.stdout.splitlines():
             line = line.strip()
 
             # Skip blank lines
@@ -133,7 +134,6 @@ class Pkg(PkgManager):
             ", ".join(u.name for u in updates),
         )
 
-        cx.close()
         return updates
 
     def _parse_line(self, line: str) -> Update | None:

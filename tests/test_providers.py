@@ -49,36 +49,32 @@ class TestAptProvider:
         """
         Fixture to mock the Fabric Connection object.
         """
-        mock_cx = mocker.patch("fabric.Connection", autospec=True)
+        mock_cx_class = mocker.patch(
+            "exosphere.providers.debian.Connection", autospec=True
+        )
+        mock_cx = mock_cx_class.return_value
+
+        # Context manager behavior should return the same mock
+        mock_cx.__enter__.return_value = mock_cx
+        mock_cx.__exit__.return_value = False  # Don't suppress exceptions
+
+        # Default to successful run
         mock_cx.run.return_value.failed = False
+        mock_cx.sudo.return_value.failed = False
+
         return mock_cx
 
     @pytest.fixture
-    def mock_connection_failed(self, mocker, mock_connection):
+    def mock_connection_failed(self, mock_connection):
         """
         Fixture to mock the Fabric Connection object with a failed run.
         """
         mock_connection.run.return_value.failed = True
-        return mock_connection
-
-    @pytest.fixture
-    def mock_connection_sudo(self, mocker, mock_connection):
-        """
-        Fixture to mock the Fabric Connection object with sudo.
-        """
-        mock_connection.sudo.return_value.failed = False
-        return mock_connection
-
-    @pytest.fixture
-    def mock_connection_sudo_failed(self, mocker, mock_connection):
-        """
-        Fixture to mock the Fabric Connection object with sudo and a failed run.
-        """
         mock_connection.sudo.return_value.failed = True
         return mock_connection
 
     @pytest.fixture
-    def mock_pkg_output(self, mocker, mock_connection):
+    def mock_pkg_output(self, mock_connection):
         """
         Fixture to mock the output of the apt command enumerating packages.
         """
@@ -98,7 +94,7 @@ class TestAptProvider:
         return mock_connection
 
     @pytest.fixture
-    def mock_pkg_output_no_updates(self, mocker, mock_connection):
+    def mock_pkg_output_no_updates(self, mock_connection):
         """
         Fixture to mock the output of the apt command when no updates are available.
         """
@@ -111,12 +107,12 @@ class TestAptProvider:
     @pytest.mark.parametrize(
         "connection_fixture, expected",
         [
-            ("mock_connection_sudo", True),
-            ("mock_connection_sudo_failed", False),
+            ("mock_connection", True),
+            ("mock_connection_failed", False),
         ],
         ids=["success", "failure"],
     )
-    def test_reposync(self, mocker, request, connection_fixture, expected):
+    def test_reposync(self, request, connection_fixture, expected):
         """
         Test the reposync method of the Apt provider.
         """
@@ -130,7 +126,7 @@ class TestAptProvider:
         )
         assert result is expected
 
-    def test_get_updates(self, mocker, mock_pkg_output):
+    def test_get_updates(self, mock_pkg_output):
         """
         Test the get_updates method of the Apt provider.
         """
@@ -155,7 +151,7 @@ class TestAptProvider:
         assert updates[7].name == "big-patch"
         assert updates[7].security
 
-    def test_get_updates_no_updates(self, mocker, mock_pkg_output_no_updates):
+    def test_get_updates_no_updates(self, mock_pkg_output_no_updates):
         """
         Test the get_updates method of the Apt provider when no updates are available.
         """
@@ -165,7 +161,7 @@ class TestAptProvider:
 
         assert updates == []
 
-    def test_get_updates_query_failed(self, mocker, mock_connection):
+    def test_get_updates_query_failed(self, mock_connection):
         """
         Test the get_updates method of the Apt provider when the query fails.
         """
@@ -176,7 +172,7 @@ class TestAptProvider:
         with pytest.raises(DataRefreshError):
             apt.get_updates(mock_connection)
 
-    def test_get_updates_invalid_output(self, mocker, mock_connection):
+    def test_get_updates_invalid_output(self, mock_connection):
         """
         Test the get_updates method of the Apt provider with invalid output.
         Unparsable output in lines should be ignored.
@@ -195,12 +191,22 @@ class TestPkgProvider:
         """
         Fixture to mock the Fabric Connection object.
         """
-        mock_cx = mocker.patch("exosphere.providers.freebsd.Connection", autospec=True)
+        mock_cx_class = mocker.patch(
+            "exosphere.providers.freebsd.Connection", autospec=True
+        )
+        mock_cx = mock_cx_class.return_value
+
+        # Context manager behavior should return the same mock
+        mock_cx.__enter__.return_value = mock_cx
+        mock_cx.__exit__.return_value = False  # Don't supress exceptions
+
+        # Default to successful run
         mock_cx.run.return_value.failed = False
+
         return mock_cx
 
     @pytest.fixture
-    def mock_connection_failed(self, mocker, mock_connection):
+    def mock_connection_failed(self, mock_connection):
         """
         Fixture to mock the Fabric Connection object with a failed run.
         """
@@ -209,7 +215,7 @@ class TestPkgProvider:
         return mock_connection
 
     @pytest.fixture
-    def mock_connection_sudo(self, mocker, mock_connection):
+    def mock_connection_sudo(self, mock_connection):
         """
         Fixture to mock the Fabric Connection object with sudo.
         """
@@ -217,7 +223,7 @@ class TestPkgProvider:
         return mock_connection
 
     @pytest.fixture
-    def mock_connection_sudo_failed(self, mocker, mock_connection):
+    def mock_connection_sudo_failed(self, mock_connection):
         """
         Fixture to mock the Fabric Connection object with sudo and a failed run.
         """
@@ -312,7 +318,7 @@ class TestPkgProvider:
         mock_connection.run.side_effect = [mock_audit, mock_packages]
         return mock_connection
 
-    def test_reposync(self, mocker, mock_connection):
+    def test_reposync(self, mock_connection):
         """
         Test the reposync method of the Pkg provider.
         This method is a no-op for FreeBSD, since pkg automatically
@@ -324,7 +330,7 @@ class TestPkgProvider:
 
         assert result is True
 
-    def test_get_updates(self, mocker, mock_pkg_output):
+    def test_get_updates(self, mock_pkg_output):
         """
         Test the get_updates method of the Pkg provider.
         The data is provided by the mock_pkg_output fixture.
@@ -358,7 +364,7 @@ class TestPkgProvider:
         assert updates[13].name == "py311-h11"
         assert updates[13].security
 
-    def test_get_updates_no_updates(self, mocker, mock_pkg_output_no_updates):
+    def test_get_updates_no_updates(self, mock_pkg_output_no_updates):
         """
         Test the get_updates method of the Pkg provider when no updates are available.
         """
@@ -368,7 +374,7 @@ class TestPkgProvider:
 
         assert updates == []
 
-    def test_get_updates_query_failed(self, mocker, mock_connection_failed):
+    def test_get_updates_query_failed(self, mock_connection_failed):
         """
         Test the get_updates method of the Pkg provider when the query fails.
         """
@@ -387,7 +393,7 @@ class TestPkgProvider:
             "empty_output",
         ],
     )
-    def test_get_updates_invalid_output(self, mocker, mock_connection, output):
+    def test_get_updates_invalid_output(self, mock_connection, output):
         """
         Test the get_updates method of the Pkg provider with invalid output.
         Unparsable output in lines should be ignored.
@@ -399,7 +405,7 @@ class TestPkgProvider:
 
         assert results == []
 
-    def test_get_updates_nonzero_exit_audit(self, mocker, mock_pkg_output_audit_failed):
+    def test_get_updates_nonzero_exit_audit(self, mock_pkg_output_audit_failed):
         """
         Test the get_updates method of the Pkg provider when the audit command fails.
 
@@ -423,7 +429,15 @@ class TestDnfProvider:
         """
         Fixture to mock the Fabric Connection object.
         """
-        mock_cx = mocker.patch("fabric.Connection", autospec=True)
+        mock_cx_class = mocker.patch(
+            "exosphere.providers.redhat.Connection", autospec=True
+        )
+        mock_cx = mock_cx_class.return_value
+
+        # Context manager behavior should return the same mock
+        mock_cx.__enter__.return_value = mock_cx
+        mock_cx.__exit__.return_value = False  # Don't supress exceptions
+
         mock_cx.run.return_value.failed = False
         return mock_cx
 
@@ -439,7 +453,7 @@ class TestDnfProvider:
         return mock_connection
 
     @pytest.fixture
-    def mock_dnf_output_return(self, mocker, mock_connection):
+    def mock_dnf_output_return(self, mocker):
         """
         Fixture to mock the output of the dnf command enumerating packages.
         """
@@ -469,7 +483,7 @@ class TestDnfProvider:
         return mock_return
 
     @pytest.fixture
-    def mock_dnf_current_versions_return(self, mocker, mock_connection):
+    def mock_dnf_current_versions_return(self, mocker):
         """
         Fixture to mock the output of the dnf command for current versions.
         """
@@ -500,7 +514,7 @@ class TestDnfProvider:
         return mock_return
 
     @pytest.fixture
-    def mock_dnf_security_output_return(self, mocker, mock_connection):
+    def mock_dnf_security_output_return(self, mocker):
         """
         Fixture to mock the output of the dnf command for security updates.
         """
@@ -538,7 +552,6 @@ class TestDnfProvider:
     @pytest.fixture
     def run_side_effect_normal(
         self,
-        mocker,
         mock_dnf_output_return,
         mock_dnf_security_output_return,
         mock_dnf_current_versions_return,
@@ -561,7 +574,7 @@ class TestDnfProvider:
         ],
         ids=["success", "failure"],
     )
-    def test_reposync(self, mocker, request, connection_fixture, expected):
+    def test_reposync(self, request, connection_fixture, expected):
         """
         Test the reposync method of the DNF provider.
         This method is a no-op for Red Hat-based systems, since dnf automatically
@@ -578,7 +591,7 @@ class TestDnfProvider:
 
         assert result is expected
 
-    def test_get_updates(self, mocker, mock_connection, run_side_effect_normal):
+    def test_get_updates(self, mock_connection, run_side_effect_normal):
         """
         Test the get_updates method of the DNF provider.
         The data is provided by the mock_dnf_output fixture.
@@ -603,7 +616,7 @@ class TestDnfProvider:
         assert updates[5].current_version == "5.14.0-502.35.1.el9_5"
         assert updates[5].security
 
-    def test_get_updates_no_updates(self, mocker, mock_dnf_output_no_updates):
+    def test_get_updates_no_updates(self, mock_dnf_output_no_updates):
         """
         Test the get_updates method of the DNF provider when no updates are available.
         """
@@ -613,7 +626,7 @@ class TestDnfProvider:
 
         assert updates == []
 
-    def test_get_updates_query_failed(self, mocker, mock_connection_failed):
+    def test_get_updates_query_failed(self, mock_connection_failed):
         """
         Test the get_updates method of the DNF provider when the query fails.
         """
@@ -622,7 +635,7 @@ class TestDnfProvider:
         with pytest.raises(DataRefreshError):
             dnf.get_updates(mock_connection_failed)
 
-    def test_get_updates_invalid_output(self, mocker, mock_connection):
+    def test_get_updates_invalid_output(self, mock_connection):
         """
         Test the get_updates method of the DNF provider with invalid output.
         Unparsable output in lines should be ignored.
@@ -644,7 +657,6 @@ class TestDnfProvider:
     )
     def test_compatibility_mode(
         self,
-        mocker,
         mock_dnf_output_no_updates,
         provider,
         expected_command,

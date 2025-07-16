@@ -4,7 +4,7 @@ from fabric import Connection
 
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
-from exosphere.providers.api import PkgManager, require_sudo
+from exosphere.providers.api import PkgManager, requires_sudo
 
 
 class Apt(PkgManager):
@@ -17,23 +17,24 @@ class Apt(PkgManager):
     def __init__(self) -> None:
         """
         Initialize the Apt package manager.
-
-        :param sudo: Whether to use sudo for package refresh operations (default is True).
-        :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
         super().__init__()
         self.logger.debug("Initializing Debian Apt package manager")
 
-    @require_sudo
+    @requires_sudo
     def reposync(self, cx: Connection) -> bool:
         """
         Synchronize the APT package repository.
+
+        This method is equivalent to running 'apt-get update'.
 
         :param cx: Fabric Connection object.
         :return: True if synchronization is successful, False otherwise.
         """
         self.logger.debug("Synchronizing apt repositories")
-        update = cx.sudo("apt-get update", hide=True, warn=True)
+
+        with cx as c:
+            update = c.sudo("apt-get update", hide=True, warn=True)
 
         if update.failed:
             self.logger.error(
@@ -55,13 +56,12 @@ class Apt(PkgManager):
 
         updates: list[Update] = []
 
-        raw_query = cx.run(
-            "apt-get dist-upgrade -s | grep -e '^Inst'", hide=True, warn=True
-        )
+        with cx as c:
+            raw_query = c.run(
+                "apt-get dist-upgrade -s | grep -e '^Inst'", hide=True, warn=True
+            )
 
         if raw_query.failed:
-            cx.close()
-
             # Nonzero exit can mean grep found no matches.
             if raw_query.stderr:
                 raise DataRefreshError(
@@ -92,7 +92,6 @@ class Apt(PkgManager):
             ", ".join(u.name for u in updates),
         )
 
-        cx.close()
         return updates
 
     def _parse_line(self, line: str) -> Update | None:
@@ -116,8 +115,8 @@ class Apt(PkgManager):
         if not match:
             return None
 
+        # If current version is empty, treat match as a new package
         if not match["current_version"]:
-            # If current version is empty, treat it as a new package
             self.logger.debug(
                 "New package detected: %s (%s)", match["name"], match["new_version"]
             )

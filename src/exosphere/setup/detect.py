@@ -22,7 +22,7 @@ def platform_detect(cx: Connection) -> HostInfo:
     Entry point for refreshing all platform details.
 
     :param cx: Fabric Connection object
-    :return: Dictionary with platform details
+    :return: HostInfo object with platform details
     """
 
     try:
@@ -48,8 +48,8 @@ def os_detect(cx: Connection) -> str:
     :param cx: Fabric Connection object
     :return: OS name as string
     """
-    result_system = cx.run("uname -s", hide=True, warn=True)
-    cx.close()
+    with cx as c:
+        result_system = c.run("uname -s", hide=True, warn=True)
 
     if result_system.failed:
         raise DataRefreshError(f"Failed to query OS info: {result_system.stderr}")
@@ -57,7 +57,7 @@ def os_detect(cx: Connection) -> str:
     return result_system.stdout.strip().lower()
 
 
-def flavor_detect(cx: Connection, platform: str) -> str:
+def flavor_detect(cx: Connection, platform_name: str) -> str:
     """
     Detect the flavor of the remote system.
 
@@ -66,26 +66,26 @@ def flavor_detect(cx: Connection, platform: str) -> str:
     """
 
     # Check if platform is one of the supported types
-    if platform.lower() not in SUPPORTED_PLATFORMS:
-        raise UnsupportedOSError(f"Unsupported platform: {platform}")
+    if platform_name.lower() not in SUPPORTED_PLATFORMS:
+        raise UnsupportedOSError(f"Unsupported platform: {platform_name}")
 
     # FreeBSD doesn't have flavors that matter so far.
     # So we just put "freebsd" in there.
-    if platform == "freebsd":
+    if platform_name == "freebsd":
         return "freebsd"
 
     # Linux
-    if platform == "linux":
+    if platform_name == "linux":
         # We're just going to query /etc/os-release directly.
         # Using lsb_release would be better, but it's less available
         #
-        result_id = cx.run("grep ^ID= /etc/os-release", hide=True, warn=True)
-        result_like_id = cx.run(
-            "grep ^ID_LIKE= /etc/os-release",
-            hide=True,
-            warn=True,
-        )
-        cx.close()
+        with cx as c:
+            result_id = c.run("grep ^ID= /etc/os-release", hide=True, warn=True)
+            result_like_id = c.run(
+                "grep ^ID_LIKE= /etc/os-release",
+                hide=True,
+                warn=True,
+            )
 
         if result_id.failed:
             raise DataRefreshError(
@@ -136,23 +136,23 @@ def flavor_detect(cx: Connection, platform: str) -> str:
             f"Unsupported OS flavor detected: {result_id.stdout.strip().lower()}"
         )
 
-    raise UnsupportedOSError(f"Unknown issue in detecting platform: {platform}")
+    raise UnsupportedOSError(f"Unknown issue in detecting platform: {platform_name}")
 
 
-def version_detect(cx: Connection, flavor: str) -> str:
+def version_detect(cx: Connection, flavor_name: str) -> str:
     """
     Detect the version of the remote system.
     :param cx: Fabric Connection object
     :return: Version string
     """
 
-    if flavor.lower() not in SUPPORTED_FLAVORS:
-        raise UnsupportedOSError(f"Unsupported OS flavor: {flavor}")
+    if flavor_name.lower() not in SUPPORTED_FLAVORS:
+        raise UnsupportedOSError(f"Unsupported OS flavor: {flavor_name}")
 
     # Debian/Ubuntu
-    if flavor in ["ubuntu", "debian"]:
-        result_version = cx.run("lsb_release -s -r", hide=True, warn=True)
-        cx.close()
+    if flavor_name in ["ubuntu", "debian"]:
+        with cx as c:
+            result_version = c.run("lsb_release -s -r", hide=True, warn=True)
 
         if result_version.failed:
             raise DataRefreshError(
@@ -164,11 +164,11 @@ def version_detect(cx: Connection, flavor: str) -> str:
         return result_version.stdout.strip()
 
     # Redhat-likes
-    if flavor == "rhel":
-        result_version = cx.run(
-            "grep ^VERSION_ID= /etc/os-release", hide=True, warn=True
-        )
-        cx.close()
+    if flavor_name == "rhel":
+        with cx as c:
+            result_version = c.run(
+                "grep ^VERSION_ID= /etc/os-release", hide=True, warn=True
+            )
 
         if result_version.failed:
             raise DataRefreshError(
@@ -180,9 +180,9 @@ def version_detect(cx: Connection, flavor: str) -> str:
         return result_version.stdout.strip().split('"')[1::2][0].lower()
 
     # FreeBSD
-    if flavor == "freebsd":
-        result_version = cx.run("/bin/freebsd-version -u", hide=True, warn=True)
-        cx.close()
+    if flavor_name == "freebsd":
+        with cx as c:
+            result_version = c.run("/bin/freebsd-version -u", hide=True, warn=True)
 
         if result_version.failed:
             raise DataRefreshError(
@@ -193,10 +193,12 @@ def version_detect(cx: Connection, flavor: str) -> str:
 
         return result_version.stdout.strip()
 
-    raise UnsupportedOSError(f"Unknown issue in detecting version for flavor: {flavor}")
+    raise UnsupportedOSError(
+        f"Unknown issue in detecting version for flavor: {flavor_name}"
+    )
 
 
-def package_manager_detect(cx: Connection, flavor: str) -> str:
+def package_manager_detect(cx: Connection, flavor_name: str) -> str:
     """
     Detect the package manager of the remote system.
 
@@ -204,22 +206,22 @@ def package_manager_detect(cx: Connection, flavor: str) -> str:
     :return: Package manager string
     """
 
-    if flavor not in SUPPORTED_FLAVORS:
-        raise UnsupportedOSError(f"Unsupported OS flavor: {flavor}")
+    if flavor_name not in SUPPORTED_FLAVORS:
+        raise UnsupportedOSError(f"Unsupported OS flavor: {flavor_name}")
 
     # Debian/Ubuntu
-    if flavor in ["ubuntu", "debian"]:
+    if flavor_name in ["ubuntu", "debian"]:
         return "apt"
 
     # Redhat-likes
-    if flavor == "rhel":
-        result_dnf = cx.run("command -v dnf", hide=True, warn=True)
-        result_yum = cx.run("command -v yum", hide=True, warn=True)
-        cx.close()
+    if flavor_name == "rhel":
+        with cx as c:
+            result_dnf = c.run("command -v dnf", hide=True, warn=True)
+            result_yum = c.run("command -v yum", hide=True, warn=True)
 
         if result_dnf.failed and result_yum.failed:
             raise UnsupportedOSError(
-                f"Neither dnf nor yum found on flavor {flavor}, unsupported?",
+                f"Neither dnf nor yum found on flavor {flavor_name}, unsupported?",
             )
 
         if not result_dnf.failed:
@@ -228,9 +230,9 @@ def package_manager_detect(cx: Connection, flavor: str) -> str:
         return "yum"
 
     # FreeBSD
-    if flavor == "freebsd":
+    if flavor_name == "freebsd":
         return "pkg"
 
     raise UnsupportedOSError(
-        f"Unknown issue in detecting package manager for flavor: {flavor}"
+        f"Unknown issue in detecting package manager for flavor: {flavor_name}"
     )

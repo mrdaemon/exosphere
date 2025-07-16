@@ -7,7 +7,7 @@ from exosphere.config import Configuration
 from exosphere.data import HostInfo
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.objects import Host
-from exosphere.providers.api import require_sudo
+from exosphere.providers.api import requires_sudo
 
 
 class TestHostObject:
@@ -603,7 +603,7 @@ class TestHostObject:
         Test that refresh_catalog skips the task if sudo policy disallows it
         """
 
-        @require_sudo
+        @requires_sudo
         def reposync(cx):
             raise AssertionError("Should not be called!")
 
@@ -705,7 +705,7 @@ class TestHostObject:
         Test that refresh_updates skips the task if sudo policy disallows it
         """
 
-        @require_sudo
+        @requires_sudo
         def get_updates(cx):
             raise AssertionError("Should not be called!")
 

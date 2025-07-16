@@ -7,7 +7,7 @@ from fabric import Connection
 from exosphere.data import Update
 
 
-def require_sudo(func: Callable) -> Callable:
+def requires_sudo(func: Callable) -> Callable:
     """
     Decorator to mark a function as requiring sudo privileges.
 
@@ -70,4 +70,4 @@ class PkgManager(ABC):
         :param cx: Fabric Connection object
         :return: List of available updates.
         """
-        raise NotImplementedError("updates method is not implemented.")
+        raise NotImplementedError("get_updates method is not implemented.")
