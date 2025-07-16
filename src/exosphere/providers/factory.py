@@ -31,8 +31,6 @@ class PkgManagerFactory:
         Create a package manager instance based on the provided name.
 
         :param name: Name of the package manager (e.g., 'apt').
-        :param sudo: Whether to use sudo for package operations (default is True).
-        :param password: Optional password for sudo operations, if not using NOPASSWD.
         :return: An instance of the specified package manager.
         """
         if name not in PkgManagerFactory._REGISTRY:
