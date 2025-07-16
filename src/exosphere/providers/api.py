@@ -37,23 +37,6 @@ class PkgManager(ABC):
             f"exosphere.providers.{self.__class__.__name__.lower()}"
         )
 
-    def requires_sudo(self, func_name: str) -> bool:
-        """
-        Check if the function requires sudo privileges.
-
-        This method checks if the function has the `__require_sudo`
-        attribute set to True.
-
-        :param func: The function to check.
-        :return: True if the function requires sudo, False otherwise.
-        """
-        func = getattr(self, func_name, None)
-        if func is None:
-            raise ValueError(
-                f"No method named '{func_name}' in {self.__class__.__name__}"
-            )
-        return getattr(func, "__requires_sudo", False)
-
     @abstractmethod
     def reposync(self, cx: Connection) -> bool:
         """
