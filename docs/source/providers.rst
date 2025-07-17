@@ -16,8 +16,19 @@ The Debian/Ubuntu provider is implemented in the `exosphere.providers.debian` mo
 Catalog Update *requires* sudo privileges, as it needs to run ``apt-get update`` to
 update the package cache from repository.
 
+By default, given the default :doc:`Sudo Policy <configuration#sudo-policy>`,
+in Exosphere, Catalog Updates will **not** run for Debian-like hosts, and you will need
+to configure sudoers appropriately before changing the Sudo Policy.
+
 Updates retrieval is done using ``apt-get dist-upgrade`` in simulation mode, 
 and does *not* require elevated privileges.
+
+.. admonition:: Note
+
+    If you want catalog updates without sudo privileges, you can also just
+    install the ``apt-config-auto-update`` package, or configure
+    `Unattended Upgrades`_ to achieve this on a schedule. 
+
 
 Exact Commands ran on remote hosts
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -31,6 +42,8 @@ Command dependencies
 
 - `apt-get`
 - `grep`
+
+.. _Unattended Upgrades: https://wiki.debian.org/UnattendedUpgrades
 
 RedHat-Likes (Yum/DNF)
 ----------------------

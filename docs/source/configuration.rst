@@ -23,7 +23,7 @@ For instance, for a **yaml** configuration file, the default locations are:
 
     .. group-tab:: Windows
 
-        ``%LOCALAPPDATA%/exosphere/config.yaml``
+        ``%LOCALAPPDATA%\exosphere\config.yaml``
 
 You can of course substitute the file extension with `.toml` or `.json` if you wish
 to use those formats instead.
@@ -33,7 +33,7 @@ platform by running:
 
 .. code-block:: bash
 
-    exosphere config dirs
+    exosphere config paths
 
 Additionally, you can specify a custom configuration file location via the
 ``EXOSPHERE_CONFIG_FILE`` environment variable, with the full path to the file
