@@ -337,7 +337,7 @@ def generate(
             "-u",
             help="Override the username for the sudoers snippet",
             rich_help_panel="Optional",
-            show_default="Host username OR default username OR Current user",
+            show_default="Host username OR default username OR Current user, in that order",
         ),
     ] = None,
 ) -> None:
