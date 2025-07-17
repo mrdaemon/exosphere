@@ -1,6 +1,7 @@
 [options]
 log_level = "INFO"
 max_threads = 5 # Limit parallel actions to 5 threads
+default_username = "alice" # Default username across hosts (optional)
 
 [[hosts]]
 name = "host1"
@@ -16,3 +17,5 @@ description = "Example Host"
 name = "host3"
 ip = "host3.example.com"
 description = "Another Example Host"
+username = "admin" # Override username for this host
+sudo_policy = "nopasswd"
