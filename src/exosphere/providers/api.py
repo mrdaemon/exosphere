@@ -25,7 +25,33 @@ class PkgManager(ABC):
     Abstract Base Class for Package Manager
 
     Defines the interface for Package Manager implementations.
+
+    When implementing a Package Manager Provider, you should inherit
+    from this class and implement the `reposync` and `get_updates`
+    methods.
+
+    .. admonition:: Note
+
+        If either of the methods require elevated privileges, (i.e.,
+        they use ``cx.sudo()`` instead of ``cx.run()``), you should
+        decorate them with the ``@requires_sudo`` decorator.
+
     """
+
+    #: List of commands that require sudo privileges.
+    #: This will be used by the 'security sudoers' command to
+    #: generate the appropriate sudoers file entries.
+    #:
+    #: .. code-block:: python
+    #:
+    #:     SUDOERS_COMMANDS = [
+    #:         "/usr/bin/apt-get update",
+    #:         "/usr/bin/something-else --with-args -o option=value",
+    #:     ]
+    #:
+    #: If you do not require elevated privileges at all, omit it
+    #: entirely from your implementation or set it to `None`.
+    SUDOERS_COMMANDS: list[str] | None = None
 
     def __init__(self) -> None:
         """
@@ -68,6 +94,6 @@ class PkgManager(ABC):
         and remains read-only, as much as possible.
 
         :param cx: Fabric Connection object
-        :return: List of available updates.
+        :return: List of available updates as Update objects.
         """
         raise NotImplementedError("get_updates method is not implemented.")
