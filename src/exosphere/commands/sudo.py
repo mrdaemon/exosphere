@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 
+import fabric
+import fabric.util
 import typer
 from rich.console import Console
 from rich.table import Table
 from typing_extensions import Annotated
 
 from exosphere import app_config, context
+from exosphere.objects import Host
+from exosphere.providers.api import PkgManager
 from exosphere.providers.factory import PkgManagerFactory
 from exosphere.security import SudoPolicy, check_sudo_policy, has_sudo_flag
 
@@ -105,6 +109,53 @@ def _format_can_run(
     Format the policy status for display in the table
     """
     return "[green]Yes[/green]" if can_run else "[red]No[/red]"
+
+
+def _get_provider(provider_name: str) -> PkgManager:
+    """
+    Validate and return the requested provider.
+    Will trigger exit if it doesn't exist, or doesn't require sudo privileges.
+    """
+    provider = PkgManagerFactory.get_registry().get(provider_name)
+    if not provider:
+        err_console.print(f"[red]No such provider: {provider_name}[/red]")
+        raise typer.Exit(1)
+
+    if not hasattr(provider, "SUDOERS_COMMANDS"):
+        err_console.print(
+            f"[red]Provider '{provider.__qualname__}' "
+            "does not have SUDOERS_COMMANDS defined.[/red]"
+        )
+        raise typer.Exit(1)
+
+    if not provider.SUDOERS_COMMANDS:
+        err_console.print(
+            f"Provider '{provider.__qualname__}' does not require any sudo commands."
+        )
+        raise typer.Exit(0)
+
+    return provider
+
+
+def _get_username(user: str | None, host: Host | None = None) -> str:
+    """
+    Resolve the username based on the provided user, host configuration,
+    and application configuration defaults.
+    """
+    result = (
+        user
+        or (host.username if host else None)
+        or app_config["options"]["default_username"]
+        or fabric.util.get_local_user()
+    )
+    if result is None:
+        err_console.print(
+            "[red]No username could be selected. "
+            "Please provide --user or ensure host configuration is correct.[/red]"
+        )
+        raise typer.Exit(1)
+
+    return result
 
 
 @app.command()
@@ -255,3 +306,106 @@ def providers(
         )
 
     console.print(providers_table)
+
+
+@app.command()
+def generate(
+    host: Annotated[
+        str | None,
+        typer.Option(
+            "--host",
+            "-h",
+            help="Generate sudoers snippet based on host configuration",
+            rich_help_panel="Mandatory Options (mutually exclusive)",
+        ),
+    ] = None,
+    provider: Annotated[
+        str | None,
+        typer.Option(
+            "--provider",
+            "-p",
+            help="Generate sudoers snippet for a specific provider",
+            rich_help_panel="Mandatory Options (mutually exclusive)",
+        ),
+    ] = None,
+    user: Annotated[
+        str | None,
+        typer.Option(
+            "--user",
+            "-u",
+            help="Override the username for the sudoers snippet",
+            rich_help_panel="Optional",
+        ),
+    ] = None,
+) -> None:
+    """
+    Generate a sudoers configuration for passwordless operations.
+
+    Creates snippet suitable for /etc/sudoers.d/* on target systems.
+
+    Requires either --host OR --provider (not both).
+
+    Username priority: --user → host config → default_username → current user
+
+    Outputs to stdout, can be redirected to a file.
+    """
+    if not host and not provider:
+        err_console.print(
+            "[red]You must specify either --host or --provider to generate a policy.[/red]"
+        )
+        raise typer.Exit(1)
+
+    if host and provider:
+        err_console.print("[red]--host and --provider are mutually exclusive.[/red]")
+        raise typer.Exit(1)
+
+    inventory = _get_inventory()
+
+    target_user: str
+    target_provider: PkgManager
+
+    if host:
+        target_host = inventory.get_host(host)
+        if not target_host:
+            err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
+            raise typer.Exit(1)
+
+        pkg_manager_name = target_host.package_manager
+        if not pkg_manager_name:
+            err_console.print(
+                f"Host '{host}' does not have a package manager "
+                "defined in the inventory.\n"
+                "Ensure discovery has been run on the host at least once, "
+                "or specify [cyan]--provider[/cyan]."
+            )
+            raise typer.Exit(1)
+
+        target_provider = _get_provider(pkg_manager_name)
+
+        target_user = _get_username(
+            user,
+            target_host,
+        )
+    elif provider:
+        pkg_manager_name = provider.lower()
+        target_provider = _get_provider(pkg_manager_name)
+        target_user = _get_username(user)
+    else:
+        assert False  # Validation failsafe
+
+    # generate the sudoers config snippet with the commands from provider.SUDOERS_COMMANDS
+    # and the target username
+
+    provider_desc = _provider_mapping.get(
+        target_provider.__qualname__.lower(), target_provider.__qualname__
+    )
+
+    sudoers_snippet = (
+        f"# Generated for {provider_desc}\n"
+        f"Cmnd_Alias EXOSPHERE_CMDS = {', '.join(target_provider.SUDOERS_COMMANDS or [])}\n"
+        f"{target_user} ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS"
+    )
+
+    # Do not use rich console for this output, as it is meant to be
+    # potentially redirected to a file or copy pasted
+    print(sudoers_snippet)
