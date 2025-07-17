@@ -42,7 +42,6 @@ dev = [
     "fabric[pytest]>=3.2.2",
     "poethepoet>=0.33.1",
     "pyright>=1.1.400",
-    "pyspellchecker>=0.8.3",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "pytest-json-ctrf>=0.3.5",

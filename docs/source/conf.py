@@ -36,7 +36,6 @@ exclude_patterns = []
 # https://sphinxcontrib-spelling.readthedocs.io/en/stable/customize.html
 spelling_lang = 'en_US'
 spelling_word_list_filename = 'spelling_wordlist.txt'
-spelling_backend = 'pyspellchecker'  # pyenchant gives different results across platforms
 spelling_show_suggestions = True
 
 
