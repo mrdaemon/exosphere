@@ -22,3 +22,7 @@ sudo
 unix
 sudoers
 cx
+init
+subclasses
+subclass
+de
