@@ -12,7 +12,7 @@ Example:
 
     from exosphere import paths
 
-    path = str(paths.CONFIG_DIR / "config.yaml") # string path
+    path = str(fspaths.CONFIG_DIR / "config.yaml") # string path
 
 """
 

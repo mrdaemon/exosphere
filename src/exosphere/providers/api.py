@@ -39,7 +39,7 @@ class PkgManager(ABC):
     """
 
     #: List of commands that require sudo privileges.
-    #: This will be used by the 'security sudoers' command to
+    #: This will be used by the CLI helper commands to
     #: generate the appropriate sudoers file entries.
     #:
     #: .. code-block:: python

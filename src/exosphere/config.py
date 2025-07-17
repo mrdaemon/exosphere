@@ -9,7 +9,7 @@ from typing import Any, BinaryIO
 
 import yaml
 
-from exosphere import paths
+from exosphere import fspaths
 
 
 class Configuration(dict):
@@ -20,28 +20,32 @@ class Configuration(dict):
 
     Has the following peculiarities vs a native dict:
 
-    - Has many from_* methods to populate itself from various sources
-      such as environment variables, files of various formats, etc
-    - Enforces a set of default values for the nested "options" dict
-    - Enforces unicity for name keys in the "hosts" dict.
-    - Has a deep_update method to recursively update nested dicts
+    - Has many ``from_*`` methods to populate itself from various
+      sources such as environment variables, files of various formats
+    - Enforces a set of default values for the nested ``options`` dict
+    - Enforces unicity for name keys in the ``hosts`` dict.
+    - Has a :meth:`deep_update` method to recursively update nested dicts
       without replacing them entirely.
 
     This configuration structure is strongly inspired by the one used
     by Flask, because good things are worth replicating.
     """
 
+    #: Default configuration values
+    #: This dict contains the default configuration and is always
+    #: used as a base for what the configuration object contains.
+    #: This can be accessed to get the default values for any config key
     DEFAULTS: dict[str, Any] = {
         "options": {
             "debug": False,  # Debug mode, enable verbose on root logger
             "log_level": "INFO",  # Default log level for the application
             "log_file": str(
-                paths.LOG_DIR / "exosphere.log"
+                fspaths.LOG_DIR / "exosphere.log"
             ),  # Default log file for the application
             "cache_autosave": True,  # Automatically save cache to disk after changes
             "cache_autopurge": True,  # Automatically purge hosts removed from inventory
             "cache_file": str(
-                paths.STATE_DIR / "exosphere.db"
+                fspaths.STATE_DIR / "exosphere.db"
             ),  # Default cache file for the application
             "stale_threshold": 86400,  # How long before a host is considered stale
             "default_timeout": 10,  # Default ssh connection timeout (in seconds)
@@ -55,6 +59,9 @@ class Configuration(dict):
     def __init__(self) -> None:
         """
         Initialize the Configuration object with default values.
+
+        The default values are a deep copy of the DEFAULTS dict,
+        ensuring that the original DEFAULTS remains unchanged.
         """
         dict.__init__(self, copy.deepcopy(self.DEFAULTS))
         self.logger = logging.getLogger(__name__)
@@ -67,18 +74,15 @@ class Configuration(dict):
         """
         Populate the configuration structure from environment variables.
 
-        This method is used mostly to override configuration OPTIONS via
-        environment variables, which is useful for containerized deployments.
-
         Any environment variable that starts with the specified prefix
-        (e.g., "EXOSPHERE_OPTIONS_*") will be considered for updating the
-        configuration.
+        (e.g., ``EXOSPHERE_OPTIONS_*``) will be considered for updating
+        the configuration.
 
         Note that this is, currently, limited to the `options` section
         of the configuration. The inventory cannot be updated this way.
 
         If there are any nested dictionaries in the configuration,
-        you can specify them using a double underscore (`__`) to
+        you can specify them using a double underscore (``__``) to
         separate the keys.
 
         The values for the keys are parsed as JSON types by default,
@@ -140,9 +144,9 @@ class Configuration(dict):
         Populate the configuration structure from a toml file
 
         This method is a convenience wrapper used for shorthand
-        for the from_file method, with tomllib.load() as the loader.
+        for the from_file method, with `tomllib.load()` as the loader.
 
-        see `from_file()` for details.
+        see :meth:`from_file` for details.
 
         :param filepath: Path to the toml file to load
         :param silent: If True, suppress IOError exceptions for missing files
@@ -158,7 +162,7 @@ class Configuration(dict):
         This method is a convenience wrapper used for shorthand
         for the `from_file` method, with `yaml.safe_load()` as the loader.
 
-        see `from_file` for details.
+        see :meth:`from_file` for details.
 
         :param filepath: Path to the yaml file to load
         :param silent: If True, suppress IOError exceptions for missing files
@@ -174,7 +178,7 @@ class Configuration(dict):
         This method is a convenience wrapper used for shorthand
         for the `from_file` method, with `json.load()` as the loader.
 
-        see `from_file` for details.
+        see :meth:`from_file` for details.
 
         :param filepath: Path to the json file to load
         :param silent: If True, suppress IOError exceptions for missing files

@@ -2,12 +2,12 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from exosphere.auth import SudoPolicy
 from exosphere.config import Configuration
 from exosphere.data import HostInfo
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.objects import Host
 from exosphere.providers.api import requires_sudo
+from exosphere.security import SudoPolicy
 
 
 class TestHostObject:

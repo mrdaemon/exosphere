@@ -2,9 +2,9 @@ from unittest import mock
 
 import pytest
 
-from exosphere.auth import SudoPolicy
 from exosphere.config import Configuration
 from exosphere.inventory import Inventory
+from exosphere.security import SudoPolicy
 
 
 class TestInventory:

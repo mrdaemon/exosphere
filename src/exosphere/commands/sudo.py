@@ -6,11 +6,11 @@ from rich.table import Table
 from typing_extensions import Annotated
 
 from exosphere import app_config, context
-from exosphere.auth import SudoPolicy, check_sudo_policy, has_sudo_flag
 from exosphere.providers.factory import PkgManagerFactory
+from exosphere.security import SudoPolicy, check_sudo_policy, has_sudo_flag
 
 app = typer.Typer(
-    help="Security Policy related commands",
+    help="Sudo Policy Management",
     no_args_is_help=True,
 )
 
@@ -223,7 +223,7 @@ def providers(
     ] = None,
 ) -> None:
     """
-    Show Security Policy requirements for available providers.
+    Show Sudo Policy requirements for available providers.
 
     Some providers require sudo privileges to execute certain operations.
     You can use this command to list them.

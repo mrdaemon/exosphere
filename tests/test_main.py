@@ -39,7 +39,7 @@ class TestMain:
 
         """
         monkeypatch.setattr(
-            "exosphere.paths.CONFIG_DIR", Path.home() / ".config" / "exosphere"
+            "exosphere.fspaths.CONFIG_DIR", Path.home() / ".config" / "exosphere"
         )
 
     def test_main(self, mocker, caplog):

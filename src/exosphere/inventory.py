@@ -4,10 +4,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Generator
 
 from exosphere import app_config
-from exosphere.auth import SudoPolicy
 from exosphere.config import Configuration
 from exosphere.database import DiskCache
 from exosphere.objects import Host
+from exosphere.security import SudoPolicy
 
 
 class Inventory:

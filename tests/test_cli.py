@@ -121,7 +121,7 @@ def test_help_command(mocker):
     assert result.exit_code == 0
 
     # Should mention the help text for the 'config' command
-    assert "Runtime Configuration Commands" in result.output
+    assert "Configuration related commands" in result.output
 
 
 def test_help_unknown_command(monkeypatch):

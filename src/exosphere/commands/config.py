@@ -6,11 +6,11 @@ from rich.console import Console
 from rich.pretty import Pretty
 from rich.text import Text
 
-from exosphere import app_config, context, paths
+from exosphere import app_config, context, fspaths
 from exosphere.config import Configuration
 
 app = typer.Typer(
-    help="Runtime Configuration Commands",
+    help="Configuration related commands",
     no_args_is_help=True,
 )
 
@@ -108,17 +108,17 @@ def source(
 
 
 @app.command()
-def dirs() -> None:
+def paths() -> None:
     """
     Show the configuration directory paths
 
-    Will give you the path to the configuration directory
-    where Exosphere expects to find its configuration file.
+    Will display the platform-specific filesystem paths that exosphere
+    uses for configuration, state, logs, and cache.
     """
     console.print("Application directories:")
     console.print()
 
-    for name, path in paths.get_dirs().items():
+    for name, path in fspaths.get_dirs().items():
         console.print(f"  {name.capitalize()}: {path}")
 
     console.print()

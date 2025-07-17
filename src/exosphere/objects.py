@@ -5,11 +5,11 @@ from datetime import datetime
 from fabric import Connection
 
 from exosphere import app_config
-from exosphere.auth import SudoPolicy, check_sudo_policy
 from exosphere.data import HostInfo, Update
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.providers import PkgManagerFactory
 from exosphere.providers.api import PkgManager
+from exosphere.security import SudoPolicy, check_sudo_policy
 from exosphere.setup import detect
 
 

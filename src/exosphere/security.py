@@ -18,6 +18,7 @@ Patches welcome, but please keep in mind that it is almost definitely
 not worth the effort for the time being.
 """
 
+from collections.abc import Callable
 from enum import StrEnum, auto
 
 
@@ -30,7 +31,7 @@ class SudoPolicy(StrEnum):
     NOPASSWD = auto()  # Use sudo, assuming sudoers has NOPASSWD configured
 
 
-def has_sudo_flag(func):
+def has_sudo_flag(func: Callable) -> bool:
     """
     Helper function to check if a callable requires sudo privileges.
     This checks for the `__requires_sudo` attribute on the function,
@@ -43,10 +44,14 @@ def has_sudo_flag(func):
     :param func: The function to check.
     :return: True if the function requires sudo, False otherwise
     """
+
+    if not callable(func):
+        raise TypeError(f"Expected a callable, got {type(func).__name__}")
+
     return getattr(func, "__requires_sudo", False)
 
 
-def check_sudo_policy(func, sudo_policy: SudoPolicy) -> bool:
+def check_sudo_policy(func: Callable, sudo_policy: SudoPolicy) -> bool:
     """
     Check if the function requires sudo and if the current sudo policy allows it.
 
@@ -54,5 +59,9 @@ def check_sudo_policy(func, sudo_policy: SudoPolicy) -> bool:
     :param sudo_policy: The current sudo policy.
     :return: True if the function can be executed under the current sudo policy
     """
+
+    if not callable(func):
+        raise TypeError(f"Expected a callable, got {type(func).__name__}")
+
     requires_sudo = has_sudo_flag(func)
     return not requires_sudo or sudo_policy != SudoPolicy.SKIP

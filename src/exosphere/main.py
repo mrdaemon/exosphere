@@ -8,7 +8,7 @@ from typing import Callable
 
 import yaml
 
-from exosphere import app_config, cli, context, paths
+from exosphere import app_config, cli, context, fspaths
 from exosphere.config import Configuration
 from exosphere.inventory import Inventory
 
@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 # List of configuration file paths to check, in order of precedence
 # The search stops at first match, so ordering matters.
 CONFPATHS: list[Path] = [
-    paths.CONFIG_DIR / "config.yaml",
-    paths.CONFIG_DIR / "config.yml",
-    paths.CONFIG_DIR / "config.toml",
-    paths.CONFIG_DIR / "config.json",
+    fspaths.CONFIG_DIR / "config.yaml",
+    fspaths.CONFIG_DIR / "config.yml",
+    fspaths.CONFIG_DIR / "config.toml",
+    fspaths.CONFIG_DIR / "config.json",
 ]
 
 LOADERS: dict[str, Callable] = {
@@ -135,7 +135,7 @@ def main() -> None:
     """
     # Ensure all required directories exist
     try:
-        paths.ensure_dirs()
+        fspaths.ensure_dirs()
     except Exception as e:
         logger.error("Failed to create required directories: %s", e)
         sys.exit(1)
