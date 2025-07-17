@@ -14,6 +14,10 @@ class Apt(PkgManager):
     Implements the Apt package manager interface.
     """
 
+    SUDOERS_COMMANDS: list[str] | None = [
+        "/usr/bin/apt-get update",
+    ]
+
     def __init__(self) -> None:
         """
         Initialize the Apt package manager.
