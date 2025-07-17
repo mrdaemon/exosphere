@@ -175,7 +175,7 @@ def check(
     host: str = typer.Argument(..., help="Host to check security policies for"),
 ):
     """
-    Check the security policies for a given host.
+    Check the effective Sudo Policies for a given host.
 
     The command will take in consideration the current global Sudo Policy and the
     host-specific Sudo Policy (if defined) to determine if the host can execute
@@ -317,6 +317,7 @@ def generate(
             "-h",
             help="Generate sudoers snippet based on host configuration",
             rich_help_panel="Mandatory Options (mutually exclusive)",
+            show_default=False,
         ),
     ] = None,
     provider: Annotated[
@@ -326,6 +327,7 @@ def generate(
             "-p",
             help="Generate sudoers snippet for a specific provider",
             rich_help_panel="Mandatory Options (mutually exclusive)",
+            show_default=False,
         ),
     ] = None,
     user: Annotated[
@@ -335,6 +337,7 @@ def generate(
             "-u",
             help="Override the username for the sudoers snippet",
             rich_help_panel="Optional",
+            show_default="Host username OR default username OR Current user",
         ),
     ] = None,
 ) -> None:
@@ -343,9 +346,8 @@ def generate(
 
     Creates snippet suitable for /etc/sudoers.d/* on target systems.
 
-    Requires either --host OR --provider (not both).
-
-    Username priority: --user → host config → default_username → current user
+    Will use username from host configuration, global configuration,
+    or current user if not specified.
 
     Outputs to stdout, can be redirected to a file.
     """
