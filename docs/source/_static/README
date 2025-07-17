@@ -1,0 +1,6 @@
+# Static Files Directory
+
+This directory contains static files used in the documentation.
+
+This file pretends you do not know this, so we can commit the directory to the
+git repository without actually having any content in it.
