@@ -16,7 +16,7 @@ The Debian/Ubuntu provider is implemented in the `exosphere.providers.debian` mo
 Catalog Update *requires* sudo privileges, as it needs to run ``apt-get update`` to
 update the package cache from repository.
 
-By default, given the default :doc:`Sudo Policy <configuration#sudo-policy>`,
+By default, given the stock :ref:`Sudo Policy <default_sudo_policy_option>`,
 in Exosphere, Catalog Updates will **not** run for Debian-like hosts, and you will need
 to configure sudoers appropriately before changing the Sudo Policy.
 
