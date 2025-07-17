@@ -20,7 +20,6 @@ the following platforms:
 Platform specific notes will appear whenever relevant, but the process
 should be the same across all platforms.
 
-
 Installing from PyPI
 ----------------------
 
@@ -72,9 +71,9 @@ The package name is `exosphere-cli`.
 
             pip install --user exosphere-cli
 
-The `pipx` command is recommended as it creates a virtual environment and
-isolates the application, making it readily available without having to
-contend with potential conflicts with other Python packages.
+The ``pipx`` or ``uv tool`` methods are recommended as they create a virtual
+environment and isolate the application, making it readily available without
+having to contend with potential conflicts with other Python packages.
 
 Once installed, you can run Exosphere using the `exosphere` command, like so:
 
@@ -86,8 +85,8 @@ Once installed, you can run Exosphere using the `exosphere` command, like so:
 Installing from Git Repository
 ------------------------------
 
-This is likely the easiest and best option if you **don't** have Python 3.13
-or later available, or want to hack on Exosphere itself.
+This is likely the easiest method if you want to track the latest development
+version, or are simply more comfortable with using Git.
 
 The project is setup with `uv`_, which will download and install the necessary
 python runtime and dependencies for you, so you don't have to worry about
@@ -252,7 +251,7 @@ pulling the latest changes and then syncing with `uv`_:
             uv sync --no-dev
 
         You can substitute |CurrentVersionTag| with the latest tag or
-        version you want to use, e.g, `v0.8.1`.
+        specific version you want to use, e.g, `v0.8.1`.
 
         You can find the list of tags on the `GitHub releases page`_.
 

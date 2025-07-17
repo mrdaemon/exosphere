@@ -135,6 +135,8 @@ You will find below a detailed list of all available options, their defaults,
 and examples of how to set them in the configuration file.
 
 
+.. _log_level_option:
+
 .. option:: log_level
 
     The logging level for Exosphere. This can be set to one of the following values,
@@ -176,6 +178,8 @@ and examples of how to set them in the configuration file.
                         "log_level": "DEBUG"
                     }
                 }
+
+.. _default_sudo_policy_option:
 
 .. option:: default_sudo_policy
 
@@ -237,6 +241,8 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. _debug_option:
+
 .. option:: debug
 
     Enable debug mode, which sets the root logger to DEBUG level.
@@ -284,6 +290,8 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. _log_file_option:
+
 .. option:: log_file
 
     A filesystem path to a file where Exosphere will write logs.
@@ -321,6 +329,8 @@ and examples of how to set them in the configuration file.
                         "log_file": "/home/alice/exosphere.log"
                     }
                 }
+
+.. _cache_autosave_option:
 
 .. option:: cache_autosave
 
@@ -371,6 +381,8 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. _cache_file_option:
+
 .. option:: cache_file
 
     A filesystem path to a file where Exosphere will store the state of the inventory.
@@ -416,6 +428,8 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. _stale_threshold_option:
+
 .. option:: stale_threshold
 
     The number of seconds after which a host data is considered stale.
@@ -456,6 +470,8 @@ and examples of how to set them in the configuration file.
                         "stale_threshold": 3600
                     }
                 }
+
+.. _default_timeout_option:
 
 .. option:: default_timeout
 
@@ -504,6 +520,8 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. _default_username_option:
+
 .. option:: default_username
 
     The default SSH username to use when connecting to hosts.
@@ -549,6 +567,7 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. _max_threads_option:
 
 .. option:: max_threads
 
@@ -649,6 +668,8 @@ has a custom connection timeout value set, overriding :option:`default_timeout`.
                     }
                 ]
             }
+
+.. _hosts_options_section:
 
 **Mandatory** fields for each host entry are:
 

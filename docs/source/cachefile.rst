@@ -5,7 +5,7 @@ Exosphere saves the state of all hosts in a cache file, stored on disk.
 This allows the software to remember the state of hosts and updates between runs.
 It is `lzma`_ compressed and stored in a binary, `pickle`_ format.
 
-The cache file location is determined by the relevant option in :doc:`configuration`.
+The cache file location is determined by the relevant option in :ref:`the configuration<cache_file_option>`.
 
 Changing options, either globally or per host in the configuration should not be
 negatively affected by the cache file, which will update itself accordingly.
