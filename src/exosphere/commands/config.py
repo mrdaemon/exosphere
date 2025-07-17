@@ -110,7 +110,7 @@ def source(
 @app.command()
 def paths() -> None:
     """
-    Show the configuration directory paths
+    Show the paths of application directories.
 
     Will display the platform-specific filesystem paths that exosphere
     uses for configuration, state, logs, and cache.
