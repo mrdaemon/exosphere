@@ -686,6 +686,8 @@ has a custom connection timeout value set, overriding :option:`default_timeout`.
 
 You will find below the detailed list of all available host options and their defaults.
 
+.. _hosts_name_option:
+
 .. option:: name
 
     The name of the host, which uniquely identifies the host within the inventory.
@@ -731,6 +733,8 @@ You will find below the detailed list of all available host options and their de
                     ]
                 }
 
+.. _hosts_ip_option:
+
 .. option:: ip
 
     The IP address or hostname of the host to connect to over ssh
@@ -773,6 +777,8 @@ You will find below the detailed list of all available host options and their de
                         }
                     ]
                 }
+
+.. _hosts_port_option:
 
 .. option:: port
 
