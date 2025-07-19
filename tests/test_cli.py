@@ -55,6 +55,7 @@ def test_repl_root(mocker, caplog) -> None:
 
     assert "Starting Exosphere REPL" in caplog.text
 
+
 def test_repl_version(mocker) -> None:
     """
     Test the 'version' command in the REPL.

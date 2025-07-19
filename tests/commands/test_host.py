@@ -231,3 +231,17 @@ def test_ping_host_parametrized(
     result = runner.invoke(host_module.app, ["ping", host_name])
 
     assert result.exit_code == expected_exit_code
+
+
+def test_commands_bail_with_uninitialized_inventory(mocker):
+    """
+    Test that commands bail out with an uninitialized inventory.
+    """
+
+    # Patch the inventory to simulate it being uninitialized
+    mocker.patch("exosphere.context.inventory", None)
+
+    result = runner.invoke(host_module.app, ["show", "testhost"])
+
+    assert result.exit_code == 1
+    assert "Inventory is not initialized" in result.output
