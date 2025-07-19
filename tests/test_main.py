@@ -65,6 +65,116 @@ class TestMain:
 
         assert "Configuration loaded from:" in caplog.text
 
+    def test_main_ensure_config_paths_are_created(self, mocker):
+        """
+        Test that the configuration paths are created if they do not exist.
+        """
+
+        mocker.patch("exosphere.main.setup_logging")
+        mocker.patch("exosphere.cli.app")
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+
+        mock_ensuredirs = mocker.patch("exosphere.main.fspaths.ensure_dirs")
+
+        from exosphere.main import main
+
+        main()
+
+        assert mock_ensuredirs.call_count == 1
+
+    def test_main_ensure_config_paths_aborts_on_error(self, mocker, caplog):
+        """
+        Test that the main function aborts if ensure_dirs raises an exception.
+        """
+
+        mocker.patch("exosphere.main.setup_logging")
+        mocker.patch("exosphere.cli.app")
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+
+        mock_ensuredirs = mocker.patch(
+            "exosphere.main.fspaths.ensure_dirs", side_effect=Exception("Test error")
+        )
+
+        from exosphere.main import main
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_ensuredirs.assert_called_once()
+        assert "Failed to create required directories" in caplog.text
+
+    def test_main_no_config(self, mocker, caplog):
+        """
+        Test the main function when no configuration is loaded.
+        It should log a warning and exit.
+        """
+
+        caplog.set_level("WARNING", logger="exosphere.main")
+
+        mocker.patch("exosphere.main.load_first_config", return_value=False)
+        mocker.patch("exosphere.main.setup_logging")
+        mocker.patch("exosphere.cli.app")
+
+        from exosphere.main import main
+
+        main()
+
+        assert "No configuration file found. Using defaults" in caplog.text
+
+    def test_main_debug_mode_enabled(self, mocker, caplog):
+        """
+        Test the main function when debug mode is enabled.
+        It should log debug messages.
+        """
+
+        caplog.set_level("WARNING", logger="exosphere.main")
+
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+        mocker.patch("exosphere.cli.app")
+
+        mock_setup_logging = mocker.patch("exosphere.main.setup_logging")
+
+        # Make a new configuration with debug options
+        from exosphere import Configuration
+
+        config = Configuration()
+
+        debug_config = {
+            "options": {
+                "debug": True,
+                "log_level": "DEBUG",
+            }
+        }
+
+        config.update_from_mapping(debug_config)
+
+        mocker.patch("exosphere.main.app_config", config)
+
+        from exosphere.main import main
+
+        main()
+
+        mock_setup_logging.assert_called_once_with("DEBUG")  # No file!
+        assert "Debug mode enabled! Logs may flood console!" in caplog.text
+
+    def test_main_inventory_exception(self, mocker, mock_config):
+        """
+        Test main exits if Inventory raises an exception.
+        """
+
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+        mocker.patch("exosphere.main.setup_logging")
+        mocker.patch("exosphere.main.cli.app")
+
+        mocker.patch(
+            "exosphere.main.Inventory", side_effect=Exception("Inventory error")
+        )
+
+        from exosphere.main import main
+
+        with pytest.raises(SystemExit):
+            main()
+
     def test_load_first_config(self, mocker, mock_config):
         """
         Test the load_first_config function.
@@ -230,20 +340,3 @@ class TestMain:
         basic_config.assert_called()
         get_logger.assert_any_call("exosphere")
         get_logger.assert_any_call("exosphere.main")
-
-    def test_main_inventory_exception(self, mocker, mock_config):
-        """
-        Test main exits if Inventory raises an exception.
-        """
-
-        mocker.patch("exosphere.main.load_first_config", return_value=True)
-        mocker.patch("exosphere.main.setup_logging")
-        mocker.patch("exosphere.main.cli.app")
-        mocker.patch(
-            "exosphere.main.Inventory", side_effect=Exception("Inventory error")
-        )
-
-        from exosphere.main import main
-
-        with pytest.raises(SystemExit):
-            main()

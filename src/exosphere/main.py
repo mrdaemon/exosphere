@@ -154,8 +154,8 @@ def main() -> None:
     debug_mode: bool = app_config["options"].get("debug")
 
     if debug_mode:
-        logger.warning("Debug mode enabled! Logs may flood console!")
         setup_logging(app_config["options"]["log_level"])
+        logger.warning("Debug mode enabled! Logs may flood console!")
     else:
         setup_logging(app_config["options"]["log_level"], log_file)
 
