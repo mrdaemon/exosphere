@@ -50,10 +50,4 @@ def get_dirs() -> dict[str, str]:
     }
 
 
-__all__ = [
-    "CONFIG_DIR",
-    "STATE_DIR",
-    "LOG_DIR",
-    "CACHE_DIR",
-    "ensure_dirs",
-]
+__all__ = ["CONFIG_DIR", "STATE_DIR", "LOG_DIR", "CACHE_DIR", "ensure_dirs", "get_dirs"]
