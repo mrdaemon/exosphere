@@ -139,7 +139,7 @@ def policy():
 
 @app.command()
 def check(
-    host: str = typer.Argument(..., help="Host to check security policies for"),
+    host: str = typer.Argument(help="Host to check security policies for"),
 ):
     """
     Check the effective Sudo Policies for a given host.
@@ -156,7 +156,7 @@ def check(
 
     if not target_host:
         err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
-        return
+        raise typer.Exit(1)
 
     # Collect sudo policies
     host_policy: SudoPolicy = target_host.sudo_policy
@@ -169,7 +169,7 @@ def check(
             f"Host '{host}' does not have a package manager defined in the inventory."
             " Ensure discovery has been run on the host at least once!"
         )
-        return
+        raise typer.Exit(1)
 
     # Get the package mananager class from the factory registry
     # We get the raw class to inspect, and do not need/want an instance
@@ -179,7 +179,7 @@ def check(
             f"[red]Host '{host}' has an unknown package manager: {host_pkg_manager_name}[/red]"
             " This is likely a bug and should be reported."
         )
-        return
+        raise typer.Exit(1)
 
     # Gather sudo policy checks
     can_reposync = check_sudo_policy(host_pkg_manager.reposync, host_policy)
@@ -260,7 +260,7 @@ def providers(
 
     if name and name not in provider_infos:
         err_console.print(f"[red]No such provider: {name}")
-        return
+        raise typer.Exit(1)
 
     target_providers = [provider_infos[name]] if name else list(provider_infos.values())
 
