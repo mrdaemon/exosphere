@@ -22,7 +22,7 @@ if sys.platform == "win32":
 from click_shell import make_click_shell
 from rich import print
 from rich.panel import Panel
-from typer import Argument, Context, Exit, Typer
+from typer import Argument, Context, Exit, Option, Typer
 
 from exosphere import __version__
 from exosphere.commands import config, host, inventory, sudo, ui
@@ -104,7 +104,12 @@ def help(ctx: Context, command: Annotated[str | None, Argument()] = None):
 
 
 @app.callback(invoke_without_command=True)
-def cli(ctx: Context) -> None:
+def cli(
+    ctx: Context,
+    version: Annotated[
+        bool, Option("--version", "-V", help="Show version and exit")
+    ] = False,
+) -> None:
     """
     Exosphere CLI
 
@@ -114,6 +119,11 @@ def cli(ctx: Context) -> None:
 
     Run without arguments to start the interactive mode.
     """
+
+    if version:
+        print(f"Exosphere version {__version__}")
+        raise Exit(0)
+
     if ctx.invoked_subcommand is None:
         logger = logging.getLogger(__name__)
         logger.info("Starting Exosphere REPL interface")

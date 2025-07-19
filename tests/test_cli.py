@@ -55,6 +55,20 @@ def test_repl_root(mocker, caplog) -> None:
 
     assert "Starting Exosphere REPL" in caplog.text
 
+def test_repl_version(mocker) -> None:
+    """
+    Test the 'version' command in the REPL.
+    Should print the version of Exosphere.
+    """
+    from exosphere.cli import app as repl_cli
+
+    mocker.patch("exosphere.cli.make_click_shell")
+    result = runner.invoke(repl_cli, ["--version"])
+    assert result.exit_code == 0
+
+    # Should mention the version of Exosphere
+    assert "Exosphere version" in result.output
+
 
 def test_ui_start(mocker, caplog) -> None:
     import logging
