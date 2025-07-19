@@ -29,3 +29,18 @@ class Update:
     new_version: str
     security: bool = False
     source: str | None = None
+
+
+@dataclass(frozen=True)
+class ProviderInfo:
+    """
+    Data class to hold information about a package manager provider.
+    Used by the CLI utilities and surrounding helper tools.
+    """
+
+    name: str
+    class_name: str
+    description: str
+    reposync_requires_sudo: bool
+    get_updates_requires_sudo: bool
+    sudo_commands: list[str]

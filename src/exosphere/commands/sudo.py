@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import fabric
 import fabric.util
 import typer
@@ -8,8 +6,8 @@ from rich.table import Table
 from typing_extensions import Annotated
 
 from exosphere import app_config, context
+from exosphere.data import ProviderInfo
 from exosphere.objects import Host
-from exosphere.providers.api import PkgManager
 from exosphere.providers.factory import PkgManagerFactory
 from exosphere.security import SudoPolicy, check_sudo_policy, has_sudo_flag
 
@@ -20,23 +18,6 @@ app = typer.Typer(
 
 console = Console()
 err_console = Console(stderr=True)
-
-
-@dataclass
-class ProviderInfo:
-    name: str
-    class_name: str
-    reposync_requires_sudo: bool
-    get_updates_requires_sudo: bool
-
-
-# Mapping of package manager names to their friendly descriptions.
-_provider_mapping: dict[str, str] = {
-    "apt": "Debian/Ubuntu Derivatives",
-    "dnf": "Fedora/RHEL/CentOS Derivatives",
-    "yum": "RHEL/CentOS 7 and earlier",
-    "pkg": "FreeBSD",
-}
 
 
 def _get_inventory():
@@ -68,6 +49,14 @@ def _get_provider_infos() -> dict[str, ProviderInfo]:
     require sudo privileges.
     """
 
+    # Mapping of package manager names to their friendly descriptions.
+    provider_mapping: dict[str, str] = {
+        "apt": "Debian/Ubuntu Derivatives",
+        "dnf": "Fedora/RHEL/CentOS Derivatives",
+        "yum": "RHEL/CentOS 7 and earlier",
+        "pkg": "FreeBSD",
+    }
+
     results = {}
 
     for name, cls in PkgManagerFactory.get_registry().items():
@@ -81,11 +70,15 @@ def _get_provider_infos() -> dict[str, ProviderInfo]:
             )
             continue
 
+        sudo_commands = getattr(cls, "SUDOERS_COMMANDS", [])
+
         info = ProviderInfo(
             name=name,
             class_name=cls.__qualname__,
             reposync_requires_sudo=has_sudo_flag(reposync_func),
             get_updates_requires_sudo=has_sudo_flag(get_updates_func),
+            description=provider_mapping.get(name, name),
+            sudo_commands=sudo_commands,
         )
 
         results[name] = info
@@ -109,32 +102,6 @@ def _format_can_run(
     Format the policy status for display in the table
     """
     return "[green]Yes[/green]" if can_run else "[red]No[/red]"
-
-
-def _get_provider(provider_name: str) -> PkgManager:
-    """
-    Validate and return the requested provider.
-    Will trigger exit if it doesn't exist, or doesn't require sudo privileges.
-    """
-    provider = PkgManagerFactory.get_registry().get(provider_name)
-    if not provider:
-        err_console.print(f"[red]No such provider: {provider_name}[/red]")
-        raise typer.Exit(1)
-
-    if not hasattr(provider, "SUDOERS_COMMANDS"):
-        err_console.print(
-            f"[red]Provider '{provider.__qualname__}' "
-            "does not have SUDOERS_COMMANDS defined.[/red]"
-        )
-        raise typer.Exit(1)
-
-    if not provider.SUDOERS_COMMANDS:
-        err_console.print(
-            f"Provider '{provider.__qualname__}' does not require any sudo commands."
-        )
-        raise typer.Exit(0)
-
-    return provider
 
 
 def _get_username(user: str | None, host: Host | None = None) -> str:
@@ -300,7 +267,7 @@ def providers(
     for provider in target_providers:
         providers_table.add_row(
             provider.class_name,
-            _provider_mapping.get(provider.name, provider.name),
+            provider.description,
             _format_sudo_status(provider.reposync_requires_sudo),
             _format_sudo_status(provider.get_updates_requires_sudo),
         )
@@ -353,18 +320,21 @@ def generate(
     """
     if not host and not provider:
         err_console.print(
-            "[red]You must specify either --host or --provider to generate a policy.[/red]"
+            "[red]You must specify either --host or --provider.[/red]\n"
+            "Use --help for more information."
         )
         raise typer.Exit(1)
 
     if host and provider:
-        err_console.print("[red]--host and --provider are mutually exclusive.[/red]")
+        err_console.print("[red]--host and --provider are mutually exclusive.[/red]\n")
         raise typer.Exit(1)
 
     inventory = _get_inventory()
+    provider_infos = _get_provider_infos()
 
     target_user: str
-    target_provider: PkgManager
+    target_provider_name: str | None = None
+    target_provider_info: ProviderInfo | None = None
 
     if host:
         target_host = inventory.get_host(host)
@@ -372,8 +342,8 @@ def generate(
             err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
             raise typer.Exit(1)
 
-        pkg_manager_name = target_host.package_manager
-        if not pkg_manager_name:
+        target_provider_name = target_host.package_manager
+        if not target_provider_name:
             err_console.print(
                 f"Host '{host}' does not have a package manager "
                 "defined in the inventory.\n"
@@ -382,29 +352,34 @@ def generate(
             )
             raise typer.Exit(1)
 
-        target_provider = _get_provider(pkg_manager_name)
-
+        target_provider_info = provider_infos.get(target_provider_name)
         target_user = _get_username(
             user,
             target_host,
         )
     elif provider:
-        pkg_manager_name = provider.lower()
-        target_provider = _get_provider(pkg_manager_name)
+        target_provider_name = provider.lower()
+        target_provider_info = provider_infos.get(target_provider_name)
         target_user = _get_username(user)
     else:
         assert False  # Validation failsafe
 
+    if not target_provider_info:
+        err_console.print(f"[red]No such provider: {target_provider_name}[/red]")
+        raise typer.Exit(1)
+
+    if not target_provider_info.sudo_commands:
+        err_console.print(
+            f"Provider '{target_provider_name}' does not require any sudo commands.\n"
+            "No additional configuration needed - all operations can run as-is."
+        )
+        raise typer.Exit(0)
+
     # generate the sudoers config snippet with the commands from provider.SUDOERS_COMMANDS
     # and the target username
-
-    provider_desc = _provider_mapping.get(
-        target_provider.__qualname__.lower(), target_provider.__qualname__
-    )
-
     sudoers_snippet = (
-        f"# Generated for {provider_desc}\n"
-        f"Cmnd_Alias EXOSPHERE_CMDS = {', '.join(target_provider.SUDOERS_COMMANDS or [])}\n"
+        f"# Generated for {target_provider_info.description}\n"
+        f"Cmnd_Alias EXOSPHERE_CMDS = {', '.join(target_provider_info.sudo_commands or [])}\n"
         f"{target_user} ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS"
     )
 
