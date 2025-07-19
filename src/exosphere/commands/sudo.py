@@ -368,12 +368,26 @@ def generate(
         err_console.print(f"[red]No such provider: {target_provider_name}[/red]")
         raise typer.Exit(1)
 
-    if not target_provider_info.sudo_commands:
+    something_requires_sudo = (
+        target_provider_info.reposync_requires_sudo
+        or target_provider_info.get_updates_requires_sudo
+    )
+
+    # Abort with success if nothing requires sudo
+    if not something_requires_sudo:
         err_console.print(
             f"Provider '{target_provider_name}' does not require any sudo commands.\n"
             "No additional configuration needed - all operations can run as-is."
         )
         raise typer.Exit(0)
+
+    # Abort with failure if provider does not define any sudo commands
+    if not target_provider_info.sudo_commands:
+        err_console.print(
+            f"[red]Provider '{target_provider_name}' does not define any sudo commands![/red]\n"
+            "Can't generate: This is a bug in the provider and should be reported."
+        )
+        raise typer.Exit(1)
 
     # generate the sudoers config snippet with the commands from provider.SUDOERS_COMMANDS
     # and the target username
