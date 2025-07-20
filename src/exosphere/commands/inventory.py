@@ -468,6 +468,7 @@ def save() -> None:
                     style="bold red",
                 ),
             )
+            raise typer.Exit(1)
 
     logger.debug("Inventory save operation completed")
 
@@ -497,7 +498,7 @@ def clear(
     inventory: Inventory = _get_inventory()
     if not confirm:
         console.print("Inventory state has [bold]not[/bold] been cleared.")
-        return
+        raise typer.Exit(1)
 
     try:
         inventory.clear_state()
@@ -508,6 +509,7 @@ def clear(
                 style="bold red",
             )
         )
+        raise typer.Exit(1)
     else:
         console.print(
             Panel.fit(
