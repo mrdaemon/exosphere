@@ -78,9 +78,13 @@ class ScreenFlagsRegistry:
             self.logger.warning("No registered screens to flag as dirty.")
             return
 
-        for screen in self.registered_screens:
-            if screen != current_screen:
-                self.flag_screen_dirty(screen)
+        screens = [s for s in self.registered_screens if s != current_screen]
+
+        if not screens:
+            self.logger.debug("No screens to flag as dirty (excluding current).")
+            return
+
+        self.flag_screen_dirty(*screens)
 
     def is_screen_dirty(self, screen_name: str) -> bool:
         """Check if a screen is flagged as dirty."""
