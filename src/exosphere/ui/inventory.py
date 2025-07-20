@@ -1,5 +1,5 @@
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical
@@ -8,7 +8,9 @@ from textual.widgets import DataTable, Footer, Header, Label
 
 from exosphere import context
 from exosphere.objects import Host, Update
+from exosphere.ui.context import screenflags
 from exosphere.ui.elements import ErrorScreen, ProgressScreen
+from exosphere.ui.messages import HostStatusChanged
 
 logger = logging.getLogger("exosphere.ui.inventory")
 
@@ -177,7 +179,6 @@ class InventoryScreen(Screen):
     CSS_PATH = "style.tcss"
 
     BINDINGS = [
-        ("ctrl+d", "redraw", "Redraw"),
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
         ("ctrl+x", "refresh_updates_catalog_all", "Refresh Catalog"),
     ]
@@ -247,6 +248,13 @@ class InventoryScreen(Screen):
             HostDetailsPanel(host),
         )
 
+    def on_screen_resume(self) -> None:
+        """Refresh the data table if the screen is dirty"""
+        if screenflags.is_screen_dirty("inventory"):
+            logger.debug("Inventory screen is dirty, refreshing rows.")
+            self.refresh_rows()
+            screenflags.flag_screen_clean("inventory")
+
     def refresh_rows(self, task: str | None = None) -> None:
         """Repopulate all rows in the data table from the inventory."""
 
@@ -279,10 +287,6 @@ class InventoryScreen(Screen):
 
         self.app.notify("Table data refreshed successfully.", title="Refresh Complete")
 
-    def action_redraw(self) -> None:
-        """Action to redraw the inventory screen."""
-        self.refresh_rows()
-
     def action_refresh_updates_all(self) -> None:
         """Action to refresh updates for all hosts."""
 
@@ -296,17 +300,12 @@ class InventoryScreen(Screen):
     def action_refresh_updates_catalog_all(self) -> None:
         """Action to refresh updates and package catalog for all hosts."""
 
-        def post_action(_):
-            """Callback to also run updates refresh after catalog refresh."""
-            # Note: Data Table refresh is handled by the callback
-            self.action_refresh_updates_all()
-
         self._run_task(
             taskname="refresh_catalog",
             message="Refreshing package catalog for all hosts.\nThis may take a long time!",
             no_hosts_message="No hosts available to refresh package catalog.",
             save_state=False,  # Refreshing catalog does not affect state
-            callback=post_action,
+            callback=lambda _: None,  # No need to flag screens dirty
         )
 
     def _populate_table(self, table: DataTable, hosts: list[Host]):
@@ -365,6 +364,13 @@ class InventoryScreen(Screen):
         :param callback: Optional callback function to execute after the task.
                          Defaults implicitly to self.refresh_rows().
         """
+
+        def send_message(_):
+            """Send message to flag other screens as dirty"""
+            logger.debug("Task %s completed, sending status change message.", taskname)
+            self.post_message(HostStatusChanged("inventory"))
+            self.refresh_rows(taskname)
+
         inventory = context.inventory
 
         if inventory is None:
@@ -377,7 +383,7 @@ class InventoryScreen(Screen):
         hosts = inventory.hosts if inventory else []
 
         if not hosts:
-            logger.warning(f"No hosts available to run task '{taskname}'.")
+            logger.warning("No hosts available to run task '%s'.", taskname)
             self.app.push_screen(ErrorScreen(no_hosts_message))
             return
 
@@ -388,5 +394,5 @@ class InventoryScreen(Screen):
                 taskname=taskname,
                 save=save_state,
             ),
-            callback or self.refresh_rows,
+            callback or send_message,
         )

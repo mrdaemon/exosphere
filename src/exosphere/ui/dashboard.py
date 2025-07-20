@@ -7,7 +7,9 @@ from textual.widgets import Footer, Header, Label
 
 from exosphere import context
 from exosphere.objects import Host
+from exosphere.ui.context import screenflags
 from exosphere.ui.elements import ErrorScreen, ProgressScreen
+from exosphere.ui.messages import HostStatusChanged
 
 logger = logging.getLogger("exosphere.ui.dashboard")
 
@@ -121,8 +123,24 @@ class DashboardScreen(Screen):
             no_hosts_message="No hosts available to discover.",
         )
 
+    def on_screen_resume(self) -> None:
+        """Handle resume event to refresh host widgets."""
+        if screenflags.is_screen_dirty("dashboard"):
+            logger.debug("Dashboard screen is dirty, refreshing host widgets.")
+            self.refresh_hosts()
+            screenflags.flag_screen_clean("dashboard")
+
     def _run_task(self, taskname: str, message: str, no_hosts_message: str) -> None:
         """Run a task on all hosts."""
+
+        def send_message(_):
+            """Send a message indicating the task is complete."""
+            logger.debug(
+                "Task '%s' completed, sending status change message.", taskname
+            )
+            self.post_message(HostStatusChanged("dashboard"))
+            self.refresh_hosts(taskname)
+
         inventory = context.inventory
 
         if inventory is None:
@@ -135,7 +153,7 @@ class DashboardScreen(Screen):
         hosts = inventory.hosts if inventory else []
 
         if not hosts:
-            logger.warning(f"No hosts available to run task '{taskname}'.")
+            logger.warning("No hosts available to run task '%s'.", taskname)
             self.app.push_screen(ErrorScreen(no_hosts_message))
             return
 
@@ -146,5 +164,5 @@ class DashboardScreen(Screen):
                 taskname=taskname,
                 save=True,  # All dashboard operations affect state
             ),
-            self.refresh_hosts,  # Callback after screen is popped
+            callback=send_message,  # Signal everyone that hosts changed
         )

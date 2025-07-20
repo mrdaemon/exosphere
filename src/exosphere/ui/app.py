@@ -3,13 +3,25 @@ import logging
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header
 
+from exosphere.ui.context import screenflags
 from exosphere.ui.dashboard import DashboardScreen
 from exosphere.ui.inventory import InventoryScreen
 from exosphere.ui.logs import LogsScreen, UILogHandler
+from exosphere.ui.messages import HostStatusChanged
 
 
 class ExosphereUi(App):
-    """The main application class for the Exosphere UI."""
+    """
+    The main application class for the Exosphere UI.
+
+    This class manages a handful of things, including the overall
+    application state, the global key bindings and modes,
+    as well as the status bar setup and composition.
+
+    Since it manages the modal screen state, it is also responsible
+    for tracking which screens need refreshed when the shared data
+    changes via the message system.
+    """
 
     ui_log_handler: UILogHandler | None
 
@@ -28,6 +40,20 @@ class ExosphereUi(App):
         "logs": LogsScreen,
     }
 
+    async def on_host_status_changed(self, message: HostStatusChanged) -> None:
+        """
+        Handle host status change messages to refresh screens.
+        """
+        logging.debug("Received host status change message, refreshing screens.")
+        # Refresh all screens that are registered
+        if message.current_screen not in screenflags.registered_screens:
+            logging.warning(
+                f"Received host status change from unregistered screen: {message.current_screen}"
+            )
+
+        # Flag all screens as dirty except the one who sent the message
+        screenflags.flag_screen_dirty_except(message.current_screen)
+
     def compose(self) -> ComposeResult:
         """Compose the common application layout."""
         yield Header()
@@ -35,6 +61,12 @@ class ExosphereUi(App):
 
     def on_mount(self) -> None:
         """Initialize UI Log handler and set the default mode."""
+
+        # Initialize the screen flags registry
+        # This list should contain all screens that display data from
+        # exosphere.objects or exosphere.inventory
+        screenflags.register_screens("dashboard", "inventory")
+
         # Initialize logging handler for logs panel
         self.ui_log_handler = UILogHandler()
         self.ui_log_handler.setFormatter(
