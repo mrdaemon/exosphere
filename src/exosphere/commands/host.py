@@ -210,7 +210,7 @@ def discover(
 def refresh(
     name: Annotated[str, typer.Argument(help="Host from inventory to refresh")],
     full: Annotated[
-        bool, typer.Option("--sync", "-s", help="Also refresh package catalog")
+        bool, typer.Option("--sync", "-s", help="Also sync package repositories")
     ] = False,
     discover: Annotated[
         bool, typer.Option("--discover", "-d", help="Also refresh platform information")
@@ -254,10 +254,10 @@ def refresh(
 
         if full:
             task = progress.add_task(
-                f"Refreshing package catalog for '{host.name}'", total=None
+                f"Syncing package repositories for '{host.name}'", total=None
             )
             try:
-                host.refresh_catalog()
+                host.sync_repos()
             except Exception as e:
                 progress.console.print(
                     Panel.fit(

@@ -24,7 +24,7 @@ system.
 The common prerequisites for management are:
 
 - SSH access to the remote host (with a ssh `agent`_ for authentication)
-- sudoers privilege for synchronizing package catalogs (optional, and only for some providers)
+- sudoers privilege for synchronizing package repositories (optional, and only for some providers)
 - Package manager binaries installed and available in the PATH (this should be the case by default)
 - Standard unix utilities are often expected, such as `grep` and friends.
 

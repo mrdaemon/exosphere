@@ -307,9 +307,9 @@ class Host:
             self.package_manager,
         )
 
-    def refresh_catalog(self) -> None:
+    def sync_repos(self) -> None:
         """
-        Refresh the package catalog on the host.
+        Sync the package repositories on the host.
 
         Will invoke the concrete package manager provider implementation
         associated during initial host sync.
@@ -333,7 +333,7 @@ class Host:
         # Check if we can run this with the current SudoPolicy
         if not check_sudo_policy(self._pkginst.reposync, self.sudo_policy):
             self.logger.warning(
-                "Skipping package catalog refresh on %s due to SudoPolicy: %s",
+                "Skipping package repository sync on %s due to SudoPolicy: %s",
                 self.name,
                 self.sudo_policy,
             )
@@ -341,7 +341,9 @@ class Host:
 
         pkg_manager = self._pkginst
         if not pkg_manager.reposync(self.connection):
-            raise DataRefreshError(f"Failed to refresh package catalog on {self.name}")
+            raise DataRefreshError(
+                f"Failed to sync package repositories on {self.name}"
+            )
 
     def refresh_updates(self) -> None:
         """

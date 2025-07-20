@@ -214,11 +214,11 @@ def check(
     table.add_row("", "")  # Blank row for spacing
 
     table.add_row(
-        "Can Synchronize Catalog:",
+        "Can Sync Repositories:",
         _format_can_run(can_reposync),
     )
     table.add_row(
-        "Can Get Updates:",
+        "Can Refresh Updates:",
         _format_can_run(can_get_updates),
     )
 
@@ -251,7 +251,7 @@ def providers(
     providers_table = Table(
         "Provider",
         "Platform",
-        "Refresh Catalog",
+        "Sync Repositories",
         "Refresh Updates",
         title="Providers Requirements",
     )
@@ -326,7 +326,7 @@ def generate(
         raise typer.Exit(1)
 
     if host and provider:
-        err_console.print("[red]--host and --provider are mutually exclusive.[/red]\n")
+        err_console.print("[red]--host and --provider are mutually exclusive.[/red]")
         raise typer.Exit(1)
 
     inventory = _get_inventory()

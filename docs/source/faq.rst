@@ -20,11 +20,12 @@ My system using `dnf` or `yum` hangs when refreshing
 ----------------------------------------------------
 
 The `dnf` and `yum` providers do a best effort to prevent interactive
-prompts when running the commands they need to refresh catalog and cache, but
-sometimes, they will still prompt for user input, which Exosphere cannot handle.
+prompts when running the commands they need to synchronize repositories
+and cache, but sometimes, they will still prompt for user input, which
+Exosphere cannot handle.
 
-To resolve this, you can simply connect to the remote system as the same user you use
-within Exosphere, and manually run the following commands:
+To resolve this, you can simply connect to the remote system as the same
+user you use within Exosphere, and manually run the following commands:
 
 .. tabs::
 

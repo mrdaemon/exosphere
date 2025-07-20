@@ -434,11 +434,11 @@ class TestInventory:
 
         mock_run.assert_called_once_with("discover")
 
-    def test_refresh_catalog_all_calls_run_task(
+    def test_sync_repos_all_calls_run_task(
         self, mocker, mock_config, mock_diskcache, mock_host_class
     ):
         """
-        Test that refresh_catalog_all calls run_task with 'refresh_catalog'.
+        Test that sync_repos_all calls run_task with 'sync_repos'.
         """
         inventory = Inventory(mock_config)
         mock_run = mocker.patch.object(
@@ -447,9 +447,9 @@ class TestInventory:
             return_value=[(mocker.Mock(name="host1"), None, None)],
         )
 
-        inventory.refresh_catalog_all()
+        inventory.sync_repos_all()
 
-        mock_run.assert_called_once_with("refresh_catalog")
+        mock_run.assert_called_once_with("sync_repos")
 
     def test_refresh_updates_all_calls_run_task(
         self, mocker, mock_config, mock_diskcache, mock_host_class
@@ -556,7 +556,7 @@ class TestInventory:
 
     @pytest.mark.parametrize(
         "method_name",
-        ["discover", "refresh_catalog", "refresh_updates", "ping"],
+        ["discover", "sync_repos", "refresh_updates", "ping"],
     )
     def test_run_task(
         self, mocker, mock_config, mock_diskcache, mock_host_class, caplog, method_name

@@ -180,7 +180,7 @@ class InventoryScreen(Screen):
 
     BINDINGS = [
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
-        ("ctrl+x", "refresh_updates_catalog_all", "Refresh Catalog"),
+        ("ctrl+x", "sync_repos_all", "Sync Repos"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -297,14 +297,14 @@ class InventoryScreen(Screen):
             save_state=True,
         )
 
-    def action_refresh_updates_catalog_all(self) -> None:
-        """Action to refresh updates and package catalog for all hosts."""
+    def action_sync_repos_all(self) -> None:
+        """Action to sync repositories for all hosts."""
 
         self._run_task(
-            taskname="refresh_catalog",
-            message="Refreshing package catalog for all hosts.\nThis may take a long time!",
-            no_hosts_message="No hosts available to refresh package catalog.",
-            save_state=False,  # Refreshing catalog does not affect state
+            taskname="sync_repos",
+            message="Syncing repositories for all hosts.\nThis may take a long time!",
+            no_hosts_message="No hosts available to sync repositories.",
+            save_state=False,  # Syncing repos does not affect state
             callback=lambda _: None,  # No need to flag screens dirty
         )
 

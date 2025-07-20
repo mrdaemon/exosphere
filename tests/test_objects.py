@@ -534,11 +534,11 @@ class TestHostObject:
 
         assert host.is_stale is False
 
-    def test_refresh_catalog_success(
+    def test_sync_repos_success(
         self, mocker, mock_connection, mock_config_with_sudopolicy_pass
     ):
         """
-        Test that refresh_catalog calls reposync and succeeds when online and _pkginst is set.
+        Test that sync_repos calls reposync and succeeds when online and _pkginst is set.
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
@@ -548,42 +548,42 @@ class TestHostObject:
 
         host._pkginst = pkg_manager
 
-        host.refresh_catalog()
+        host.sync_repos()
 
         pkg_manager.reposync.assert_called_once_with(host.connection)
 
-    def test_refresh_catalog_offline_raises(self, mock_config_with_sudopolicy_pass):
+    def test_sync_repos_offline_raises(self, mock_config_with_sudopolicy_pass):
         """
-        Test that refresh_catalog raises OfflineHostError if host is offline.
+        Test that sync_repos raises OfflineHostError if host is offline.
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = False
 
         with pytest.raises(OfflineHostError):
-            host.refresh_catalog()
+            host.sync_repos()
 
-    def test_refresh_catalog_no_pkginst_raises(
+    def test_sync_repos_no_pkginst_raises(
         self, caplog, mock_config_with_sudopolicy_pass
     ):
         """
-        Test that refresh_catalog raises DataRefreshError if _pkginst is None.
+        Test that sync_repos raises DataRefreshError if _pkginst is None.
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
         host._pkginst = None
 
         with pytest.raises(DataRefreshError):
-            host.refresh_catalog()
+            host.sync_repos()
 
         caplog.set_level("ERROR")
         logs = caplog.text
         assert "Package manager implementation unavailable" in logs
 
-    def test_refresh_catalog_reposync_failure_raises(
+    def test_sync_repos_reposync_failure_raises(
         self, mocker, mock_connection, mock_config_with_sudopolicy_pass
     ):
         """
-        Test that refresh_catalog raises DataRefreshError if reposync returns False.
+        Test that sync_repos raises DataRefreshError if reposync returns False.
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
@@ -594,13 +594,11 @@ class TestHostObject:
         host._pkginst = pkg_manager
 
         with pytest.raises(DataRefreshError):
-            host.refresh_catalog()
+            host.sync_repos()
 
-    def test_refresh_catalog_sudopolicy_disallowed(
-        self, mocker, mock_connection, caplog
-    ):
+    def test_sync_repos_sudopolicy_disallowed(self, mocker, mock_connection, caplog):
         """
-        Test that refresh_catalog skips the task if sudo policy disallows it
+        Test that sync_repos skips the task if sudo policy disallows it
         """
 
         @requires_sudo
@@ -616,12 +614,12 @@ class TestHostObject:
         host._pkginst = mock_pkg
 
         with caplog.at_level("WARNING"):
-            result = host.refresh_catalog()
+            result = host.sync_repos()
 
         assert result is None
         mock_pkg.reposync.assert_not_called()
         assert (
-            "Skipping package catalog refresh on test_host due to SudoPolicy: skip"
+            "Skipping package repository sync on test_host due to SudoPolicy: skip"
             in caplog.text
         )
 

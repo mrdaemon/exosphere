@@ -63,8 +63,8 @@ def mock_host(mocker):
     def discover():
         instance.discovered = True
 
-    def refresh_catalog():
-        instance.catalog_refreshed = True
+    def sync_repos():
+        instance.repos_synced = True
 
     def refresh_updates():
         instance.updates_refreshed = True
@@ -73,7 +73,7 @@ def mock_host(mocker):
         return instance.online
 
     instance.discover.side_effect = discover
-    instance.refresh_catalog.side_effect = refresh_catalog
+    instance.sync_repos.side_effect = sync_repos
     instance.refresh_updates.side_effect = refresh_updates
     instance.ping.side_effect = ping
 
@@ -181,12 +181,12 @@ def test_refresh_host(mock_host, patch_context_inventory):
 
 def test_refresh_host_sync(mock_host, patch_context_inventory):
     """
-    Test refreshing a host's catalog and updates with full sync
+    Test refreshing a host's repos and updates with full sync
     """
     result = runner.invoke(host_module.app, ["refresh", mock_host.name, "--sync"])
 
     assert result.exit_code == 0
-    assert hasattr(mock_host, "catalog_refreshed")
+    assert hasattr(mock_host, "repos_synced")
     assert hasattr(mock_host, "updates_refreshed")
 
 

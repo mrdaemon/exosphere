@@ -13,11 +13,11 @@ Debian/Ubuntu (Apt)
 
 The Debian/Ubuntu provider is implemented in the `exosphere.providers.debian` module.
 
-Catalog Update *requires* sudo privileges, as it needs to run ``apt-get update`` to
+Repo sync *requires* sudo privileges, as it needs to run ``apt-get update`` to
 update the package cache from repository.
 
 By default, given the stock :ref:`Sudo Policy <default_sudo_policy_option>`,
-in Exosphere, Catalog Updates will **not** run for Debian-like hosts, and you will need
+in Exosphere, Repo sync will **not** run for Debian-like hosts, and you will need
 to configure sudoers appropriately before changing the Sudo Policy.
 
 Updates retrieval is done using ``apt-get dist-upgrade`` in simulation mode, 
@@ -25,7 +25,7 @@ and does *not* require elevated privileges.
 
 .. admonition:: Note
 
-    If you want catalog updates without sudo privileges, you can also just
+    If you want repo sync without sudo privileges, you can also just
     install the ``apt-config-auto-update`` package, or configure
     `Unattended Upgrades`_ to achieve this on a schedule. 
 
@@ -55,7 +55,7 @@ an interface for the relevant commands. The only distinction is the command name
 
 Internally, using Yum as a provider wraps Dnf, but with a different command name.
 
-Catalog Update *does not* require sudo privileges, as it runs ``yum/dnf makecache``
+Repo sync *does not* require sudo privileges, as it runs ``yum/dnf makecache``
 as the connection user to retrieve the information.
 
 Updates retrieval is done using ``yum/dnf check-update``, and does *not* require
@@ -92,7 +92,7 @@ FreeBSD (Pkg)
 The FreeBSD provider is implemented in the `exosphere.providers.freebsd` module.
 It uses the `pkg` command to manage packages and updates.
 
-Catalog Update *does not* require sudo privileges, as it is a no-op, since `pkg`
+Repo sync *does not* require sudo privileges, as it is a no-op, since `pkg`
 does not actually require a separate step, and the repositories are synced
 automatically otherwise.
 

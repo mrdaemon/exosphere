@@ -167,7 +167,8 @@ def test_check(mock_inventory, dummy_host):
     assert "Sudo Policy for dummy_host" in result.output
     assert "Host Policy:" in result.output
     assert "skip (global)" in result.output
-    assert "Can Synchronize Catalog:  No" in result.output
+    assert "Can Sync Repositories:  No" in result.output
+    assert "Can Refresh Updates:    Yes" in result.output
     assert "operations require sudo privileges" in result.output
 
 
@@ -184,7 +185,8 @@ def test_check_with_local_policy(mock_inventory, dummy_host):
 
     assert result.exit_code == 0
     assert "nopasswd (local)" in result.output
-    assert "Can Synchronize Catalog:  Yes" in result.output
+    assert "Can Sync Repositories:  Yes" in result.output
+    assert "Can Refresh Updates:    Yes" in result.output
     assert "operations require sudo privileges" not in result.output
 
 

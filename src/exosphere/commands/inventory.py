@@ -164,7 +164,7 @@ def refresh(
         bool, typer.Option(help="Also refresh platform information")
     ] = False,
     sync: Annotated[
-        bool, typer.Option(help="Refresh the package catalog as well as updates")
+        bool, typer.Option(help="Sync the package repositories as well as updates")
     ] = False,
     names: Annotated[
         list[str] | None,
@@ -183,12 +183,12 @@ def refresh(
     System flavor, version, package manager) will also be refreshed.
     Also refreshes the online status in the process.
 
-    If --sync is specified, the package catalog will also be refreshed.
+    If --sync is specified, the package repositories will also be synced.
 
-    Updating the package catalog involves invoking whatever mechamism
-    the package manager uses to synchronize its package repositories,
-    and can be a very expensive operation, which may take a long time,
-    especially on large inventories with a handful of slow hosts.
+    Syncing the package repositories involves invoking whatever mechanism
+    the package manager uses to achieve this, and can be a very expensive
+    operation, which may take a long time, especially on large inventories
+    with a handful of slow hosts.
     """
     logger = logging.getLogger(__name__)
     logger.info("Refreshing inventory data")
@@ -233,15 +233,15 @@ def refresh(
             TimeElapsedColumn(),
         ) as progress:
             refresh_task = progress.add_task(
-                "Refreshing package catalog", total=len(hosts)
+                "Syncing package repositories", total=len(hosts)
             )
-            for host, _, exc in inventory.run_task("refresh_catalog", hosts=hosts):
+            for host, _, exc in inventory.run_task("sync_repos", hosts=hosts):
                 if exc:
                     progress.console.print(
                         Panel.fit(
                             f"[bold red]{host.name}:[/bold red] {type(exc).__name__}",
                             style="bold red",
-                            title="Error refreshing package catalog",
+                            title="Error syncing package repositories",
                         )
                     )
 

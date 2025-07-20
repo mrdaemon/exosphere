@@ -574,7 +574,8 @@ and examples of how to set them in the configuration file.
     The maximum number of threads to use for parallel operations.
 
     This is the maximum number of threads Exosphere will use for parallel
-    operations, such as discovery, ping, checking for updates or refreshing catalogs.
+    operations, such as discovery, ping, checking for updates or synchronizing
+    repositories.
 
     This can be useful to limit the number of concurrent operations, especially
     in environments with many hosts, to avoid overwhelming the network or the computer

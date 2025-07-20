@@ -44,12 +44,13 @@ Discovery
     This usually only needs to be done once per host, but can be repeated if any details
     change, such as a new OS version or package manager change.
 
-Catalog
-    The Catalog is the generic term for the authoritative list of packages on the
+Repositories
+    The Repositories are the generic term for the authoritative list of packages on the
     host platform. This generally consists of repositories. For instance, on Debian
-    and Ubuntu systems, the catalog refers to the repositories configured in the
+    and Ubuntu systems, the repositories refer to the remote systems configured in
     `/etc/apt/sources.list` and friends. On RedHat-likes, it refers to the
     repositories configured in `/etc/yum.repos.d/` and so on.
 
-    Refreshing the catalog is the process of updating the local cache from these
-    repositories, so that the next update check will have the latest information.
+    Synchronizing the repositories is the process of updating the local host cache
+    from these remote servers, so that the next update check will have the latest
+    information.

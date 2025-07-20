@@ -20,7 +20,7 @@ class Inventory:
     Also handles dispatching tasks to the Host objects, via a parallelized
     ThreadPoolExecutor.
 
-    Convenience methods for discovery, refreshing catalogs, updates and ping
+    Convenience methods for discovery, repo sync, updates refresh and ping
     are provided, and are all parallelized using Threads.
 
     Runtime errors are generally non-fatal, but will be logged.
@@ -241,26 +241,26 @@ class Inventory:
 
         self.logger.info("All hosts discovered")
 
-    def refresh_catalog_all(self) -> None:
+    def sync_repos_all(self) -> None:
         """
-        Refresh the package catalog on all hosts in the inventory.
+        Sync the package repositories on all hosts in the inventory.
 
-        This method will call the `refresh_catalog` method on each
+        This method will call the `sync_repos` method on each
         Host object in the inventory.
         """
-        self.logger.info("Refreshing package catalogs for all hosts")
+        self.logger.info("Syncing repositories for all hosts")
 
         for host, _, exc in self.run_task(
-            "refresh_catalog",
+            "sync_repos",
         ):
             if exc:
                 self.logger.error(
-                    "Failed to refresh package catalog for host %s: %s", host.name, exc
+                    "Failed to sync repositories for host %s: %s", host.name, exc
                 )
             else:
-                self.logger.info("Package catalog refreshed for host %s", host.name)
+                self.logger.info("Package repositories synced for host %s", host.name)
 
-        self.logger.info("Package catalogs refreshed for all hosts")
+        self.logger.info("Package repositories synced for all hosts")
 
     def refresh_updates_all(self) -> None:
         """
