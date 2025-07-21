@@ -66,6 +66,31 @@ Any option left out will use the default values, which are documented below.
 Environment Variables
 ---------------------
 
+The location of the configuration file can be overridden by setting the
+``EXOSPHERE_CONFIG_FILE`` environment variable to the full path of the
+file you wish to use.
+
+.. tabs::
+
+    .. group-tab:: Unix/MacOS
+
+        .. code-block:: shell
+
+            export EXOSPHERE_CONFIG_FILE="/path/to/my/config.yaml"
+
+    .. group-tab:: Windows/PowerShell
+
+        .. code-block:: powershell
+
+            $env:EXOSPHERE_CONFIG_FILE = "c:\path\to\my\config.yaml"
+
+    .. group-tab:: Windows/cmd
+
+        .. code-block:: batch
+
+            set EXOSPHERE_CONFIG_FILE="c:\path\to\my\config.yaml"
+
+
 Exosphere also supports loading configuration options from environment variables.
 You can use this to override any specific `Option` from the configuration file.
 You cannot use environment variables to override the `Hosts` section.
@@ -917,6 +942,8 @@ You will find below the detailed list of all available host options and their de
                         }
                     ]
                 }
+
+.. _connect_timeout_host_option:
 
 .. option:: connect_timeout
 

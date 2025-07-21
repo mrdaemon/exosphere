@@ -45,6 +45,21 @@ user you use within Exosphere, and manually run the following commands:
 And answer all the prompts that may appear. The provider should no longer hang
 past this point.
 
+I've tuned the timeout but this one host keeps getting flagged offline
+----------------------------------------------------------------------
+
+Exosphere does use a fairly aggressive timeout value for its ssh connections,
+but if you have a host that is consistently supremely slow to respond, yet you
+can connect to it reliably, it is likely you have DNS issues on that server.
+
+Check your resolvers and/or add ``UseDNS no`` to your sshd configuration.
+FreeBSD notoriously ships with the option enabled by default, for instance.
+
+If you can't or this has no effect, you can increase the timeout value for
+that host specifically by setting the ``connect_timeout``
+:ref:`host option <connect_timeout_host_option>` to a higher value, without
+having to change the global option.
+
 When managing Ubuntu systems, will this handle snaps?
 -----------------------------------------------------
 
