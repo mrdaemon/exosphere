@@ -1,6 +1,7 @@
 import logging
 
 import typer
+from rich import box
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
@@ -16,6 +17,24 @@ from typing_extensions import Annotated
 
 from exosphere import app_config, context
 from exosphere.inventory import Inventory
+from exosphere.objects import Host
+
+# Constants for display
+ERROR_STYLE = {
+    "style": "bold red",
+    "title_align": "left",
+}
+STATUS_FORMATS = {
+    "success": "[[bold green]OK[/bold green]]",
+    "failure": "[[bold red]FAILED[/bold red]]",
+}
+SPINNER_PROGRESS_ARGS = (
+    SpinnerColumn(),
+    TextColumn("[progress.description]{task.description}"),
+    TaskProgressColumn(),
+    TimeElapsedColumn(),
+)
+
 
 app = typer.Typer(
     help="Inventory and Bulk Management Commands",
@@ -43,7 +62,7 @@ def _get_inventory():
 
 def _get_hosts_or_error(
     names: list[str] | None = None,
-) -> list | None:
+) -> list[Host] | None:
     """
     Get hosts from the inventory, filtering by names if provided.
     Will print an error message and return None if all hosts are not found.
@@ -81,6 +100,49 @@ def _get_hosts_or_error(
     return inventory.hosts
 
 
+def _run_task_with_progress(
+    inventory: Inventory,
+    hosts: list[Host],
+    task_name: str,
+    task_description: str,
+    display_hosts: bool = True,
+    collect_errors: bool = True,
+    immediate_error_display: bool = False,
+    transient: bool = True,
+    progress_args: tuple = (),
+) -> list[tuple[str, str]]:
+    """
+    Run a task on selected host with progress display
+    """
+    errors = []
+    short_name = task_name.replace("_", " ").capitalize()
+
+    with Progress(transient=transient, *progress_args) as progress:
+        task = progress.add_task(task_description, total=len(hosts))
+
+        for host, _, exc in inventory.run_task(task_name, hosts=hosts):
+            status_out = STATUS_FORMATS["failure"] if exc else STATUS_FORMATS["success"]
+            host_out = f"[bold]{host.name}[/bold]"
+
+            if exc:
+                if immediate_error_display:
+                    progress.console.print(
+                        f"{short_name}: [red]{str(exc)}[/red]",
+                    )
+
+                if collect_errors:
+                    errors.append((host.name, str(exc)))
+
+            if display_hosts:
+                progress.console.print(
+                    Columns([status_out, host_out], padding=(2, 1), equal=True)
+                )
+
+            progress.update(task, advance=1)
+
+    return errors
+
+
 @app.command()
 def discover(
     names: Annotated[
@@ -111,51 +173,35 @@ def discover(
     if hosts is None:
         return
 
-    with Progress(
-        transient=True,
-    ) as progress:
-        errors = []
-        task = progress.add_task("Gathering platform information", total=len(hosts))
-        for host, _, exc in inventory.run_task("discover", hosts=hosts):
-            status_out = (
-                "  [[bold red]FAILED[/bold red]]"
-                if exc
-                else "  [[bold green]OK[/bold green]]"
-            )
+    errors = _run_task_with_progress(
+        inventory=inventory,
+        hosts=hosts,
+        task_name="discover",
+        task_description="Gathering platform information",
+        display_hosts=True,
+        collect_errors=True,
+        immediate_error_display=False,
+    )
 
-            host_out = f"[bold]{host.name}[/bold]"
+    errors_table = Table(
+        "Host", "Error", show_header=False, show_lines=False, box=box.SIMPLE_HEAD
+    )
 
-            renderables = [
-                status_out,
-                host_out,
-            ]
-
-            if exc:
-                errors.append((host.name, str(exc)))
-
-            progress.console.print(
-                Columns(
-                    renderables,
-                    padding=(2, 1),
-                    equal=True,
-                ),
-            )
-
-            progress.update(task, advance=1)
+    exit_code = 0
 
     if errors:
+        console.print()
+        console.print("The following hosts could not be discovered due to errors:")
         for host, error in errors:
-            err_console.print(
-                Panel.fit(
-                    error,
-                    style="bold red",
-                    title=f"Error on {host}",
-                    title_align="left",
-                )
-            )
+            errors_table.add_row(host, f"[bold red]{error}[/bold red]")
+
+        console.print(errors_table)
+        exit_code = 1
 
     if app_config["options"]["cache_autosave"]:
         save()
+
+    raise typer.Exit(code=exit_code)
 
 
 @app.command()
@@ -200,101 +246,63 @@ def refresh(
     if hosts is None:
         return
 
-    # FIXME: This need refactored to be a common function, possibly
-    #        across all commands that run tasks on hosts.
     if discover:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            TaskProgressColumn(),
-            TimeElapsedColumn(),
-        ) as progress:
-            discover_task = progress.add_task(
-                "Discovering platform information", total=len(hosts)
-            )
-            for host, _, exc in inventory.run_task("discover", hosts=hosts):
-                if exc:
-                    progress.console.print(
-                        Panel.fit(
-                            f"[bold red]{host.name}:[/bold red] {str(exc)}",
-                            style="bold red",
-                            title="Error discovering platform information",
-                        )
-                    )
+        _run_task_with_progress(
+            inventory=inventory,
+            hosts=hosts,
+            task_name="discover",
+            task_description="Gathering platform information",
+            display_hosts=False,
+            collect_errors=False,
+            immediate_error_display=True,
+            progress_args=SPINNER_PROGRESS_ARGS,
+        )
 
-                progress.update(discover_task, advance=1)
-            progress.stop_task(discover_task)
-
+    # If sync is requested, we will run the sync_repos task
     if sync:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            TaskProgressColumn(),
-            TimeElapsedColumn(),
-        ) as progress:
-            refresh_task = progress.add_task(
-                "Syncing package repositories", total=len(hosts)
-            )
-            for host, _, exc in inventory.run_task("sync_repos", hosts=hosts):
-                if exc:
-                    progress.console.print(
-                        Panel.fit(
-                            f"[bold red]{host.name}:[/bold red] {str(exc)}",
-                            style="bold red",
-                            title="Error syncing package repositories",
-                        )
-                    )
+        _run_task_with_progress(
+            inventory=inventory,
+            hosts=hosts,
+            task_name="sync_repos",
+            task_description="Syncing package repositories",
+            display_hosts=False,
+            collect_errors=False,
+            immediate_error_display=True,
+            progress_args=SPINNER_PROGRESS_ARGS,
+        )
 
-                progress.update(refresh_task, advance=1)
-            progress.stop_task(refresh_task)
+    # Finally, refresh the updates for all hosts
+    # We want this one to display the progress bar and summarize errors.
+    errors = _run_task_with_progress(
+        inventory=inventory,
+        hosts=hosts,
+        task_name="refresh_updates",
+        task_description="Refreshing package updates",
+        display_hosts=False,
+        collect_errors=True,
+        immediate_error_display=False,
+    )
 
-    with Progress(
-        transient=True,
-    ) as progress:
-        errors = []
-        task = progress.add_task("Refreshing package updates", total=len(hosts))
-        for host, _, exc in inventory.run_task("refresh_updates", hosts=hosts):
-            status_out = (
-                "  [[bold red]FAILED[/bold red]]"
-                if exc
-                else "  [[bold green]OK[/bold green]]"
-            )
-
-            host_out = f"[bold]{host.name}[/bold]"
-
-            renderables = [
-                status_out,
-                host_out,
-            ]
-
-            if exc:
-                errors.append((host.name, str(exc)))
-
-            progress.console.print(
-                Columns(
-                    renderables,
-                    padding=(2, 1),
-                    equal=True,
-                ),
-            )
-
-            progress.update(task, advance=1)
-
-        progress.stop_task(task)
-
-    if errors:
-        for host, error in errors:
-            err_console.print(
-                Panel.fit(
-                    error,
-                    style="bold red",
-                    title=f"Error on {host}",
-                    title_align="left",
-                )
-            )
+    errors_table = Table(
+        "Host",
+        "Error",
+        show_header=False,
+        show_lines=False,
+        box=box.SIMPLE_HEAD,
+        title="Refresh Errors",
+    )
 
     if app_config["options"]["cache_autosave"]:
         save()
+
+    if errors:
+        console.print()
+        for host, error in errors:
+            errors_table.add_row(host, f"[bold red]{error}[/bold red]")
+
+        console.print(errors_table)
+
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -333,6 +341,7 @@ def ping(
     with Progress(
         transient=True,
     ) as progress:
+        error_count = 0
         task = progress.add_task("Pinging hosts", total=len(hosts))
         for host, status, exc in inventory.run_task("ping", hosts=hosts):
             if status:
@@ -340,6 +349,7 @@ def ping(
                     f"  Host [bold]{host.name}[/bold] is [bold green]online[/bold green]."
                 )
             else:
+                error_count += 1
                 if exc:
                     progress.console.print(
                         f"  Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {str(exc)}",
@@ -353,6 +363,9 @@ def ping(
 
     if app_config["options"]["cache_autosave"]:
         save()
+
+    if error_count > 0:
+        raise typer.Exit(code=1)
 
 
 @app.command()
