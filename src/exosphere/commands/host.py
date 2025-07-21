@@ -201,6 +201,7 @@ def discover(
                     title_align="left",
                 )
             )
+            raise typer.Exit(code=1)
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()
@@ -284,6 +285,8 @@ def refresh(
                     title_align="left",
                 )
             )
+            progress.stop_task(task)
+            raise typer.Exit(code=1)
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()
