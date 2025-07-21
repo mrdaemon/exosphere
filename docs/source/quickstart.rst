@@ -11,7 +11,7 @@ Create the Configuration File
 
     $ exosphere config paths
 
-Create one of ``config.yaml``, ``config.toml``, or ``config.json`` in the
+Create one of ``config.yaml``, ``config.toml`` or ``config.json`` in the
 `Config` directory shown here.
 
 
@@ -97,7 +97,7 @@ Basic configuration
 
 .. admonition:: Note
 
-    This assumes your public keys are loaded in your SSH agent.
+    This assumes your private keys are loaded in your SSH agent.
     See :doc:`connections` for more details.
 
 
