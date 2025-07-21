@@ -271,7 +271,7 @@ class Host:
         # This also updates the online status
         if not self.ping():
             self.logger.warning("Host %s is offline, skipping sync.", self.name)
-            return
+            raise OfflineHostError(f"Host {self.name} is offline or unreachable.")
 
         try:
             platform_info: HostInfo = detect.platform_detect(self.connection)
@@ -282,7 +282,8 @@ class Host:
                 str(e),
             )
             self.online = False
-            return
+            raise
+
         except DataRefreshError as e:
             self.logger.error(
                 "An error occurred during sync for %s: %s",

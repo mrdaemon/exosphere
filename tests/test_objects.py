@@ -296,7 +296,8 @@ class TestHostObject:
         host = Host(name="test_host", ip="127.0.0.1")
         mocker.patch.object(host, "ping", return_value=False)
 
-        host.discover()
+        with pytest.raises(OfflineHostError):
+            host.discover()
 
         assert host.os is None
         assert host.version is None
@@ -318,7 +319,8 @@ class TestHostObject:
         host = Host(name="test_host", ip="127.0.0.1")
         mocker.patch.object(host, "ping", return_value=True)
 
-        host.discover()
+        with pytest.raises(OfflineHostError):
+            host.discover()
 
         assert host.os is None
         assert host.version is None
