@@ -216,7 +216,7 @@ def refresh(
                 if exc:
                     progress.console.print(
                         Panel.fit(
-                            f"[bold red]{host.name}:[/bold red] {type(exc).__name__}",
+                            f"[bold red]{host.name}:[/bold red] {str(exc)}",
                             style="bold red",
                             title="Error discovering platform information",
                         )
@@ -239,7 +239,7 @@ def refresh(
                 if exc:
                     progress.console.print(
                         Panel.fit(
-                            f"[bold red]{host.name}:[/bold red] {type(exc).__name__}",
+                            f"[bold red]{host.name}:[/bold red] {str(exc)}",
                             style="bold red",
                             title="Error syncing package repositories",
                         )
