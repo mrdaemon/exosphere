@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 from typer.testing import CliRunner
 
@@ -11,12 +9,12 @@ runner = CliRunner()
 
 
 @pytest.fixture(autouse=True)
-def patch_console(monkeypatch):
+def patch_console(mocker):
     """
     Patch the Rich console to avoid actual printing during tests.
     """
-    monkeypatch.setattr(utils_module, "console", mock.Mock())
-    monkeypatch.setattr(utils_module, "err_console", mock.Mock())
+    mocker.patch.object(utils_module, "console")
+    mocker.patch.object(utils_module, "err_console")
 
 
 @pytest.fixture
@@ -97,19 +95,19 @@ def fake_inventory(mock_host):
 
 
 @pytest.fixture(autouse=True)
-def patch_context_inventory(monkeypatch, fake_inventory):
+def patch_context_inventory(mocker, fake_inventory):
     """
     Patch the context's inventory to use our fake inventory.
     """
-    monkeypatch.setattr(utils_module.context, "inventory", fake_inventory)
+    mocker.patch.object(utils_module.context, "inventory", fake_inventory)
 
 
 @pytest.fixture(autouse=True)
-def patch_save_inventory(monkeypatch):
+def patch_save_inventory(mocker):
     """
     Patch out the save_inventory function to, well not.
     """
-    monkeypatch.setattr(host_module, "save_inventory", mock.Mock())
+    mocker.patch.object(host_module, "save_inventory")
 
 
 def test_show_host_basic(mock_host, patch_context_inventory):
@@ -324,7 +322,7 @@ def test_refresh_host_not_found(mock_host, patch_context_inventory):
     ids=["exists_online", "exists_offline", "not_exists"],
 )
 def test_ping_host_parametrized(
-    monkeypatch,
+    mocker,
     mock_host,
     fake_inventory,
     host_exists,
@@ -343,7 +341,7 @@ def test_ping_host_parametrized(
         inventory.hosts = []
 
     # We patch the context inventory ourself to use our manipulated mock
-    monkeypatch.setattr(utils_module.context, "inventory", inventory)
+    mocker.patch.object(utils_module.context, "inventory", inventory)
     host_name = mock_host.name if host_exists else "not_exists_yo"
 
     result = runner.invoke(host_module.app, ["ping", host_name])
