@@ -149,6 +149,49 @@ def test_show_host_not_found(mock_host, patch_context_inventory):
     assert not hasattr(mock_host, "discovered")
 
 
+def test_show_host_with_last_refresh_date(mock_host, patch_context_inventory):
+    """
+    Test showing a host with a last refresh date displayed.
+    """
+    from datetime import datetime
+
+    # Set a last refresh date on the mock host
+    mock_host.last_refresh = datetime(2025, 7, 22, 14, 30, 45)
+
+    result = runner.invoke(host_module.app, ["show", mock_host.name])
+
+    assert result.exit_code == 0
+    assert "Tue Jul 22 14:30:45 2025" in result.output
+
+
+def test_show_host_security_only_with_no_updates(mock_host, patch_context_inventory):
+    """
+    Test showing security-only updates when --no-updates is specified.
+    """
+    result = runner.invoke(
+        host_module.app, ["show", mock_host.name, "--no-updates", "--security-only"]
+    )
+
+    assert result.exit_code == 1
+    assert (
+        "Warning: --security-only option is only valid with --updates" in result.output
+    )
+
+
+def test_show_host_no_updates_available(mock_host, patch_context_inventory):
+    """
+    Test host show with no updates available.
+    """
+    # Clear all updates from the mock host
+    mock_host.updates = []
+    mock_host.security_updates = []
+
+    result = runner.invoke(host_module.app, ["show", mock_host.name, "--updates"])
+
+    assert result.exit_code == 0
+    assert "No updates available for this host." in result.output
+
+
 def test_discover_host(mock_host, patch_context_inventory):
     """
     Test discovering a host that exists in the inventory.
@@ -170,6 +213,19 @@ def test_discover_host_not_found(mock_host, patch_context_inventory):
     assert not hasattr(mock_host, "discovered")
 
 
+def test_discover_host_with_exception(mock_host, patch_context_inventory):
+    """
+    Test discovering a host when host.discover() raises an exception.
+    """
+    # Make discover() raise an exception
+    mock_host.discover.side_effect = Exception("Connection failed")
+
+    result = runner.invoke(host_module.app, ["discover", mock_host.name])
+
+    assert result.exit_code == 1
+    assert "Connection failed" in result.output
+
+
 def test_refresh_host(mock_host, patch_context_inventory):
     """
     Test refreshing a host's updates without full sync
@@ -189,6 +245,67 @@ def test_refresh_host_sync(mock_host, patch_context_inventory):
     assert result.exit_code == 0
     assert hasattr(mock_host, "repos_synced")
     assert hasattr(mock_host, "updates_refreshed")
+
+
+def test_refresh_host_with_discover(mock_host, patch_context_inventory):
+    """
+    Test refreshing a host with discovery option.
+    """
+    result = runner.invoke(host_module.app, ["refresh", mock_host.name, "--discover"])
+
+    assert result.exit_code == 0
+    assert hasattr(mock_host, "discovered")
+    assert hasattr(mock_host, "updates_refreshed")
+
+
+def test_refresh_host_with_discover_and_sync(mock_host, patch_context_inventory):
+    """
+    Test refreshing a host with both discover and sync options.
+    """
+    result = runner.invoke(
+        host_module.app, ["refresh", mock_host.name, "--discover", "--sync"]
+    )
+
+    assert result.exit_code == 0
+    assert hasattr(mock_host, "discovered")
+    assert hasattr(mock_host, "repos_synced")
+    assert hasattr(mock_host, "updates_refreshed")
+
+
+def test_refresh_host_discover_exception(mock_host, patch_context_inventory):
+    """
+    Test refreshing a host when discover operation fails.
+    """
+    mock_host.discover.side_effect = Exception("Discovery failed")
+
+    result = runner.invoke(host_module.app, ["refresh", mock_host.name, "--discover"])
+
+    assert result.exit_code == 1
+    assert "Discovery failed" in result.output
+
+
+def test_refresh_host_sync_repos_exception(mock_host, patch_context_inventory):
+    """
+    Test refreshing a host when sync_repos operation fails.
+    """
+    mock_host.sync_repos.side_effect = Exception("Repository sync failed")
+
+    result = runner.invoke(host_module.app, ["refresh", mock_host.name, "--sync"])
+
+    assert result.exit_code == 1
+    assert "Repository sync failed" in result.output
+
+
+def test_refresh_host_refresh_updates_exception(mock_host, patch_context_inventory):
+    """
+    Test refreshing a host when refresh_updates operation fails.
+    """
+    mock_host.refresh_updates.side_effect = Exception("Update refresh failed")
+
+    result = runner.invoke(host_module.app, ["refresh", mock_host.name])
+
+    assert result.exit_code == 1
+    assert "Update refresh failed" in result.output
 
 
 def test_refresh_host_not_found(mock_host, patch_context_inventory):

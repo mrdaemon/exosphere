@@ -104,7 +104,7 @@ def show(
                 "[yellow]Warning: --security-only option is only valid with --updates, ignoring.[/yellow]"
             )
 
-        raise typer.Exit(code=0)
+        raise typer.Exit(code=1)
 
     update_list = host.updates if not security_only else host.security_updates
 
