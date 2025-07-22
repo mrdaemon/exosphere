@@ -223,6 +223,20 @@ def test_check_with_no_package_manager(mock_inventory, dummy_host):
     assert "Host 'dummy_host' does not have a package manager defined" in result.output
 
 
+def test_check_with_inventory_uninitialized(mocker):
+    """
+    Test the sudo check command when the inventory is not initialized.
+    This should raise an error.
+    """
+
+    mocker.patch("exosphere.commands.sudo.context.inventory", None)
+
+    result = runner.invoke(sudo.app, ["check", "dummy_host"])
+
+    assert result.exit_code == 1
+    assert "Inventory is not initialized" in result.output
+
+
 def test_providers(mock_pkgmanager_factory):
     """
     Test that the sudo providers command lists all available sudo providers.
@@ -256,6 +270,40 @@ def test_providers_with_unknown_provider(mock_pkgmanager_factory):
 
     assert result.exit_code == 1
     assert "No such provider: unknown_provider" in result.output
+
+
+@pytest.mark.parametrize(
+    "missing_method",
+    ["reposync", "get_updates"],
+    ids=["missing_reposync", "missing_get_updates"],
+)
+def test_providers_with_non_conforming_provider(
+    mocker, mock_pkgmanager_factory, missing_method
+):
+    """
+    Ensure the program returns non-zero and an error when the
+    provider class does not have the 'reposync' or 'get_updates' methods.
+    """
+    bad_provider = mocker.MagicMock(name="BadProvider")
+    bad_provider.__qualname__ = "BadProvider"
+    bad_provider.SUDOERS_COMMANDS = []
+
+    # Create both methods initially
+    bad_provider.reposync = mocker.MagicMock(name="reposync")
+    bad_provider.get_updates = mocker.MagicMock(name="get_updates")
+
+    # Delete the specific method we want to test
+    delattr(bad_provider, missing_method)
+
+    # Add the bad provider to the registry
+    registry = mock_pkgmanager_factory.get_registry.return_value
+    registry["badprovider"] = bad_provider
+
+    result = runner.invoke(sudo.app, ["providers"])
+
+    assert result.exit_code == 0  # Command should still succeed but show warning
+    assert "Provider badprovider does not implement required methods!" in result.output
+    assert "This is likely a bug." in result.output
 
 
 def test_generate_no_arguments():
