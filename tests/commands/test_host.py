@@ -340,7 +340,7 @@ def test_ping_host_parametrized(
         inventory = fake_inventory
         inventory.hosts = []
 
-    # We patch the context inventory ourself to use our manipulated mock
+    # We patch the context inventory ourselves to use our manipulated mock
     mocker.patch.object(utils_module.context, "inventory", inventory)
     host_name = mock_host.name if host_exists else "not_exists_yo"
 
