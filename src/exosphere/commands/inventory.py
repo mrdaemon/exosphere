@@ -2,8 +2,6 @@ import logging
 
 import typer
 from rich import box
-from rich.columns import Columns
-from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
     Progress,
@@ -15,19 +13,22 @@ from rich.progress import (
 from rich.table import Table
 from typing_extensions import Annotated
 
-from exosphere import app_config, context
+from exosphere import app_config
+from exosphere.commands.utils import (
+    console,
+    err_console,
+    get_hosts_or_error,
+    get_inventory,
+    run_task_with_progress,
+)
 from exosphere.inventory import Inventory
-from exosphere.objects import Host
 
 # Constants for display
 ERROR_STYLE = {
     "style": "bold red",
     "title_align": "left",
 }
-STATUS_FORMATS = {
-    "success": "[[bold green]OK[/bold green]]",
-    "failure": "[[bold red]FAILED[/bold red]]",
-}
+
 SPINNER_PROGRESS_ARGS = (
     SpinnerColumn(),
     TextColumn("[progress.description]{task.description}"),
@@ -35,112 +36,10 @@ SPINNER_PROGRESS_ARGS = (
     TimeElapsedColumn(),
 )
 
-
 app = typer.Typer(
     help="Inventory and Bulk Management Commands",
     no_args_is_help=True,
 )
-
-console = Console()
-err_console = Console(stderr=True)
-
-
-def _get_inventory():
-    """
-    Get the inventory from context
-    A convenience wrapper that bails if the inventory is not initialized.
-    """
-    if context.inventory is None:
-        typer.echo(
-            "Inventory is not initialized, are you running this module directly?",
-            err=True,
-        )
-        raise typer.Exit(code=1)
-
-    return context.inventory
-
-
-def _get_hosts_or_error(
-    names: list[str] | None = None,
-) -> list[Host] | None:
-    """
-    Get hosts from the inventory, filtering by names if provided.
-    Will print an error message and return None if all hosts are not found.
-
-    In the absence of names, will return all hosts in the inventory.
-    """
-
-    inventory: Inventory = _get_inventory()
-
-    if names:
-        hosts_match = [h for h in inventory.hosts if h.name in names]
-        unmatched = set(names) - {h.name for h in hosts_match}
-
-        if unmatched:
-            err_console.print(
-                Panel.fit(
-                    f"Hosts not found in inventory: {', '.join(unmatched)}",
-                    title="Error",
-                )
-            )
-            return None
-
-        return hosts_match
-
-    # No names provided, return all hosts
-    if not inventory.hosts:
-        err_console.print(
-            Panel.fit(
-                "No hosts found in inventory. Ensure your configuration is correct.",
-                title="Error",
-            )
-        )
-        return None
-
-    return inventory.hosts
-
-
-def _run_task_with_progress(
-    inventory: Inventory,
-    hosts: list[Host],
-    task_name: str,
-    task_description: str,
-    display_hosts: bool = True,
-    collect_errors: bool = True,
-    immediate_error_display: bool = False,
-    transient: bool = True,
-    progress_args: tuple = (),
-) -> list[tuple[str, str]]:
-    """
-    Run a task on selected host with progress display
-    """
-    errors = []
-    short_name = task_name.replace("_", " ").capitalize()
-
-    with Progress(transient=transient, *progress_args) as progress:
-        task = progress.add_task(task_description, total=len(hosts))
-
-        for host, _, exc in inventory.run_task(task_name, hosts=hosts):
-            status_out = STATUS_FORMATS["failure"] if exc else STATUS_FORMATS["success"]
-            host_out = f"[bold]{host.name}[/bold]"
-
-            if exc:
-                if immediate_error_display:
-                    progress.console.print(
-                        f"{short_name}: [red]{str(exc)}[/red]",
-                    )
-
-                if collect_errors:
-                    errors.append((host.name, str(exc)))
-
-            if display_hosts:
-                progress.console.print(
-                    Columns([status_out, host_out], padding=(2, 1), equal=True)
-                )
-
-            progress.update(task, advance=1)
-
-    return errors
 
 
 @app.command()
@@ -166,14 +65,14 @@ def discover(
     logger = logging.getLogger(__name__)
     logger.info("Gathering platform information for hosts")
 
-    inventory: Inventory = _get_inventory()
+    inventory: Inventory = get_inventory()
 
-    hosts = _get_hosts_or_error(names)
+    hosts = get_hosts_or_error(names)
 
     if hosts is None:
         return
 
-    errors = _run_task_with_progress(
+    errors = run_task_with_progress(
         inventory=inventory,
         hosts=hosts,
         task_name="discover",
@@ -239,15 +138,17 @@ def refresh(
     logger = logging.getLogger(__name__)
     logger.info("Refreshing inventory data")
 
-    inventory: Inventory = _get_inventory()
+    inventory: Inventory = get_inventory()
 
-    hosts = _get_hosts_or_error(names)
+    hosts = get_hosts_or_error(names)
 
     if hosts is None:
         return
 
+    # Start with discovery, if requested.
+    # Displays a simple spinner with no ETA, and no progress bar.
     if discover:
-        _run_task_with_progress(
+        run_task_with_progress(
             inventory=inventory,
             hosts=hosts,
             task_name="discover",
@@ -259,8 +160,9 @@ def refresh(
         )
 
     # If sync is requested, we will run the sync_repos task
+    # Same as discovery, simple spinner
     if sync:
-        _run_task_with_progress(
+        run_task_with_progress(
             inventory=inventory,
             hosts=hosts,
             task_name="sync_repos",
@@ -273,7 +175,7 @@ def refresh(
 
     # Finally, refresh the updates for all hosts
     # We want this one to display the progress bar and summarize errors.
-    errors = _run_task_with_progress(
+    errors = run_task_with_progress(
         inventory=inventory,
         hosts=hosts,
         task_name="refresh_updates",
@@ -330,9 +232,9 @@ def ping(
     logger = logging.getLogger(__name__)
     logger.info("Pinging all hosts in the inventory")
 
-    inventory: Inventory = _get_inventory()
+    inventory: Inventory = get_inventory()
 
-    hosts = _get_hosts_or_error(names)
+    hosts = get_hosts_or_error(names)
 
     if hosts is None:
         logger.error("No host(s) found, aborting")
@@ -389,7 +291,7 @@ def status(
     logger = logging.getLogger(__name__)
     logger.info("Showing status of all hosts")
 
-    hosts = _get_hosts_or_error(names)
+    hosts = get_hosts_or_error(names)
     if hosts is None:
         return
 
@@ -459,12 +361,10 @@ def save() -> None:
     logger = logging.getLogger(__name__)
     logger.debug("Starting inventory save operation")
 
-    inventory: Inventory = _get_inventory()
+    inventory: Inventory = get_inventory()
 
     with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        TimeElapsedColumn(),
+        *SPINNER_PROGRESS_ARGS,
         transient=True,
     ) as progress:
         task = progress.add_task("Saving inventory state to disk", total=None)
@@ -508,7 +408,7 @@ def clear(
     need to re-discover the entire inventory after this operation.
 
     """
-    inventory: Inventory = _get_inventory()
+    inventory: Inventory = get_inventory()
     if not confirm:
         console.print("Inventory state has [bold]not[/bold] been cleared.")
         raise typer.Exit(1)

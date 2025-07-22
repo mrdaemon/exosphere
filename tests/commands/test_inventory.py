@@ -2,6 +2,7 @@ import pytest
 from typer.testing import CliRunner
 
 from exosphere.commands import inventory as inventory_module
+from exosphere.commands import utils as utils_module
 from exosphere.objects import Host
 
 runner = CliRunner()
@@ -14,7 +15,7 @@ def mock_inventory(mocker):
     """
     fake_inventory = mocker.create_autospec(inventory_module.Inventory, instance=True)
     fake_inventory.hosts = []
-    mocker.patch.object(inventory_module.context, "inventory", fake_inventory)
+    mocker.patch.object(utils_module.context, "inventory", fake_inventory)
     return fake_inventory
 
 

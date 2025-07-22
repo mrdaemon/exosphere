@@ -1,5 +1,4 @@
 import typer
-from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
     Progress,
@@ -11,56 +10,23 @@ from rich.table import Table
 from rich.text import Text
 from typing_extensions import Annotated
 
-from exosphere import app_config, context
-from exosphere.objects import Host
+from exosphere import app_config
+from exosphere.commands.utils import console, err_console, get_host_or_error
 
-# Steal the save function from inventory command
+# Reuse the save function from the inventory command
 from .inventory import save as save_inventory
+
+# Simple spinner layout for long or pre-tasks
+SPINNER_PROGRESS_ARGS = (
+    SpinnerColumn(),
+    TextColumn("[progress.description]{task.description}"),
+    TimeElapsedColumn(),
+)
 
 app = typer.Typer(
     help="Host management commands",
     no_args_is_help=True,
 )
-
-console = Console()
-err_console = Console(stderr=True)
-
-
-def _get_inventory():
-    """
-    Get the inventory from context
-    A convenience wrapper that bails if the inventory is not initialized.
-    """
-    if context.inventory is None:
-        typer.echo(
-            "Inventory is not initialized, are you running this module directly?",
-            err=True,
-        )
-        raise typer.Exit(code=1)
-
-    return context.inventory
-
-
-def _get_host(name: str) -> Host | None:
-    """
-    Wraps inventory.get_host() to handle displaying errors on console
-    """
-
-    inventory = _get_inventory()
-
-    host = inventory.get_host(name)
-
-    if host is None:
-        err_console.print(
-            Panel.fit(
-                f"Host '{name}' not found in inventory.",
-                title="Error",
-                style="red",
-            )
-        )
-        return None
-
-    return host
 
 
 @app.command()
@@ -89,7 +55,7 @@ def show(
     This command retrieves the host by name from the inventory
     and displays its details in a rich format.
     """
-    host = _get_host(name)
+    host = get_host_or_error(name)
 
     if host is None:
         raise typer.Exit(code=1)
@@ -179,16 +145,12 @@ def discover(
     This command retrieves the host by name from the inventory
     and synchronizes its platform data.
     """
-    host = _get_host(name)
+    host = get_host_or_error(name)
 
     if host is None:
         raise typer.Exit(code=1)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        TimeElapsedColumn(),
-    ) as progress:
+    with Progress(*SPINNER_PROGRESS_ARGS) as progress:
         progress.add_task(f"Discovering platform for '{host.name}'", total=None)
         try:
             host.discover()
@@ -223,16 +185,12 @@ def refresh(
     This command retrieves the host by name from the inventory
     and refreshes its updates.
     """
-    host = _get_host(name)
+    host = get_host_or_error(name)
 
     if host is None:
         raise typer.Exit(code=1)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        TimeElapsedColumn(),
-    ) as progress:
+    with Progress(transient=True, *SPINNER_PROGRESS_ARGS) as progress:
         if discover:
             task = progress.add_task(
                 f"Refreshing platform information for '{host.name}'", total=None
@@ -304,7 +262,7 @@ def ping(
 
     The ping is is based on ssh connectivity.
     """
-    host = _get_host(name)
+    host = get_host_or_error(name)
 
     if host is None:
         raise typer.Exit(code=1)

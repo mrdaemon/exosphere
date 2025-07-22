@@ -4,6 +4,7 @@ import pytest
 from typer.testing import CliRunner
 
 from exosphere.commands import host as host_module
+from exosphere.commands import utils as utils_module
 from exosphere.data import Update
 
 runner = CliRunner()
@@ -14,8 +15,8 @@ def patch_console(monkeypatch):
     """
     Patch the Rich console to avoid actual printing during tests.
     """
-    monkeypatch.setattr(host_module, "console", mock.Mock())
-    monkeypatch.setattr(host_module, "err_console", mock.Mock())
+    monkeypatch.setattr(utils_module, "console", mock.Mock())
+    monkeypatch.setattr(utils_module, "err_console", mock.Mock())
 
 
 @pytest.fixture
@@ -100,7 +101,7 @@ def patch_context_inventory(monkeypatch, fake_inventory):
     """
     Patch the context's inventory to use our fake inventory.
     """
-    monkeypatch.setattr(host_module.context, "inventory", fake_inventory)
+    monkeypatch.setattr(utils_module.context, "inventory", fake_inventory)
 
 
 @pytest.fixture(autouse=True)
@@ -225,7 +226,7 @@ def test_ping_host_parametrized(
         inventory.hosts = []
 
     # We patch the context inventory ourself to use our manipulated mock
-    monkeypatch.setattr(host_module.context, "inventory", inventory)
+    monkeypatch.setattr(utils_module.context, "inventory", inventory)
     host_name = mock_host.name if host_exists else "not_exists_yo"
 
     result = runner.invoke(host_module.app, ["ping", host_name])
