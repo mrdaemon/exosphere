@@ -18,18 +18,20 @@ class TestHostObject:
         Automatically configures context manager support.
         """
         from fabric import Connection
-        
+
         # Mock the Connection class
-        mock_connection_class = mocker.patch("exosphere.objects.Connection", autospec=True)
-        
+        mock_connection_class = mocker.patch(
+            "exosphere.objects.Connection", autospec=True
+        )
+
         # Create a mock instance with autospec for better validation
         mock_instance = mocker.Mock(spec=Connection)
         mock_instance.__enter__ = mocker.Mock(return_value=mock_instance)
         mock_instance.__exit__ = mocker.Mock(return_value=None)
-        
+
         # Configure the mocked class to return our context manager-enabled instance
         mock_connection_class.return_value = mock_instance
-        
+
         return mock_connection_class
 
     @pytest.fixture
