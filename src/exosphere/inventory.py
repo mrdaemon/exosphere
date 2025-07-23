@@ -287,16 +287,22 @@ class Inventory:
     def ping_all(self) -> None:
         """
         Ping all hosts in the inventory.
+
+        This method will call the `ping` method on each Host object
+        in the inventory and log whether each host is online or offline.
         """
         self.logger.info("Pinging all hosts in inventory")
 
-        for host, _, exc in self.run_task(
+        for host, online, exc in self.run_task(
             "ping",
         ):
             if exc:
-                self.logger.error("Host %s is offline: %s", host.name, exc)
+                # This should not happen since "ping" does not raise exceptions.
+                # We're still going to catch and log it if it ever does.
+                self.logger.error("Failed to ping host %s: %s", host.name, exc)
             else:
-                self.logger.info("Host %s is online", host.name)
+                status = "offline" if not online else "online"
+                self.logger.info("Host %s is %s", host.name, status)
 
         self.logger.info("Pinged all hosts")
 
