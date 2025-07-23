@@ -123,6 +123,23 @@ class TestInventory:
         assert inventory.hosts[4].ip == "127.0.0.5"
         assert inventory.hosts[4].sudo_policy == SudoPolicy.NOPASSWD
 
+    def test_init_all_with_empty_hosts(self, mocker, mock_diskcache, caplog):
+        """
+        Test that init_all handles empty host configuration gracefully.
+        """
+        config_data = {
+            "options": {"cache_file": "test_cache.db"},
+            "hosts": [],  # Empty hosts
+        }
+        config = Configuration()
+        config.update_from_mapping(config_data)
+
+        with caplog.at_level("WARNING"):
+            inventory = Inventory(config)
+
+        assert len(inventory.hosts) == 0
+        assert any("No hosts found in inventory" in m for m in caplog.messages)
+
     def test_init_all_removes_stale_hosts(
         self, mocker, mock_config, mock_diskcache, mock_host_class
     ):
@@ -485,6 +502,35 @@ class TestInventory:
 
         mock_run.assert_called_once_with("ping")
 
+    def test_run_task_with_custom_host_list(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that run_task works with a custom list of hosts.
+        """
+        inventory = Inventory(mock_config)
+
+        # Create hosts but only run task on subset
+        mock_host1 = mock_host_class(name="host1", ip="127.0.0.1")
+        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
+        mock_host3 = mock_host_class(name="host3", ip="127.0.0.3")
+
+        inventory.hosts = [mock_host1, mock_host2, mock_host3]
+
+        # Setup return values
+        mocker.patch.object(mock_host1, "ping", return_value=True)
+        mocker.patch.object(mock_host2, "ping", return_value=True)
+
+        # Run task only on subset of hosts
+        results = list(inventory.run_task("ping", hosts=[mock_host1, mock_host2]))
+
+        assert len(results) == 2
+        assert all(result[2] is None for result in results)  # No exceptions
+        assert {result[0].name for result in results} == {"host1", "host2"}
+
+        # Verify host3.ping was never called
+        assert not hasattr(mock_host3, "ping") or mock_host3.ping.call_count == 0
+
     @pytest.mark.parametrize("hosts_arg", [None, [], [{}]])
     def test_run_task_no_hosts(
         self, mocker, mock_config, mock_diskcache, mock_host_class, hosts_arg, caplog
@@ -599,3 +645,137 @@ class TestInventory:
         assert any(
             f"Failed to run {method_name} on host2: fail" in m for m in caplog.messages
         )
+
+    @pytest.mark.parametrize(
+        "method_name,should_raise,success_log,failure_log,completion_log",
+        [
+            (
+                "discover",
+                True,
+                "Host host1 discovered successfully",
+                "Failed to discover host host2: fail",
+                "All hosts discovered",
+            ),
+            (
+                "sync_repos",
+                True,
+                "Package repositories synced for host host1",
+                "Failed to sync repositories for host host2: fail",
+                "Package repositories synced for all hosts",
+            ),
+            (
+                "refresh_updates",
+                True,
+                "Updates refreshed for host host1",
+                "Failed to refresh updates for host host2: fail",
+                "Updates refreshed for all hosts",
+            ),
+            (
+                "ping",
+                False,
+                "Host host1 is online",
+                "Host host2 is offline",
+                "Pinged all hosts",
+            ),
+        ],
+    )
+    def test_all_methods_log_individual_results(
+        self,
+        mocker,
+        mock_config,
+        mock_diskcache,
+        mock_host_class,
+        caplog,
+        method_name,
+        should_raise,
+        success_log,
+        failure_log,
+        completion_log,
+    ):
+        """
+        Test that *_all methods log individual host results appropriately.
+        """
+        inventory = Inventory(mock_config)
+
+        # Create mock hosts with different outcomes
+        mock_host1 = mock_host_class(name="host1", ip="127.0.0.1")
+        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
+
+        # host1 succeeds, host2 fails
+        if not should_raise:
+            # Methods that don't raise exceptions return True/False
+            mocker.patch.object(mock_host1, method_name, return_value=True)
+            mocker.patch.object(mock_host2, method_name, return_value=False)
+        else:
+            mocker.patch.object(mock_host1, method_name, return_value=None)
+            mocker.patch.object(
+                mock_host2, method_name, side_effect=RuntimeError("fail")
+            )
+
+        inventory.hosts = [mock_host1, mock_host2]
+
+        # Get corresponding method to call on Inventory
+        target_method = getattr(inventory, f"{method_name}_all")
+
+        with caplog.at_level("INFO"):
+            target_method()
+
+        assert any(success_log in m for m in caplog.messages)
+        assert any(failure_log in m for m in caplog.messages)
+        assert any(completion_log in m for m in caplog.messages)
+
+    def test_ping_all_handles_unexpected_exceptions(
+        self, mocker, mock_config, mock_diskcache, mock_host_class, caplog
+    ):
+        """
+        Test that ping_all handles unexpected exceptions gracefully.
+        """
+        inventory = Inventory(mock_config)
+
+        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
+        # Force an exception that shouldn't normally happen
+        mocker.patch.object(
+            mock_host, "ping", side_effect=RuntimeError("unexpected error")
+        )
+
+        inventory.hosts = [mock_host]
+
+        with caplog.at_level("INFO"):
+            inventory.ping_all()
+
+        assert any(
+            "Failed to ping host host1: unexpected error" in m for m in caplog.messages
+        )
+        assert any("Pinged all hosts" in m for m in caplog.messages)
+
+    def test_run_task_uses_max_threads_configuration(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that run_task uses max_threads from configuration.
+        """
+        # Set specific max_threads value
+        mock_config["options"]["max_threads"] = 5
+
+        inventory = Inventory(mock_config)
+        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
+        inventory.hosts = [mock_host]
+
+        # Mock ThreadPoolExecutor to verify max_workers
+        mock_executor = mocker.patch("exosphere.inventory.ThreadPoolExecutor")
+        mock_context = mocker.Mock()
+        mock_executor.return_value.__enter__.return_value = mock_context
+
+        # Mock the submit and as_completed behavior
+        mock_future = mocker.Mock()
+        mock_future.result.return_value = "success"
+        mock_context.submit.return_value = mock_future
+        mocker.patch("exosphere.inventory.as_completed", return_value=[mock_future])
+
+        mocker.patch.object(mock_host, "ping", return_value=True)
+
+        # Run the task
+        list(inventory.run_task("ping"))
+
+        # Verify ThreadPoolExecutor was called with correct max_workers
+        mock_executor.assert_called_once_with(max_workers=5)
