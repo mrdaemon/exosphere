@@ -349,7 +349,7 @@ class TestClearCommand:
 class TestDiscoverCommand:
     """Tests for the discover command"""
 
-    def test_success(self, mocker, mock_inventory):
+    def test_autosave_disabled(self, mocker, mock_inventory):
         """
         Test the discover command to ensure it calls run_task_with_progress correctly.
         """
