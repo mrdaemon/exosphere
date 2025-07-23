@@ -475,3 +475,140 @@ class TestDiscoverCommand:
             mock_save.assert_called_once()
         else:
             mock_save.assert_not_called()
+
+
+class TestPingCommand:
+    """Tests for the ping command."""
+
+    @pytest.mark.parametrize(
+        "hosts_data,run_task_results,expected_exit_code,command_args",
+        [
+            # All hosts online
+            (
+                ["host1", "host2"],
+                [(True, None), (True, None)],
+                0,
+                [],
+            ),
+            # Partial failure - one host fails with exception
+            (
+                ["host1", "host2"],
+                [(True, None), (False, Exception("Connection failed"))],
+                1,
+                [],
+            ),
+            # All hosts offline - single host fails without exception
+            (
+                ["host1"],
+                [(False, None)],
+                1,
+                [],
+            ),
+            # Single host success with specific host argument
+            (
+                ["host1"],
+                [(True, None)],
+                0,
+                ["host1"],
+            ),
+            # Mixed scenario - multiple hosts with failures
+            (
+                ["host1", "host2", "host3"],
+                [(True, None), (False, None), (False, Exception("Timeout"))],
+                1,
+                [],
+            ),
+        ],
+        ids=[
+            "all_hosts_online",
+            "partial_failure_with_exception",
+            "all_hosts_offline",
+            "specific_host_success",
+            "mixed_results",
+        ],
+    )
+    def test_ping_scenarios(
+        self,
+        mocker,
+        mock_inventory,
+        create_host,
+        hosts_data,
+        run_task_results,
+        expected_exit_code,
+        command_args,
+    ):
+        """Test various ping command scenarios."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+
+        # Create hosts based on test data
+        hosts = [create_host(name) for name in hosts_data]
+        mock_get_hosts_or_error.return_value = hosts
+
+        # Build run_task return value - combine host with result
+        run_task_return = [
+            (host, success, exception)
+            for host, (success, exception) in zip(hosts, run_task_results)
+        ]
+        mock_inventory.run_task.return_value = run_task_return
+
+        mock_app_config = mocker.patch.object(inventory_module, "app_config")
+        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+
+        # Build command arguments
+        cmd_args = ["ping"] + command_args
+        expected_get_hosts_args = command_args if command_args else None
+
+        result = runner.invoke(inventory_module.app, cmd_args)
+
+        assert result.exit_code == expected_exit_code
+        mock_get_hosts_or_error.assert_called_once_with(expected_get_hosts_args)
+        mock_inventory.run_task.assert_called_once_with("ping", hosts=hosts)
+
+    def test_no_hosts(self, mocker, mock_inventory):
+        """Test ping command when no hosts are found."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        mock_get_hosts_or_error.return_value = None
+
+        result = runner.invoke(inventory_module.app, ["ping"])
+
+        assert result.exit_code == 0  # Command completes successfully but does nothing
+        mock_get_hosts_or_error.assert_called_once_with(None)
+        mock_inventory.run_task.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "autosave_enabled",
+        [True, False],
+        ids=["autosave_enabled", "autosave_disabled"],
+    )
+    def test_autosave_behavior(
+        self, mocker, mock_inventory, create_host, autosave_enabled
+    ):
+        """Test ping command autosave behavior."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        host1 = create_host("host1")
+        mock_get_hosts_or_error.return_value = [host1]
+
+        mock_inventory.run_task.return_value = [
+            (host1, True, None),
+        ]
+
+        mock_save = mocker.patch.object(inventory_module, "save")
+        mock_app_config = mocker.patch.object(inventory_module, "app_config")
+        mock_app_config.__getitem__.return_value = {"cache_autosave": autosave_enabled}
+
+        result = runner.invoke(inventory_module.app, ["ping"])
+
+        assert result.exit_code == 0
+        mock_get_hosts_or_error.assert_called_once_with(None)
+        mock_inventory.run_task.assert_called_once_with("ping", hosts=[host1])
+
+        if autosave_enabled:
+            mock_save.assert_called_once()
+        else:
+            mock_save.assert_not_called()
