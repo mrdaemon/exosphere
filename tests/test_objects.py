@@ -17,15 +17,13 @@ class TestHostObject:
         Fixture to mock the Fabric Connection object.
         Automatically configures context manager support.
         """
-        from fabric import Connection
-
         # Mock the Connection class
         mock_connection_class = mocker.patch(
             "exosphere.objects.Connection", autospec=True
         )
 
         # Create a mock instance with autospec for better validation
-        mock_instance = mocker.Mock(spec=Connection)
+        mock_instance = mock_connection_class.return_value
         mock_instance.__enter__ = mocker.Mock(return_value=mock_instance)
         mock_instance.__exit__ = mocker.Mock(return_value=None)
 
@@ -249,7 +247,7 @@ class TestHostObject:
         """
         Functional test of the ping functionality for Host objects
         """
-        # Get the mock instance that's already configured for context manager usage
+        # Mock successful run via context manager mock in fixture
         mock_instance = mock_connection.return_value
         mock_instance.run.return_value = mocker.Mock()
         mock_instance.run.return_value.failed = False
@@ -265,7 +263,7 @@ class TestHostObject:
         """
         Test of the failure cases for the ping functionality for Host objects
         """
-        # Get the mock instance that's already configured for context manager usage
+        # Mock exception run via context manager mock in fixture
         mock_instance = mock_connection.return_value
         mock_instance.run.side_effect = exception_type("Connection failed")
 
