@@ -394,14 +394,17 @@ class Host:
         :return: True if the host is reachable, False otherwise
         """
         try:
-            self.logger.debug("Pinging host %s at %s:%s", self.name, self.ip, self.port)
-            self.connection.run("echo 'ping'", hide=True)
+            with self.connection as conn:
+                self.logger.debug(
+                    "Pinging host %s at %s:%s", self.name, self.ip, self.port
+                )
+                conn.run("echo 'ping'", hide=True)
+
             self.online = True
         except Exception as e:
             self.logger.error("Ping to host %s failed: %s", self.name, e)
             self.online = False
         finally:
-            self.connection.close()
             return self.online
 
     def __str__(self):
