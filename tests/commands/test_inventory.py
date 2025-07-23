@@ -349,28 +349,81 @@ class TestClearCommand:
 class TestDiscoverCommand:
     """Tests for the discover command"""
 
-    def test_autosave_disabled(self, mocker, mock_inventory):
+    def test_success(self, mocker, mock_inventory):
         """
-        Test the discover command to ensure it calls run_task_with_progress correctly.
+        Test the discover command success - run_task_with_progress returns no errors.
         """
-        mocker.patch.object(utils_module, "run_task_with_progress", return_value=[])
+        # Mock get_hosts_or_error to return a list of hosts
+        mock_hosts = [mocker.Mock(name="host1"), mocker.Mock(name="host2")]
         mocker.patch.object(
-            utils_module, "get_hosts_or_error", return_value=[mocker.Mock(name="host1")]
+            inventory_module, "get_hosts_or_error", return_value=mock_hosts
         )
 
-        config = {"options": {"cache_autosave": False}}
-        test_config = Configuration()
-        test_config.update_from_mapping(config)
-
-        mocker.patch.object(inventory_module, "app_config", test_config)
-        mock_save = mocker.patch.object(inventory_module, "save")
+        # Mock run_task_with_progress to return no errors (success case)
+        mock_run_task = mocker.patch.object(
+            inventory_module, "run_task_with_progress", return_value=[]
+        )
 
         result = runner.invoke(inventory_module.app, ["discover"])
 
         assert result.exit_code == 0
-        mock_save.assert_not_called()
 
-    def test_no_hosts_error_case(self, mocker, mock_inventory):
+        # Verify run_task_with_progress was called with correct parameters
+        mock_run_task.assert_called_once_with(
+            inventory=mock_inventory,
+            hosts=mock_hosts,
+            task_name="discover",
+            task_description="Gathering platform information",
+            display_hosts=True,
+            collect_errors=True,
+            immediate_error_display=False,
+        )
+
+    def test_failure(self, mocker, mock_inventory):
+        """
+        Test the discover command failure - run_task_with_progress returns error tuples.
+        """
+        # Mock get_hosts_or_error to return a list of hosts
+        mock_hosts = [mocker.Mock(name="host1"), mocker.Mock(name="host2")]
+        mocker.patch.object(
+            inventory_module, "get_hosts_or_error", return_value=mock_hosts
+        )
+
+        # Mock run_task_with_progress to return errors (failure case)
+        errors = [
+            ("host1", "Connection timeout"),
+            ("host2", "Authentication failed"),
+        ]
+        mock_run_task = mocker.patch.object(
+            inventory_module, "run_task_with_progress", return_value=errors
+        )
+
+        result = runner.invoke(inventory_module.app, ["discover"])
+
+        assert result.exit_code == 1  # Should exit with error code
+
+        # Verify run_task_with_progress was called with correct parameters
+        mock_run_task.assert_called_once_with(
+            inventory=mock_inventory,
+            hosts=mock_hosts,
+            task_name="discover",
+            task_description="Gathering platform information",
+            display_hosts=True,
+            collect_errors=True,
+            immediate_error_display=False,
+        )
+
+        # Should display error messages
+        assert (
+            "The following hosts could not be discovered due to errors:"
+            in result.output
+        )
+        assert "host1" in result.output
+        assert "Connection timeout" in result.output
+        assert "host2" in result.output
+        assert "Authentication failed" in result.output
+
+    def test_no_hosts(self, mocker, mock_inventory):
         """
         Test the discover command when get_hosts_or_error returns None.
         """
@@ -380,3 +433,45 @@ class TestDiscoverCommand:
 
         assert result.exit_code == 0
         assert "No hosts found in inventory." in result.output
+
+    @pytest.mark.parametrize(
+        "cache_autosave,should_save",
+        [
+            (False, False),
+            (True, True),
+        ],
+        ids=["disabled", "enabled"],
+    )
+    def test_autosave_behavior(
+        self, mocker, mock_inventory, cache_autosave, should_save
+    ):
+        """
+        Test the discover command autosave behavior based on configuration.
+        """
+        # Mock get_hosts_or_error to return a list of hosts
+        mock_hosts = [mocker.Mock(name="host1")]
+        mocker.patch.object(
+            inventory_module, "get_hosts_or_error", return_value=mock_hosts
+        )
+
+        # Mock run_task_with_progress to return no errors
+        mocker.patch.object(inventory_module, "run_task_with_progress", return_value=[])
+
+        # Mock app_config with the specified autosave setting
+        config = {"options": {"cache_autosave": cache_autosave}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
+
+        # Mock save function
+        mock_save = mocker.patch.object(inventory_module, "save")
+
+        result = runner.invoke(inventory_module.app, ["discover"])
+
+        assert result.exit_code == 0
+
+        # Check if save was called based on the should_save parameter
+        if should_save:
+            mock_save.assert_called_once()
+        else:
+            mock_save.assert_not_called()
