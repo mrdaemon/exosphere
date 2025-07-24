@@ -599,14 +599,262 @@ class TestPingCommand:
         ]
 
         mock_save = mocker.patch.object(inventory_module, "save")
-        mock_app_config = mocker.patch.object(inventory_module, "app_config")
-        mock_app_config.__getitem__.return_value = {"cache_autosave": autosave_enabled}
+
+        # Mock app_config with the specified autosave setting
+        config = {"options": {"cache_autosave": autosave_enabled}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
 
         result = runner.invoke(inventory_module.app, ["ping"])
 
         assert result.exit_code == 0
         mock_get_hosts_or_error.assert_called_once_with(None)
         mock_inventory.run_task.assert_called_once_with("ping", hosts=[host1])
+
+        if autosave_enabled:
+            mock_save.assert_called_once()
+        else:
+            mock_save.assert_not_called()
+
+
+class TestRefreshCommand:
+    """Tests for the refresh command."""
+
+    def test_basic_refresh(self, mocker, mock_inventory, create_host):
+        """Test basic refresh command without options."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        host1 = create_host("host1")
+        mock_get_hosts_or_error.return_value = [host1]
+
+        mock_run_task_with_progress = mocker.patch.object(
+            inventory_module, "run_task_with_progress"
+        )
+        mock_run_task_with_progress.return_value = []  # No errors
+
+        mock_app_config = mocker.patch.object(inventory_module, "app_config")
+        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+
+        result = runner.invoke(inventory_module.app, ["refresh"])
+
+        assert result.exit_code == 0
+        mock_get_hosts_or_error.assert_called_once_with(None)
+
+        # Should only call run_task_with_progress once for refresh_updates
+        mock_run_task_with_progress.assert_called_once_with(
+            inventory=mock_inventory,
+            hosts=[host1],
+            task_name="refresh_updates",
+            task_description="Refreshing package updates",
+            display_hosts=False,
+            collect_errors=True,
+            immediate_error_display=False,
+        )
+
+    def test_refresh_with_discover(self, mocker, mock_inventory, create_host):
+        """Test refresh command with --discover option."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        host1 = create_host("host1")
+        mock_get_hosts_or_error.return_value = [host1]
+
+        mock_run_task_with_progress = mocker.patch.object(
+            inventory_module, "run_task_with_progress"
+        )
+        mock_run_task_with_progress.return_value = []  # No errors
+
+        mock_app_config = mocker.patch.object(inventory_module, "app_config")
+        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+
+        result = runner.invoke(inventory_module.app, ["refresh", "--discover"])
+
+        assert result.exit_code == 0
+        mock_get_hosts_or_error.assert_called_once_with(None)
+
+        # Should call run_task_with_progress twice: discover + refresh_updates
+        assert mock_run_task_with_progress.call_count == 2
+
+        # Check first call (discover)
+        first_call = mock_run_task_with_progress.call_args_list[0]
+        assert first_call.kwargs["task_name"] == "discover"
+        assert first_call.kwargs["task_description"] == "Gathering platform information"
+
+        # Check second call (refresh_updates)
+        second_call = mock_run_task_with_progress.call_args_list[1]
+        assert second_call.kwargs["task_name"] == "refresh_updates"
+        assert second_call.kwargs["task_description"] == "Refreshing package updates"
+
+    def test_refresh_with_sync(self, mocker, mock_inventory, create_host):
+        """Test refresh command with --sync option."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        host1 = create_host("host1")
+        mock_get_hosts_or_error.return_value = [host1]
+
+        mock_run_task_with_progress = mocker.patch.object(
+            inventory_module, "run_task_with_progress"
+        )
+        mock_run_task_with_progress.return_value = []  # No errors
+
+        mock_app_config = mocker.patch.object(inventory_module, "app_config")
+        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+
+        result = runner.invoke(inventory_module.app, ["refresh", "--sync"])
+
+        assert result.exit_code == 0
+        mock_get_hosts_or_error.assert_called_once_with(None)
+
+        # Should call run_task_with_progress twice: sync_repos + refresh_updates
+        assert mock_run_task_with_progress.call_count == 2
+
+        # Check first call (sync_repos)
+        first_call = mock_run_task_with_progress.call_args_list[0]
+        assert first_call.kwargs["task_name"] == "sync_repos"
+        assert first_call.kwargs["task_description"] == "Syncing package repositories"
+
+        # Check second call (refresh_updates)
+        second_call = mock_run_task_with_progress.call_args_list[1]
+        assert second_call.kwargs["task_name"] == "refresh_updates"
+        assert second_call.kwargs["task_description"] == "Refreshing package updates"
+
+    def test_refresh_with_all_options(self, mocker, mock_inventory, create_host):
+        """Test refresh command with both --discover and --sync options."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        host1 = create_host("host1")
+        mock_get_hosts_or_error.return_value = [host1]
+
+        mock_run_task_with_progress = mocker.patch.object(
+            inventory_module, "run_task_with_progress"
+        )
+        mock_run_task_with_progress.return_value = []  # No errors
+
+        mock_app_config = mocker.patch.object(inventory_module, "app_config")
+        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+
+        result = runner.invoke(
+            inventory_module.app, ["refresh", "--discover", "--sync"]
+        )
+
+        assert result.exit_code == 0
+        mock_get_hosts_or_error.assert_called_once_with(None)
+
+        # Should call run_task_with_progress three times: discover + sync_repos + refresh_updates
+        assert mock_run_task_with_progress.call_count == 3
+
+        # Check all three calls
+        calls = mock_run_task_with_progress.call_args_list
+        assert calls[0].kwargs["task_name"] == "discover"
+        assert calls[1].kwargs["task_name"] == "sync_repos"
+        assert calls[2].kwargs["task_name"] == "refresh_updates"
+
+    def test_refresh_with_errors(self, mocker, mock_inventory, create_host):
+        """Test refresh command when errors occur."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        host1 = create_host("host1")
+        host2 = create_host("host2")
+        mock_get_hosts_or_error.return_value = [host1, host2]
+
+        # Mock run_task_with_progress to return errors
+        errors = [("host1", "Update failed"), ("host2", "Network timeout")]
+        mock_run_task_with_progress = mocker.patch.object(
+            inventory_module, "run_task_with_progress", return_value=errors
+        )
+
+        mock_app_config = mocker.patch.object(inventory_module, "app_config")
+        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+
+        result = runner.invoke(inventory_module.app, ["refresh"])
+
+        assert result.exit_code == 1  # Should exit with error code
+        mock_get_hosts_or_error.assert_called_once_with(None)
+        mock_run_task_with_progress.assert_called_once()
+
+        # Should display error messages
+        assert "host1" in result.output
+        assert "Update failed" in result.output
+        assert "host2" in result.output
+        assert "Network timeout" in result.output
+
+    def test_refresh_with_specific_hosts(self, mocker, mock_inventory, create_host):
+        """Test refresh command with specific host names."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        host1 = create_host("host1")
+        mock_get_hosts_or_error.return_value = [host1]
+
+        mock_run_task_with_progress = mocker.patch.object(
+            inventory_module, "run_task_with_progress"
+        )
+        mock_run_task_with_progress.return_value = []  # No errors
+
+        mock_app_config = mocker.patch.object(inventory_module, "app_config")
+        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+
+        result = runner.invoke(inventory_module.app, ["refresh", "host1", "host2"])
+
+        assert result.exit_code == 0
+        mock_get_hosts_or_error.assert_called_once_with(["host1", "host2"])
+        mock_run_task_with_progress.assert_called_once()
+
+    def test_refresh_no_hosts(self, mocker, mock_inventory):
+        """Test refresh command when no hosts are found."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        mock_get_hosts_or_error.return_value = None
+
+        mock_run_task_with_progress = mocker.patch.object(
+            inventory_module, "run_task_with_progress"
+        )
+
+        result = runner.invoke(inventory_module.app, ["refresh"])
+
+        assert result.exit_code == 0
+        mock_get_hosts_or_error.assert_called_once_with(None)
+        mock_run_task_with_progress.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "autosave_enabled",
+        [True, False],
+        ids=["enabled", "disabled"],
+    )
+    def test_refresh_autosave_behavior(
+        self, mocker, mock_inventory, create_host, autosave_enabled
+    ):
+        """Test refresh command autosave behavior."""
+        mock_get_hosts_or_error = mocker.patch.object(
+            inventory_module, "get_hosts_or_error"
+        )
+        host1 = create_host("host1")
+        mock_get_hosts_or_error.return_value = [host1]
+
+        mock_run_task_with_progress = mocker.patch.object(
+            inventory_module, "run_task_with_progress"
+        )
+        mock_run_task_with_progress.return_value = []  # No errors
+
+        mock_save = mocker.patch.object(inventory_module, "save")
+
+        # Mock app_config with the specified autosave setting
+        config = {"options": {"cache_autosave": autosave_enabled}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
+
+        result = runner.invoke(inventory_module.app, ["refresh"])
+
+        assert result.exit_code == 0
+        mock_get_hosts_or_error.assert_called_once_with(None)
+        mock_run_task_with_progress.assert_called_once()
 
         if autosave_enabled:
             mock_save.assert_called_once()
