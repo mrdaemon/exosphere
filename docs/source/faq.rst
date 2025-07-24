@@ -16,6 +16,16 @@ make informed decisions about what needs patching, and when.
 This functionality is not planned, and left to frankly better tooling that
 already exists, such as `UnattendedUpgrades`_, `Ansible`_, `RunDeck`_, etc.
 
+Can I specify a custom path for the configuration file?
+-------------------------------------------------------
+
+Yes! You can specify a custom path for the configuration file by setting the
+``EXOSPHERE_CONFIG_FILE`` environment variable to the full path of the file you wish to use.
+
+See :doc:`configuration` for more details on other environment variables
+you can define to influence or override the configuration.
+
+
 My system using `dnf` or `yum` hangs when refreshing
 ----------------------------------------------------
 
@@ -76,6 +86,21 @@ It only supports FreeBSD Binary Packages, using `pkg`.
 There are plans to add support for system updates in the future, presenting
 them as a synthetic package in the updates view, but this needs more work.
 
+Does FreeBSD support extends to things like OPNSense?
+-----------------------------------------------------
+
+Partially, but probably not in the way you expect. `Discover` will work and pick them up
+as FreeBSD systems generally, but the `Updates` data may or may not contain things that are
+actually of interest.
+
+Generally, OPNsense, while it does use `pkg-ng` under the hood, tends to run it in a very specific
+context when checking for package updates, and querying it from a user normally only sometimes
+yields useful results for *some* packages, and only in certain contexts.
+
+We'd love to extend this support, but it is not currently implemented. You can still add the
+systems to the inventory, and you will get the Online checks, but the Updates view may not
+actually contain OPNSense updates.
+
 Is Windows support planned or even possible?
 ------------------------------------------------
 
@@ -85,15 +110,6 @@ interfaces for update and patch management are not great. Microsoft continues to
 will buy into their management tools, so the core APIs are not very accessible as a result.
 
 Windows support remains an eventual goal, but it is not currently planned.
-
-Can I specify a custom path for the configuration file?
--------------------------------------------------------
-
-Yes! You can specify a custom path for the configuration file by setting the
-``EXOSPHERE_CONFIG_FILE`` environment variable to the full path of the file you wish to use.
-
-See :doc:`configuration` for more details on other environment variables
-you can define to influence or override the configuration.
 
 Why all the different config file formats?
 ------------------------------------------
