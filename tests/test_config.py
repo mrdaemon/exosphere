@@ -468,3 +468,215 @@ class TestConfiguration:
         assert result is True
         assert "invalid_key" not in config["options"]
         assert "is not a valid options key" in caplog.text
+
+    def test_update_from_env_nested_dicts(self, mocker, monkeypatch):
+        """
+        Ensure that the Configuration object can be updated
+        from environment variables with nested dictionaries using
+        double underscore (__) as a separator.
+        """
+        # Mock environment variables for nested dict structure
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_NESTED__LEVEL1__KEY1", "value1")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_NESTED__LEVEL1__KEY2", "42")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_NESTED__LEVEL2__SUBKEY", "true")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_DEEP__VERY__NESTED__KEY", "deep_value")
+
+        config = Configuration()
+        result = config.from_env()
+
+        assert result is True
+
+        # Check nested structure was created correctly
+        assert "nested" in config["options"]
+        assert "level1" in config["options"]["nested"]
+        assert "level2" in config["options"]["nested"]
+        assert config["options"]["nested"]["level1"]["key1"] == "value1"
+        assert config["options"]["nested"]["level1"]["key2"] == 42
+        assert config["options"]["nested"]["level2"]["subkey"] is True
+
+        # Check deeply nested structure
+        assert "deep" in config["options"]
+        assert "very" in config["options"]["deep"]
+        assert "nested" in config["options"]["deep"]["very"]
+        assert config["options"]["deep"]["very"]["nested"]["key"] == "deep_value"
+
+    def test_update_from_env_nested_dicts_custom_parser(self, mocker, monkeypatch):
+        """
+        Ensure that nested dicts work with custom parsers in from_env.
+        """
+
+        # Use a simple parser that just converts to uppercase
+        def uppercase_parser(value):
+            return value.upper()
+
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_CUSTOM__NESTED__VALUE", "lowercase")
+
+        config = Configuration()
+        result = config.from_env(parser=uppercase_parser)
+
+        assert result is True
+        assert config["options"]["custom"]["nested"]["value"] == "LOWERCASE"
+
+    def test_deep_update_simple_merge(self):
+        """
+        Ensure that deep_update correctly merges nested dictionaries
+        without replacing the entire structure.
+        """
+        config = Configuration()
+
+        # Set up initial nested structure
+        config["options"]["existing"] = {
+            "keep_this": "original_value",
+            "update_this": "old_value",
+            "nested": {"deep_keep": "deep_original", "deep_update": "deep_old"},
+        }
+
+        # Update with new nested structure
+        update_dict = {
+            "existing": {
+                "update_this": "new_value",
+                "add_this": "added_value",
+                "nested": {"deep_update": "deep_new", "deep_add": "deep_added"},
+            }
+        }
+
+        config.deep_update(config["options"], update_dict)
+
+        # Check that existing values were preserved
+        assert config["options"]["existing"]["keep_this"] == "original_value"
+        assert config["options"]["existing"]["nested"]["deep_keep"] == "deep_original"
+
+        # Check that values were updated
+        assert config["options"]["existing"]["update_this"] == "new_value"
+        assert config["options"]["existing"]["nested"]["deep_update"] == "deep_new"
+
+        # Check that new values were added
+        assert config["options"]["existing"]["add_this"] == "added_value"
+        assert config["options"]["existing"]["nested"]["deep_add"] == "deep_added"
+
+    def test_deep_update_deeply_nested(self):
+        """
+        Ensure that deep_update works recursively for multiple levels
+        of nested dictionaries.
+        """
+        config = Configuration()
+
+        # Create a deeply nested structure
+        target = {
+            "level1": {
+                "level2": {
+                    "level3": {
+                        "existing": "original",
+                        "level4": {"deep_existing": "deep_original"},
+                    }
+                }
+            }
+        }
+
+        # Update with another deeply nested structure
+        update = {
+            "level1": {
+                "level2": {
+                    "level3": {
+                        "new_key": "new_value",
+                        "level4": {
+                            "deep_existing": "deep_updated",
+                            "deep_new": "deep_new_value",
+                        },
+                    }
+                }
+            }
+        }
+
+        result = config.deep_update(target, update)
+
+        # Check the method returns the updated dict
+        assert result is target
+
+        # Check deep preservation and updates
+        assert target["level1"]["level2"]["level3"]["existing"] == "original"
+        assert target["level1"]["level2"]["level3"]["new_key"] == "new_value"
+        assert (
+            target["level1"]["level2"]["level3"]["level4"]["deep_existing"]
+            == "deep_updated"
+        )
+        assert (
+            target["level1"]["level2"]["level3"]["level4"]["deep_new"]
+            == "deep_new_value"
+        )
+
+    def test_deep_update_non_dict_replacement(self):
+        """
+        Ensure that deep_update replaces non-dict values with dict values
+        and vice versa, rather than trying to merge incompatible types.
+        """
+        config = Configuration()
+
+        target = {
+            "string_to_dict": "original_string",
+            "dict_to_string": {"key": "value"},
+            "dict_merge": {"keep": "this", "replace": "old"},
+        }
+
+        update = {
+            "string_to_dict": {"new": "dict_value"},
+            "dict_to_string": "new_string",
+            "dict_merge": {"replace": "new", "add": "added"},
+        }
+
+        config.deep_update(target, update)
+
+        # Non-dict to dict replacement
+        assert target["string_to_dict"] == {"new": "dict_value"}
+
+        # Dict to non-dict replacement
+        assert target["dict_to_string"] == "new_string"
+
+        # Dict to dict merge
+        assert target["dict_merge"]["keep"] == "this"
+        assert target["dict_merge"]["replace"] == "new"
+        assert target["dict_merge"]["add"] == "added"
+
+    def test_update_from_mapping_uses_deep_update(self):
+        """
+        Ensure that update_from_mapping correctly uses deep_update
+        for nested dictionary structures.
+        """
+        config = Configuration()
+
+        # Set up initial state with nested options
+        config["options"]["custom_section"] = {
+            "existing_key": "original",
+            "nested": {"deep_key": "deep_original"},
+        }
+
+        # Update with overlapping nested structure
+        mapping = {
+            "options": {
+                "log_level": "DEBUG",  # Update existing top-level key
+                "custom_section": {
+                    "existing_key": "updated",  # Update existing nested key
+                    "new_key": "added",  # Add new nested key
+                    "nested": {
+                        "deep_key": "deep_updated",  # Update deep nested key
+                        "deep_new": "deep_added",  # Add new deep nested key
+                    },
+                },
+            }
+        }
+
+        result = config.update_from_mapping(mapping)
+        assert result is True
+
+        # Check that deep_update was used (values were merged, not replaced)
+        assert config["options"]["log_level"] == "DEBUG"
+        assert config["options"]["custom_section"]["existing_key"] == "updated"
+        assert config["options"]["custom_section"]["new_key"] == "added"
+        assert (
+            config["options"]["custom_section"]["nested"]["deep_key"] == "deep_updated"
+        )
+        assert config["options"]["custom_section"]["nested"]["deep_new"] == "deep_added"
+
+        # Ensure other default options are still present
+        assert "debug" in config["options"]
+        assert "cache_file" in config["options"]
