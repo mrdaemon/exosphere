@@ -1,3 +1,7 @@
+"""
+Config command module
+"""
+
 import os
 from typing import Annotated
 

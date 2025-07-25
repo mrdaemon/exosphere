@@ -1,3 +1,7 @@
+"""
+Host command module
+"""
+
 import typer
 from rich.panel import Panel
 from rich.progress import (

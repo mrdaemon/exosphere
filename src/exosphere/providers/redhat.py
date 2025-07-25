@@ -1,3 +1,7 @@
+"""
+RedHat Package Manager Provider
+"""
+
 from fabric import Connection
 
 from exosphere.data import Update

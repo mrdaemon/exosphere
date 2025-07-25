@@ -1,3 +1,7 @@
+"""
+Inventory command module
+"""
+
 import logging
 
 import typer

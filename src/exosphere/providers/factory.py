@@ -1,3 +1,13 @@
+"""
+Package Manager Factory Module
+
+This module provides a factory class for creating instances of a
+package manager based on a string based name.
+
+It is used through the application resolve a package name to a concrete
+class of a package manager provider implementation.
+"""
+
 from exosphere.providers.api import PkgManager
 from exosphere.providers.debian import Apt
 from exosphere.providers.freebsd import Pkg

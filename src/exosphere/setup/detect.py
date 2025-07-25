@@ -1,7 +1,10 @@
-# Detection Module
-# This module contains tasks to detect platform and details about
-# the remote system. It is used mostly for setup actions surrounding
-# actual actions exosphere might take.
+"""
+Detection Module
+
+This module contains tasks to detect platform and details about remote
+systems. Its role is primarily in discovery and setup actions to
+determine platform, operating system and other relevant platform data.
+"""
 
 import logging
 

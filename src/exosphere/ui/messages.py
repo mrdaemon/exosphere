@@ -1,3 +1,11 @@
+"""
+UI Messages and Events Module
+
+This defines custom messages and events used within the Exosphere TUI
+application, as well as support classes such as the Screen Flags
+registry.
+"""
+
 import logging
 
 from textual.message import Message

@@ -1,3 +1,7 @@
+"""
+Inventory Screen Module
+"""
+
 import logging
 from collections.abc import Callable
 

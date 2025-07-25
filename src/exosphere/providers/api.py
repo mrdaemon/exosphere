@@ -1,3 +1,11 @@
+"""
+Providers API
+
+This module defines the abstract base class for package managers as
+well as helper functions and decorators to be used by package manager
+provider implementations.
+"""
+
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable

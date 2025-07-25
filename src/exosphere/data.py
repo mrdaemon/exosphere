@@ -1,4 +1,13 @@
-# Data Types and Classes
+"""
+Data Classes module
+
+This module defines data classes used throughout the Exosphere
+application.
+
+These data classes are used to represent any kind of immutable,
+structured data used in the application, usually for cross module
+exchange or configuration purposes.
+"""
 
 from dataclasses import dataclass
 

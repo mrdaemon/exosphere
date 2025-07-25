@@ -1,3 +1,15 @@
+"""
+Common UI Elements Module
+
+This module defines common UI elements used across the Exosphere TUI
+application, such as error screens and progress screens.
+
+These elements are responsible for display errors and initiating tasks
+while presenting their progress to the user.
+
+The Task Dispatch logic for UI Screens is implemented here.
+"""
+
 import logging
 
 from textual import work

@@ -1,4 +1,9 @@
-# Exception Types
+"""
+Errors Module for Exosphere
+
+This module defines custom exception types used throughout the
+Exosphere application.
+"""
 
 
 class DataRefreshError(Exception):

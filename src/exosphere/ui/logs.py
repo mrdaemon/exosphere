@@ -1,3 +1,7 @@
+"""
+Logs Screen module
+"""
+
 import logging
 import threading
 from typing import cast

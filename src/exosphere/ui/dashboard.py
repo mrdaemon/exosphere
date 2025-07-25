@@ -1,3 +1,7 @@
+"""
+Dashboard Screen module
+"""
+
 import logging
 
 from textual.app import ComposeResult

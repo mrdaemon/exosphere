@@ -1,3 +1,17 @@
+"""
+Main Module for Exosphere
+
+Entry point and initialization logic for the application.
+This module is responsible for:
+
+- Setting up logging
+- Loading configuration files
+- Initializing the inventory
+- Setting up the application environment and context
+- Entering the CLI entrypoint
+
+"""
+
 import json
 import logging
 import os

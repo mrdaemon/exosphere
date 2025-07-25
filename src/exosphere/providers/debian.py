@@ -1,3 +1,7 @@
+"""
+Debian/Ubuntu Apt Package Manager Provider
+"""
+
 import re
 
 from fabric import Connection

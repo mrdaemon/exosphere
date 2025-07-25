@@ -1,3 +1,13 @@
+"""
+Exosphere Command Line Interface (CLI)
+
+This module provides the main CLI interface for Exosphere, setting up
+the interactive REPL and command/subcommand structure.
+
+It handles setting up the CLI environment, loading command modules,
+and acts as the CLI entrypoint for the application.
+"""
+
 import logging
 import sys
 from typing import Annotated

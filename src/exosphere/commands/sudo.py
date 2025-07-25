@@ -1,3 +1,7 @@
+"""
+Sudo command module
+"""
+
 import fabric
 import fabric.util
 import typer

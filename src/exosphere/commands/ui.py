@@ -1,3 +1,7 @@
+"""
+UI command module
+"""
+
 import logging
 
 import typer

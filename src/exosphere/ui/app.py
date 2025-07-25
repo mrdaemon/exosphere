@@ -1,3 +1,14 @@
+"""
+Exosphere TUI Application Module
+
+This module defines the main application class for the Exosphere
+Text User Interface (TUI) application. It manages the overall
+application state, handles global key bindings, and manages
+the modal screen state for different UI components.
+
+Acts as the entrypoint for the UI component of Exosphere.
+"""
+
 import logging
 
 from textual.app import App, ComposeResult
