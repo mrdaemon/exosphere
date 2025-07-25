@@ -346,7 +346,7 @@ def test_generate_with_host(mock_inventory, dummy_host, mock_pkgmanager_factory)
     assert result.exit_code == 0
     assert "Generated for Debian" in result.output
     assert "Cmnd_Alias EXOSPHERE_CMDS = /bin/test-command" in result.output
-    assert "testuser ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS" in result.output
+    assert "testuser ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
 
 def test_generate_with_invalid_host(mock_inventory, mock_pkgmanager_factory):
@@ -392,7 +392,7 @@ def test_generate_with_host_no_username(
 
     assert result.exit_code == 0
     assert "Generated for Debian" in result.output
-    assert "current_user ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS" in result.output
+    assert "current_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
 
 def test_generate_with_host_no_username_global_username(
@@ -413,7 +413,7 @@ def test_generate_with_host_no_username_global_username(
     assert result.exit_code == 0
     assert "Generated for Debian" in result.output
     assert "current_user" not in result.output
-    assert "global_user ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS" in result.output
+    assert "global_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
 
 def test_generate_with_host_specified_username(
@@ -436,7 +436,7 @@ def test_generate_with_host_specified_username(
     assert "Generated for Debian" in result.output
     assert "global_user" not in result.output
     assert "host_user" not in result.output
-    assert "specified_user ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS" in result.output
+    assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
 
 def test_generate_with_host_but_no_password_fallback_somehow(
@@ -483,7 +483,7 @@ def test_generate_with_provider(
         f"Cmnd_Alias EXOSPHERE_CMDS = {', '.join(expected_commands) if len(expected_commands) > 1 else expected_commands[0]}"
         in result.output
     )
-    assert "ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS" in result.output
+    assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
 
 def test_generate_with_unknown_provider():
@@ -509,7 +509,7 @@ def test_generate_with_provider_and_username(app_config, mock_pkgmanager_factory
     assert result.exit_code == 0
     assert "Generated for Debian" in result.output
     assert "global_user" not in result.output
-    assert "specified_user ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS" in result.output
+    assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
 
 def test_generate_with_provider_but_not_sudo(mock_pkgmanager_factory):
@@ -544,5 +544,5 @@ def test_generate_with_provider_but_no_sudo_commands(mock_pkgmanager_factory):
     result = runner.invoke(sudo.app, ["generate", "--provider", "fucky"])
 
     assert result.exit_code == 1
-    assert "ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS" not in result.output
+    assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" not in result.output
     assert "Provider 'fucky' does not define any sudo commands!" in result.output

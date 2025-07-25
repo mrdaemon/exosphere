@@ -398,7 +398,7 @@ def generate(
     sudoers_snippet = (
         f"# Generated for {target_provider_info.description}\n"
         f"Cmnd_Alias EXOSPHERE_CMDS = {', '.join(target_provider_info.sudo_commands or [])}\n"
-        f"{target_user} ALL=(ALL) NOPASSWD: EXOSPHERE_CMDS"
+        f"{target_user} ALL=(root) NOPASSWD: EXOSPHERE_CMDS"
     )
 
     # Do not use rich console for this output, as it is meant to be
