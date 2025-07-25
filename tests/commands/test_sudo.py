@@ -130,419 +130,423 @@ def patch_local_user(mocker):
     mocker.patch("fabric.util.get_local_user", return_value="current_user")
 
 
-def test_sudo_policy():
-    """
-    Test that the sudo policy command returns the global sudo policy
-    from the configuration.
-    """
+class TestPolicyCommand:
+    """Tests for the 'sudo policy' command."""
 
-    expected_policy = Configuration.DEFAULTS["options"]["default_sudo_policy"]
+    def test_shows_global_policy(self):
+        """
+        Test that the sudo policy command returns the global sudo policy
+        from the configuration.
+        """
+        expected_policy = Configuration.DEFAULTS["options"]["default_sudo_policy"]
 
-    result = runner.invoke(sudo.app, ["policy"])
-    assert result.exit_code == 0
-    assert f"Global SudoPolicy: {expected_policy}" in result.output
-
-
-def test_check_with_invalid_host():
-    """
-    Test that help is displayed when no host is specified.
-    """
-
-    result = runner.invoke(sudo.app, ["check", "testhost"])
-    assert result.exit_code == 1
-    assert "Host 'testhost' not found in inventory!" in result.output
+        result = runner.invoke(sudo.app, ["policy"])
+        assert result.exit_code == 0
+        assert f"Global SudoPolicy: {expected_policy}" in result.output
 
 
-def test_check(mock_inventory, dummy_host):
-    """
-    Test the sudo check command with a dummy host.
-    """
+class TestCheckCommand:
+    """Tests for the 'sudo check' command."""
 
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
+    def test_with_invalid_host(self):
+        """
+        Test that help is displayed when no host is specified.
+        """
+        result = runner.invoke(sudo.app, ["check", "testhost"])
+        assert result.exit_code == 1
+        assert "Host 'testhost' not found in inventory!" in result.output
 
-    result = runner.invoke(sudo.app, ["check", "dummy_host"])
+    def test_basic_check(self, mock_inventory, dummy_host):
+        """
+        Test the sudo check command with a dummy host.
+        """
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
-    assert result.exit_code == 0
-    assert "Sudo Policy for dummy_host" in result.output
-    assert "Host Policy:" in result.output
-    assert "skip (global)" in result.output
-    assert "Can Sync Repositories:  No" in result.output
-    assert "Can Refresh Updates:    Yes" in result.output
-    assert "operations require sudo privileges" in result.output
+        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+
+        assert result.exit_code == 0
+        assert "Sudo Policy for dummy_host" in result.output
+        assert "Host Policy:" in result.output
+        assert "skip (global)" in result.output
+        assert "Can Sync Repositories:  No" in result.output
+        assert "Can Refresh Updates:    Yes" in result.output
+        assert "operations require sudo privileges" in result.output
+
+    def test_with_local_policy(self, mock_inventory, dummy_host):
+        """
+        Test the sudo check command with a local policy set on the host.
+        """
+        dummy_host.sudo_policy = SudoPolicy.NOPASSWD
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
+
+        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+
+        assert result.exit_code == 0
+        assert "nopasswd (local)" in result.output
+        assert "Can Sync Repositories:  Yes" in result.output
+        assert "Can Refresh Updates:    Yes" in result.output
+        assert "operations require sudo privileges" not in result.output
+
+    def test_with_unknown_package_manager(self, mock_inventory, dummy_host):
+        """
+        Test the sudo check command with a host that has an unknown package manager.
+        """
+        dummy_host.package_manager = "TOTALLY_UNKNOWN_PROVIDER"
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
+
+        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+
+        assert result.exit_code == 1
+        assert (
+            "Host 'dummy_host' has an unknown package manager: TOTALLY_UNKNOWN_PROVIDER"
+            in result.output
+        )
+
+    def test_with_no_package_manager(self, mock_inventory, dummy_host):
+        """
+        Test the sudo check command with a host that has no package manager.
+        """
+        dummy_host.package_manager = None
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
+
+        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+
+        assert result.exit_code == 1
+        assert (
+            "Host 'dummy_host' does not have a package manager defined" in result.output
+        )
+
+    def test_with_inventory_uninitialized(self, mocker):
+        """
+        Test the sudo check command when the inventory is not initialized.
+        This should raise an error.
+        """
+        mocker.patch("exosphere.commands.sudo.context.inventory", None)
+
+        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+
+        assert result.exit_code == 1
+        assert "Inventory is not initialized" in result.output
 
 
-def test_check_with_local_policy(mock_inventory, dummy_host):
-    """
-    Test the sudo check command with a local policy set on the host.
-    """
+class TestProvidersCommand:
+    """Tests for the 'sudo providers' command."""
 
-    dummy_host.sudo_policy = SudoPolicy.NOPASSWD
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
+    def test_lists_all_providers(self, mock_pkgmanager_factory):
+        """
+        Test that the sudo providers command lists all available sudo providers.
+        """
+        result = runner.invoke(sudo.app, ["providers"])
 
-    result = runner.invoke(sudo.app, ["check", "dummy_host"])
+        assert result.exit_code == 0
+        assert "Providers Requirements" in result.output
+        assert "Apt" in result.output
+        assert "Dnf" in result.output
+        assert "Yum" in result.output
+        assert "Pkg" in result.output
+        assert "TestGuy" in result.output
 
-    assert result.exit_code == 0
-    assert "nopasswd (local)" in result.output
-    assert "Can Sync Repositories:  Yes" in result.output
-    assert "Can Refresh Updates:    Yes" in result.output
-    assert "operations require sudo privileges" not in result.output
+        assert "Debian/Ubuntu Derivatives" in result.output
+        assert "Fedora/RHEL/CentOS" in result.output
+        assert "FreeBSD" in result.output
+        assert "RHEL/CentOS 7 and earlier" in result.output
+        assert "testguy" in result.output  # Match for no Description in map
 
+        assert result.output.count("Requires Sudo") == 3
+        assert result.output.count("No Privileges") == 7
 
-def test_check_with_unknown_package_manager(mock_inventory, dummy_host):
-    """
-    Test the sudo check command with a host that has an unknown package manager.
-    """
+    def test_with_unknown_provider(self, mock_pkgmanager_factory):
+        """
+        Ensure the program returns an error on invalid providers
+        """
+        result = runner.invoke(sudo.app, ["providers", "unknown_provider"])
 
-    dummy_host.package_manager = "TOTALLY_UNKNOWN_PROVIDER"
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
+        assert result.exit_code == 1
+        assert "No such provider: unknown_provider" in result.output
 
-    result = runner.invoke(sudo.app, ["check", "dummy_host"])
-
-    assert result.exit_code == 1
-    assert (
-        "Host 'dummy_host' has an unknown package manager: TOTALLY_UNKNOWN_PROVIDER"
-        in result.output
+    @pytest.mark.parametrize(
+        "missing_method",
+        ["reposync", "get_updates"],
+        ids=["missing_reposync", "missing_get_updates"],
     )
+    def test_with_non_conforming_provider(
+        self, mocker, mock_pkgmanager_factory, missing_method
+    ):
+        """
+        Ensure the program returns non-zero and an error when the
+        provider class does not have the 'reposync' or 'get_updates' methods.
+        """
+        bad_provider = mocker.MagicMock(name="BadProvider")
+        bad_provider.__qualname__ = "BadProvider"
+        bad_provider.SUDOERS_COMMANDS = []
+
+        # Create both methods initially
+        bad_provider.reposync = mocker.MagicMock(name="reposync")
+        bad_provider.get_updates = mocker.MagicMock(name="get_updates")
+
+        # Delete the specific method we want to test
+        delattr(bad_provider, missing_method)
+
+        # Add the bad provider to the registry
+        registry = mock_pkgmanager_factory.get_registry.return_value
+        registry["badprovider"] = bad_provider
+
+        result = runner.invoke(sudo.app, ["providers"])
+
+        assert result.exit_code == 0  # Command should still succeed but show warning
+        assert (
+            "Provider badprovider does not implement required methods!" in result.output
+        )
+        assert "This is likely a bug." in result.output
 
 
-def test_check_with_no_package_manager(mock_inventory, dummy_host):
-    """
-    Test the sudo check command with a host that has no package manager.
-    """
+class TestGenerateCommand:
+    """Tests for the 'sudo generate' command."""
 
-    dummy_host.package_manager = None
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
+    def test_no_arguments(self):
+        """
+        Test that we handle no arguments gracefully
+        """
+        result = runner.invoke(sudo.app, ["generate"])
 
-    result = runner.invoke(sudo.app, ["check", "dummy_host"])
+        assert result.exit_code == 1
+        assert "You must specify either --host or --provider" in result.output
 
-    assert result.exit_code == 1
-    assert "Host 'dummy_host' does not have a package manager defined" in result.output
+    def test_host_and_provider_mutually_exclusive(
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+    ):
+        """
+        Test the sudo generate command with both host and provider specified.
+        This should raise an error since only one can be specified at a time.
+        """
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
+        result = runner.invoke(
+            sudo.app, ["generate", "--host", "dummy_host", "--provider", "apt"]
+        )
 
-def test_check_with_inventory_uninitialized(mocker):
-    """
-    Test the sudo check command when the inventory is not initialized.
-    This should raise an error.
-    """
+        assert result.exit_code == 1
+        assert "--host and --provider are mutually exclusive" in result.output
 
-    mocker.patch("exosphere.commands.sudo.context.inventory", None)
+    def test_with_host(self, mock_inventory, dummy_host, mock_pkgmanager_factory):
+        """
+        Test the sudo generate command with a standard host with username
+        """
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
-    result = runner.invoke(sudo.app, ["check", "dummy_host"])
+        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
 
-    assert result.exit_code == 1
-    assert "Inventory is not initialized" in result.output
+        assert result.exit_code == 0
+        assert "Generated for Debian" in result.output
+        assert "Cmnd_Alias EXOSPHERE_CMDS = /bin/test-command" in result.output
+        assert "testuser ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
+    def test_with_invalid_host(self, mock_inventory, mock_pkgmanager_factory):
+        """
+        Test the sudo generate command with an invalid host.
+        """
+        mock_inventory.get_host.return_value = None
 
-def test_providers(mock_pkgmanager_factory):
-    """
-    Test that the sudo providers command lists all available sudo providers.
-    """
+        result = runner.invoke(sudo.app, ["generate", "--host", "invalid_host"])
 
-    result = runner.invoke(sudo.app, ["providers"])
+        assert result.exit_code == 1
+        assert "Host 'invalid_host' not found in inventory!" in result.output
 
-    assert result.exit_code == 0
-    assert "Providers Requirements" in result.output
-    assert "Apt" in result.output
-    assert "Dnf" in result.output
-    assert "Yum" in result.output
-    assert "Pkg" in result.output
-    assert "TestGuy" in result.output
+    def test_with_host_undiscovered(
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+    ):
+        """
+        Test the sudo generate command with a host that is not discovered.
+        """
+        dummy_host.package_manager = None  # Simulate an undiscovered host
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
-    assert "Debian/Ubuntu Derivatives" in result.output
-    assert "Fedora/RHEL/CentOS" in result.output
-    assert "FreeBSD" in result.output
-    assert "RHEL/CentOS 7 and earlier" in result.output
-    assert "testguy" in result.output  # Match for no Description in map
+        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
 
-    assert result.output.count("Requires Sudo") == 3
-    assert result.output.count("No Privileges") == 7
+        assert result.exit_code == 1
+        assert "Host 'dummy_host' does not have a package manager" in result.output
 
+    def test_with_host_no_username_fallback(
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+    ):
+        """
+        Test the sudo generate command with a standard host without username
+        Ensure it falls back to the current user.
+        """
+        dummy_host.username = None
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
-def test_providers_with_unknown_provider(mock_pkgmanager_factory):
-    """
-    Ensure the program returns an error on invalid providers
-    """
-    result = runner.invoke(sudo.app, ["providers", "unknown_provider"])
+        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
 
-    assert result.exit_code == 1
-    assert "No such provider: unknown_provider" in result.output
+        assert result.exit_code == 0
+        assert "Generated for Debian" in result.output
+        assert "current_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
+    def test_with_host_global_username_fallback(
+        self, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
+    ):
+        """
+        Test the sudo generate command with a standard host without username
+        but with global username set
+        """
+        app_config["options"]["default_username"] = "global_user"
+        dummy_host.username = None
 
-@pytest.mark.parametrize(
-    "missing_method",
-    ["reposync", "get_updates"],
-    ids=["missing_reposync", "missing_get_updates"],
-)
-def test_providers_with_non_conforming_provider(
-    mocker, mock_pkgmanager_factory, missing_method
-):
-    """
-    Ensure the program returns non-zero and an error when the
-    provider class does not have the 'reposync' or 'get_updates' methods.
-    """
-    bad_provider = mocker.MagicMock(name="BadProvider")
-    bad_provider.__qualname__ = "BadProvider"
-    bad_provider.SUDOERS_COMMANDS = []
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
-    # Create both methods initially
-    bad_provider.reposync = mocker.MagicMock(name="reposync")
-    bad_provider.get_updates = mocker.MagicMock(name="get_updates")
+        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
 
-    # Delete the specific method we want to test
-    delattr(bad_provider, missing_method)
+        assert result.exit_code == 0
+        assert "Generated for Debian" in result.output
+        assert "current_user" not in result.output
+        assert "global_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
-    # Add the bad provider to the registry
-    registry = mock_pkgmanager_factory.get_registry.return_value
-    registry["badprovider"] = bad_provider
+    def test_with_host_username_precedence(
+        self, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
+    ):
+        """
+        Test the sudo generate command with a host and a specified username.
+        Ensure the precedence works as expected.
+        """
+        app_config["options"]["default_username"] = "global_user"
+        dummy_host.username = "host_user"
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
-    result = runner.invoke(sudo.app, ["providers"])
+        result = runner.invoke(
+            sudo.app, ["generate", "--host", "dummy_host", "--user", "specified_user"]
+        )
 
-    assert result.exit_code == 0  # Command should still succeed but show warning
-    assert "Provider badprovider does not implement required methods!" in result.output
-    assert "This is likely a bug." in result.output
+        assert result.exit_code == 0
+        assert "Generated for Debian" in result.output
+        assert "global_user" not in result.output
+        assert "host_user" not in result.output
+        assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
+    def test_with_host_no_username_fallback_fails(
+        self, mocker, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
+    ):
+        """
+        Test the sudo generate command with a host that has no username fallback.
+        This scenario should not really happen but should be handled gracefully.
+        """
+        mocker.patch("fabric.util.get_local_user", return_value=None)
+        app_config["options"]["default_username"] = None
+        dummy_host.username = None
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
-def test_generate_no_arguments():
-    """
-    Test that we handle no arguments gracefully
-    """
-    result = runner.invoke(sudo.app, ["generate"])
+        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
 
-    assert result.exit_code == 1
-    assert "You must specify either --host or --provider" in result.output
+        assert result.exit_code == 1
+        assert "No username could be selected" in result.output
 
+    def test_with_username_provided_but_invalid(
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+    ):
+        """
+        Test the sudo generate command with an invalid username.
+        This should raise an error.
+        """
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
-def test_generate_host_and_provider(
-    mock_inventory, dummy_host, mock_pkgmanager_factory
-):
-    """
-    Test the sudo generate command with both host and provider specified.
-    This should raise an error since only one can be specified at a time.
-    """
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
+        result = runner.invoke(
+            sudo.app, ["generate", "--host", "dummy_host", "--user", "invalid\\;;user!"]
+        )
 
-    result = runner.invoke(
-        sudo.app, ["generate", "--host", "dummy_host", "--provider", "apt"]
+        assert result.exit_code == 1
+        assert "Invalid username 'invalid\\;;user!'" in result.output
+
+    @pytest.mark.parametrize(
+        "provider_name, provider_desc, expected_commands",
+        [
+            ("apt", "Debian/Ubuntu Derivatives", ["/bin/test-command"]),
+            ("testguy", "testguy", ["/sbin/testguy-sync", "/usr/sbin/testguy-update"]),
+        ],
+        ids=[
+            "single_command",
+            "multiple_commands",
+        ],
     )
+    def test_with_provider(
+        self, mock_pkgmanager_factory, provider_name, provider_desc, expected_commands
+    ):
+        """
+        Test the sudo generate command with a specific provider.
+        """
+        result = runner.invoke(sudo.app, ["generate", "--provider", provider_name])
 
-    assert result.exit_code == 1
-    assert "--host and --provider are mutually exclusive" in result.output
+        assert result.exit_code == 0
+        assert f"Generated for {provider_desc}" in result.output
+        assert (
+            f"Cmnd_Alias EXOSPHERE_CMDS = {', '.join(expected_commands) if len(expected_commands) > 1 else expected_commands[0]}"
+            in result.output
+        )
+        assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
+    def test_with_unknown_provider(self):
+        """
+        Ensure that we handle unknown providers gracefully.
+        """
+        result = runner.invoke(sudo.app, ["generate", "--provider", "unknown_provider"])
 
-def test_generate_with_host(mock_inventory, dummy_host, mock_pkgmanager_factory):
-    """
-    Test the sudo generate command with a standard host with username
-    """
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
+        assert result.exit_code == 1
+        assert "No such provider: unknown_provider" in result.output
 
-    result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
+    def test_with_provider_and_username(self, app_config, mock_pkgmanager_factory):
+        """
+        Test the sudo generate command with a specific provider and a specified username.
+        """
+        app_config["options"]["default_username"] = "global_user"
 
-    assert result.exit_code == 0
-    assert "Generated for Debian" in result.output
-    assert "Cmnd_Alias EXOSPHERE_CMDS = /bin/test-command" in result.output
-    assert "testuser ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
+        result = runner.invoke(
+            sudo.app, ["generate", "--provider", "apt", "--user", "specified_user"]
+        )
 
+        assert result.exit_code == 0
+        assert "Generated for Debian" in result.output
+        assert "global_user" not in result.output
+        assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
 
-def test_generate_with_invalid_host(mock_inventory, mock_pkgmanager_factory):
-    """
-    Test the sudo generate command with an invalid host.
-    """
-    mock_inventory.get_host.return_value = None
+    def test_with_provider_no_sudo_required(self, mock_pkgmanager_factory):
+        """
+        Test the sudo generate command with a specific provider but
+        it does not require sudo
+        """
+        result = runner.invoke(sudo.app, ["generate", "--provider", "dnf"])
 
-    result = runner.invoke(sudo.app, ["generate", "--host", "invalid_host"])
+        assert result.exit_code == 0
+        assert "Provider 'dnf' does not require any sudo commands" in result.output
 
-    assert result.exit_code == 1
-    assert "Host 'invalid_host' not found in inventory!" in result.output
+    def test_with_provider_no_sudo_commands_defined(self, mock_pkgmanager_factory):
+        """
+        Test the sudo generate command with a specific provider but
+        it does not have any sudo commands defined.
+        This is a bug in the provider implementation.
+        """
+        # Mock a buggy provider that requires sudo but does not actually
+        # define any sudo commands. This should never result in configuration.
+        FuckyProvider = make_package_provider(
+            classname="FuckyProvider",
+            sudoers_command=[],
+            sudo_sync=False,
+            sudo_updates=True,
+        )
 
+        mock_pkgmanager_factory.get_registry.return_value["fucky"] = FuckyProvider
 
-def test_generate_with_host_but_its_undiscovered(
-    mock_inventory, dummy_host, mock_pkgmanager_factory
-):
-    """
-    Test the sudo generate command with a host that is not discovered.
-    """
-    dummy_host.package_manager = None  # Simulate an undiscovered host
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
+        result = runner.invoke(sudo.app, ["generate", "--provider", "fucky"])
 
-    result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
-
-    assert result.exit_code == 1
-    assert "Host 'dummy_host' does not have a package manager" in result.output
-
-
-def test_generate_with_host_no_username(
-    mock_inventory, dummy_host, mock_pkgmanager_factory
-):
-    """
-    Test the sudo generate command with a standard host without username
-    Ensure it falls back to the current user.
-    """
-    dummy_host.username = None
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
-
-    result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
-
-    assert result.exit_code == 0
-    assert "Generated for Debian" in result.output
-    assert "current_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
-
-
-def test_generate_with_host_no_username_global_username(
-    app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
-):
-    """
-    Test the sudo generate command with a standard host without username
-    but with global username set
-    """
-    app_config["options"]["default_username"] = "global_user"
-    dummy_host.username = None
-
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
-
-    result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
-
-    assert result.exit_code == 0
-    assert "Generated for Debian" in result.output
-    assert "current_user" not in result.output
-    assert "global_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
-
-
-def test_generate_with_host_specified_username(
-    app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
-):
-    """
-    Test the sudo generate command with a host and a specified username.
-    Ensure the precedence works as expected.
-    """
-    app_config["options"]["default_username"] = "global_user"
-    dummy_host.username = "host_user"
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
-
-    result = runner.invoke(
-        sudo.app, ["generate", "--host", "dummy_host", "--user", "specified_user"]
-    )
-
-    assert result.exit_code == 0
-    assert "Generated for Debian" in result.output
-    assert "global_user" not in result.output
-    assert "host_user" not in result.output
-    assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
-
-
-def test_generate_with_host_but_no_password_fallback_somehow(
-    mocker, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
-):
-    """
-    Test the sudo generate command with a host that has no password fallback.
-    This scenario should not really happen but should be handled gracefully.
-    """
-    mocker.patch("fabric.util.get_local_user", return_value=None)
-    app_config["options"]["default_username"] = None
-    dummy_host.username = None
-    mock_inventory.get_host.return_value = dummy_host
-    mock_inventory.hosts = [dummy_host]
-
-    result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
-
-    assert result.exit_code == 1
-    assert "No username could be selected" in result.output
-
-
-@pytest.mark.parametrize(
-    "provider_name, provider_desc, expected_commands",
-    [
-        ("apt", "Debian/Ubuntu Derivatives", ["/bin/test-command"]),
-        ("testguy", "testguy", ["/sbin/testguy-sync", "/usr/sbin/testguy-update"]),
-    ],
-    ids=[
-        "single_command",
-        "multiple_commands",
-    ],
-)
-def test_generate_with_provider(
-    mock_pkgmanager_factory, provider_name, provider_desc, expected_commands
-):
-    """
-    Test the sudo generate command with a specific provider.
-    """
-    result = runner.invoke(sudo.app, ["generate", "--provider", provider_name])
-
-    assert result.exit_code == 0
-    assert f"Generated for {provider_desc}" in result.output
-    assert (
-        f"Cmnd_Alias EXOSPHERE_CMDS = {', '.join(expected_commands) if len(expected_commands) > 1 else expected_commands[0]}"
-        in result.output
-    )
-    assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
-
-
-def test_generate_with_unknown_provider():
-    """
-    Ensure that we handle unknown providers gracefully.
-    """
-    result = runner.invoke(sudo.app, ["generate", "--provider", "unknown_provider"])
-
-    assert result.exit_code == 1
-    assert "No such provider: unknown_provider" in result.output
-
-
-def test_generate_with_provider_and_username(app_config, mock_pkgmanager_factory):
-    """
-    Test the sudo generate command with a specific provider and a specified username.
-    """
-    app_config["options"]["default_username"] = "global_user"
-
-    result = runner.invoke(
-        sudo.app, ["generate", "--provider", "apt", "--user", "specified_user"]
-    )
-
-    assert result.exit_code == 0
-    assert "Generated for Debian" in result.output
-    assert "global_user" not in result.output
-    assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
-
-
-def test_generate_with_provider_but_not_sudo(mock_pkgmanager_factory):
-    """
-    Test the sudo generate command with a specific provider but
-    it does not require sudo
-    """
-    result = runner.invoke(sudo.app, ["generate", "--provider", "dnf"])
-
-    assert result.exit_code == 0
-    assert "Provider 'dnf' does not require any sudo commands" in result.output
-
-
-def test_generate_with_provider_but_no_sudo_commands(mock_pkgmanager_factory):
-    """
-    Test the sudo generate command with a specific provider but
-    it does not have any sudo commands defined.
-    This is a bug in the provider implementation.
-    """
-
-    # Mock a buggy provider that requires sudo but does not actually
-    # define any sudo commands. This should never result in configuration.
-    FuckyProvider = make_package_provider(
-        classname="FuckyProvider",
-        sudoers_command=[],
-        sudo_sync=False,
-        sudo_updates=True,
-    )
-
-    mock_pkgmanager_factory.get_registry.return_value["fucky"] = FuckyProvider
-
-    result = runner.invoke(sudo.app, ["generate", "--provider", "fucky"])
-
-    assert result.exit_code == 1
-    assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" not in result.output
-    assert "Provider 'fucky' does not define any sudo commands!" in result.output
+        assert result.exit_code == 1
+        assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" not in result.output
+        assert "Provider 'fucky' does not define any sudo commands!" in result.output
