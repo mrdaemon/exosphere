@@ -126,6 +126,14 @@ def _get_username(user: str | None, host: Host | None = None) -> str:
         )
         raise typer.Exit(1)
 
+    # Validate username
+    if not result.replace("-", "").replace("_", "").isalnum():
+        err_console.print(
+            f"[red]Invalid username '{result}'. "
+            "Username must contain only alphanumeric characters, hyphens, and underscores.[/red]"
+        )
+        raise typer.Exit(1)
+
     return result
 
 
