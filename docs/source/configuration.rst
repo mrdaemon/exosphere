@@ -991,6 +991,8 @@ You will find below the detailed list of all available host options and their de
                     ]
                 }
 
+.. _hosts_sudo_policy_option:
+
 .. option:: sudo_policy
 
     The sudo policy to use when running commands on the host.
