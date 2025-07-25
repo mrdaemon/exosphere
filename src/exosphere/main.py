@@ -104,7 +104,6 @@ def load_first_config(config: Configuration) -> bool:
             "Using configuration path from environment variable: %s", env_config_path
         )
         paths = [
-            # FIXME: Refactor this shit and CONFPATHS
             Path(env_config_path) / "config.yaml",
             Path(env_config_path) / "config.yml",
             Path(env_config_path) / "config.toml",

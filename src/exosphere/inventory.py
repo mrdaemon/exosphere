@@ -87,7 +87,9 @@ class Inventory:
 
         if len(self.configuration["hosts"]) == 0:
             self.logger.warning("No hosts found in inventory")
-            # TODO: Clean hosts cache in this case?
+            # While we COULD purge the cache here, ALL hosts being gone
+            # feels like a transient mistake, so we err on the side of
+            # caution and just leave it as is.
             return
 
         config_hosts = {host["name"]: host for host in self.configuration["hosts"]}
