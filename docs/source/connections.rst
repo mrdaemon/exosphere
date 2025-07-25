@@ -46,7 +46,7 @@ including your distribution's documentation.
 A reasonable place to start is the Arch Linux Wiki's `Article on SSH keys`_,
 which is generic enough to apply to most if not all distributions.
 
-.. admonition:: Windows Users
+.. tip::
 
     If you are running Exosphere on Windows, you can enable the `Windows OpenSSH Agent`_
     service that is included with Windows 10 and later, as long as you have the `SSH Client
@@ -121,9 +121,9 @@ If you want to be able to use Exosphere to run operations that require sudo priv
 need to configure sudoers on the remote host(s) where this applies to allow them to be run without
 a password.
 
-.. admonition:: Note
+.. attention::
 
-    This generally does NOT present an added security risk, if configured properly.
+    This can potentially expose your system to security risks if not configured properly.
     See the section below for details on how to configure this safely.
 
 Generating a Sudoers configuration
@@ -221,9 +221,11 @@ where that is configured. For instance, in the example above, you can see the
 global policy is ``skip``, but the host policy has been set to ``nopasswd``
 locally, in the inventory host options.
 
-.. tip::
-   The ``sudo check`` command is particularly useful when troubleshooting permission 
-   issues or verifying that your sudoers configuration is working as expected. 
-   It shows you exactly what Exosphere will attempt to do on that specific host.
+The global Sudo Policy can also be displayed via:
+
+.. code-block:: console
+
+    $ exosphere sudo policy
+    Global SudoPolicy: skip
 
 .. _unattended-upgrades: https://wiki.debian.org/UnattendedUpgrades

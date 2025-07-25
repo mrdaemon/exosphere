@@ -28,3 +28,5 @@ subclass
 de
 repo
 sshd
+cron
+pre

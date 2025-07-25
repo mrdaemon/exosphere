@@ -9,26 +9,51 @@ provider system, which allows for new platforms to be added in the future.
 
 Currently, Exosphere can manage and query the following platforms:
 
-- Debian/Ubuntu and Derivatives (apt only)
-- Red Hat/CentOS/Alma/Rocky and Derivatives (yum/dnf)
-- FreeBSD (pkg)
+**Debian-based Systems**
+  - Debian (all versions)
+  - Ubuntu and derivatives (Mint, Pop!_OS, etc.)
+  - *Package Manager*: ``apt`` only
+
+**Red Hat-based Systems**
+  - Red Hat Enterprise Linux (RHEL)
+  - CentOS / CentOS Stream
+  - AlmaLinux / Rocky Linux
+  - Fedora
+  - *Package Managers*: ``yum`` (RHEL/CentOS 7 and earlier) or ``dnf`` (modern systems)
+
+**BSD Systems**
+  - FreeBSD (all supported versions)
+  - *Package Manager*: ``pkg``
+
+.. tip::
+   If your preferred platform is not listed, contributions to add new providers 
+   are welcome! See the developer documentation for details on implementing new providers.
 
 Common Prerequisites
 --------------------
 
-In general, there are no hard requirements for supported platforms, as everything
-is driven through SSH and the relevant package manager binaries, as well as
-standard unix utilities such as `grep` that are expected to be available on every
-system.
+All supported platforms share the same basic requirements, as Exosphere operates
+entirely through SSH connections and standard system utilities.
 
-The common prerequisites for management are:
+**Essential Requirements**
 
-- SSH access to the remote host (with a ssh `agent`_ for authentication)
-- sudoers privilege for synchronizing package repositories (optional, and only for some providers)
-- Package manager binaries installed and available in the PATH (this should be the case by default)
-- Standard unix utilities are often expected, such as `grep` and friends.
+- **SSH access** to the remote host (with an SSH `agent`_ for authentication)
+- **Package manager binaries** installed and available in ``$PATH`` (typically pre-installed)
+- **Standard UNIX utilities** such as ``grep``, ``awk``, and ``cut`` (universally available)
 
-Connection and authentication details are covered in the :doc:`Connections <connections>` section.
+**Optional Requirements**
+
+- **Elevated privileges** (sudo) for certain operations on some platforms
+
+**Network Requirements**
+
+- Outbound internet access from managed hosts, at least to the package repositories
+- SSH connectivity between your workstation and managed hosts
+
+Some providers may require elevated privileges to perform certain operations, but this is
+entirely optional.
+
+More details about all of this are available in the :doc:`connections` section.
 
 .. note::
 
