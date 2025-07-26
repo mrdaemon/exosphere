@@ -165,10 +165,12 @@ by running:
 This will attempt to SSH into each host and check if it is online. If a host
 is not reachable, it will be marked as offline and an error will be printed.
 
-It can be a good idea to run this as a first operation to ensure all hosts
-are available, since the online status is used to determine whether or not
-to skip hosts during operations like ``refresh``. This can save quite a lot
-of time by avoiding unnecessary timeouts.
+It can be a good way of validating connectivity to hosts. If ping returns Online
+for all hosts, you can be certain your ssh connectivity is working within the
+context of Exosphere.
+
+Hosts marked as Offline will be skipped in most operations such as ``refresh``
+for performance reasons. You can invoke Ping to refresh this status at any time.
 
 .. image:: /_static/ping_sample.png
    :alt: Example output of `exosphere inventory ping`
