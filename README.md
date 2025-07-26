@@ -33,6 +33,10 @@ Supported platforms for remote hosts include:
 - Red Hat/CentOS and derivatives (using YUM/DNF)
 - FreeBSD (using pkg)
 
+## Quick Start
+
+Simply follow the [Quickstart Guide](https://exosphere.readthedocs.io/en/latest/quickstart.html).
+
 ## Documentation
 
 For installation instructions, configuration and usage examples,
