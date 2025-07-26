@@ -202,8 +202,8 @@ Updating Exosphere
 Updating Exosphere is generally as simple as installing it, depending on the installation
 method you used.
 
-From PyPI Repository
---------------------
+From PyPI
+---------
 
 
 .. tabs::
