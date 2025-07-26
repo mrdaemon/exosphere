@@ -6,7 +6,7 @@ following this guide and adapting the simple scenario it presents to your needs.
 
 **Create the Configuration File**
 
-.. code-block:: bash
+.. code-block:: shell
 
     $ exosphere config paths
 
@@ -50,7 +50,7 @@ Create ``config.yaml`` in the `Config` directory shown here.
 
 **Run Exosphere**
 
-.. code-block:: console
+.. code-block:: shell
 
     $ exosphere
 
@@ -58,7 +58,7 @@ At the exosphere prompt, you can run commands to manage your hosts.
 
 **Discover Hosts**
 
-.. code-block:: console
+.. code-block:: exosphere
 
     exosphere> inventory discover
 
@@ -67,7 +67,7 @@ It only needs to be done once, or if something changes on the host.
 
 **Refresh Updates**
 
-.. code-block:: console
+.. code-block:: exosphere
 
     exosphere> inventory refresh
 
@@ -75,7 +75,7 @@ This will retrieve the available updates and patches for each host.
 
 **View Status and Host Details**
 
-.. code-block:: console
+.. code-block:: exosphere
 
     exosphere> inventory status
     exosphere> host show hostname
@@ -89,7 +89,7 @@ Next Steps
 To go further, you can explore the various commands in the :doc:`cli` or start the full
 :doc:`ui` for a more interactive experience:
 
-.. code-block:: console
+.. code-block:: shell
 
     $ exosphere ui start
 

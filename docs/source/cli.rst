@@ -47,7 +47,7 @@ Exosphere to query and refresh its package update status from here on.
 
 This can be done by running:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> inventory discover
 
@@ -57,7 +57,7 @@ Any errors will be printed to the console as well as the log file.
 
    You can find out where the log file is located on your system by running:
 
-   .. code-block:: shell
+   .. code-block:: exosphere
 
       exosphere> config paths
 
@@ -69,7 +69,7 @@ Refreshing Update Status
 Once you have discovered your hosts, you can refresh their update status
 by running:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> inventory refresh
 
@@ -79,7 +79,7 @@ available, categorizing them, and storing the metadata in the cache file.
 If you want to also synchronize the repositories on each host to ensure
 the latest package lists are available, you can run:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> inventory refresh --sync
 
@@ -95,7 +95,7 @@ repositories on each host, before fetching the update status.
 
 You can also do it all at the same time, including discovery, by running:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> inventory refresh --discover --sync
 
@@ -104,7 +104,7 @@ Viewing Inventory Status
 
 The main command for viewing the status of your inventory is:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> inventory status
 
@@ -116,7 +116,7 @@ available.
 
 You can also select one or more specific hosts by providing their names as arguments:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> inventory status host1 host2
 
@@ -129,7 +129,7 @@ Viewing Host Details and Updates
 To view detailed information about a specific host, including a detailed
 list of available updates, you can run:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> host show <hostname>
 
@@ -158,7 +158,7 @@ Online Checks
 You can perform a quick online check to see if all your hosts are responding
 by running:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> inventory ping
 
@@ -180,7 +180,7 @@ Launching the Text-based User Interface
 
 You can launch the text-based user interface (TUI) by running:
 
-.. code-block:: shell
+.. code-block:: exosphere
 
    exosphere> ui start
 

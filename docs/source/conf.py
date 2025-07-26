@@ -1,10 +1,14 @@
 import os
 import sys
 
+from pathlib import Path
+
 from exosphere import __version__
 
 # Insert the path to the source directory to allow importing modules
 sys.path.insert(0, os.path.abspath('../../src/exosphere'))
+# Add _ext directory to path for custom extensions
+sys.path.append(str(Path('_ext').resolve()))
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -27,7 +31,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
     'sphinxcontrib.spelling',
-    'sphinxcontrib.typer'
+    'sphinxcontrib.typer',
+    'exosphere_lexer'  # Custom Exosphere CLI lexer
 ]
 
 templates_path = ['_templates']
