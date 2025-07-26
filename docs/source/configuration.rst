@@ -155,6 +155,7 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`debug`
 - :option:`log_file`
 - :option:`cache_autosave`
+- :option:`cache_autopurge`
 - :option:`cache_file`
 - :option:`stale_threshold`
 - :option:`default_timeout`
@@ -408,6 +409,54 @@ and examples of how to set them in the configuration file.
                 {
                     "options": {
                         "cache_autosave": false
+                    }
+                }
+
+
+.. option:: cache_autopurge
+
+    Whether or not to automatically remove hosts from cache when they are
+    removed from the configuration file.
+
+    .. admonition:: Note
+
+        If **all** of the hosts are removed from the configuration file, 
+        Exosphere will err on the side of caution and leave the cache file alone,
+        regardless of this setting.
+
+        This is to prevent accidental cache loss if the wrong configuration is
+        loaded, or if the file is made temporarily inaccessible.
+
+        If you really want to remove all the contents of the cache file,
+        you can use the ``exosphere inventory clear`` command.
+
+    **Default**: ``true``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  cache_autopurge: false
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                cache_autopurge = false
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "cache_autopurge": false
                     }
                 }
 
