@@ -61,7 +61,7 @@ Any errors will be printed to the console as well as the log file.
 
       exosphere> config paths
 
-   You can find the path under the `Log:` section of the output.
+   You can find the path under the ``Log:`` section of the output.
 
 Refreshing Update Status
 ------------------------
@@ -165,8 +165,8 @@ by running:
 This will attempt to SSH into each host and check if it is online. If a host
 is not reachable, it will be marked as offline and an error will be printed.
 
-It can be a good way of validating connectivity to hosts. If ping returns Online
-for all hosts, you can be certain your ssh connectivity is working within the
+It can be a good way of validating connectivity to hosts. If ping returns "Online"
+for all hosts, you can be certain your SSH connectivity is working within the
 context of Exosphere.
 
 Hosts marked as Offline will be skipped in most operations such as ``refresh``
@@ -174,6 +174,37 @@ for performance reasons. You can invoke Ping to refresh this status at any time.
 
 .. image:: /_static/ping_sample.png
    :alt: Example output of `exosphere inventory ping`
+
+Viewing Configuration details
+-----------------------------
+
+Exosphere makes it easy to answer questions about where it sourced
+its configuration from, what the current active configuration is, and
+what has been changed from the defaults.
+
+You can view the path to the configuration file that was loaded by running:
+
+.. code-block:: exosphere
+
+   exosphere> config source
+
+You can view the currently active configuration for Exosphere by running:
+
+.. code-block:: exosphere
+
+   exosphere> config show
+
+If you also wish to see the contents of the inventory, you can supply the
+``--full`` option.
+
+You can also show exclusively the configuration options that have been changed:
+
+.. code-block:: exosphere
+
+   exosphere> config diff
+
+The output will include what the default value originally was.
+
 
 Launching the Text-based User Interface
 ---------------------------------------
@@ -201,3 +232,13 @@ allowing you to run more targeted or specialized commands.
    logs, and includes a nice built-in scrollable viewer.
 
 For more details on the TUI, continue on to the :doc:`ui` page.
+
+Beyond the Basics
+-----------------
+
+Every command offers exhaustive built in documentation. Feel free to explore
+the available commands and options with the ``--help`` flag, or by running
+``help`` in the interactive shell.
+
+A complete :doc:`command_reference` is also available, which provides
+a comprehensive list of all the commands and their options.
