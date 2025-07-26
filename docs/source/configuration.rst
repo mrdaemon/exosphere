@@ -9,7 +9,7 @@ Location
 --------
 
 Where the configuration file lives will depend on your platform.
-For instance, for a **yaml** configuration file, the default locations are:
+For instance, for a **YAML** configuration file, the default locations are:
 
 .. tabs::
 
@@ -28,8 +28,8 @@ For instance, for a **yaml** configuration file, the default locations are:
 You can of course substitute the file extension with `.toml` or `.json` if you wish
 to use those formats instead.
 
-You can also ask exosphere where it expects the configuration file to be on your
-platform by running:
+You can also ask Exosphere where it expects the configuration file to be on your
+platform:
 
 .. code-block:: bash
 
@@ -103,7 +103,7 @@ You cannot use environment variables to override the `Hosts` section.
 The environment variable names are prefixed with ``EXOSPHERE_OPTIONS_`` and
 the option name in uppercase.
 
-For instance, to override the ``log_level`` option, you can set the following
+For example, to override the ``log_level`` option, set the following
 environment variable:
 
 .. tabs::
@@ -126,18 +126,18 @@ environment variable:
 
             set EXOSPHERE_OPTIONS_LOG_LEVEL=DEBUG
 
-
-And so on and so forth.
+This pattern applies to all configuration options.
 
 .. admonition:: Note
 
     Option types are all strings in this context, but they will be parsed
     as `json`_ types when loaded. This means "true" and "false" will correctly
     be interpreted as booleans, and "null" will be interpreted as ``None``.
-    Essentially, you do not need to worry about it.
+    Essentially, you do not need to worry about it as type conversion is
+    properly handled automatically.
 
-Exosphere will allow you to display which environment variables are influencing
-the configuration (if any) by running:
+Exosphere can display which environment variables are influencing
+the configuration (if any):
 
 .. code-block:: shell
 
@@ -162,7 +162,7 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`default_username`
 - :option:`max_threads`
 
-You will find below a detailed list of all available options, their defaults,
+Below is a detailed list of all available options, their defaults,
 and examples of how to set them in the configuration file.
 
 
@@ -428,7 +428,7 @@ and examples of how to set them in the configuration file.
         loaded, or if the file is made temporarily inaccessible.
 
         If you really want to remove all the contents of the cache file,
-        you can use the ``exosphere inventory clear`` command.
+        use the ``exosphere inventory clear`` command.
 
     **Default**: ``true``
 
@@ -554,7 +554,7 @@ and examples of how to set them in the configuration file.
 
 .. option:: default_timeout
 
-    The number of seconds to wait for a response for a host over ssh.
+    The number of seconds to wait for a response from a host over SSH.
 
     This is the maximum time Exosphere will wait for a response from a host
     before timing out, flagging the host as offline, or raising an error condition.
@@ -761,17 +761,17 @@ has a custom connection timeout value set, overriding :option:`default_timeout`.
 - :option:`port`: The SSH port to connect to the host. Defaults to 22.
 - :option:`username`: An optional SSH username to use when connecting to the host
 - :option:`description`: A short string describing the host, to be displayed in UIs
-- :option:`connect_timeout`: The number of seconds to wait for a response from the host over SSH.
+- :option:`connect_timeout`: The number of seconds to wait for a response from the host over SSH
 - :option:`sudo_policy`: The sudo policy to use when running commands on the host
 
-You will find below the detailed list of all available host options and their defaults.
+Below is the detailed list of all available host options and their defaults.
 
 .. _hosts_name_option:
 
 .. option:: name
 
     The name of the host, which uniquely identifies the host within the inventory.
-    It is recommended that you keep this to a short string, and not a fully qualified domain name,
+    It is recommended to keep this to a short string rather than a fully qualified domain name,
     although it can be arbitrary.
 
     .. attention::
@@ -817,10 +817,10 @@ You will find below the detailed list of all available host options and their de
 
 .. option:: ip
 
-    The IP address or hostname of the host to connect to over ssh
+    The IP address or hostname of the host to connect to over SSH.
     This can be a fully qualified domain name, an IP address, or a short hostname,
     so long as it resolves.
-    It is recommended that you use a fully qualified domain name or an IP address
+    It is recommended to use a fully qualified domain name or an IP address
     to avoid issues with DNS resolution.
 
     **Mandatory**: Yes
@@ -959,7 +959,7 @@ You will find below the detailed list of all available host options and their de
     This is optional, but can be useful to provide additional context
     about the host, such as its role or purpose.
 
-    **Default**: `None`
+    **Default**: ``None``
 
     **Example**:
 
