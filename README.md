@@ -35,7 +35,8 @@ Supported platforms for remote hosts include:
 
 ## Documentation
 
-For installation instructions, configuration and usage exammples, [full documentation](https://exosphere.readthedocs.io/) *(coming soon)* is available.
+For installation instructions, configuration and usage examples,
+[full documentation](https://exosphere.readthedocs.io/) is available.
 
 ## License
 
