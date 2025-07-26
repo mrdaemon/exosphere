@@ -28,10 +28,15 @@ from pygments.token import (
     Whitespace,
 )
 
-# Static fallback list of known Exosphere commands
-# This list is not intended to be maintained, but will be used if dynamic
+# Static fallback lists of known Exosphere commands
+# These lists are not intended to be maintained, but will be used if dynamic
 # discovery fails or is not possible.
-_STATIC_COMMANDS = {
+
+# Main commands (from app.add_typer() calls in cli.py)
+_STATIC_MAIN_COMMANDS = {"inventory", "host", "ui", "config", "sudo"}
+
+# Subcommands (from @app.command() decorators in command modules)
+_STATIC_SUB_COMMANDS = {
     "check",
     "clear",
     "diff",
@@ -58,84 +63,112 @@ def _extract_typer_commands():
     """
     Extract command names from Exosphere's Typer command modules.
 
-    This function dynamically discovers all @app.command() decorated functions
-    in the exosphere.commands.* modules and returns their names for use in
-    syntax highlighting.
+    This function dynamically discovers:
+    1. Main commands from app.add_typer() calls in cli.py
+    2. Subcommands from @app.command() decorated functions in command modules
 
     Returns:
-        set: A set of command names found in the Typer modules
+        tuple: (main_commands_set, sub_commands_set)
     """
-    commands = set()
+    main_commands = set()
+    sub_commands = set()
 
     try:
-        # Try to find the commands directory relative to the docs
-        commands_dir = (
-            Path(__file__).parent.parent.parent.parent
-            / "src"
-            / "exosphere"
-            / "commands"
-        )
+        # Find the src directory
+        src_dir = Path(__file__).parent.parent.parent.parent / "src" / "exosphere"
 
-        if not commands_dir.exists():
-            # Fallback to static list if we can't find the commands
-            return _STATIC_COMMANDS.copy()
-
-        # Parse each Python file in the commands directory
-        for py_file in commands_dir.glob("*.py"):
-            if py_file.name.startswith("_"):
-                continue
-
+        # Extract main commands
+        cli_file = src_dir / "cli.py"
+        if cli_file.exists():
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
-                    content = f.read()
+                with open(cli_file, "r", encoding="utf-8") as f:
+                    cli_content = f.read()
 
-                # Parse the AST to find @app.command() decorators
-                tree = ast.parse(content)
-
+                # Parse AST to find app.add_typer() calls
+                tree = ast.parse(cli_content)
                 for node in ast.walk(tree):
-                    # Look for function definitions with @app.command() decorator
-                    if isinstance(node, ast.FunctionDef):
-                        for decorator in node.decorator_list:
-                            # Check if it's @app.command()
-                            if (
-                                isinstance(decorator, ast.Call)
-                                and isinstance(decorator.func, ast.Attribute)
-                                and isinstance(decorator.func.value, ast.Name)
-                                and decorator.func.value.id == "app"
-                                and decorator.func.attr == "command"
+                    if (
+                        isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute)
+                        and isinstance(node.func.value, ast.Name)
+                        and node.func.value.id == "app"
+                        and node.func.attr == "add_typer"
+                    ):
+                        # Look for name= argument
+                        for keyword in node.keywords:
+                            if keyword.arg == "name" and isinstance(
+                                keyword.value, ast.Constant
                             ):
-                                commands.add(node.name)
+                                main_commands.add(keyword.value.value)
                                 break
-                            # Also check for @app.command without parentheses
-                            elif (
-                                isinstance(decorator, ast.Attribute)
-                                and isinstance(decorator.value, ast.Name)
-                                and decorator.value.id == "app"
-                                and decorator.attr == "command"
-                            ):
-                                commands.add(node.name)
-                                break
-
             except Exception:
-                # If we can't parse a file, skip it
-                continue
+                pass
+
+        # Extract subcommands
+        commands_dir = src_dir / "commands"
+        if commands_dir.exists():
+            for py_file in commands_dir.glob("*.py"):
+                if py_file.name.startswith("_"):
+                    continue
+
+                try:
+                    with open(py_file, "r", encoding="utf-8") as f:
+                        content = f.read()
+
+                    # Parse the AST to find @app.command() decorators
+                    tree = ast.parse(content)
+
+                    for node in ast.walk(tree):
+                        # Look for function definitions with @app.command() decorator
+                        if isinstance(node, ast.FunctionDef):
+                            for decorator in node.decorator_list:
+                                # Check if it's @app.command()
+                                if (
+                                    isinstance(decorator, ast.Call)
+                                    and isinstance(decorator.func, ast.Attribute)
+                                    and isinstance(decorator.func.value, ast.Name)
+                                    and decorator.func.value.id == "app"
+                                    and decorator.func.attr == "command"
+                                ):
+                                    sub_commands.add(node.name)
+                                    break
+                                # Also check for @app.command without parentheses
+                                elif (
+                                    isinstance(decorator, ast.Attribute)
+                                    and isinstance(decorator.value, ast.Name)
+                                    and decorator.value.id == "app"
+                                    and decorator.attr == "command"
+                                ):
+                                    sub_commands.add(node.name)
+                                    break
+
+                except Exception:
+                    continue
 
     except Exception:
-        # If anything goes wrong, fall back to static list
-        return _STATIC_COMMANDS.copy()
+        # If anything goes wrong, fall back to static lists
+        return _STATIC_MAIN_COMMANDS.copy(), _STATIC_SUB_COMMANDS.copy()
 
-    # Add some common commands that might not be in modules
-    commands.update(["help", "exit", "quit"])
+    # Add some common commands that might not be explicitly defined
+    main_commands.update(["help", "exit", "quit"])
 
-    return commands
+    return main_commands, sub_commands
 
 
 # Extract commands at module level for use in class definition
-_DISCOVERED_COMMANDS = _extract_typer_commands()
+_DISCOVERED_MAIN_COMMANDS, _DISCOVERED_SUB_COMMANDS = _extract_typer_commands()
+
+# Create patterns
+_MAIN_COMMAND_PATTERN = (
+    r"\b(" + "|".join(sorted(_DISCOVERED_MAIN_COMMANDS)) + r")\b"
+    if _DISCOVERED_MAIN_COMMANDS
+    else r"\b(" + "|".join(sorted(_STATIC_MAIN_COMMANDS)) + r")\b"
+)
+
 _SUBCOMMAND_PATTERN = (
-    r"\b(" + "|".join(sorted(_DISCOVERED_COMMANDS)) + r")\b"
-    if _DISCOVERED_COMMANDS
-    else r"\b(" + "|".join(sorted(_STATIC_COMMANDS)) + r")\b"
+    r"\b(" + "|".join(sorted(_DISCOVERED_SUB_COMMANDS)) + r")\b"
+    if _DISCOVERED_SUB_COMMANDS
+    else r"\b(" + "|".join(sorted(_STATIC_SUB_COMMANDS)) + r")\b"
 )
 
 
@@ -165,11 +198,13 @@ class ExosphereLexer(RegexLexer):
             (r"--[a-zA-Z0-9-]+(?:=[^\s]+)?", Name.Attribute),
             # Short options (-o, -abc)
             (r"-[a-zA-Z0-9]+", Name.Attribute),
-            # Commands (first word after prompt or after pipe)
-            (r"(?<=exosphere>)\s+([a-zA-Z][a-zA-Z0-9-_]*)", Name.Builtin),
-            (r"(?<=\|\s)([a-zA-Z][a-zA-Z0-9-_]*)", Name.Builtin),
-            # Subcommands (dynamically extracted from Typer decorators)
+            # Main commands (inventory, host, ui, config, sudo)
+            (_MAIN_COMMAND_PATTERN, Name.Builtin),
+            # Subcommands (status, refresh, ping, etc.)
             (_SUBCOMMAND_PATTERN, Keyword),
+            # Generic commands (fallback for unmatched command-like words)
+            (r"(?<=exosphere>)\s+([a-zA-Z][a-zA-Z0-9-_]*)", Name.Function),
+            (r"(?<=\|\s)([a-zA-Z][a-zA-Z0-9-_]*)", Name.Function),
             # Quoted strings
             (r'"[^"]*"', String.Double),
             (r"'[^']*'", String.Single),
@@ -197,13 +232,16 @@ def setup(app):
 
     # Show discovered commands in build output
     # This is useful for debugging and ensuring the lexer has the right commands
-    if _DISCOVERED_COMMANDS:
+    commandslen = len(_DISCOVERED_MAIN_COMMANDS)
+    subcommandslen = len(_DISCOVERED_SUB_COMMANDS)
+    if commandslen or subcommandslen:
         print(
-            f"[INFO] Exosphere lexer loaded with {len(_DISCOVERED_COMMANDS)} commands:"
-            f" {sorted(_DISCOVERED_COMMANDS)}"
+            f"[INFO] Exosphere lexer loaded with {commandslen} commands and {subcommandslen} subcommands: "
+            f"Main: {sorted(_DISCOVERED_MAIN_COMMANDS)}, "
+            f"Sub: {sorted(_DISCOVERED_SUB_COMMANDS)}"
         )
     else:
-        print("[INFO] Exosphere lexer loaded with static fallback commands")
+        print("[INFO] Exosphere lexer using fallback commands.")
 
     return {
         "version": "1.0",
