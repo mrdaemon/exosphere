@@ -90,6 +90,11 @@ file you wish to use.
 
             set EXOSPHERE_CONFIG_FILE="c:\path\to\my\config.yaml"
 
+.. tip::
+
+    There is also ``EXOSPHERE_CONFIG_PATH``, which you can use to specify
+    a **directory** where a config file named ``config.{yaml,yml,toml,json}``
+    will be searched for. This can be useful in certain deployments.
 
 Exosphere also supports loading configuration options from environment variables.
 You can use this to override any specific `Option` from the configuration file.
