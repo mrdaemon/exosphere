@@ -2,70 +2,41 @@
 
 [![Exosphere Test Suite](https://github.com/mrdaemon/exosphere/actions/workflows/exosphere-test.yml/badge.svg)](https://github.com/mrdaemon/exosphere/actions/workflows/exosphere-test.yml)
 
-Exosphere is a command line and Text User Interface driven utility to query and
-get ad-hoc reports from server infrastructure.
+Exosphere is a CLI and Text UI driven application that offers aggregated patch
+and security update reporting as well as basic system status across multiple
+Unix-like hosts over SSH.
 
-It can, so far, be used to:
+It is targeted at small to medium sized networks, and is designed to be simple
+to deploy and use, requiring no central server, agents and complex dependencies
+on remote hosts.
 
-- Get an overview of pending package and security updates
-- Aggregate host online status and basic information
+If you have SSH access to the hosts and your keypairs are loaded in a SSH Agent,
+you are good to go!
 
-It is meant to be simple and foregoes any rich features that could otherwise be
-serviced by other, better written tools.
+## Key Features
 
-It is meant to give a high level view of your infrastructure and how it's going,
-as well as query information about state that is otherwise difficult
-to aggregate or obtain ad-hoc.
+- Rich interactive command line interface (CLI)
+- Text-based User Interface (TUI), offering menus, tables and dashboards
+- Consistent view information across different platforms and package managers
+- See everything in one spot, at a glance, without complex automation or enterprise
+  solutions
 
-Because reporting sucks, and things could be better.
+## Compatibility
 
-  > ## Pre-release Version
-  > This is a pre-release version of Exosphere
-  > It can be used but is under-documented, and still changing rapidly
-  > You may not want to use this this just yet, and wait for 1.0
+Exosphere itself is written in Python and is compatible with Python 3.13 or later.
+It can run nearly anywhere where Python is available, including Linux, MacOS,
+and Windows (natively).
 
-## Development Quick Start
+Supported platforms for remote hosts include:
 
-tl;dr, use [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- Debian/Ubuntu and derivatives (using APT)
+- Red Hat/CentOS and derivatives (using YUM/DNF)
+- FreeBSD (using pkg)
 
-```bash
-uv sync
-uv run exosphere
-```
+## Documentation
 
-Linting, formatting and testing can be done with poe tasks:
+For installation instructions, configuration and usage exammples, [full documentation](https://exosphere.readthedocs.io/) *(coming soon)* is available.
 
-```bash
-uv run poe format
-uv run poe check
-uv run poe test
-```
+## License
 
-For more details, and available tasks, run:
-
-```bash
-uv run poe --help
-```
-
-## UI Development Quick Start
-
-The UI is built with [Textual](https://textual.textualize.io/).
-
-A quickstart of running the UI with live editing and reloading, with debug
-console is as follows:
-
-```bash
-# Ensure you have the dev dependencies
-uv sync --dev
-# In a separate terminal, run the console
-uv run textual console
-# In another terminal, run the UI
-uv run textual run --dev -c exosphere ui start
-```
-
-Congratulations, editing any of the tcss files in the `ui/` directory will
-reflect changes immediately.
-
-Make sure you run the exosphere ui with 'exosphere ui start' otherwise the
-configuration will not be loaded correctly, and the inventory will not be
-populated.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
