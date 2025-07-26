@@ -9,12 +9,11 @@ API for a specific package manager. It is generally responsible for
 connecting to the host, querying available package updates, parsing that list
 and returning Update objects that can be used to populate state.
 
-There is currently build-in support for the following package managers:
+Implementing a new provider requires creating a new class under
+``exosphere.providers`` that inherits from the base provider class
+``exosphere.providers.api.Provider``.
 
-* `apt` (Debian, Ubuntu).
-* `dnf` (Fedora, RHEL, CentOS).
-* `yum` (RHEL, CentOS).
-* `pkg` (FreeBSD).
+This class should implement the methods and members below.
 
 .. automodule:: exosphere.providers.api
    :members:
