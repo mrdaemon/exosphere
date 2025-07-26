@@ -34,3 +34,6 @@ scrollable
 webstart
 subcommand
 subcommands
+keybind
+keybinds
+tcp
