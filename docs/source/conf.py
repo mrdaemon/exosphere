@@ -27,6 +27,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
     'sphinxcontrib.spelling',
+    'sphinxcontrib.typer'
 ]
 
 templates_path = ['_templates']

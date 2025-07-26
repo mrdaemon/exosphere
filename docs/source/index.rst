@@ -54,6 +54,7 @@ with the :doc:`quickstart` to get an overview of how to use Exosphere.
    cachefile
    providers
    faq
+   command_reference
    glossary
 
 .. toctree::
