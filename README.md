@@ -6,6 +6,9 @@ Exosphere is a CLI and Text UI driven application that offers aggregated patch
 and security update reporting as well as basic system status across multiple
 Unix-like hosts over SSH.
 
+![exosphere demo](./demo.gif)
+
+
 It is targeted at small to medium sized networks, and is designed to be simple
 to deploy and use, requiring no central server, agents and complex dependencies
 on remote hosts.

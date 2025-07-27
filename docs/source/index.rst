@@ -4,6 +4,10 @@ Welcome to Exosphere
 Exosphere offers aggregated patch and security update reporting as
 well as basic system status across multiple Unix-like hosts via SSH.
 
+.. image:: _static/demo.gif
+   :alt: Exosphere demo
+   :align: center
+
 It is targeted at small to medium sized networks.
 
 It is meant to be simple to deploy and use, requiring no central server,
