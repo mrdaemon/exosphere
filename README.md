@@ -43,6 +43,69 @@ Supported platforms for remote hosts include:
 For installation instructions, configuration and usage examples,
 [full documentation](https://exosphere.readthedocs.io/) is available.
 
+## Development Quick Start
+
+tl;dr, use [uv](https://docs.astral.sh/uv/getting-started/installation/)
+
+```bash
+uv sync --dev
+uv run exosphere
+```
+
+Linting, formatting and testing can be done with poe tasks:
+
+```bash
+uv run poe format
+uv run poe check
+uv run poe test
+```
+
+For more details, and available tasks, run:
+
+```bash
+uv run poe --help
+```
+
+## UI Development Quick Start
+
+The UI is built with [Textual](https://textual.textualize.io/).
+
+A quick start for running the UI with live editing and reloading, plus debug
+console, is as follows:
+
+```bash
+# Ensure you have the dev dependencies
+uv sync --dev
+# In a separate terminal, run the console
+uv run textual console
+# In another terminal, run the UI
+uv run textual run --dev -c exosphere ui start
+```
+
+Congratulations! Editing any of the `.tcss` files in the `ui/` directory will
+reflect changes immediately.
+
+Make sure you run Exosphere UI with `exosphere ui start`.
+
+## Documentation Editing Quick Start
+
+To edit the documentation, you can use the following commands:
+
+```bash
+uv sync --dev
+uv run poe docs-serve
+```
+
+This will start a local server at `http://localhost:8000` where you can view the
+documentation. You can edit the files in the `docs/source` directory, and the changes
+will be reflected in real-time.
+
+You can also run the spellchecker with:
+
+```bash
+uv run poe docs-spellcheck
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
