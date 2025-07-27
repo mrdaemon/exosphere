@@ -57,7 +57,7 @@ dev = [
 ]
 
 [project.urls]
-homepage = "https://github.com/mrdaemon/exosphere"
+homepage = "https://exosphere.readthedocs.io"
 repository = "https://github.com/mrdaemon/exosphere"
 issues = "https://github.com/mrdaemon/exosphere/issues"
 
