@@ -11,7 +11,7 @@ build:
       - asdf plugin add uv
       - asdf install uv latest
       - asdf global uv latest
-      - UV_PROJECT_ENVIRONMENT="$READTHEDOCS_VIRTUALENV_PATH" uv sync --dev --link-mode=copy
+      - UV_PROJECT_ENVIRONMENT="$READTHEDOCS_VIRTUALENV_PATH" uv sync --dev --frozen --link-mode=copy
     install:
       - "true"
 
