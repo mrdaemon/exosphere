@@ -8,13 +8,15 @@ Unix-like hosts over SSH.
 
 ![exosphere demo](./demo.gif)
 
-
 It is targeted at small to medium sized networks, and is designed to be simple
 to deploy and use, requiring no central server, agents and complex dependencies
 on remote hosts.
 
 If you have SSH access to the hosts and your keypairs are loaded in a SSH Agent,
 you are good to go!
+
+Simply follow the [Quickstart Guide](https://exosphere.readthedocs.io/en/stable/quickstart.html),
+or see [the documentation](https://exosphere.readthedocs.io/en/stable/) to get started.
 
 ## Key Features
 
@@ -35,10 +37,6 @@ Supported platforms for remote hosts include:
 - Debian/Ubuntu and derivatives (using APT)
 - Red Hat/CentOS and derivatives (using YUM/DNF)
 - FreeBSD (using pkg)
-
-## Quick Start
-
-Simply follow the [Quickstart Guide](https://exosphere.readthedocs.io/en/latest/quickstart.html).
 
 ## Documentation
 
