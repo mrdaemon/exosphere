@@ -22,7 +22,7 @@ or see [the documentation](https://exosphere.readthedocs.io/en/stable/) to get s
 
 - Rich interactive command line interface (CLI)
 - Text-based User Interface (TUI), offering menus, tables and dashboards
-- Consistent view information across different platforms and package managers
+- Consistent view of information across different platforms and package managers
 - See everything in one spot, at a glance, without complex automation or enterprise
   solutions
 
