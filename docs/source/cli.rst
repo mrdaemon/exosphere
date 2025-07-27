@@ -10,12 +10,15 @@ Basic Usage
 
 The CLI itself has two main modes of operation:
 
-1. **Normal Mode**: This is the default mode where you can run exosphere commands directly as
+Normal Mode
+   This is the default mode where you can run exosphere commands directly as
    arguments to the `exosphere` command.
-2. **Interactive Mode**: You can enter an interactive shell by running
-   ``exosphere`` without any arguments. In this mode, the prompt will
-   change to ``exosphere>`` and you can run commands interactively. Exosphere
-   will function like a REPL or Shell. You can exit with ``exit`` or ``quit``.
+
+Interactive Mode
+   You can enter an interactive shell by running ``exosphere`` without any arguments.
+   In this mode, the prompt will change to ``exosphere>`` and you can run commands
+   interactively. Exosphere will function like a REPL or Shell. You can exit with
+   ``exit`` or ``quit``.
 
 .. tip::
    All commands can be run in either mode, but interactive mode is particularly useful for
