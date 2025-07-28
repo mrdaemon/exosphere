@@ -88,7 +88,7 @@ class DashboardScreen(Screen):
             return
 
         for host in hosts:
-            yield HostWidget(host, id=f"host-{host.name}")
+            yield HostWidget(host)
 
         yield Footer()
 

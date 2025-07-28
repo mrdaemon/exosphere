@@ -3,6 +3,7 @@ Inventory Screen Module
 """
 
 import logging
+import re
 from collections.abc import Callable
 
 from textual.app import ComposeResult
@@ -103,8 +104,7 @@ class HostDetailsPanel(Screen):
         # Populate the updates table with available updates
         for update in update_list:
             updates_table.add_row(
-                f"[red]{update.name}[/red]" if update.security else update.name,
-                key=update.name,
+                f"[red]{update.name}[/red]" if update.security else update.name
             )
 
     def on_key(self, event) -> None:
@@ -114,7 +114,16 @@ class HostDetailsPanel(Screen):
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the updates data table."""
-        update_name = str(event.row_key.value)
+
+        # Retrieve the selected row by automatically generated key
+        table = self.query_one(DataTable)
+        row_data = table.get_row(event.row_key)
+
+        # Extract the update name, removing Rich markup if present
+        update_display_name = str(row_data[0])  # First column
+        update_name = re.sub(r"\[/?[^\]]*\]", "", update_display_name)
+
+        logger.debug(f"Selected update name: {update_name}")
 
         if not self.host:
             logger.error("Host is not initialized, cannot select update.")
@@ -231,7 +240,12 @@ class InventoryScreen(Screen):
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the data table."""
-        host_name = str(event.row_key.value)
+
+        # Retrieve the selected row by automatically generated key
+        table = self.query_one(DataTable)
+        row_data = table.get_row(event.row_key)
+
+        host_name = str(row_data[0])  # First column is the host name
 
         if not context.inventory:
             logger.error("Inventory is not initialized, cannot select row.")
@@ -344,7 +358,6 @@ class InventoryScreen(Screen):
                 updates,
                 security_updates,
                 status_str,
-                key=host.name,
             )
 
     def _run_task(
