@@ -5,6 +5,7 @@ dicts
 tomllib
 dataclass
 dataclasses
+discoverable
 callee
 runtime
 webserver
@@ -27,6 +28,8 @@ subclasses
 subclass
 de
 repo
+resolver
+resolvers
 sshd
 cron
 pre
