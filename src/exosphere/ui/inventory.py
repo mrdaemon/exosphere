@@ -130,9 +130,9 @@ class HostDetailsPanel(Screen):
             self.app.push_screen(ErrorScreen("Host is not initialized."))
             return
 
-        update: Update = [u for u in self.host.updates if u.name == update_name][
-            0
-        ] or None
+        update: Update | None = next(
+            (u for u in self.host.updates if u.name == update_name), None
+        )
 
         if update is None:
             logger.error(f"Update not found for host '{self.host.name}'.")
