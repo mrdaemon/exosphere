@@ -57,6 +57,9 @@ def setup_logging(log_level: str, log_file: str | None = None) -> None:
     """
     handler: logging.Handler
 
+    # Normalize log level to UPPERCASE
+    log_level = log_level.upper()
+
     if log_file:
         handler = logging.FileHandler(log_file, encoding="utf-8")
     else:
@@ -166,11 +169,15 @@ def main() -> None:
     log_file: str | None = app_config["options"].get("log_file")
     debug_mode: bool = app_config["options"].get("debug")
 
-    if debug_mode:
-        setup_logging(app_config["options"]["log_level"])
-        logger.warning("Debug mode enabled! Logs may flood console!")
-    else:
-        setup_logging(app_config["options"]["log_level"], log_file)
+    try:
+        if debug_mode:
+            setup_logging(app_config["options"]["log_level"])
+            logger.warning("Debug mode enabled! Logs may flood console!")
+        else:
+            setup_logging(app_config["options"]["log_level"], log_file)
+    except Exception as e:
+        print(f"FATAL: Startup Error setting up logging: {e}", file=sys.stderr)
+        sys.exit(1)
 
     # Initialize the inventory
     try:

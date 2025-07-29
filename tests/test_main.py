@@ -31,6 +31,16 @@ class TestMain:
 
         return mock_config
 
+    @pytest.fixture()
+    def mock_setup_logging_exception(self, mocker):
+        """
+        Fixture to create a mock setup_logging function that raises an exception.
+        """
+        return mocker.patch(
+            "exosphere.main.setup_logging",
+            side_effect=Exception("Logging setup failed"),
+        )
+
     @pytest.fixture(autouse=True, scope="function")
     def patch_config_dir(self, monkeypatch):
         """
@@ -340,3 +350,74 @@ class TestMain:
         basic_config.assert_called()
         get_logger.assert_any_call("exosphere")
         get_logger.assert_any_call("exosphere.main")
+
+    def test_setup_logging_invalid_log_level(self):
+        """
+        Test setup_logging with an invalid log level.
+        It should raise a ValueError.
+        """
+        from exosphere.main import setup_logging
+
+        with pytest.raises(ValueError):
+            setup_logging("INVALID_LEVEL")
+
+    def test_setup_logging_file_handler_exception(self, mocker, tmp_path):
+        """
+        Test setup_logging when FileHandler creation fails.
+        It should raise an exception.
+        """
+        # Create a path that will cause FileHandler to fail (invalid directory)
+        invalid_log_file = tmp_path / "nonexistent_dir" / "test.log"
+
+        from exosphere.main import setup_logging
+
+        # FileHandler should raise an exception for invalid path
+        with pytest.raises(Exception):
+            setup_logging("INFO", str(invalid_log_file))
+
+    def test_setup_logging_lowercase_log_level(self, mocker):
+        """
+        Test setup_logging with a lowercase log level.
+        It should normalize to uppercase.
+        """
+        mocker.patch("logging.basicConfig")
+        get_logger = mocker.patch("logging.getLogger")
+
+        from exosphere.main import setup_logging
+
+        try:
+            setup_logging("debug")
+        except ValueError:
+            pytest.fail("setup_logging raised ValueError unexpectedly!")
+
+        # Check if the log level was set to DEBUG
+        get_logger.assert_any_call("exosphere")
+        get_logger.assert_any_call("exosphere.main")
+        get_logger().setLevel.assert_called_with("DEBUG")
+
+    def test_main_logging_setup_exception(
+        self, mocker, mock_setup_logging_exception, capsys
+    ):
+        """
+        Test that main function handles setup_logging exceptions gracefully.
+        """
+        # Patch out most of everything
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+        mocker.patch("exosphere.cli.app")
+        mocker.patch("exosphere.main.fspaths.ensure_dirs")
+        mocker.patch("exosphere.main.Inventory")
+
+        from exosphere.main import main
+
+        # Should raise exception in setup_logging
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+
+        # Check that we exit with error
+        assert exc_info.value.code == 1
+
+        captured = capsys.readouterr()
+        assert (
+            "FATAL: Startup Error setting up logging: Logging setup failed"
+            in captured.err
+        )
