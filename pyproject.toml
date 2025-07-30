@@ -26,15 +26,13 @@ license-files = [
 ]
 
 dependencies = [
-    "click-shell[readline]>=2.1 ; sys_platform != 'win32'",
-    "click-shell>=2.1 ; sys_platform == 'win32'",
     "fabric>=3.2.2",
     "typer>=0.15.2",
     "textual>=4.0.0",
     "pyyaml>=6.0.2",
     "textual-serve>=1.1.2",
-    "pyreadline3>=3.5.4 ; sys_platform == 'win32'",
     "platformdirs>=4.3.8",
+    "prompt-toolkit>=3.0.51",
 ]
 
 [dependency-groups]
