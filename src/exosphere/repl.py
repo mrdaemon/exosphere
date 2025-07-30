@@ -109,8 +109,8 @@ class ExosphereCompleter(Completer):
                     opts = {"--help"}
                     for param in subsub.params:
                         if hasattr(param, "opts"):
-                            # Only add options that look like flags/gnu long options
-                            opts.update(o for o in param.opts if o.startswith("-"))
+                            # Only add options that look like gnu long options
+                            opts.update(o for o in param.opts if o.startswith("--"))
 
                     # Filter out already used options
                     for opt in opts:
