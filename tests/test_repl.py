@@ -126,7 +126,7 @@ class TestExosphereREPL:
                 s
                 and (
                     "Available modules during interactive use" in str(s)
-                    or "Features: Ctrl+R" in str(s)
+                    or "for help on a specific command." in str(s)
                 )
                 for s in call.args
             )

@@ -32,7 +32,7 @@ class ExosphereCompleter(Completer):
 
     def __init__(self, root_command):
         self.root_command = root_command
-        self.commands = ["help", "exit", "quit"]
+        self.commands = ["clear", "help", "exit", "quit"]
         if root_command:
             self.commands += list(getattr(root_command, "commands", {}))
 
@@ -145,6 +145,13 @@ class ExosphereREPL:
         self.prompt_text = prompt_text
         self.console = Console()
 
+        # Builtin commands, mostly for help
+        self.builtins = {
+            "exit": "Exit the interactive shell",
+            "quit": "Exit the interactive shell",
+            "clear": "Clear the console",
+        }
+
         # Setup persistent history
         self.history = self._setup_history()
 
@@ -244,6 +251,9 @@ class ExosphereREPL:
             elif command == "help":
                 self._show_help(args[1:])
                 return
+            elif command == "clear":
+                self.console.clear()
+                return
 
             # Execute Typer/Click commands
             self._execute_typer_command(args)
@@ -326,6 +336,9 @@ class ExosphereREPL:
         if not args:
             # General help
             self._show_general_help()
+        elif args[0] in self.builtins:
+            # Handle built-in commands
+            self.console.print(f"[cyan]Built-in: {self.builtins[args[0]]}[/cyan]")
         elif args[0] == "--help" or args[0] == "help":
             # Show help for help, because someone is bound to try
             # Might as well leave a small easter egg for them.
@@ -360,6 +373,12 @@ class ExosphereREPL:
                 )
                 self.console.print("\nAvailable modules during interactive use:\n")
                 self.console.print(panel)
+
+        if self.builtins:
+            # Show built-in commands
+            self.console.print(
+                f"\n[dim]Built-in commands: {', '.join(self.builtins.keys())}[/dim]"
+            )
 
         self.console.print(
             "\nUse '<command> --help' or 'help <command>' for help on a specific command."
