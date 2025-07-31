@@ -37,7 +37,7 @@ def webstart() -> None:
         logger.error("Web UI component is not installed.")
         console.print(
             "The Exosphere Web UI component is not installed. "
-            "Please install 'exosphere-cli[web]' to use this feature."
+            r"Please install 'exosphere-cli\[web]' to use this feature."
         )
         raise typer.Exit(code=1)
     else:
