@@ -5,7 +5,7 @@ UI command module
 import logging
 
 import typer
-from textual_serve.server import Server
+from rich.console import Console
 
 from exosphere.ui.app import ExosphereUi
 
@@ -29,7 +29,18 @@ def start() -> None:
 def webstart() -> None:
     """Start the Exosphere Web UI."""
     logger = logging.getLogger(__name__)
-    logger.info("Starting Exosphere Web UI Server")
 
-    server = Server(command="exosphere ui start")
-    server.serve()
+    try:
+        from textual_serve.server import Server
+    except ImportError:
+        console = Console(stderr=True)
+        logger.error("Web UI component is not installed.")
+        console.print(
+            "The Exosphere Web UI component is not installed. "
+            "Please install 'exosphere-cli[web]' to use this feature."
+        )
+        raise typer.Exit(code=1)
+    else:
+        logger.info("Starting Exosphere Web UI Server")
+        server = Server(command="exosphere ui start")
+        server.serve()

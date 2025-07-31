@@ -1,3 +1,6 @@
+import sys
+import types
+
 from typer.testing import CliRunner
 
 runner = CliRunner()
@@ -54,18 +57,44 @@ def test_ui_start(mocker, caplog) -> None:
     assert "Starting Exosphere UI" in caplog.text
 
 
-def test_ui_webstart(mocker, caplog) -> None:
+def test_ui_webstart(mocker, caplog, monkeypatch) -> None:
     import logging
 
     from exosphere.commands.ui import app as sub_ui_cli
 
     logging.getLogger("exosphere.commands.ui").setLevel(logging.INFO)
     logging.getLogger("exopshere.commands.ui").addHandler(caplog.handler)
-    mock_server = mocker.patch("exosphere.commands.ui.Server")
+
+    # Mock textual_serve and patch it to simulate extras being installed
+    fake_server_mod = types.ModuleType("textual_serve.server")
+    mock_server_class = mocker.Mock()
+    setattr(fake_server_mod, "Server", mock_server_class)
+    monkeypatch.setitem(sys.modules, "textual_serve.server", fake_server_mod)
 
     result = runner.invoke(sub_ui_cli, ["webstart"])
 
     assert result.exit_code == 0
-    mock_server.return_value.serve.assert_called_once()
-
+    mock_server_class.return_value.serve.assert_called_once()
     assert "Starting Exosphere Web UI Server" in caplog.text
+
+
+def test_ui_webstart_without_extras(mocker, caplog, monkeypatch) -> None:
+    import logging
+
+    from exosphere.commands.ui import app as sub_ui_cli
+
+    logging.getLogger("exosphere.commands.ui").setLevel(logging.INFO)
+    logging.getLogger("exopshere.commands.ui").addHandler(caplog.handler)
+
+    # Patch textual_serve.server to simulate it not being installed
+    monkeypatch.setitem(sys.modules, "textual_serve.server", None)
+    mock_console = mocker.patch("exosphere.commands.ui.Console")
+
+    result = runner.invoke(sub_ui_cli, ["webstart"])
+
+    assert result.exit_code == 1
+    mock_console.assert_called_with(stderr=True)
+    assert (
+        "not installed" in result.output.lower()
+        or "not installed" in caplog.text.lower()
+    )
