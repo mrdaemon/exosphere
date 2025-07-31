@@ -5,7 +5,7 @@ name: Exosphere Test Suite
 
 on:
   push:
-    branches: [ "main", "feature/*" ]
+    branches: [ "main", "feature/*", "bugfix/*", "maintenance/*" ]
     tags: [ "v*.*.*" ]
   pull_request:
     branches: [ "main" ]
