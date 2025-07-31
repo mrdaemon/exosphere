@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from fabric import Connection
+from paramiko.ssh_exception import PasswordRequiredException
 
 from exosphere import app_config
 from exosphere.data import HostInfo, Update
@@ -182,7 +183,6 @@ class Host:
         from the Host object for most operations.
 
         :return: Fabric Connection object
-        :raises ConnectionError: If the connection cannot be established
         """
         if self._connection is None:
             conn_args = {
@@ -269,9 +269,13 @@ class Host:
 
         # Check if the host is reachable before attempting anything else
         # This also updates the online status
-        if not self.ping():
-            self.logger.warning("Host %s is offline, skipping sync.", self.name)
-            raise OfflineHostError(f"Host {self.name} is offline or unreachable.")
+        try:
+            self.ping(raise_on_error=True)
+        except OfflineHostError:
+            # Log error but re-raise to not mask the issue details for
+            # the caller, since discover() is used for initial setup.
+            self.logger.warning("Host %s is offline, skipping discover.", self.name)
+            raise
 
         try:
             platform_info: HostInfo = detect.platform_detect(self.connection)
@@ -387,9 +391,17 @@ class Host:
         # Update the last refresh timestamp
         self.last_refresh = datetime.now()
 
-    def ping(self) -> bool:
+    def ping(self, raise_on_error: bool = False) -> bool:
         """
-        Check if the host is reachable.
+        Check if the host is reachable by executing a simple command.
+
+        Can optionally raise an exception, which will contain much deeper
+        details about the connection failure.
+
+        As such, with raise_on_error set to True, ping() can be used
+        to verify authentication and connectivity in general.
+
+        :param raise_on_error: Whether to raise an exception on failure
 
         :return: True if the host is reachable, False otherwise
         """
@@ -401,11 +413,35 @@ class Host:
                 conn.run("echo 'ping'", hide=True)
 
             self.online = True
+        except PasswordRequiredException as e:
+            # Paramiko sucks at raising exceptions, and will essentially
+            # raise this with message "Private key file is encrypted." whenever
+            # *anything* goes wrong during authentication, whenever an agent
+            # or keys are involved. Even if it's watching from the bushes.
+            #
+            # Since this is supremely unhelpful from a UX perspective,
+            # We rewrite it to a more informative message.
+            self.logger.error(
+                "Authentication error for host %s: %s",
+                self.name,
+                type(e).__name__ + ": " + str(e),
+            )
+            self.online = False
+
+            if raise_on_error:
+                raise OfflineHostError(
+                    "Auth Failure. "
+                    "Verify that keypair authentication is enabled on the server "
+                    "and that your agent is running with the correct keys loaded."
+                ) from e
         except Exception as e:
             self.logger.error("Ping to host %s failed: %s", self.name, e)
             self.online = False
-        finally:
-            return self.online
+
+            if raise_on_error:
+                raise OfflineHostError(f"{type(e).__name__}: {e}") from e
+
+        return self.online
 
     def __str__(self):
         return (

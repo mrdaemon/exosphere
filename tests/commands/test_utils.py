@@ -264,7 +264,7 @@ class TestRunTaskWithProgress:
             task_description="Testing task",
         )
 
-        assert result == [("host2", "Test error")]
+        assert result == [("host2", error)]
         assert (
             mock_progress_instance.console.print.call_count == 2
         )  # Two status displays
