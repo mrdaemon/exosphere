@@ -366,8 +366,12 @@ dependencies = [
     { name = "prompt-toolkit" },
     { name = "pyyaml" },
     { name = "textual" },
-    { name = "textual-serve" },
     { name = "typer" },
+]
+
+[package.optional-dependencies]
+web = [
+    { name = "textual-serve" },
 ]
 
 [package.dev-dependencies]
@@ -396,9 +400,10 @@ requires-dist = [
     { name = "prompt-toolkit", specifier = ">=3.0.51" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "textual", specifier = ">=4.0.0" },
-    { name = "textual-serve", specifier = ">=1.1.2" },
+    { name = "textual-serve", marker = "extra == 'web'", specifier = ">=1.1.2" },
     { name = "typer", specifier = ">=0.15.2" },
 ]
+provides-extras = ["web"]
 
 [package.metadata.requires-dev]
 dev = [

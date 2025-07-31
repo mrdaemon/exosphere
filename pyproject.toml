@@ -30,7 +30,6 @@ dependencies = [
     "typer>=0.15.2",
     "textual>=4.0.0",
     "pyyaml>=6.0.2",
-    "textual-serve>=1.1.2",
     "platformdirs>=4.3.8",
     "prompt-toolkit>=3.0.51",
 ]
@@ -52,6 +51,11 @@ dev = [
     "sphinxcontrib-spelling>=8.0.1",
     "sphinxcontrib-typer>=0.5.1",
     "textual-dev>=1.7.0",
+]
+
+[project.optional-dependencies]
+web = [
+    "textual-serve>=1.1.2",
 ]
 
 [project.urls]
