@@ -130,7 +130,7 @@ def run_task_with_progress(
     immediate_error_display: bool = False,
     transient: bool = True,
     progress_args: tuple = (),
-) -> list[tuple[str, str]]:
+) -> list[tuple[str, Exception]]:
     """
     Run a task on selected hosts with progress display.
     This is a nice wrapper around inventory.run_task() that provides
@@ -160,9 +160,9 @@ def run_task_with_progress(
         progress_args: List of renderables to compose the Progress layout
 
     Returns:
-        List of (hostname, error_message) tuples for any failed hosts
+        List of (hostname, exception objects) tuples for any failed hosts
     """
-    errors = []
+    errors: list[tuple[str, Exception]] = []
     short_name = task_name.replace("_", " ").capitalize()
 
     with Progress(transient=transient, *progress_args) as progress:
@@ -179,7 +179,7 @@ def run_task_with_progress(
                     )
 
                 if collect_errors:
-                    errors.append((host.name, str(exc)))
+                    errors.append((host.name, exc))
 
             if display_hosts:
                 progress.console.print(

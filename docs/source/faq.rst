@@ -25,6 +25,24 @@ Yes! You can specify a custom path for the configuration file by setting the
 See :doc:`configuration` for more details on other environment variables
 you can define to influence or override the configuration.
 
+I get an error with "Private key file is encrypted", what does it mean?
+-----------------------------------------------------------------------
+
+The presence of this error in logs means that authentication failed in some way.
+
+Verify that:
+
+- The server has Public Key Authentication enabled
+- Your SSH agent is running and has the correct key loaded
+- The right user name is being used to connect
+
+The unhelpful error message is unfortunately `Known Issue`_ in the `paramiko` 
+library, which is used internally to handle SSH connections. Whenever
+authentication fails when a SSH agent is used, this is the exception
+that will be raised, regardless of the actual issue.
+
+Exosphere will generally catch this specific error and rewrite the error message
+to be more helpful, but there are a few edge cases where it may be displayed as-is.
 
 My system using `dnf` or `yum` hangs when refreshing
 ----------------------------------------------------
@@ -141,4 +159,4 @@ Compatibility test matrices are unfortunately not a source of happiness.
 .. _UnattendedUpgrades: https://wiki.debian.org/UnattendedUpgrades
 .. _Ansible: https://www.ansible.com/
 .. _RunDeck: https://www.rundeck.com/
-
+.. _Known Issue: https://github.com/paramiko/paramiko/issues/387

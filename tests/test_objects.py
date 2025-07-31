@@ -256,6 +256,41 @@ class TestHostObject:
         assert host.ping() is True
         assert host.online is True
 
+    def test_host_ping_raises_exception(self, mocker, mock_connection):
+        """
+        Test that ping raises an exception if the connection fails.
+        """
+        # Mock a failed run via context manager mock in fixture
+        mock_instance = mock_connection.return_value
+        mock_instance.run.side_effect = Exception("Super Test Suite Error")
+
+        host = Host(name="test_host", ip="127.1.8.48")
+        with pytest.raises(OfflineHostError, match="Super Test Suite Error"):
+            host.ping(raise_on_error=True)
+
+        assert host.online is False  # Should be False on failure
+
+    def test_host_ping_rewords_shitty_paramiko_exception(self, mocker, mock_connection):
+        """
+        Test that ping rewrites the paramiko exception to be more helpful.
+
+        For rationale, see:
+        https://github.com/paramiko/paramiko/issues/387
+        """
+        from paramiko.ssh_exception import PasswordRequiredException
+
+        mock_instance = mock_connection.return_value
+        mock_instance.run.side_effect = PasswordRequiredException(
+            "Private key file is encrypted."
+        )
+
+        host = Host(name="test_host", ip="127.0.0.8")
+
+        with pytest.raises(OfflineHostError) as e:
+            host.ping(raise_on_error=True)
+            assert "private key file is encrypted" not in str(e).lower()
+            assert "auth failure" in str(e).lower()
+
     @pytest.mark.parametrize(
         "exception_type", [TimeoutError, ConnectionError, Exception]
     )
@@ -304,15 +339,16 @@ class TestHostObject:
         Test the discover functionality for Host objects when the host
         is offline.
         """
-        mocker.patch(
+        mock_setup = mocker.patch(
             "exosphere.setup.detect.platform_detect",
-            side_effect=OfflineHostError("Host is offline"),
         )
 
         host = Host(name="test_host", ip="127.0.0.1")
-        mocker.patch.object(host, "ping", return_value=False)
+        mocker.patch.object(
+            host, "ping", side_effect=OfflineHostError("Test Condition")
+        )
 
-        with pytest.raises(OfflineHostError):
+        with pytest.raises(OfflineHostError, match="Test Condition"):
             host.discover()
 
         assert host.os is None
@@ -321,6 +357,10 @@ class TestHostObject:
         assert host.package_manager is None
 
         assert host.online is False
+
+        assert (
+            mock_setup.call_count == 0
+        )  # platform_detect should not be called if ping fails
 
     def test_host_discovery_offline_after_ping(self, mocker, mock_connection):
         """
