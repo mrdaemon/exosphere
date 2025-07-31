@@ -10,6 +10,40 @@ run the exact same UI as the TUI, but in a web browser.
     Performance may be slightly worse than the TUI, but it should have
     feature parity, since it is the exact same code.
 
+Installing the WebUI
+--------------------
+
+The Web UI is an entirely optional component of Exosphere, given its
+experimental nature. To install it, you need to install the ``web`` extra
+when installing Exosphere. You can do this by running:
+
+.. tabs::
+
+    .. group-tab:: pipx
+
+        .. code-block:: shell
+
+            $ pipx install exosphere-cli[web]
+
+    .. group-tab:: uv
+
+        .. code-block:: shell
+
+            $ uv tool install exosphere-cli[web]
+
+    .. group-tab:: pip
+
+        .. code-block:: shell
+
+            $ pip install --user exosphere-cli[web]
+
+    .. group-tab:: git
+
+        .. code-block:: shell
+
+            $ uv sync --no-dev --extra web
+
+
 Launching the WebUI
 -------------------
 
