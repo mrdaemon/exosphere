@@ -20,7 +20,7 @@ from rich.console import Console
 from rich.panel import Panel
 from typer import Context
 
-from exosphere import fspaths
+from exosphere import app_config
 
 logger = logging.getLogger(__name__)
 
@@ -172,12 +172,8 @@ class ExosphereREPL:
                  or InMemoryHistory as fallback
         """
         try:
-            # Ensure state directory exists
-            fspaths.ensure_dirs()
-
-            history_file = fspaths.STATE_DIR / "repl_history"
+            history_file = app_config["options"]["history_file"]
             return FileHistory(str(history_file))
-
         except Exception as e:
             # Fallback to in-memory history if file operations fail
             logger.warning(f"Could not setup persistent history: {e}")

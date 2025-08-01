@@ -154,6 +154,7 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`default_sudo_policy`
 - :option:`debug`
 - :option:`log_file`
+- :option:`history_file`
 - :option:`cache_autosave`
 - :option:`cache_autopurge`
 - :option:`cache_file`
@@ -358,6 +359,45 @@ and examples of how to set them in the configuration file.
                 {
                     "options": {
                         "log_file": "/home/alice/exosphere.log"
+                    }
+                }
+
+.. option:: history_file
+
+    A filesystem path to a file where Exosphere will store the REPL history.
+    If not set, Exosphere will use the platform default and name the
+    file ``repl_history``.
+
+    This file is used to persist the command history across executions of Exosphere,
+    allowing you navigate through or search for previously executed commands.
+
+    **Default**: (Platform Default)
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  history_file: /home/alice/.exosphere_history
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                history_file = "/home/alice/.exosphere_history"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "history_file": "/home/alice/.exosphere_history"
                     }
                 }
 

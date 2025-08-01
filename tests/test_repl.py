@@ -2,9 +2,6 @@
 Tests for the REPL module
 """
 
-import tempfile
-from pathlib import Path
-
 import click
 import pytest
 from prompt_toolkit.history import FileHistory, InMemoryHistory
@@ -234,25 +231,6 @@ class TestExosphereREPL:
 
         assert repl.prompt_text == "custom> "
 
-    def test_setup_history_success(self, mocker):
-        """
-        Test that the REPL initializes with the history
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        tmpdir = tempfile.TemporaryDirectory()
-        state_dir = Path(tmpdir.name)
-
-        mocker.patch("exosphere.fspaths.ensure_dirs")
-        mocker.patch("exosphere.fspaths.STATE_DIR", state_dir)
-
-        repl = ExosphereREPL(ctx)
-
-        assert isinstance(repl.history, FileHistory)
-
-        tmpdir.cleanup()
-
     def test_setup_history_fallback(self, mocker, caplog):
         """
         Test that the REPL falls back to in-memory history on failure
@@ -260,13 +238,40 @@ class TestExosphereREPL:
         ctx = mocker.Mock(spec=Context)
         ctx.command = None
 
-        mocker.patch("exosphere.fspaths.ensure_dirs", side_effect=Exception("fail"))
+        mocker.patch("exosphere.repl.FileHistory", side_effect=Exception("fail"))
 
         with caplog.at_level("WARNING", logger="exosphere.repl"):
             repl = ExosphereREPL(ctx)
 
         assert isinstance(repl.history, InMemoryHistory)
         assert any("Could not setup persistent history" in m for m in caplog.messages)
+
+    def test_setup_history_from_config(self, mocker, tmp_path):
+        """
+        Test that the REPL initializes with history path from config
+        """
+        ctx = mocker.Mock(spec=Context)
+        ctx.command = None
+
+        from exosphere.config import Configuration
+
+        config = Configuration()
+
+        test_history_file = str(tmp_path / "test_history_path")
+
+        conf_data = {
+            "options": {
+                "history_file": test_history_file,
+            }
+        }
+
+        config.update_from_mapping(conf_data)
+        mocker.patch("exosphere.repl.app_config", config)
+
+        repl = ExosphereREPL(ctx)
+
+        assert isinstance(repl.history, FileHistory)
+        assert repl.history.filename == test_history_file
 
     @pytest.mark.parametrize("cmd", ["exit", "quit"])
     def test_execute_command_exit(self, mocker, cmd):
