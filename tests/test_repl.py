@@ -320,11 +320,11 @@ class TestExosphereREPL:
 
         # Should mention built-in commands and usage
         assert any(
-            "built-in commands" in str(call.args[0]).lower()
+            call.args and "built-in commands" in str(call.args[0]).lower()
             for call in print_spy.call_args_list
         )
         assert any(
-            "use '<command> --help'" in str(call.args[0]).lower()
+            call.args and "use '<command> --help'" in str(call.args[0]).lower()
             for call in print_spy.call_args_list
         )
 

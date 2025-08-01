@@ -374,15 +374,21 @@ class ExosphereREPL:
                 self.console.print("\nAvailable modules during interactive use:\n")
                 self.console.print(panel)
 
+        # Spacing for better readability
+        self.console.print()
+
+        self.console.print(
+            "Use '<command> --help' or 'help <command>' for help on a specific command."
+        )
+
         if self.builtins:
             # Show built-in commands
             self.console.print(
-                f"\n[dim]Built-in commands: {', '.join(self.builtins.keys())}[/dim]"
+                f"[dim]Built-in commands: {', '.join(self.builtins.keys())}[/dim]"
             )
-
-        self.console.print(
-            "\nUse '<command> --help' or 'help <command>' for help on a specific command."
-        )
+        else:
+            # Leave empty line if no built-ins
+            self.console.print()
 
 
 def start_repl(ctx: Context, prompt_text: str = "exosphere> ") -> None:
