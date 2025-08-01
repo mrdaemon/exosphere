@@ -678,6 +678,12 @@ class TestInventory:
                 "Pinged all hosts",
             ),
         ],
+        ids=[
+            "discover",
+            "sync_repos",
+            "refresh_updates",
+            "ping",
+        ],
     )
     def test_all_methods_log_individual_results(
         self,
