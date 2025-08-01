@@ -53,6 +53,47 @@ which is generic enough to apply to most if not all distributions.
     feature`_ installed. You can just ``ssh-add`` your keys to the agent, and they will be
     available as expected.
 
+Testing connectivity
+--------------------
+
+You can test your SSH connectivity to a host using ``discover`` as it will display
+a nice table of errors for hosts where connectivity fails.
+
+You can do this for the entire inventory with:
+
+.. code-block:: exosphere
+
+    exosphere> inventory discover
+
+Or for a specific host, such as a host named ``bigserver``:
+
+.. code-block:: exosphere
+
+    exosphere> host discover bigserver
+
+Authentication failures will display clearly in the output. The exact cause, however, can
+vary, but you should check the following:
+
+* Ensure your SSH agent is running and has the necessary keys loaded.
+* Ensure the username and port are correct in :doc:`configuration`
+* Ensure the remote host is reachable over the network and that the SSH service is running.
+* Ensure the remote host's SSH configuration allows *Public Key Authentication*
+
+For debugging purposes, you can try connecting to the host yourself with verbose output:
+
+.. code-block:: console
+
+    $ ssh -vvv bigserver
+
+This will provide detailed information about the SSH connection process, which can help
+pinpoint the exact issue with authentication or connectivity.
+
+.. tip::
+
+    Remember: Exosphere will honor ``~/.ssh/config`` and ``/etc/ssh/ssh_config``.
+    The settings in these files **will** be used. Double check your host aliases,
+    if any!
+
 .. _Fabric: http://www.fabfile.org/
 .. _Article on SSH keys: https://wiki.archlinux.org/title/SSH_keys
 .. _Windows OpenSSH Agent: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement
