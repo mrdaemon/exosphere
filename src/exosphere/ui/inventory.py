@@ -203,7 +203,9 @@ class InventoryScreen(Screen):
         hosts = getattr(context.inventory, "hosts", []) or []
 
         if not hosts:
-            yield Label("No hosts in inventory.", classes="empty-message")
+            with Vertical():
+                with Container(id="empty-container"):
+                    yield Label("No hosts in inventory.", classes="empty-message")
         else:
             yield DataTable(id="inventory-table")
 

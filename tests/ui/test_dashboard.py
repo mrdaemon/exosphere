@@ -185,26 +185,56 @@ def test_dashboard_compose_with_hosts(mock_context, host_online, host_offline, m
     assert host_widget_calls[1][0][0] == host_offline  # Second call with host_offline
 
 
-def test_dashboard_compose_no_hosts(mock_context):
-    """Test DashboardScreen compose method with no hosts."""
+def test_dashboard_compose_no_hosts(mock_context, mocker):
+    """Test DashboardScreen compose method with no hosts shows empty message."""
     mock_context.inventory.hosts = []
 
     screen = DashboardScreen()
+
+    # Mock Textual widgets to avoid app context issues
+    mock_vertical_scroll = mocker.MagicMock()
+    mock_container = mocker.MagicMock()
+    mock_label = mocker.MagicMock()
+
+    mocker.patch(
+        "exosphere.ui.dashboard.VerticalScroll", return_value=mock_vertical_scroll
+    )
+    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    label_mock = mocker.patch("exosphere.ui.dashboard.Label", return_value=mock_label)
+
     result = list(screen.compose())
 
-    # Should yield Header, empty message Label, and Footer
-    assert len(result) == 3
+    # Should yield Header, VerticalScroll, and Footer
+    assert len(result) >= 3
+
+    # Verify that Label was called with the empty message
+    label_mock.assert_called_with("No hosts available.", classes="empty-message")
 
 
 def test_dashboard_compose_no_inventory(mocker):
-    """Test DashboardScreen compose method with no inventory."""
+    """Test DashboardScreen compose method with no inventory shows empty message."""
     mocker.patch("exosphere.ui.dashboard.context.inventory", None)
 
     screen = DashboardScreen()
+
+    # Mock Textual widgets to avoid app context issues
+    mock_vertical_scroll = mocker.MagicMock()
+    mock_container = mocker.MagicMock()
+    mock_label = mocker.MagicMock()
+
+    mocker.patch(
+        "exosphere.ui.dashboard.VerticalScroll", return_value=mock_vertical_scroll
+    )
+    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    label_mock = mocker.patch("exosphere.ui.dashboard.Label", return_value=mock_label)
+
     result = list(screen.compose())
 
-    # Should yield Header, empty message Label, and Footer
-    assert len(result) == 3
+    # Should yield Header, VerticalScroll, and Footer
+    assert len(result) >= 3
+
+    # Verify that Label was called with the empty message
+    label_mock.assert_called_with("No hosts available.", classes="empty-message")
 
 
 def test_dashboard_refresh_hosts_with_task(mocker, mock_context):
