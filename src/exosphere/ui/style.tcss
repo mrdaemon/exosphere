@@ -1,8 +1,6 @@
 DashboardScreen {
-    layout: grid;
-    grid-size: 4;
+    layout: vertical;
     layers: below above;
-    align: center middle;
 }
 
 InventoryScreen {
@@ -142,14 +140,26 @@ ErrorScreen {
 }
 
 # Dashboard host widgets
+#hosts-scroll {
+    padding: 1;
+}
+
+#hosts-container {
+    layout: grid;
+    grid-size: 4;
+    grid-gutter: 1 2;
+    height: auto;
+}
+
 .host-box {
-    height: 100%;
-    width: auto;
+    width: 100%;
+    height: auto;
+    min-height: 8;
     text-align: center;
     border: solid;
     layer: below;
-    margin-bottom: 0;
 }
+
 .host-box.online {
     border: solid green;
     tint: green 10%;

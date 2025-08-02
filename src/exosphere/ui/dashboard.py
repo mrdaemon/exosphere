@@ -5,6 +5,7 @@ Dashboard Screen module
 import logging
 
 from textual.app import ComposeResult
+from textual.containers import Container, VerticalScroll
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Label
@@ -79,7 +80,6 @@ class DashboardScreen(Screen):
         yield Header()
 
         inventory = context.inventory
-
         hosts = getattr(inventory, "hosts", []) or []
 
         if not hosts:
@@ -87,8 +87,10 @@ class DashboardScreen(Screen):
             yield Footer()
             return
 
-        for host in hosts:
-            yield HostWidget(host)
+        with VerticalScroll(id="hosts-scroll"):
+            with Container(id="hosts-container"):
+                for host in hosts:
+                    yield HostWidget(host)
 
         yield Footer()
 
