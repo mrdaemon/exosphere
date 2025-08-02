@@ -5,6 +5,7 @@ Dashboard Screen module
 import logging
 
 from textual.app import ComposeResult
+from textual.containers import Container, VerticalScroll
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Label
@@ -16,6 +17,9 @@ from exosphere.ui.elements import ErrorScreen, ProgressScreen
 from exosphere.ui.messages import HostStatusChanged
 
 logger = logging.getLogger("exosphere.ui.dashboard")
+
+# Minimum width of a host widget, including borders and padding
+MIN_WIDGET_WIDTH = 26
 
 
 class HostWidget(Widget):
@@ -34,10 +38,21 @@ class HostWidget(Widget):
         else:
             version = f"{self.host.flavor} {self.host.version}"
 
-        description_value = getattr(self.host, "description", None)
-        description = f"{description_value}\n\n" if description_value else "\n"
+        description = self._format_description()
 
         return f"[b]{self.host.name}[/b]\n[dim]{version}[/dim]\n{description}{status}"
+
+    def _format_description(self) -> str:
+        """Format the host description with appropriate spacing."""
+        description_value = getattr(self.host, "description", None)
+
+        if not description_value:
+            return "\n\n"
+
+        # If the description gets wrapped, don't pad extra newlines
+        # This ensures all the "online" statuses are lined up in the grid.
+        spacing = "\n" if len(description_value) > (MIN_WIDGET_WIDTH - 2) else "\n\n"
+        return f"{description_value}{spacing}"
 
     def compose(self) -> ComposeResult:
         """Compose the host widget layout."""
@@ -79,7 +94,6 @@ class DashboardScreen(Screen):
         yield Header()
 
         inventory = context.inventory
-
         hosts = getattr(inventory, "hosts", []) or []
 
         if not hosts:
@@ -87,15 +101,53 @@ class DashboardScreen(Screen):
             yield Footer()
             return
 
-        for host in hosts:
-            yield HostWidget(host)
+        with VerticalScroll(id="hosts-scroll"):
+            with Container(id="hosts-container"):
+                for host in hosts:
+                    yield HostWidget(host)
 
         yield Footer()
+
+    def on_resize(self, event) -> None:
+        """Handle screen resize to update grid columns."""
+        self.update_grid_columns()
 
     def on_mount(self) -> None:
         """Set the title and subtitle of the dashboard."""
         self.title = "Exosphere"
         self.sub_title = "Dashboard"
+        self.update_grid_columns()
+
+    def update_grid_columns(self) -> None:
+        """
+        Update the grid column count based on screen width.
+
+        This is as close as I can get (at least with my understanding
+        of Textual) to reactive grids. We simply recalculate how many
+        columns we can safely fit in based on entirely arbitrary values
+        that "seem alright" for minimum tile width, and just update the
+        CSS dynamically on resize.
+        """
+
+        terminal_width = self.size.width
+        min_tile_width = MIN_WIDGET_WIDTH
+        max_columns = max(1, terminal_width // min_tile_width)
+
+        # Cap between 2 and 6 columns for reasonable layouts
+        # Although this is arbitrary and I'm not fully sold yet.
+        columns = min(max(2, max_columns), 6)
+
+        # Update the CSS dynamically - but only if the container exists
+        # Early calls or empty dashboards may not have the container yet
+        try:
+            container = self.query_one("#hosts-container")
+            if container:
+                container.styles.grid_size_columns = columns
+        except Exception:
+            logger.debug(
+                "Failed to update grid columns, container not found."
+                " This is expected if the dashboard is empty or not mounted yet."
+            )
 
     def refresh_hosts(self, task: str | None = None) -> None:
         """Refresh the host widgets."""
