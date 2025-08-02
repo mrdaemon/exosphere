@@ -94,10 +94,39 @@ class DashboardScreen(Screen):
 
         yield Footer()
 
+    def on_resize(self, event) -> None:
+        """Handle screen resize to update grid columns."""
+        self.update_grid_columns()
+
     def on_mount(self) -> None:
         """Set the title and subtitle of the dashboard."""
         self.title = "Exosphere"
         self.sub_title = "Dashboard"
+        self.update_grid_columns()
+
+    def update_grid_columns(self) -> None:
+        """
+        Update the grid column count based on screen width.
+        
+        This is as close as I can get (at least with my understanding
+        of Textual) to reactive grids. We simply recalculate how many
+        columns we can safely fit in based on entirely arbitrary values
+        that "seem alright" for minimum tile width, and just update the
+        CSS dynamically on resize.
+        """
+
+        terminal_width = self.size.width
+        min_tile_width = 28  # Minimum width per tile including borders and padding
+        max_columns = max(1, terminal_width // min_tile_width)
+
+        # Cap between 2 and 6 columns for reasonable layouts
+        # Although this is arbitrary and I'm not fully sold yet.
+        columns = min(max(2, max_columns), 6)
+
+        # Update the CSS dynamically
+        container = self.query_one("#hosts-container")
+        if container:
+            container.styles.grid_size_columns = columns
 
     def refresh_hosts(self, task: str | None = None) -> None:
         """Refresh the host widgets."""
