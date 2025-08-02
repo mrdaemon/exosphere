@@ -147,6 +147,7 @@ ErrorScreen {
 #hosts-container {
     layout: grid;
     grid-size: 4;  /* Default, will update dynamically */
+    grid-gutter: 0 0;
     height: auto;
 }
 
@@ -155,7 +156,7 @@ ErrorScreen {
     height: auto;
     min-height: 8;
     text-align: center;
-    border: solid;
+    border: double;
     layer: below;
 }
 

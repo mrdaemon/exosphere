@@ -18,6 +18,8 @@ from exosphere.ui.messages import HostStatusChanged
 
 logger = logging.getLogger("exosphere.ui.dashboard")
 
+MAX_WIDGET_WIDTH = 26  # Maximum width of a host widget, including borders and padding
+
 
 class HostWidget(Widget):
     """Widget to display a host in the HostGrid."""
@@ -35,10 +37,21 @@ class HostWidget(Widget):
         else:
             version = f"{self.host.flavor} {self.host.version}"
 
-        description_value = getattr(self.host, "description", None)
-        description = f"{description_value}\n\n" if description_value else "\n"
+        description = self._format_description()
 
         return f"[b]{self.host.name}[/b]\n[dim]{version}[/dim]\n{description}{status}"
+
+    def _format_description(self) -> str:
+        """Format the host description with appropriate spacing."""
+        description_value = getattr(self.host, "description", None)
+
+        if not description_value:
+            return "\n\n"
+
+        # If the description gets wrapped, don't pad extra newlines
+        # This ensures all the "online" statuses are lined up in the grid.
+        spacing = "\n" if len(description_value) > (MAX_WIDGET_WIDTH - 2) else "\n\n"
+        return f"{description_value}{spacing}"
 
     def compose(self) -> ComposeResult:
         """Compose the host widget layout."""
@@ -116,7 +129,7 @@ class DashboardScreen(Screen):
         """
 
         terminal_width = self.size.width
-        min_tile_width = 28  # Minimum width per tile including borders and padding
+        min_tile_width = MAX_WIDGET_WIDTH
         max_columns = max(1, terminal_width // min_tile_width)
 
         # Cap between 2 and 6 columns for reasonable layouts
