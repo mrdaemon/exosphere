@@ -96,11 +96,15 @@ class DashboardScreen(Screen):
         inventory = context.inventory
         hosts = getattr(inventory, "hosts", []) or []
 
+        # "No hosts available" box
         if not hosts:
-            yield Label("No hosts available.", classes="empty-message")
+            with VerticalScroll(id="hosts-scroll"):
+                with Container(id="empty-container"):
+                    yield Label("No hosts available.", classes="empty-message")
             yield Footer()
             return
 
+        # Grid container for host widgets
         with VerticalScroll(id="hosts-scroll"):
             with Container(id="hosts-container"):
                 for host in hosts:

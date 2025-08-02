@@ -1,3 +1,4 @@
+# Main Screen Layouts
 DashboardScreen {
     layout: vertical;
     layers: below above;
@@ -13,6 +14,7 @@ HostDetailsPanel {
     align: center middle;
     background: black 60%;
 }
+
 UpdateDetailsPanel {
     layout: vertical;
     align: center middle;
@@ -31,6 +33,43 @@ ErrorScreen {
     background: black 60%;
 }
 
+# Dashboard Components
+#hosts-scroll {
+    padding: 0;
+}
+
+#hosts-container {
+    layout: grid;
+    grid-size: 4;  /* Default, will update dynamically */
+    grid-gutter: 0 0;
+    height: auto;
+}
+
+#empty-container {
+    align: center middle;
+    height: 100%;
+}
+
+.host-box {
+    width: 100%;
+    height: auto;
+    min-height: 8;
+    text-align: center;
+    border: solid;
+    layer: below;
+}
+
+.host-box.online {
+    border: solid green;
+    tint: green 10%;
+}
+
+.host-box.offline {
+    border: solid red;
+    tint: red 10%;
+}
+
+# Detail Panels
 .host-details {
     dock: right;
     width: 45%;
@@ -82,10 +121,13 @@ ErrorScreen {
     text-style: italic;
 }
 
+# Inventory Components
 #inventory-table {
     width: 100%;
     height: 100%;
 }
+
+# Message Boxes
 
 # Empty message box
 .empty-message {
@@ -137,34 +179,4 @@ ErrorScreen {
 
 .error-message Center Button {
     margin-bottom: 1;
-}
-
-# Dashboard host widgets
-#hosts-scroll {
-    padding: 0;
-}
-
-#hosts-container {
-    layout: grid;
-    grid-size: 4;  /* Default, will update dynamically */
-    grid-gutter: 0 0;
-    height: auto;
-}
-
-.host-box {
-    width: 100%;
-    height: auto;
-    min-height: 8;
-    text-align: center;
-    border: double;
-    layer: below;
-}
-
-.host-box.online {
-    border: solid green;
-    tint: green 10%;
-}
-.host-box.offline {
-    border: solid red;
-    tint: red 10%;
 }
