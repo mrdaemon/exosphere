@@ -141,13 +141,12 @@ ErrorScreen {
 
 # Dashboard host widgets
 #hosts-scroll {
-    padding: 1;
+    padding: 0;
 }
 
 #hosts-container {
     layout: grid;
     grid-size: 4;  /* Default, will update dynamically */
-    grid-gutter: 1 2;
     height: auto;
 }
 

@@ -107,7 +107,7 @@ class DashboardScreen(Screen):
     def update_grid_columns(self) -> None:
         """
         Update the grid column count based on screen width.
-        
+
         This is as close as I can get (at least with my understanding
         of Textual) to reactive grids. We simply recalculate how many
         columns we can safely fit in based on entirely arbitrary values
