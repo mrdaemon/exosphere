@@ -138,23 +138,51 @@ def test_hostwidget_compose(mocker, host_online):
     assert hasattr(label, "classes")
 
 
-def test_dashboard_on_mount_sets_titles():
+def test_dashboard_on_mount_sets_titles(mocker):
     """Test that DashboardScreen sets the correct titles on mount."""
+
     screen = DashboardScreen()
+
+    mock_update_grid = mocker.patch.object(screen, "update_grid_columns")
+
     screen.on_mount()
+
     assert screen.title == "Exosphere"
     assert screen.sub_title == "Dashboard"
+    mock_update_grid.assert_called_once()  # Ensure grid columns are updated
 
 
-def test_dashboard_compose_with_hosts(mock_context, host_online, host_offline):
+def test_dashboard_compose_with_hosts(mock_context, host_online, host_offline, mocker):
     """Test DashboardScreen compose method with hosts."""
     mock_context.inventory.hosts = [host_online, host_offline]
 
     screen = DashboardScreen()
+
+    # Mock Textual widgets to avoid app context issues
+    mock_vertical_scroll = mocker.MagicMock()
+    mock_container = mocker.MagicMock()
+    mock_host_widget = mocker.MagicMock()
+
+    mocker.patch(
+        "exosphere.ui.dashboard.VerticalScroll", return_value=mock_vertical_scroll
+    )
+    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    host_widget_mock = mocker.patch(
+        "exosphere.ui.dashboard.HostWidget", return_value=mock_host_widget
+    )
+
     result = list(screen.compose())
 
-    # Should yield Header, HostWidgets for each host, and Footer
-    assert len(result) >= 4  # Header + 2 HostWidgets + Footer
+    # Should yield Header, VerticalScroll, and Footer
+    assert len(result) >= 3
+
+    # Verify that HostWidget was called twice (once for each host)
+    assert host_widget_mock.call_count == 2
+
+    # Verify the hosts passed to HostWidget
+    host_widget_calls = host_widget_mock.call_args_list
+    assert host_widget_calls[0][0][0] == host_online  # First call with host_online
+    assert host_widget_calls[1][0][0] == host_offline  # Second call with host_offline
 
 
 def test_dashboard_compose_no_hosts(mock_context):
