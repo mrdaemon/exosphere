@@ -61,34 +61,90 @@ def mock_label(mocker):
     return mocker.MagicMock()
 
 
-def test_hostwidget_make_contents_online(host_online):
-    """Test that HostWidget generates correct contents for an online host."""
+def test_hostwidget_compose_online(host_online, mocker):
+    """Test that HostWidget composes correctly for an online host."""
+    # Mock Container and Label to avoid app context issues
+    mock_container = mocker.MagicMock()
+    mock_label = mocker.MagicMock()
+
+    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    label_mock = mocker.patch("exosphere.ui.dashboard.Label", return_value=mock_label)
+
     widget = HostWidget(host_online)
-    contents = widget.make_contents()
-    assert "[green]Online[/green]" in contents
-    assert "Ubuntu 22.04" in contents
-    assert "Test host" in contents
-    assert "[b]host1[/b]" in contents
+    result = list(widget.compose())
+
+    # Should yield 4 labels: name, version, description, status
+    assert len(result) == 4
+
+    # Verify Label calls - should be 4 labels: name, version, description, status
+    assert label_mock.call_count == 4
+
+    # Check the calls for expected content and classes
+    calls = label_mock.call_args_list
+    assert calls[0][0][0] == "[b]host1[/b]"  # name
+    assert calls[0][1]["classes"] == "host-name"
+
+    assert "Ubuntu 22.04" in calls[1][0][0]  # version
+    assert calls[1][1]["classes"] == "host-version"
+
+    assert calls[2][0][0] == "Test host"  # description
+    assert calls[2][1]["classes"] == "host-description"
+
+    assert "[green]Online[/green]" in calls[3][0][0]  # status
+    assert calls[3][1]["classes"] == "host-status"
 
 
-def test_hostwidget_make_contents_offline(host_offline):
-    """Test that HostWidget generates correct contents for an offline host."""
+def test_hostwidget_compose_offline(host_offline, mocker):
+    """Test that HostWidget composes correctly for an offline host."""
+    # Mock Container and Label to avoid app context issues
+    mock_container = mocker.MagicMock()
+    mock_label = mocker.MagicMock()
+
+    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    label_mock = mocker.patch("exosphere.ui.dashboard.Label", return_value=mock_label)
+
     widget = HostWidget(host_offline)
-    contents = widget.make_contents()
-    assert "[red]Offline[/red]" in contents
-    assert "Debian 11" in contents
-    assert "(Undiscovered)" not in contents
-    assert "\n\n" in contents  # Check for empty description handling
-    assert "[b]host2[/b]" in contents
+    result = list(widget.compose())
+
+    # Should yield 4 labels: name, version, description (empty), status
+    assert len(result) == 4
+
+    # Verify Label calls - should be 4 labels: name, version, description (empty), status
+    assert label_mock.call_count == 4
+
+    # Check the calls for expected content and classes
+    calls = label_mock.call_args_list
+    assert calls[0][0][0] == "[b]host2[/b]"  # name
+    assert "Debian 11" in calls[1][0][0]  # version
+    assert calls[2][0][0] == ""  # description (empty)
+    assert calls[2][1]["classes"] == "host-description"
+    assert "[red]Offline[/red]" in calls[3][0][0]  # status
 
 
-def test_hostwidget_make_contents_offline_undiscovered(host_undiscovered):
-    """Test that HostWidget generates correct contents for an undiscovered host."""
+def test_hostwidget_compose_offline_undiscovered(host_undiscovered, mocker):
+    """Test that HostWidget composes correctly for an undiscovered host."""
+    # Mock Container and Label to avoid app context issues
+    mock_container = mocker.MagicMock()
+    mock_label = mocker.MagicMock()
+
+    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    label_mock = mocker.patch("exosphere.ui.dashboard.Label", return_value=mock_label)
+
     widget = HostWidget(host_undiscovered)
-    contents = widget.make_contents()
-    assert "[red]Offline[/red]" in contents
-    assert "(Undiscovered)" in contents
-    assert "[b]host3[/b]" in contents
+    result = list(widget.compose())
+
+    # Should yield 4 labels: name, version, description (empty), status
+    assert len(result) == 4
+
+    # Verify Label calls - should be 4 labels: name, version, description (empty), status
+    assert label_mock.call_count == 4
+
+    # Check the calls for expected content and classes
+    calls = label_mock.call_args_list
+    assert calls[0][0][0] == "[b]host3[/b]"  # name
+    assert "(Undiscovered)" in calls[1][0][0]  # version
+    assert calls[2][0][0] == ""  # description (empty)
+    assert "[red]Offline[/red]" in calls[3][0][0]  # status
 
 
 def test_hostwidget_init():
@@ -103,39 +159,48 @@ def test_hostwidget_refresh_state(mocker, host_online):
     """Test HostWidget refresh_state method."""
     widget = HostWidget(host_online)
 
-    # Mock the query_one method and Label
-    mock_label = mocker.MagicMock()
-    mock_query_one = mocker.patch.object(widget, "query_one", return_value=mock_label)
+    # Mock the query_one method for Container and Labels
+    mock_container = mocker.MagicMock()
+    mock_status_label = mocker.MagicMock()
+    mock_version_label = mocker.MagicMock()
+
+    def query_one_side_effect(selector, widget_type=None):
+        if selector == ".host-status":
+            return mock_status_label
+        elif selector == ".host-version":
+            return mock_version_label
+        else:  # Container
+            return mock_container
+
+    mocker.patch.object(widget, "query_one", side_effect=query_one_side_effect)
 
     # Initially online
     widget.refresh_state()
 
-    mock_query_one.assert_called_once()
-    mock_label.update.assert_called_once()
-    mock_label.add_class.assert_called_with("online")
-    mock_label.remove_class.assert_called_with("offline")
+    # Check container class changes
+    mock_container.add_class.assert_called_with("online")
+    mock_container.remove_class.assert_called_with("offline")
 
-    # Test with offline host
-    mock_label.reset_mock()
-    mock_query_one.reset_mock()
+    # Check status label update
+    mock_status_label.update.assert_called_with("[green]Online[/green]")
+
+    # Check version label update
+    mock_version_label.update.assert_called_with("[dim]Ubuntu 22.04[/dim]")
+
+    # Reset mocks and test with offline host
+    mock_container.reset_mock()
+    mock_status_label.reset_mock()
+    mock_version_label.reset_mock()
 
     widget.host.online = False
     widget.refresh_state()
 
-    mock_label.add_class.assert_called_with("offline")
-    mock_label.remove_class.assert_called_with("online")
+    # Check container class changes for offline
+    mock_container.add_class.assert_called_with("offline")
+    mock_container.remove_class.assert_called_with("online")
 
-
-def test_hostwidget_compose(mocker, host_online):
-    """Test HostWidget compose method."""
-    widget = HostWidget(host_online)
-
-    result = list(widget.compose())
-
-    assert len(result) == 1
-    # The result should be a Label with correct classes
-    label = result[0]
-    assert hasattr(label, "classes")
+    # Check status label update for offline
+    mock_status_label.update.assert_called_with("[red]Offline[/red]")
 
 
 def test_dashboard_on_mount_sets_titles(mocker):
