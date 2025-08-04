@@ -17,7 +17,7 @@ from textual.widgets import Footer, Header
 from exosphere.ui.context import screenflags
 from exosphere.ui.dashboard import DashboardScreen
 from exosphere.ui.inventory import InventoryScreen
-from exosphere.ui.logs import LogsScreen, UILogHandler
+from exosphere.ui.logs import LogsScreen, RichLogFormatter, UILogHandler
 from exosphere.ui.messages import HostStatusChanged
 
 
@@ -80,9 +80,7 @@ class ExosphereUi(App):
 
         # Initialize logging handler for logs panel
         self.ui_log_handler = UILogHandler()
-        self.ui_log_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        )
+        self.ui_log_handler.setFormatter(RichLogFormatter(datefmt="%H:%M:%S"))
         logging.getLogger("exosphere").addHandler(self.ui_log_handler)
 
         # Set the default mode to the dashboard
