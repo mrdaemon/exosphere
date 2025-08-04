@@ -387,7 +387,7 @@ class Inventory:
                 host = futures[future]
                 try:
                     result = future.result()
-                    self.logger.info(
+                    self.logger.debug(
                         "Successfully executed %s on %s", host_method, host.name
                     )
                     yield (host, result, None)

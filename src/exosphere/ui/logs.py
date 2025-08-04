@@ -17,6 +17,47 @@ LOG_BUFFER_LOCK = threading.RLock()
 LOG_HANDLER = None
 
 
+class RichLogFormatter(logging.Formatter):
+    """Custom formatter that adds Rich markup with level-specific colors."""
+
+    LEVEL_COLORS = {
+        "DEBUG": "dim",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "bold red",
+    }
+
+    def format(self, record):
+        # Get the color for this log level
+        level_color = self.LEVEL_COLORS.get(record.levelname, "white")
+
+        # Create our custom format with proper alignment and colors
+        timestamp = self.formatTime(record, self.datefmt)
+        logger_name = record.name
+        level_name = record.levelname
+        message = record.getMessage()
+
+        # Strip "exosphere." prefix to save space
+        if logger_name.startswith("exosphere."):
+            logger_name = logger_name[10:]  # Remove "exosphere."
+
+        # Truncate logger name if still too long, keeping the most relevant part
+        if len(logger_name) > 15:
+            # Keep the last 15 characters (usually the most specific part)
+            logger_name = "..." + logger_name[-12:]
+
+        # Format with Rich markup and proper alignment
+        formatted = (
+            f"{timestamp} "
+            f"[{level_color}]{level_name:<8}[/{level_color}] "
+            f"[cyan]{logger_name:<15}[/cyan] "
+            f"{message}"
+        )
+
+        return formatted
+
+
 class UILogHandler(logging.Handler):
     """
     Custom logging handler to display logs in the UI
@@ -77,7 +118,9 @@ class LogsScreen(Screen):
         """Compose the logs layout."""
 
         # Create RichLog widget for displaying logs
-        self.log_widget = RichLog(name="logs", auto_scroll=True, highlight=True)
+        self.log_widget = RichLog(
+            name="logs", auto_scroll=True, markup=True, highlight=True
+        )
 
         yield Header()
         yield self.log_widget

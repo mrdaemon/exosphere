@@ -624,7 +624,7 @@ class TestInventory:
 
         results = list(inventory.run_task(method_name))
 
-        with caplog.at_level("INFO"):
+        with caplog.at_level("DEBUG"):
             results = list(inventory.run_task(method_name))
 
         assert len(results) == 2

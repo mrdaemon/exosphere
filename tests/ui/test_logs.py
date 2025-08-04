@@ -222,7 +222,7 @@ class TestLogsScreen:
         # Check that all widgets were created
         mock_header.assert_called_once()
         mock_richlog.assert_called_once_with(
-            name="logs", auto_scroll=True, highlight=True
+            name="logs", auto_scroll=True, markup=True, highlight=True
         )
         mock_footer.assert_called_once()
 

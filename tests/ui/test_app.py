@@ -123,9 +123,9 @@ class TestExosphereUi:
         # Mock switch_mode method
         mock_switch_mode = mocker.patch.object(app, "switch_mode")
 
-        # Mock the logging formatter
+        # Mock the RichLogFormatter
         mock_formatter = mocker.Mock()
-        mocker.patch("logging.Formatter", return_value=mock_formatter)
+        mocker.patch("exosphere.ui.app.RichLogFormatter", return_value=mock_formatter)
 
         # Create a mock handler instance
         mock_handler_instance = mocker.Mock(spec=UILogHandler)

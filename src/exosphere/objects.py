@@ -289,15 +289,13 @@ class Host:
             raise
 
         except DataRefreshError as e:
-            self.logger.error(
-                "An error occurred during sync for %s: %s",
+            self.logger.debug(
+                "An error occurred during discover for %s: %s",
                 self.name,
                 e.stderr,
             )
             self.online = False
-            raise DataRefreshError(
-                f"An error occured during sync for {self.name}: {str(e)}"
-            ) from e
+            raise
 
         self.os = platform_info.os
         self.version = platform_info.version
