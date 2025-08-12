@@ -30,6 +30,7 @@ class Dnf(PkgManager):
         self.pkgbin = "yum" if use_yum else "dnf"
         super().__init__()
         self.logger.debug("Initializing RedHat DNF package manager")
+        self.security_updates: list[str] = []
 
     def reposync(self, cx: Connection) -> bool:
         """
@@ -65,7 +66,13 @@ class Dnf(PkgManager):
         updates: list[Update] = []
 
         # Get security updates first
-        security_updates = self._get_security_updates(cx)
+        self.security_updates = self._get_security_updates(cx)
+
+        # Get kernel updates second
+        kernel_update = self._get_kernel_updates(cx)
+        if kernel_update:
+            self.logger.debug("A new kernel is available.")
+            updates.append(kernel_update)
 
         # Get all other updates
         with cx as c:
@@ -108,16 +115,30 @@ class Dnf(PkgManager):
 
             parsed_tuples.append((name, version, source))
 
-        self.logger.info("Found %d updates", len(parsed_tuples))
+        self.logger.debug("Found %d update(s)", len(parsed_tuples))
 
         installed_versions = self._get_current_versions(
             cx, [name for name, _, _ in parsed_tuples]
         )
 
         for name, version, source in parsed_tuples:
-            is_security = name in security_updates
+            is_security = name in self.security_updates
 
-            current_version = installed_versions.get(name, "(unknown)")
+            current_version = installed_versions.get(name, None)
+
+            # Handle slotted packages, if they show up for any reason.
+            # We only handle the kernel package as slotted, but it may show
+            # up here in some edge cases or configurations.
+            if isinstance(current_version, list):
+                self.logger.debug(
+                    "Slotted package %s has multiple versions: %s",
+                    name,
+                    current_version,
+                )
+                current_version = current_version[-1] if current_version else None
+                self.logger.debug(
+                    "Using version %s for currently installed.", current_version
+                )
 
             update = Update(
                 name=name,
@@ -130,6 +151,90 @@ class Dnf(PkgManager):
             updates.append(update)
 
         return updates
+
+    def _get_kernel_updates(self, cx: Connection) -> Update | None:
+        """
+        Get latest kernel update if it differs from installed
+
+        This is a separate step due to the way redhat systems usually
+        manage kernel images. The packages are essentially slotted,
+        and they are New Packages, not straight upgrades in any
+        meaningful way.
+        """
+        self.logger.debug("Querying repository for latest kernel")
+
+        # Format the output to match 'check-update'
+        queryformat = "%{NAME}.%{ARCH}\t%{VERSION}-%{RELEASE}\t%{REPOID}"
+
+        with cx as c:
+            raw_query = c.run(
+                f"{self.pkgbin} repoquery -q kernel --latest-limit=1 --qf '{queryformat}'",
+                hide=True,
+                warn=True,
+            )
+
+        if raw_query.failed:
+            raise DataRefreshError(
+                f"Failed to retrieve latest kernel from repo: {raw_query.stderr}"
+            )
+
+        latest: tuple[str, str, str] | None = None
+
+        for line in raw_query.stdout.splitlines():
+            line = line.strip()
+
+            if not line:
+                continue
+
+            parsed = self._parse_line(line)
+
+            if not parsed:
+                self.logger.debug("Failed to parse line: %s. Skipping.", line)
+                continue
+
+            latest = parsed
+            break  # Only one result is expected anyways.
+
+        if not latest:
+            self.logger.warning("Repo query did not return a kernel, skipping check")
+            return None
+
+        latest_name, latest_version, latest_source = latest
+        self.logger.debug("Latest version is %s", latest_version)
+
+        self.logger.debug("Checking installed kernels")
+        installed_kernels = self._get_current_versions(cx, ["kernel"])
+
+        if not installed_kernels:
+            self.logger.warning("No installed kernels found? This is likely a bug.")
+            return None
+
+        # Kernel packages are ALWAYS slotted, and will always return a list
+        installed_versions = [v for k in installed_kernels.values() for v in k]
+
+        if latest_version not in installed_versions:
+            # We can generally assume that if a kernel package is
+            # present in security updates, it's going to be this one,
+            # even though we don't explicitly check and compare the versions.
+            is_security: bool = latest_name in self.security_updates
+
+            self.logger.debug("Found new kernel: %s", latest_version)
+
+            self.logger.debug(
+                "Kernel %s is %s",
+                latest_version,
+                "security" if is_security else "not security",
+            )
+
+            return Update(
+                name=latest_name,
+                current_version=None,
+                new_version=latest_version,
+                source=latest_source,
+                security=is_security,
+            )
+
+        return None
 
     def _get_security_updates(self, cx: Connection) -> list[str]:
         """
@@ -184,7 +289,7 @@ class Dnf(PkgManager):
         Parse a line from the DNF output to create an Update object.
 
         :param line: Line from DNF output.
-        :return: Update object or None if parsing fails.
+        :return: Tuple of (name, version, source) or None if parsing fails.
         """
         parts = line.split()
 
@@ -200,13 +305,21 @@ class Dnf(PkgManager):
 
     def _get_current_versions(
         self, cx: Connection, package_names: list[str]
-    ) -> dict[str, str]:
+    ) -> dict[str, str | list[str]]:
         """
         Get the currently installed version of a package.
 
+        Kernel packages are handled specially since they are slotted.
+        We don't generally care about slotted packages and just clobber it
+        down to a single version, but kernel packages are of interest.
+
+        If 'kernel' is in the package_names, the value will be
+        a list of versions.
+
         :param cx: Fabric Connection object.
-        :param package_name: Name of the package.
-        :return: Currently installed version of the package.
+        :param package_names: Package names to return versions for.
+        :return: Currently installed version of the package, or
+                 list of installed versions if kernel package.
         """
 
         with cx as c:
@@ -234,13 +347,27 @@ class Dnf(PkgManager):
             name = parts[0]
             version = parts[1]
 
-            # If a package shows up more than once in the list, we just
-            # clobber it and keep the last instance.
-            # This looks like a bug, but is intended behavior:
-            # DNF may list both the old and new versions during some
-            # transitions, so we intentionally keep the last listed
-            # version for each package.
-            current_versions[name] = version
+            existing_key = current_versions.get(name)
+
+            # Kernel packages are slotted and we want to keep all of them.
+            if name.split(".")[0] == "kernel":
+                if not existing_key:
+                    current_versions[name] = [version]
+                else:
+                    current_versions[name].append(version)
+            else:
+                # Everything else gets clobbered because slotted packages
+                # generally don't matter from a UX standpoint. We just need
+                # the last version in the results.
+                if existing_key:
+                    self.logger.debug(
+                        "Clobbering %s with %s for package %s",
+                        existing_key,
+                        version,
+                        name,
+                    )
+
+                current_versions[name] = version
 
         self.logger.debug("Current versions: %s", current_versions)
         return current_versions
