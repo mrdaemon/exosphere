@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from exosphere.data import Update
@@ -278,7 +280,20 @@ class TestPkgProvider:
         mock_packages.failed = False
         mock_packages.stdout = output
 
-        mock_connection.run.side_effect = [mock_audit, mock_packages]
+        def side_effect(cmd, *args, **kwargs):
+            if "pkg audit" in cmd:
+                return mock_audit
+            elif "pkg upgrade" in cmd:
+                return mock_packages
+            else:
+                # Default empty response
+                result = mocker.MagicMock()
+                result.stdout = ""
+                result.failed = False
+                result.return_code = 0
+                return result
+
+        mock_connection.run.side_effect = side_effect
 
         return mock_connection
 
@@ -298,7 +313,20 @@ class TestPkgProvider:
         mock_packages.failed = False
         mock_packages.stdout = ""
 
-        mock_connection.run.side_effect = [mock_audit, mock_packages]
+        def side_effect(cmd, *args, **kwargs):
+            if "pkg audit" in cmd:
+                return mock_audit
+            elif "pkg upgrade" in cmd:
+                return mock_packages
+            else:
+                # Default empty response
+                result = mocker.MagicMock()
+                result.stdout = ""
+                result.failed = False
+                result.return_code = 0
+                return result
+
+        mock_connection.run.side_effect = side_effect
         return mock_connection
 
     @pytest.fixture
@@ -315,7 +343,20 @@ class TestPkgProvider:
         mock_packages.failed = True
         mock_packages.stderr = ""
 
-        mock_connection.run.side_effect = [mock_audit, mock_packages]
+        def side_effect(cmd, *args, **kwargs):
+            if "pkg audit" in cmd:
+                return mock_audit
+            elif "pkg upgrade" in cmd:
+                return mock_packages
+            else:
+                # Default empty response
+                result = mocker.MagicMock()
+                result.stdout = ""
+                result.failed = False
+                result.return_code = 0
+                return result
+
+        mock_connection.run.side_effect = side_effect
         return mock_connection
 
     def test_reposync(self, mock_connection):
@@ -464,12 +505,12 @@ class TestDnfProvider:
         git.x86_64                            2.47.1-2.el9_6                    appstream
         git-core.x86_64                       2.47.1-2.el9_6                    appstream
         git-core-doc.noarch                   2.47.1-2.el9_6                    appstream
-        kernel.x86_64                         5.14.0-570.18.1.el9_6             baseos
-        kernel-core.x86_64                    5.14.0-570.18.1.el9_6             baseos
-        kernel-modules.x86_64                 5.14.0-570.18.1.el9_6             baseos
-        kernel-modules-core.x86_64            5.14.0-570.18.1.el9_6             baseos
-        kernel-tools.x86_64                   5.14.0-570.18.1.el9_6             baseos
-        kernel-tools-libs.x86_64              5.14.0-570.18.1.el9_6             baseos
+        openssl.x86_64                        3.0.9-16.el9_6                    baseos
+        openssl-libs.x86_64                   3.0.9-16.el9_6                    baseos
+        systemd.x86_64                        252-18.el9_6                      baseos
+        systemd-libs.x86_64                   252-18.el9_6                      baseos
+        curl.x86_64                           7.76.1-19.el9_6                   baseos
+        curl-minimal.x86_64                   7.76.1-19.el9_6                   baseos
         Obsoleting Packages
         libldb.i686                           4.21.3-3.el9                      baseos
             libldb.x86_64                     2.9.1-2.el9                       @baseos
@@ -496,14 +537,12 @@ class TestDnfProvider:
         git.x86_64                            2.47.0-1.el9_6                    @appstream
         git-core.x86_64                       2.47.0-1.el9_6                    @appstream
         git-core-doc.noarch                   2.47.1-2.el9_6                    @appstream
-        kernel.x86_64                         5.14.0-502.35.1.el9_5             @baseos
-        kernel-core.x86_64                    5.14.0-502.35.1.el9_5             @baseos
-        kernel-modules.x86_64                 5.12.0-502.35.1.el9_5             @baseos
-        kernel-modules.x86_64                 5.13.0-502.35.1.el9_5             @baseos
-        kernel-modules.x86_64                 5.14.0-502.35.1.el9_5             @baseos
-        kernel-modules-core.x86_64            5.14.0-502.35.1.el9_5             @baseos
-        kernel-tools.x86_64                   5.14.0-502.35.1.el9_5             @baseos
-        kernel-tools-libs.x86_64              5.14.0-502.35.1.el9_5             @baseos
+        openssl.x86_64                        3.0.9-15.el9_5                    @baseos
+        openssl-libs.x86_64                   3.0.9-15.el9_5                    @baseos
+        systemd.x86_64                        252-17.el9_5                      @baseos
+        systemd-libs.x86_64                   252-17.el9_5                      @baseos
+        curl.x86_64                           7.76.1-18.el9_5                   @baseos
+        curl-minimal.x86_64                   7.76.1-18.el9_5                   @baseos
         """
 
         mock_return = mocker.MagicMock()
@@ -520,12 +559,11 @@ class TestDnfProvider:
         """
         output = """
 
+        openssl.x86_64                       3.0.9-16.el9_6                     baseos
+        openssl-libs.x86_64                  3.0.9-16.el9_6                     baseos
+        systemd.x86_64                       252-18.el9_6                       baseos
+        systemd-libs.x86_64                  252-18.el9_6                       baseos
         kernel.x86_64                        5.14.0-570.18.1.el9_6              baseos
-        kernel-core.x86_64                   5.14.0-570.18.1.el9_6              baseos
-        kernel-modules.x86_64                5.14.0-570.18.1.el9_6              baseos
-        kernel-modules-core.x86_64           5.14.0-570.18.1.el9_6              baseos
-        kernel-tools.x86_64                  5.14.0-570.18.1.el9_6              baseos
-        kernel-tools-libs.x86_64             5.14.0-570.18.1.el9_6              baseos
         Obsoleting Packages
         libldb.i686                          4.21.3-3.el9                       baseos
             libldb.x86_64                    2.9.1-2.el9                        @baseos
@@ -543,11 +581,65 @@ class TestDnfProvider:
         """
         Fixture to mock the output of the dnf command when no updates are available.
         """
-        mock_connection.run.return_value = mocker.MagicMock()
-        mock_connection.run.return_value.stdout = ""
-        mock_connection.run.return_value.return_code = 0
+
+        # Mock for security updates (empty)
+        mock_security = mocker.MagicMock()
+        mock_security.stdout = ""
+        mock_security.return_code = 0
+        mock_security.failed = False
+
+        # Mock for regular updates (empty)
+        mock_updates = mocker.MagicMock()
+        mock_updates.stdout = ""
+        mock_updates.return_code = 0
+        mock_updates.failed = False
+
+        # Mock for installed packages (minimal kernel)
+        mock_installed = mocker.MagicMock()
+        mock_installed.stdout = "kernel.x86_64  5.14.0-570.18.1.el9_6  @baseos"
+        mock_installed.return_code = 0
+        mock_installed.failed = False
+
+        # Mock for kernel repoquery (same version as installed = no update)
+        mock_kernel = mocker.MagicMock()
+        mock_kernel.stdout = "kernel.x86_64\t5.14.0-570.18.1.el9_6\tbaseos"
+        mock_kernel.return_code = 0
+        mock_kernel.failed = False
+
+        def side_effect(cmd, *args, **kwargs):
+            if "check-update --security" in cmd:
+                return mock_security
+            elif "check-update" in cmd:
+                return mock_updates
+            elif "list installed" in cmd:
+                return mock_installed
+            elif "repoquery" in cmd and "kernel" in cmd:
+                return mock_kernel
+            else:
+                # Default empty response
+                result = mocker.MagicMock()
+                result.stdout = ""
+                result.failed = False
+                result.return_code = 0
+                return result
+
+        mock_connection.run.side_effect = side_effect
 
         return mock_connection
+
+    @pytest.fixture
+    def mock_dnf_kernel_repoquery_return(self, mocker):
+        """
+        Fixture to mock the output of the dnf repoquery command for latest kernel.
+        """
+        output = "kernel.x86_64\t5.14.0-570.18.1.el9_6\tbaseos"
+
+        mock_return = mocker.MagicMock()
+        mock_return.stdout = output
+        mock_return.failed = False
+        mock_return.return_code = 0
+
+        return mock_return
 
     @pytest.fixture
     def run_side_effect_normal(
@@ -555,6 +647,7 @@ class TestDnfProvider:
         mock_dnf_output_return,
         mock_dnf_security_output_return,
         mock_dnf_current_versions_return,
+        mock_dnf_kernel_repoquery_return,
     ):
         def _side_effect(cmd, *args, **kwargs):
             if "dnf check-update --security" in cmd:
@@ -563,8 +656,74 @@ class TestDnfProvider:
                 return mock_dnf_output_return
             elif "dnf list installed" in cmd:
                 return mock_dnf_current_versions_return
+            elif "dnf repoquery" in cmd and "kernel" in cmd:
+                return mock_dnf_kernel_repoquery_return
 
         return _side_effect
+
+    @pytest.fixture
+    def mock_kernel_test_scenario(self, mocker, mock_connection):
+        """
+        Flexible fixture factory for kernel test scenarios.
+        Returns a function that can create different kernel test setups.
+        """
+
+        def create_scenario(
+            security_updates="",
+            regular_updates="",
+            regular_updates_failed=True,
+            regular_updates_code=100,
+            installed_packages="",
+            kernel_query_result="",
+            kernel_query_failed=False,
+            kernel_query_stderr="",
+        ):
+            # Mock security updates
+            mock_security = mocker.MagicMock()
+            mock_security.stdout = security_updates
+            mock_security.failed = False
+            mock_security.return_code = 0
+
+            # Mock regular updates
+            mock_updates = mocker.MagicMock()
+            mock_updates.stdout = regular_updates
+            mock_updates.failed = regular_updates_failed
+            mock_updates.return_code = regular_updates_code
+
+            # Mock installed packages
+            mock_versions = mocker.MagicMock()
+            mock_versions.stdout = installed_packages
+            mock_versions.failed = False
+            mock_versions.return_code = 0
+
+            # Mock kernel repoquery
+            mock_kernel = mocker.MagicMock()
+            mock_kernel.stdout = kernel_query_result
+            mock_kernel.failed = kernel_query_failed
+            mock_kernel.stderr = kernel_query_stderr
+            mock_kernel.return_code = 0 if not kernel_query_failed else 1
+
+            def side_effect(cmd, *args, **kwargs):
+                if "check-update --security" in cmd:
+                    return mock_security
+                elif "check-update" in cmd:
+                    return mock_updates
+                elif "list installed" in cmd:
+                    return mock_versions
+                elif "repoquery" in cmd and "kernel" in cmd:
+                    return mock_kernel
+                else:
+                    # Default empty response
+                    result = mocker.MagicMock()
+                    result.stdout = ""
+                    result.failed = False
+                    result.return_code = 0
+                    return result
+
+            mock_connection.run.side_effect = side_effect
+            return mock_connection
+
+        return create_scenario
 
     @pytest.mark.parametrize(
         "connection_fixture, expected",
@@ -598,7 +757,8 @@ class TestDnfProvider:
         """
         dnf = Dnf()
 
-        # Setup side effects for the connection object, use the security output first
+        # Setup connection side effects for normal run
+        # See fixture for details
         mock_connection.run.side_effect = run_side_effect_normal
 
         try:
@@ -606,15 +766,29 @@ class TestDnfProvider:
         except DataRefreshError as e:
             pytest.fail(f"DataRefreshError should not be raised, got: {e}")
 
-        assert len(updates) == 11
-        assert updates[0].name == "emacs-filesystem.noarch"
-        assert updates[0].new_version == "1:27.2-13.el9_6"
-        assert updates[0].current_version == "1:27.1-10.el9_6"
-        assert not updates[0].security
-        assert updates[5].name == "kernel.x86_64"
-        assert updates[5].new_version == "5.14.0-570.18.1.el9_6"
-        assert updates[5].current_version == "5.14.0-502.35.1.el9_5"
-        assert updates[5].security
+        # We should have exactly 12 updates (11 + kernel)
+        assert len(updates) == 12
+
+        # Sort found updates by name as to not deal with ordering
+        update_by_name = {u.name: u for u in updates}
+
+        # Check some updates for validity
+        emacs = update_by_name["emacs-filesystem.noarch"]
+        assert emacs.new_version == "1:27.2-13.el9_6"
+        assert emacs.current_version == "1:27.1-10.el9_6"
+        assert not emacs.security
+
+        openssl = update_by_name["openssl.x86_64"]
+        assert openssl.new_version == "3.0.9-16.el9_6"
+        assert openssl.current_version == "3.0.9-15.el9_5"
+        assert openssl.security
+
+        # New slotted kernel should be reported
+        kernel = update_by_name["kernel.x86_64"]
+        assert kernel.name == "kernel.x86_64"
+        assert kernel.new_version == "5.14.0-570.18.1.el9_6"
+        assert kernel.current_version is None  # kernel updates have no current_version
+        assert kernel.security
 
     def test_get_updates_no_updates(self, mock_dnf_output_no_updates):
         """
@@ -675,6 +849,147 @@ class TestDnfProvider:
 
         assert implementation.pkgbin == expected_command
 
-        mock_dnf_output_no_updates.run.assert_called_with(
-            f"{expected_command} check-update --quiet -y", hide=True, warn=True
+        # Verify that the correct command binary is used in the calls
+        calls = mock_dnf_output_no_updates.run.call_args_list
+        command_calls = [call[0][0] for call in calls]
+
+        # Should contain the expected command binary in security, regular updates, and kernel queries
+        assert any(
+            f"{expected_command} check-update --security" in cmd
+            for cmd in command_calls
+        )
+        assert any(
+            f"{expected_command} check-update" in cmd and "--security" not in cmd
+            for cmd in command_calls
+        )
+        assert any(f"{expected_command} repoquery" in cmd for cmd in command_calls)
+
+    def test_get_updates_kernel(self, mock_kernel_test_scenario, caplog):
+        """
+        Test kernel update scenario: 3 kernels installed, 1 new kernel available.
+        This tests the slotted package behavior where kernels are stored as lists.
+        """
+        dnf = Dnf()
+
+        # Setup scenario with new kernel available + dummy package
+        mock_connection = mock_kernel_test_scenario(
+            regular_updates="some-package.x86_64\t1.2.3-4.el9\tupdates",
+            installed_packages="""
+            Installed Packages
+            some-package.x86_64  1.2.3-3.el9  @baseos
+            kernel.x86_64  5.14.0-502.35.1.el9_5  @baseos
+            kernel.x86_64  5.14.0-570.16.1.el9_6  @updates
+            kernel.x86_64  5.14.0-570.18.1.el9_6  @updates
+            """,
+            kernel_query_result="kernel.x86_64\t5.14.0-570.19.1.el9_7\tupdates",
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            updates = dnf.get_updates(mock_connection)
+
+        # Should have 2 updates total (1 dummy package + 1 kernel)
+        assert len(updates) == 2
+
+        # Should have 1 kernel update
+        kernel_updates = [u for u in updates if "kernel" in u.name]
+        assert len(kernel_updates) == 1
+
+        kernel_update = kernel_updates[0]
+        assert kernel_update.name == "kernel.x86_64"
+        assert kernel_update.new_version == "5.14.0-570.19.1.el9_7"
+        assert kernel_update.source == "updates"
+
+        # For kernels, current_version is None because it's treated as a "new package"
+        # rather than an upgrade of an existing package
+        assert kernel_update.current_version is None
+
+        # Verify that the new version was not in the installed kernels
+        # (this is what triggers the kernel update logic)
+        assert "Found new kernel: 5.14.0-570.19.1.el9_7" in caplog.text
+
+    def test_get_updates_kernel_only_no_regular_updates(
+        self, mock_kernel_test_scenario, caplog
+    ):
+        """
+        Test that kernel updates are detected even when there are no regular updates.
+        This tests the bug fix for kernel updates being skipped when check-update returns 0.
+        """
+        dnf = Dnf()
+
+        # Setup scenario with kernel update but no regular updates
+        mock_connection = mock_kernel_test_scenario(
+            regular_updates="",
+            regular_updates_failed=False,
+            regular_updates_code=0,
+            installed_packages="""
+            Installed Packages
+            kernel.x86_64  5.14.0-502.35.1.el9_5  @baseos
+            kernel.x86_64  5.14.0-570.16.1.el9_6  @updates
+            """,
+            kernel_query_result="kernel.x86_64\t5.14.0-570.19.1.el9_7\tupdates",
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            updates = dnf.get_updates(mock_connection)
+
+        # Should have exactly 1 kernel update, no regular updates
+        assert len(updates) == 1
+
+        kernel_update = updates[0]
+        assert kernel_update.name == "kernel.x86_64"
+        assert kernel_update.new_version == "5.14.0-570.19.1.el9_7"
+        assert kernel_update.source == "updates"
+        assert kernel_update.current_version is None
+
+        # Verify the logs show both "No updates available" and kernel detection
+        assert "No updates available" in caplog.text
+        assert "Found new kernel: 5.14.0-570.19.1.el9_7" in caplog.text
+
+    def test_get_updates_kernel_query_failed(self, mock_kernel_test_scenario):
+        """
+        Test get_updates when kernel query fails.
+        """
+        dnf = Dnf()
+
+        # Setup scenario with failed kernel query
+        mock_connection = mock_kernel_test_scenario(
+            installed_packages="Installed Packages\nkernel.x86_64  5.14.0-502.35.1.el9_5  @baseos",
+            kernel_query_failed=True,
+            kernel_query_stderr="Repository error",
+        )
+
+        with pytest.raises(
+            DataRefreshError, match="Failed to retrieve latest kernel from repo"
+        ):
+            dnf.get_updates(mock_connection)
+
+    def test_get_updates_with_package_clobbering(
+        self, mock_kernel_test_scenario, caplog
+    ):
+        """
+        Test get_updates when non-kernel packages get clobbered in current versions.
+        """
+        dnf = Dnf()
+
+        # Setup scenario with clobbering packages and no kernel update
+        mock_connection = mock_kernel_test_scenario(
+            installed_packages="""
+            Installed Packages
+            openssl.x86_64  3.0.9-15.el9_5  @baseos
+            openssl.x86_64  3.0.9-16.el9_6  @updates
+            kernel.x86_64  5.14.0-502.35.1.el9_5  @baseos
+            kernel.x86_64  5.14.0-570.18.1.el9_6  @updates
+            """,
+            kernel_query_result="kernel.x86_64\t5.14.0-570.18.1.el9_6\tbaseos",
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            updates = dnf.get_updates(mock_connection)
+
+        # Should have no updates since no newer packages available
+        assert len(updates) == 0
+
+        assert (
+            "Clobbering 3.0.9-15.el9_5 with 3.0.9-16.el9_6 for package openssl.x86_64"
+            in caplog.text
         )
