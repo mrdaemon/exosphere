@@ -64,10 +64,15 @@ elevated privileges.
 Exact Commands ran on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- ``yum makecache --refresh --quiet -y`` or ``dnf makecache --refresh --quiet -y``
-- ``yum check-update --quiet -y`` or ``dnf check-update --quiet -y``
-- ``yum check-update --security --quiet -y`` or ``dnf check-update --security --quiet -y``
-- ``yum list installed --quiet -y`` or ``dnf list installed --quiet -y``
+.. note::
+
+   If your system uses ``yum`` you can replace ``dnf`` with it here.
+
+- ``dnf makecache --refresh --quiet -y``
+- ``dnf check-update --quiet -y``
+- ``dnf check-update --security --quiet -y``
+- ``dnf list installed --quiet -y <package_name>``
+- ``dnf repoquery -q kernel --latest-limit=1 -qf '%{NAME}.%{ARCH}\t%{VERSION}-%{RELEASE}\t%{REPOID}'``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
