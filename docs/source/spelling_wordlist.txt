@@ -2,6 +2,7 @@ quickstart
 toml
 unicity
 dicts
+dev
 tomllib
 dataclass
 dataclasses
