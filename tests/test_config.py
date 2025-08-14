@@ -432,6 +432,38 @@ class TestConfiguration:
                 }
             )
 
+    @pytest.mark.parametrize(
+        "hosts_data,expected_error_match",
+        [
+            # Missing required fields
+            (
+                [{"ip": "127.0.0.4"}],
+                "missing required 'name' field",
+            ),
+            (
+                [{"name": "host4"}],
+                "missing required 'ip' field",
+            ),
+            # Invalid characters in fields
+            (
+                [{"name": "host1", "ip": "user@127.0.0.1"}],
+                "invalid hostname or ip.*'@' character is not allowed",
+            ),
+        ],
+        ids=["missing_name", "missing_ip", "at_in_ip"],
+    )
+    def test_update_from_mapping_validation_errors(
+        self, hosts_data, expected_error_match
+    ):
+        """
+        Ensure that the configuration object raises appropriate ValueError
+        for various validation failures in the host section.
+        """
+        config = Configuration()
+
+        with pytest.raises(ValueError, match=expected_error_match):
+            config.update_from_mapping({"hosts": hosts_data})
+
     def test_update_from_env(self, mocker, monkeypatch):
         """
         Ensure that the Configuration object can be updated
