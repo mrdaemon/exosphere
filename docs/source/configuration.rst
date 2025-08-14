@@ -863,6 +863,11 @@ Below is the detailed list of all available host options and their defaults.
     It is recommended to use a fully qualified domain name or an IP address
     to avoid issues with DNS resolution.
 
+    .. attention::
+
+        The **ip** field must not contain the ``@`` character. To specify a username,
+        use the :option:`username` field instead.
+
     **Mandatory**: Yes
 
     **Example**:
