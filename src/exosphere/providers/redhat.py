@@ -237,7 +237,7 @@ class Dnf(PkgManager):
 
             return Update(
                 name=latest_name,
-                current_version=None,
+                current_version=installed_versions[-1] if installed_versions else None,
                 new_version=latest_version,
                 source=latest_source,
                 security=is_security,

@@ -553,6 +553,23 @@ class TestDnfProvider:
         return mock_return
 
     @pytest.fixture
+    def mock_dnf_current_versions_kernel_return(self, mocker):
+        output = """
+
+        Installed Packages
+        kernel.x86_64  5.14.0-502.35.1.el9_5  @baseos
+        kernel.x86_64  5.14.0-570.16.1.el9_6  @updates
+        kernel.x86_64  5.14.0-570.18.1.el9_6  @updates
+        """
+
+        mock_return = mocker.MagicMock()
+        mock_return.stdout = output
+        mock_return.failed = False
+        mock_return.return_code = 0
+
+        return mock_return
+
+    @pytest.fixture
     def mock_dnf_security_output_return(self, mocker):
         """
         Fixture to mock the output of the dnf command for security updates.
@@ -631,6 +648,7 @@ class TestDnfProvider:
     def mock_dnf_kernel_repoquery_return(self, mocker):
         """
         Fixture to mock the output of the dnf repoquery command for latest kernel.
+        Returns the same version as the most recent installed kernel (no update needed).
         """
         output = "kernel.x86_64\t5.14.0-570.18.1.el9_6\tbaseos"
 
@@ -647,6 +665,7 @@ class TestDnfProvider:
         mock_dnf_output_return,
         mock_dnf_security_output_return,
         mock_dnf_current_versions_return,
+        mock_dnf_current_versions_kernel_return,
         mock_dnf_kernel_repoquery_return,
     ):
         def _side_effect(cmd, *args, **kwargs):
@@ -654,6 +673,12 @@ class TestDnfProvider:
                 return mock_dnf_security_output_return
             elif "dnf check-update" in cmd:
                 return mock_dnf_output_return
+            elif (
+                "dnf list installed" in cmd
+                and "kernel" in cmd
+                and "kernel.x86_64" not in cmd
+            ):
+                return mock_dnf_current_versions_kernel_return
             elif "dnf list installed" in cmd:
                 return mock_dnf_current_versions_return
             elif "dnf repoquery" in cmd and "kernel" in cmd:
@@ -766,8 +791,8 @@ class TestDnfProvider:
         except DataRefreshError as e:
             pytest.fail(f"DataRefreshError should not be raised, got: {e}")
 
-        # We should have exactly 12 updates (11 + kernel)
-        assert len(updates) == 12
+        # We should have exactly 11 updates (no kernel update in this scenario)
+        assert len(updates) == 11
 
         # Sort found updates by name as to not deal with ordering
         update_by_name = {u.name: u for u in updates}
@@ -783,12 +808,9 @@ class TestDnfProvider:
         assert openssl.current_version == "3.0.9-15.el9_5"
         assert openssl.security
 
-        # New slotted kernel should be reported
-        kernel = update_by_name["kernel.x86_64"]
-        assert kernel.name == "kernel.x86_64"
-        assert kernel.new_version == "5.14.0-570.18.1.el9_6"
-        assert kernel.current_version is None  # kernel updates have no current_version
-        assert kernel.security
+        # Ensure no kernel updates are reported in this basic scenario
+        kernel_updates = [u for u in updates if "kernel" in u.name]
+        assert len(kernel_updates) == 0
 
     def test_get_updates_no_updates(self, mock_dnf_output_no_updates):
         """
@@ -896,12 +918,9 @@ class TestDnfProvider:
 
         kernel_update = kernel_updates[0]
         assert kernel_update.name == "kernel.x86_64"
+        assert kernel_update.current_version == "5.14.0-570.18.1.el9_6"
         assert kernel_update.new_version == "5.14.0-570.19.1.el9_7"
         assert kernel_update.source == "updates"
-
-        # For kernels, current_version is None because it's treated as a "new package"
-        # rather than an upgrade of an existing package
-        assert kernel_update.current_version is None
 
         # Verify that the new version was not in the installed kernels
         # (this is what triggers the kernel update logic)
@@ -939,7 +958,7 @@ class TestDnfProvider:
         assert kernel_update.name == "kernel.x86_64"
         assert kernel_update.new_version == "5.14.0-570.19.1.el9_7"
         assert kernel_update.source == "updates"
-        assert kernel_update.current_version is None
+        assert kernel_update.current_version == "5.14.0-570.16.1.el9_6"
 
         # Verify the logs show both "No updates available" and kernel detection
         assert "No updates available" in caplog.text
