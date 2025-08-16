@@ -993,3 +993,41 @@ class TestDnfProvider:
             "Clobbering 3.0.9-15.el9_5 with 3.0.9-16.el9_6 for package openssl.x86_64"
             in caplog.text
         )
+
+    def test_get_updates_duplicate_packages(self, mock_kernel_test_scenario, caplog):
+        """
+        Test get_updates when duplicate packages are provided by both kernel
+        and regular updates.
+        """
+        dnf = Dnf()
+
+        # Setup scenario with duplicate packages
+        mock_connection = mock_kernel_test_scenario(
+            security_updates="""
+            Security Updates
+            openssl.x86_64  3.0.9-16.el9_6  @updates
+            kernel.x86_64  5.14.0-570.19.1.el9_6  @updates
+            """,
+            regular_updates="""
+            openssl.x86_64  3.0.9-16.el9_6  @updates
+            kernel.x86_64  5.14.0-570.19.1.el9_6  @updates
+            """,
+            regular_updates_failed=False,
+            installed_packages="""
+            Installed Packages
+            openssl.x86_64  3.0.9-15.el9_5  @baseos
+            kernel.x86_64  5.14.0-502.35.1.el9_5  @baseos
+            kernel.x86_64  5.14.0-570.18.1.el9_6  @updates
+            """,
+            kernel_query_result="kernel.x86_64\t5.14.0-570.19.1.el9_6\tbaseos",
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            updates = dnf.get_updates(mock_connection)
+
+        # Should have only ONE instance of `kernel.x86_64`
+        assert len([u for u in updates if u.name == "kernel.x86_64"]) == 1
+
+        assert (
+            "Update for kernel.x86_64 is already in the list, skipping"
+        ) in caplog.text
