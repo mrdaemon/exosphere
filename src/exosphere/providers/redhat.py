@@ -122,6 +122,15 @@ class Dnf(PkgManager):
         )
 
         for name, version, source in parsed_tuples:
+            # If update was provided by security or kernel checks, skip it here
+            # Whether it shows up in both lists depends on configuration and
+            # this varies from specific flavor to flavor.
+            if name in [u.name for u in updates]:
+                self.logger.debug(
+                    "Update for %s is already in the list, skipping", name
+                )
+                continue
+
             is_security = name in self.security_updates
 
             current_version = installed_versions.get(name, None)
