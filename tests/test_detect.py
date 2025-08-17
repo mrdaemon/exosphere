@@ -251,6 +251,7 @@ class TestDetection:
             version="12",
             flavor="debian",
             package_manager="apt",
+            is_supported=True,
         )
 
         # Call the function to test
@@ -268,3 +269,26 @@ class TestDetection:
         # Call the function and expect it to raise an OfflineHostError
         with pytest.raises(OfflineHostError):
             platform_detect(connection)
+
+    def test_platform_detect_unsupported_os(self, connection) -> None:
+        """
+        Test for platform detection with unsupported OS
+        """
+        # Mock the connection to return an unsupported OS
+        connection.run.side_effect = [
+            _run_return(False, "Darwin\n"),  # macOS - unsupported platform
+            # flavor_detect will raise UnsupportedOSError for darwin
+        ]
+
+        expected = HostInfo(
+            os="darwin",
+            version=None,
+            flavor=None,
+            package_manager=None,
+            is_supported=False,
+        )
+
+        # Call the function to test
+        platform_info = platform_detect(connection)
+
+        assert platform_info == expected
