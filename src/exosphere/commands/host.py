@@ -88,7 +88,13 @@ def show(
             f"[bold]Host Name:[/bold] {host.name}\n"
             f"[bold]IP Address:[/bold] {host.ip}\n"
             f"[bold]Port:[/bold] {host.port}\n"
-            f"[bold]Online Status:[/bold] {'[bold green]Online[/bold green]' if host.online else '[red]Offline[/red]'}\n"
+            f"[bold]Online Status:[/bold] {'[bold green]Online[/bold green]' if host.online else '[red]Offline[/red]'}"
+            + (
+                " ([yellow]Unsupported OS[/yellow])"
+                if host.online and not getattr(host, "supported", True)
+                else ""
+            )
+            + "\n"
             "\n"
             f"[bold]Last Refreshed:[/bold] {last_refresh}\n"
             f"[bold]Stale:[/bold] {'[yellow]Yes[/yellow]' if host.is_stale else 'No'}\n"
