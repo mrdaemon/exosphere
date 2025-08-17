@@ -35,6 +35,7 @@ def create_host(mocker):
         security_updates=None,
         online=True,
         is_stale=False,
+        supported=True,
     ):
         host = mocker.create_autospec(Host, instance=True)
         host.name = name
@@ -45,6 +46,7 @@ def create_host(mocker):
         host.security_updates = security_updates if security_updates is not None else []
         host.online = online
         host.is_stale = is_stale
+        host.supported = supported
         return host
 
     return _create_host
@@ -204,6 +206,31 @@ class TestStatusCommand:
         assert "0" in result.output  # Should show 0 updates and security updates
         assert "*" in result.output  # Should show stale indicator out of the box
 
+    def test_with_unsupported_host(self, create_host, mock_inventory):
+        """
+        Test the status command with unsupported hosts
+        """
+        host = create_host(
+            name="host8",
+            os="exotic-os",
+            flavor=None,
+            version=None,
+            updates=[],
+            security_updates=[],
+            online=True,
+            supported=False,
+        )
+
+        mock_inventory.hosts = [host]
+
+        result = runner.invoke(inventory_module.app, ["status"])
+
+        assert result.exit_code == 0
+        assert "host8" in result.output
+        assert "exotic-os" in result.output
+        assert "(unsupport" in result.output  # Result will be truncated in output
+        assert result.output.count("(unsupport") == 2
+
     def test_multiple_hosts_with_different_states(self, create_host, mock_inventory):
         """
         Test status command with multiple hosts having different online/stale states.
@@ -241,6 +268,19 @@ class TestStatusCommand:
         )
         hosts.append(host3)
 
+        # Unsupported host
+        host4 = create_host(
+            name="server4",
+            os="exotic-os",
+            flavor=None,
+            version=None,
+            updates=[],
+            security_updates=[],
+            online=True,
+            supported=False,
+        )
+        hosts.append(host4)
+
         mock_inventory.hosts = hosts
 
         result = runner.invoke(inventory_module.app, ["status"])
@@ -251,8 +291,9 @@ class TestStatusCommand:
         assert "server3" in result.output
         assert "ubuntu" in result.output
         assert "centos" in result.output
-        assert result.output.count("Online") == 2  # server1 and server2 are online
-        assert result.output.count("Offline") == 1  # server3 is offline
+        assert "exotic-os" in result.output
+        assert result.output.count("Online") == 3
+        assert result.output.count("Offline") == 1
         assert "2 *" in result.output  # Stale updates for server2
 
 

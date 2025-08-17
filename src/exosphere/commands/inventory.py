@@ -318,7 +318,7 @@ def status(
         # Prepare some rendering data for suffixes and placeholders
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
         unknown_status = "[dim](unknown)[/dim]"
-        unsupported_status = "[dim](Unsupported)[/dim]"
+        unsupported_status = "[dim](unsupported)[/dim]"
 
         # Prepare the table row data
         updates = f"{len(host.updates)}{stale_suffix}"
@@ -337,7 +337,6 @@ def status(
             if value:
                 return value
             elif host.online and not getattr(host, "supported", True):
-                # Show (Unsupported) for online but unsupported hosts
                 return unsupported_status
             else:
                 return unknown_status

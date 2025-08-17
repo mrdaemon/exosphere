@@ -595,6 +595,22 @@ class TestHostObject:
 
         assert host.is_stale is False
 
+    def test_is_stale_false_if_unsupported(self, mocker):
+        """
+        Test that unsupported hosts never return stale status
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+        host.supported = False
+
+        mocker.patch(
+            "exosphere.objects.app_config", {"options": {"stale_threshold": 60}}
+        )
+
+        host.last_refresh = datetime.now() - timedelta(seconds=30)
+
+        assert host.is_stale is False
+
     def test_sync_repos_success(
         self, mocker, mock_connection, mock_config_with_sudopolicy_pass
     ):
