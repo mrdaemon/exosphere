@@ -411,12 +411,30 @@ class TestHostObject:
 
         assert host.online is False
 
-    def test_host_repr(self):
+    @pytest.mark.parametrize(
+        "host_config,expected_repr",
+        [
+            (
+                {"name": "test_host", "ip": "10.0.0.2", "port": 22},
+                "Host(name='test_host', ip='10.0.0.2', port='22')",
+            ),
+            (
+                {"name": "server1", "ip": "192.168.1.10"},
+                "Host(name='server1', ip='192.168.1.10', port='22')",
+            ),
+            (
+                {"name": "web_server", "ip": "172.16.0.5", "port": 8080},
+                "Host(name='web_server', ip='172.16.0.5', port='8080')",
+            ),
+        ],
+        ids=["basic", "default_port", "custom_port"],
+    )
+    def test_host_repr(self, host_config, expected_repr):
         """
-        Test the string representation of the Host object.
+        Test the string representation (__repr__) of the Host object.
         """
-        host = Host(name="test_host", ip="10.0.0.2", port=22)
-        assert repr(host) == "Host(name='test_host', ip='10.0.0.2', port='22')"
+        host = Host(**host_config)
+        assert repr(host) == expected_repr
 
     def test_host_getstate_removes_unserializables(self, mocker):
         """
@@ -876,19 +894,90 @@ class TestHostObject:
 
         assert expected_warning in caplog.text
 
-    def test_host_string_representation_unsupported(self):
+    @pytest.mark.parametrize(
+        "host_state,expected_status,expected_platform",
+        [
+            # Online supported host
+            (
+                {
+                    "online": True,
+                    "supported": True,
+                    "os": "Ubuntu",
+                    "version": "22.04",
+                    "flavor": "Server",
+                    "package_manager": "apt",
+                },
+                "Online",
+                "Ubuntu, 22.04, Server, apt",
+            ),
+            # Online unsupported host
+            (
+                {
+                    "online": True,
+                    "supported": False,
+                    "os": None,
+                    "version": None,
+                    "flavor": None,
+                    "package_manager": None,
+                },
+                "Online (Unsupported)",
+                "None, None, None, None",
+            ),
+            # Offline supported host (discovered)
+            (
+                {
+                    "online": False,
+                    "supported": True,
+                    "os": "Debian",
+                    "version": "11",
+                    "flavor": "Bullseye",
+                    "package_manager": "apt",
+                },
+                "Offline",
+                "Debian, 11, Bullseye, apt",
+            ),
+            # Offline undiscovered host
+            (
+                {
+                    "online": False,
+                    "supported": True,
+                    "os": None,
+                    "version": None,
+                    "flavor": None,
+                    "package_manager": None,
+                },
+                "Offline",
+                "None, None, None, None",
+            ),
+        ],
+        ids=[
+            "online_supported",
+            "online_unsupported",
+            "offline_supported",
+            "offline_undiscovered",
+        ],
+    )
+    def test_host_string_representation(
+        self, host_state, expected_status, expected_platform
+    ):
         """
-        Test the string representation shows unsupported status correctly
+        Test the string representation (__str__) shows different host states correctly
         """
         host = Host(name="test_host", ip="127.0.0.1")
-        host.online = True
-        host.supported = False
+
+        # Set host state
+        for attr, value in host_state.items():
+            setattr(host, attr, value)
 
         result = str(host)
-        # Should show "Online (Unsupported)" in status, not repeated in platform info
-        assert "Online (Unsupported)" in result
-        assert "None, None, None, None" in result
-        assert "Unsupported, Unsupported, Unsupported, Unsupported" not in result
+
+        # Verify the expected status and platform info are in the result
+        assert expected_status in result
+        assert expected_platform in result
+
+        # For unsupported hosts, ensure we don't show repeated "Unsupported" text
+        if not host_state["supported"]:
+            assert "Unsupported, Unsupported, Unsupported, Unsupported" not in result
 
     def test_host_initialization_supported_defaults(self):
         """
