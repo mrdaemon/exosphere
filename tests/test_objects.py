@@ -842,9 +842,11 @@ class TestHostObject:
             ("refresh_updates", "Update refresh is not available."),
             ("sync_repos", "Repository sync is not available"),
         ],
-        ids=["refresh_updates", "sync_repos"]
+        ids=["refresh_updates", "sync_repos"],
     )
-    def test_unsupported_host_operations(self, mocker, caplog, method_name, expected_warning):
+    def test_unsupported_host_operations(
+        self, mocker, caplog, method_name, expected_warning
+    ):
         """
         Test that operations on unsupported hosts log appropriate warnings
         """
