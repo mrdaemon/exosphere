@@ -20,9 +20,10 @@ class HostInfo:
     """
 
     os: str
-    version: str
-    flavor: str
-    package_manager: str
+    version: str | None
+    flavor: str | None
+    package_manager: str | None
+    is_supported: bool
 
 
 @dataclass(frozen=True)
