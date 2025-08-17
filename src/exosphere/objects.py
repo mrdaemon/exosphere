@@ -356,6 +356,15 @@ class Host:
         if not self.online:
             raise OfflineHostError(f"Host {self.name} is offline or unreachable.")
 
+        # If the platform is not supported, skip operation
+        if not self.supported:
+            self.logger.warning(
+                "Host %s uses an unsupported OS/platform. "
+                "Repository sync is not available.",
+                self.name,
+            )
+            return
+
         # If the concrete package manager provider is not set,
         # refuse the temptation to guess or force a sync, and throw
         # an exception instead. Caller can deal with it.
@@ -390,6 +399,15 @@ class Host:
         """
         if not self.online:
             raise OfflineHostError(f"Host {self.name} is offline.")
+
+        # If the platform is not supported, skip operation
+        if not self.supported:
+            self.logger.warning(
+                "Host %s uses an unsupported OS/platform. "
+                "Update refresh is not available.",
+                self.name,
+            )
+            return
 
         if self._pkginst is None:
             self.logger.error("Package manager implementation unavailable!")
