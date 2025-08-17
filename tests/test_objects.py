@@ -785,3 +785,88 @@ class TestHostObject:
             "Skipping updates refresh on test_host due to SudoPolicy: skip"
             in caplog.text
         )
+    def test_host_discovery_unsupported_os(self, mocker, mock_connection):
+        """
+        Test that discover preserves online status for unsupported OS
+        but marks host as unsupported
+        """
+        from exosphere.data import HostInfo
+
+        # Mock platform_detect to return HostInfo with is_supported=False
+        unsupported_host_info = HostInfo(
+            os="exotic-os",
+            version=None,
+            flavor=None,
+            package_manager=None,
+            is_supported=False,
+        )
+        mocker.patch(
+            "exosphere.setup.detect.platform_detect",
+            return_value=unsupported_host_info,
+        )
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        # Mock ping to set online status to True and return True
+        def mock_ping(raise_on_error=False):
+            host.online = True
+            return True
+
+        mocker.patch.object(host, "ping", side_effect=mock_ping)
+
+        # discover() should complete without raising an exception
+        host.discover()
+
+        # Host should remain online but be marked as unsupported
+        assert host.online is True
+        assert host.supported is False
+
+        # Platform info should reflect the HostInfo returned
+        assert host.os == "exotic-os"  # OS should be populated
+        assert host.version is None
+        assert host.flavor is None
+        assert host.package_manager is None
+        assert host._pkginst is None
+
+    @pytest.mark.parametrize(
+        "method_name, expected_warning",
+        [
+            ("refresh_updates", "Update refresh is not available."),
+            ("sync_repos", "Repository sync is not available"),
+        ],
+        ids=["refresh_updates", "sync_repos"]
+    )
+    def test_unsupported_host_operations(self, mocker, caplog, method_name, expected_warning):
+        """
+        Test that operations on unsupported hosts log appropriate warnings
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+        host.supported = False
+
+        with caplog.at_level("WARNING"):
+            method = getattr(host, method_name)
+            method()
+
+        assert expected_warning in caplog.text
+
+    def test_host_string_representation_unsupported(self):
+        """
+        Test the string representation shows unsupported status correctly
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+        host.supported = False
+
+        result = str(host)
+        # Should show "Online (Unsupported)" in status, not repeated in platform info
+        assert "Online (Unsupported)" in result
+        assert "None, None, None, None" in result
+        assert "Unsupported, Unsupported, Unsupported, Unsupported" not in result
+
+    def test_host_initialization_supported_defaults(self):
+        """
+        Test that new hosts default to supported until discovery
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        assert host.supported is True
