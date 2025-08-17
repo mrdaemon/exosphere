@@ -497,10 +497,17 @@ class Host:
         return self.online
 
     def __str__(self):
+        if self.online and self.supported:
+            status = "Online"
+        elif self.online and not self.supported:
+            status = "Online (Unsupported)"
+        else:
+            status = "Offline"
+
         return (
             f"{self.name} ({self.ip}:{self.port}) "
             f"[{self.os}, {self.version}, {self.flavor}, "
-            f"{self.package_manager}], {'Online' if self.online else 'Offline'}"
+            f"{self.package_manager}], {status}"
         )
 
     def __repr__(self):
