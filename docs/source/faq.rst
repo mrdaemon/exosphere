@@ -16,6 +16,16 @@ make informed decisions about what needs patching, and when.
 This functionality is not planned, and left to frankly better tooling that
 already exists, such as `UnattendedUpgrades`_, `Ansible`_, `RunDeck`_, etc.
 
+I really like the dashboard. Can I still use it if my systems are unsupported?
+------------------------------------------------------------------------------
+
+Yes. If your remote operating system is not supported, Exosphere will allow
+you to use the dashboard and online checks (ping command, etc) just fine.
+
+You won't be able to perform refresh or sync operation on them, and the update
+counts will be disabled, but this part will remain functional.
+
+
 Can I specify a custom path for the configuration file?
 -------------------------------------------------------
 

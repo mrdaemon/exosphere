@@ -7,6 +7,10 @@ in what operating systems and platforms it can manage and query.
 Platform support for Patches and Updates are implemented via an extensible
 provider system, which allows for new platforms to be added in the future.
 
+**If your remote operating system is not supported**, you can still use Exosphere for
+the basic SSH ping connectivity checks and Dashboard. They will show up in the
+inventory, but no patch and update reporting features will be available for them.
+
 Currently, Exosphere can manage and query the following platforms:
 
 **Debian-based Systems**
