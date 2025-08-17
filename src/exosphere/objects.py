@@ -142,7 +142,7 @@ class Host:
         # Reset unserializables
         self.logger = logging.getLogger(__name__)
         self._connection = None
-        if "package_manager" in state:
+        if "package_manager" in state and state["supported"]:
             self._pkginst = PkgManagerFactory.create(state["package_manager"])
 
         # Ensure all parameters with defaults are properly set
