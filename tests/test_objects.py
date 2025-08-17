@@ -453,6 +453,7 @@ class TestHostObject:
             "version": "12",
             "flavor": "debian",
             "package_manager": "apt",
+            "supported": True,
             "_connection": "THE BEFORES",
             "_pkginst": "THE BEFORES",
             "updates": [],
@@ -481,7 +482,7 @@ class TestHostObject:
         parameters that were not present when last serialized.
         """
 
-        # State without sudo_policy and connect_timeout
+        # State without sudo_policy, connect_timeout and supported
         legacy_state = {
             "name": "test_host",
             "ip": "127.0.0.1",
@@ -501,6 +502,7 @@ class TestHostObject:
         # Ensure new defaults are applied
         assert host.connect_timeout == 10
         assert host.sudo_policy == SudoPolicy.SKIP
+        assert host.supported is True
 
     def test_host_setstate_valueerror_on_missing_required(self, mocker):
         """
