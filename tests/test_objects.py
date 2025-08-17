@@ -603,6 +603,7 @@ class TestHostObject:
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
+        host.supported = True
 
         pkg_manager = mocker.Mock()
         pkg_manager.reposync.return_value = True
@@ -631,6 +632,7 @@ class TestHostObject:
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
+        host.supported = True
         host._pkginst = None
 
         with pytest.raises(DataRefreshError):
@@ -671,6 +673,7 @@ class TestHostObject:
 
         host = Host(name="test_host", ip="127.0.0.1", sudo_policy=SudoPolicy.SKIP)
         host.online = True
+        host.supported = True
 
         host._pkginst = mock_pkg
 
@@ -692,6 +695,7 @@ class TestHostObject:
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
+        host.supported = True
 
         pkg_manager = mocker.Mock()
         updates_list = [mocker.Mock(), mocker.Mock()]
@@ -716,6 +720,7 @@ class TestHostObject:
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
+        host.supported = True
 
         pkg_manager = mocker.Mock()
         pkg_manager.get_updates.return_value = []
@@ -748,6 +753,7 @@ class TestHostObject:
         """
         host = Host(name="test_host", ip="127.0.0.1")
         host.online = True
+        host.supported = True
         host._pkginst = None
 
         caplog.set_level("ERROR")
@@ -773,6 +779,7 @@ class TestHostObject:
 
         host = Host(name="test_host", ip="127.0.0.8", sudo_policy=SudoPolicy.SKIP)
         host.online = True
+        host.supported = True
 
         host._pkginst = mock_pkg
 
@@ -785,6 +792,7 @@ class TestHostObject:
             "Skipping updates refresh on test_host due to SudoPolicy: skip"
             in caplog.text
         )
+
     def test_host_discovery_unsupported_os(self, mocker, mock_connection):
         """
         Test that discover preserves online status for unsupported OS
