@@ -9,6 +9,7 @@ from exosphere.ui.messages import HostStatusChanged
 def host_online():
     host = Host(name="host1", ip="127.0.0.2", description="Test host")
     host.online = True
+    host.supported = True
     host.flavor = "Ubuntu"
     host.version = "22.04"
     return host
@@ -18,6 +19,7 @@ def host_online():
 def host_offline():
     host = Host(name="host2", ip="127.0.0.3", description=None)
     host.online = False
+    host.supported = True
     host.flavor = "Debian"
     host.version = "11"
     return host
@@ -27,6 +29,17 @@ def host_offline():
 def host_undiscovered():
     host = Host(name="host3", ip="127.0.0.4", description=None)
     host.online = False
+    host.supported = True
+    host.flavor = None
+    host.version = None
+    return host
+
+
+@pytest.fixture
+def host_unsupported():
+    host = Host(name="host4", ip="127.0.0.5", description=None)
+    host.online = True
+    host.supported = False
     host.flavor = None
     host.version = None
     return host
@@ -145,6 +158,25 @@ def test_hostwidget_compose_offline_undiscovered(host_undiscovered, mocker):
     assert "(Undiscovered)" in calls[1][0][0]  # version
     assert calls[2][0][0] == ""  # description (empty)
     assert "[red]Offline[/red]" in calls[3][0][0]  # status
+
+
+def test_hostwidget_compose_online_unsupported(mocker, host_unsupported):
+    """Test that HostWidget composes correctly for an online but unsupported host."""
+    mock_container = mocker.MagicMock()
+    mock_label = mocker.MagicMock()
+
+    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    label_mock = mocker.patch("exosphere.ui.dashboard.Label", return_value=mock_label)
+
+    widget = HostWidget(host_unsupported)
+    result = list(widget.compose())
+
+    assert len(result) == 4
+
+    calls = label_mock.call_args_list
+    assert "[b]host4[/b]" in calls[0][0][0]  # name
+    assert "[dim](Unsupported)[/dim]" in calls[1][0][0]
+    assert "[green]Online[/green]" in calls[3][0][0]
 
 
 def test_hostwidget_init():
