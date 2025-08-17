@@ -318,6 +318,7 @@ def status(
         # Prepare some rendering data for suffixes and placeholders
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
         unknown_status = "[dim](unknown)[/dim]"
+        unsupported_status = "[dim](Unsupported)[/dim]"
 
         # Prepare the table row data
         updates = f"{len(host.updates)}{stale_suffix}"
@@ -331,12 +332,22 @@ def status(
             "[bold green]Online[/bold green]" if host.online else "[red]Offline[/red]"
         )
 
+        # Handle platform info display with unsupported status
+        def get_platform_info(value, attr_name):
+            if value:
+                return value
+            elif host.online and not getattr(host, "supported", True):
+                # Show (Unsupported) for online but unsupported hosts
+                return unsupported_status
+            else:
+                return unknown_status
+
         # Construct table
         table.add_row(
             host.name,
-            host.os or unknown_status,
-            host.flavor or unknown_status,
-            host.version or unknown_status,
+            get_platform_info(host.os, "os"),
+            get_platform_info(host.flavor, "flavor"),
+            get_platform_info(host.version, "version"),
             updates,
             security_updates,
             online_status,
