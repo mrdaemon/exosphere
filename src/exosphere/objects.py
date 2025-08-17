@@ -139,6 +139,10 @@ class Host:
 
         self.__dict__.update(state)
 
+        # Ensure supported member is set for backward compatibility
+        if not hasattr(self, "supported"):
+            self.supported = True
+
         # Reset unserializables
         self.logger = logging.getLogger(__name__)
         self._connection = None
@@ -175,10 +179,6 @@ class Host:
                         "Unable to de-serialize Host object state: "
                         f"Missing required parameter '{name}'"
                     )
-
-        # Ensure supported field is set for backward compatibility
-        if not hasattr(self, "supported"):
-            self.supported = True
 
     @property
     def connection(self) -> Connection:
