@@ -44,6 +44,7 @@ class TestHostObject:
             version="12",
             flavor="debian",
             package_manager="apt",
+            is_supported=True,
         )
 
         mocker.patch("exosphere.setup.detect.platform_detect", return_value=hostinfo)
