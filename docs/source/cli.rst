@@ -173,9 +173,17 @@ by running:
 This will attempt to SSH into each host and check if it is online. If a host
 is not reachable, it will be marked as offline and an error will be printed.
 
+This is **not** an ICMP ping, but rather a full SSH connectivity check. 
+It will only return "Online" if the host can be connected to successfully,
+and a trivial test command can be executed.
+
 It can be a good way of validating connectivity to hosts. If ping returns "Online"
 for all hosts, you can be certain your SSH connectivity is working within the
 context of Exosphere.
+
+This is by design to avoid scenarios where a host is reachable but not fully
+operational, for instance mid-startup or mid-shutdown, which would cause
+subsequent queries or operations to fail.
 
 Hosts marked as Offline will be skipped in most operations such as ``refresh``
 for performance reasons. You can invoke Ping to refresh this status at any time.
