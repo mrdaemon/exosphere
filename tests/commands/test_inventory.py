@@ -230,6 +230,7 @@ class TestStatusCommand:
         assert "exotic-os" in result.output
         assert "(unsupport" in result.output  # Result will be truncated in output
         assert result.output.count("(unsupport") == 2
+        assert result.output.count("—") == 2
 
     def test_multiple_hosts_with_different_states(self, create_host, mock_inventory):
         """
@@ -295,6 +296,7 @@ class TestStatusCommand:
         assert result.output.count("Online") == 3
         assert result.output.count("Offline") == 1
         assert "2 *" in result.output  # Stale updates for server2
+        assert result.output.count("—") == 2  # Unsupported update counts
 
 
 class TestSaveCommand:

@@ -171,7 +171,7 @@ class TestShowCommand:
 
         assert result.exit_code == 1
         assert (
-            "Warning: --security-only option is only valid with --updates"
+            "Error: --security-only option is only valid with --updates"
             in result.output
         )
 

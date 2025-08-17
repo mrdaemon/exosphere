@@ -332,6 +332,11 @@ def status(
             "[bold green]Online[/bold green]" if host.online else "[red]Offline[/red]"
         )
 
+        # Do not show update counts for unsupported hosts
+        if not getattr(host, "supported", True):
+            updates = "[dim]—[/dim]"
+            security_updates = "[dim]—[/dim]"
+
         # Handle platform info display with unsupported status
         def get_platform_info(value, attr_name):
             if value:
