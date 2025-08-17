@@ -28,20 +28,39 @@ def platform_detect(cx: Connection) -> HostInfo:
     :return: HostInfo object with platform details
     """
 
+    # Retrieve Operating System name
     try:
         result_os = os_detect(cx)
+    except TimeoutError as e:
+        raise OfflineHostError(f"Host {cx.host} is offline. Error: {e}") from e
+    except DataRefreshError as e:
+        logger.error("OS Detection failed: %s", e)
+        raise
+
+    # Retreive platform details
+    try:
         result_flavor = flavor_detect(cx, result_os)
         result_version = version_detect(cx, result_flavor)
         result_package_manager = package_manager_detect(cx, result_flavor)
-    except TimeoutError as e:
-        raise OfflineHostError(f"Host {cx.host} is offline. Error: {e}") from e
 
-    return HostInfo(
-        os=result_os,
-        version=result_version,
-        flavor=result_flavor,
-        package_manager=result_package_manager,
-    )
+        return HostInfo(
+            os=result_os,
+            version=result_version,
+            flavor=result_flavor,
+            package_manager=result_package_manager,
+            is_supported=True,
+        )
+    except UnsupportedOSError as e:
+        logger.error(
+            "Detection failed for %s with unsupported platform: %s", cx.host, e
+        )
+        return HostInfo(
+            os=result_os,  # We have this guaranteed
+            version=None,
+            flavor=None,
+            package_manager=None,
+            is_supported=False,
+        )
 
 
 def os_detect(cx: Connection) -> str:
