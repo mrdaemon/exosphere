@@ -94,6 +94,11 @@ class Host:
         # until first discovery.
         self.online: bool = False
 
+        # Default supported state is true
+        # All hosts are assumed supported until
+        # discover reports otherwise.
+        self.supported: bool = True
+
         # Internal state of host
         self.os: str | None = None
         self.version: str | None = None
