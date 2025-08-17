@@ -292,3 +292,13 @@ class TestDetection:
         platform_info = platform_detect(connection)
 
         assert platform_info == expected
+
+    def test_platform_detect_error(self, connection) -> None:
+        """
+        Test for DataRefreshError during platform refresh
+        """
+
+        connection.run.side_effect = DataRefreshError("Stuff broke")
+
+        with pytest.raises(DataRefreshError, match="Stuff broke"):
+            platform_detect(connection)
