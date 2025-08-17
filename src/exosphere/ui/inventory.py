@@ -50,7 +50,8 @@ class HostDetailsPanel(Screen):
         else:
             platform = f"{self.host.os} ({self.host.flavor} {self.host.version})"
 
-        yield Vertical(
+        # Base components that are always shown
+        components = [
             Label(f"[i]Host:[/i]\n  {self.host.name}", id="host-name"),
             Label(f"[i]IP Address:[/i]\n  {self.host.ip}", id="host-ip"),
             Label(f"[i]Port:[/i]\n  {self.host.port}", id="host-port"),
@@ -66,29 +67,41 @@ class HostDetailsPanel(Screen):
                 f"[i]Status:[/i]\n  {'[green]Online[/green]' if self.host.online else '[red]Offline[/red]'}",
                 id="host-online",
             ),
-            Label(
-                f"[i]Last Updated:[/i]\n  {self.host.last_refresh.strftime('%a %b %d %H:%M:%S %Y') if self.host.last_refresh else 'Never'}",
-                id="host-last-updated",
-            ),
-            Label(
-                f"[i]Stale:[/i]\n  {'[red]Yes[/red] - Consider refreshing' if self.host.is_stale else 'No'}",
-                id="host-stale",
-            ),
-            Label(
-                f"[i]Available Updates:[/i]\n  {len(self.host.updates)} updates, {security_updates} security",
-                id="host-updates-count",
-            ),
-            Container(
-                DataTable(id="host-updates-table", zebra_stripes=True),
-                id="updates-table-container",
-            ),
-            Label("Press ESC to close", id="close-instruction"),
-            classes="host-details",
-        )
+        ]
+
+        # Only show update-related information for supported hosts
+        if self.host.supported:
+            components += [
+                Label(
+                    f"[i]Last Refreshed:[/i]\n  {self.host.last_refresh.strftime('%a %b %d %H:%M:%S %Y') if self.host.last_refresh else 'Never'}",
+                    id="host-last-updated",
+                ),
+                Label(
+                    f"[i]Stale:[/i]\n  {'[red]Yes[/red] - Consider refreshing' if self.host.is_stale else 'No'}",
+                    id="host-stale",
+                ),
+                Label(
+                    f"[i]Available Updates:[/i]\n  {len(self.host.updates)} updates, {security_updates} security",
+                    id="host-updates-count",
+                ),
+                Container(
+                    DataTable(id="host-updates-table", zebra_stripes=True),
+                    id="updates-table-container",
+                ),
+            ]
+
+        # Instructions and help
+        components.append(Label("Press ESC to close", id="close-instruction"))
+
+        yield Vertical(*components, classes="host-details")
 
     def on_mount(self) -> None:
         """Populate the updates data table on mount."""
         self.title = f"Host Details: {self.host.name}"
+
+        # Only populate update table for supported hosts
+        if not self.host.supported:
+            return
 
         update_list = self.host.updates or []
 
@@ -348,6 +361,11 @@ class InventoryScreen(Screen):
                 f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
             )
             updates = str(upd_count)
+
+            # Do not show updates for unsupported hosts
+            if not getattr(host, "supported", True):
+                security_updates = "[dim]—[/dim]"
+                updates = "[dim]—[/dim]"
 
             if host.is_stale:
                 updates += "[dim] *[/dim]"

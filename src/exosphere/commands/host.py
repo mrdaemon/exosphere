@@ -16,6 +16,7 @@ from typing_extensions import Annotated
 
 from exosphere import app_config
 from exosphere.commands.utils import console, err_console, get_host_or_error
+from exosphere.objects import Host
 
 # Reuse the save function from the inventory command
 from .inventory import save as save_inventory
@@ -31,6 +32,107 @@ app = typer.Typer(
     help="Host management commands",
     no_args_is_help=True,
 )
+
+
+def _format_security_count(host: Host) -> str:
+    """Format security updates count."""
+    return f"[red]{len(host.security_updates)}[/red]" if host.security_updates else "0"
+
+
+def _format_os_details(host: Host) -> str:
+    """Format OS details string."""
+    if host.flavor and host.flavor != host.os:
+        return f"{host.flavor} {host.os} {host.version}"
+    else:
+        return f"{host.os} {host.version}"
+
+
+def _format_last_refresh(host: Host) -> str:
+    """Format last refresh time."""
+    if not host.last_refresh:
+        return "[red]Never[/red]"
+    else:
+        return host.last_refresh.strftime("%a %b %d %H:%M:%S %Y")
+
+
+def _make_host_panel_content(host: Host) -> str:
+    """Compose the main panel content for host details."""
+
+    online_status = "[bold green]Online[/bold green]"
+    offline_status = "[red]Offline[/red]"
+
+    # Base information always shown
+    content = (
+        f"[bold]Host Name:[/bold] {host.name}\n"
+        f"[bold]IP Address:[/bold] {host.ip}\n"
+        f"[bold]Port:[/bold] {host.port}\n"
+        "[bold]Online Status:[/bold] "
+        f"{online_status if host.online else offline_status}\n"
+        "\n"
+    )
+
+    # Show specific content for supported and unsupported hosts
+    if getattr(host, "supported", True):
+        content += _make_supported_host_content(host)
+    else:
+        content += _make_unsupported_host_content(host)
+
+    return content
+
+
+def _make_supported_host_content(host: Host) -> str:
+    """Build content section for supported hosts."""
+    security_count = _format_security_count(host)
+    os_details = _format_os_details(host)
+    last_refresh = _format_last_refresh(host)
+
+    return (
+        f"[bold]Operating System:[/bold]\n"
+        f"  {os_details}, using {host.package_manager}\n"
+        "\n"
+        f"[bold]Last Refreshed:[/bold] {last_refresh}\n"
+        f"[bold]Stale:[/bold] {'[yellow]Yes[/yellow]' if host.is_stale else 'No'}\n"
+        "\n"
+        f"[bold]Updates Available:[/bold] {len(host.updates)} updates, {security_count} security\n"
+    )
+
+
+def _make_unsupported_host_content(host: Host) -> str:
+    """Build content section for unsupported hosts."""
+    return (
+        f"[bold]Operating System:[/bold]\n"
+        f"  {host.os} [yellow](Unsupported OS)[/yellow]\n"
+    )
+
+
+def _display_updates_table(host: Host, security_only: bool) -> None:
+    """Display the updates table for a host."""
+    update_list = host.updates if not security_only else host.security_updates
+
+    if not update_list:
+        console.print("[bold]No updates available for this host.[/bold]")
+        return
+
+    updates_table = Table(
+        "Name",
+        "Current Version",
+        "New Version",
+        "Security",
+        "Source",
+        title="Available Updates",
+    )
+
+    for update in update_list:
+        updates_table.add_row(
+            f"[bold]{update.name}[/bold]",
+            update.current_version if update.current_version else "(NEW)",
+            update.new_version,
+            "Yes" if update.security else "No",
+            Text(update.source or "N/A", no_wrap=True),
+            style="on bright_black" if update.security else "default",
+        )
+
+    console.print(updates_table)
 
 
 @app.command()
@@ -60,89 +162,39 @@ def show(
     and displays its details in a rich format.
     """
     host = get_host_or_error(name)
-
     if host is None:
         raise typer.Exit(code=1)
 
-    # Color security updates count
-    security_count = (
-        f"[red]{len(host.security_updates)}[/red]" if host.security_updates else "0"
-    )
+    # Validate options
+    if not include_updates and security_only:
+        err_console.print(
+            "[red]Error: --security-only option is only valid with --updates.[/red]"
+        )
+        raise typer.Exit(code=1)
 
-    # prepare host OS details
-    host_os_details = (
-        f"{host.flavor} {host.os} {host.version}"
-        if host.flavor != host.os
-        else f"{host.os} {host.version}"
-    )
-
-    if not host.last_refresh:
-        last_refresh = "[red]Never[/red]"
-    else:
-        # Format: "Fri May 21:04:43 EDT 2025"
-        last_refresh = host.last_refresh.strftime("%a %b %d %H:%M:%S %Y")
-
-    # Display host properties in a rich panel
+    # Display main host information panel
+    panel_content = _make_host_panel_content(host)
     console.print(
         Panel.fit(
-            f"[bold]Host Name:[/bold] {host.name}\n"
-            f"[bold]IP Address:[/bold] {host.ip}\n"
-            f"[bold]Port:[/bold] {host.port}\n"
-            f"[bold]Online Status:[/bold] {'[bold green]Online[/bold green]' if host.online else '[red]Offline[/red]'}"
-            + (
-                " ([yellow]Unsupported OS[/yellow])"
-                if host.online and not getattr(host, "supported", True)
-                else ""
-            )
-            + "\n"
-            "\n"
-            f"[bold]Last Refreshed:[/bold] {last_refresh}\n"
-            f"[bold]Stale:[/bold] {'[yellow]Yes[/yellow]' if host.is_stale else 'No'}\n"
-            "\n"
-            f"[bold]Operating System:[/bold]\n"
-            f"  {host_os_details}, using {host.package_manager}\n"
-            "\n"
-            f"[bold]Updates Available:[/bold] {len(host.updates)} updates, {security_count} security\n",
+            panel_content,
             title=host.description if host.description else "Host Details",
         )
     )
 
-    if not include_updates:
-        # Warn for invalid set of arguments
-        if security_only:
-            err_console.print(
-                "[yellow]Warning: --security-only option is only valid with --updates, ignoring.[/yellow]"
+    # Handle unsupported hosts
+    if not getattr(host, "supported", True):
+        if include_updates:
+            console.print(
+                "[yellow]Update info is not available for unsupported hosts.[/yellow]"
             )
-
-        raise typer.Exit(code=1)
-
-    update_list = host.updates if not security_only else host.security_updates
-
-    # Display updates in a rich table, if any
-    if not update_list:
-        console.print("[bold]No updates available for this host.[/bold]")
         raise typer.Exit(code=0)
 
-    updates_table = Table(
-        "Name",
-        "Current Version",
-        "New Version",
-        "Security",
-        "Source",
-        title="Available Updates",
-    )
+    # Exit early if updates not requested
+    if not include_updates:
+        raise typer.Exit(code=0)
 
-    for update in update_list:
-        updates_table.add_row(
-            f"[bold]{update.name}[/bold]",
-            update.current_version if update.current_version else "(NEW)",
-            update.new_version,
-            "Yes" if update.security else "No",
-            Text(update.source or "N/A", no_wrap=True),
-            style="on bright_black" if update.security else "default",
-        )
-
-    console.print(updates_table)
+    # Display updates table
+    _display_updates_table(host, security_only)
 
 
 @app.command()
