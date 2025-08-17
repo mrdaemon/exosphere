@@ -255,6 +255,10 @@ class Host:
 
         :return: True if the host is stale, False otherwise
         """
+        # Unsupported hosts cannot be stale by definition
+        if not self.supported:
+            return False
+
         if self.last_refresh is None:
             return True
 
