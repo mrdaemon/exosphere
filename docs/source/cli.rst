@@ -48,6 +48,11 @@ operating system, flavor, version and package manager it is using.
 It will then assign the appropriate provider to that host, which will allow
 Exosphere to query and refresh its package update status from here on.
 
+If a host is present in the inventory, but not currently supported by Exosphere,
+it will be marked as such, and left available for Online checks. You will not be
+able to perform refresh or repo sync operations on them, and display panels will
+omit update information for them.
+
 This can be done by running:
 
 .. code-block:: exosphere
