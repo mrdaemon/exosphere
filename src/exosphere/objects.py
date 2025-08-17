@@ -176,6 +176,10 @@ class Host:
                         f"Missing required parameter '{name}'"
                     )
 
+        # Ensure supported field is set for backward compatibility
+        if not hasattr(self, "supported"):
+            self.supported = True
+
     @property
     def connection(self) -> Connection:
         """
