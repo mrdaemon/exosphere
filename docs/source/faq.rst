@@ -25,6 +25,31 @@ you to use the dashboard and online checks (ping command, etc) just fine.
 You won't be able to perform refresh or sync operation on them, and the update
 counts will be disabled, but this part will remain functional.
 
+Why does ping report Offline when the system is reachable?
+----------------------------------------------------------
+
+The ``ping`` checks in exosphere aren't ICMP ping, but SSH pings.
+They will only return an Online status if the remote system can be
+connected to successfully, over SSH, and a simple echo command can be
+executed.
+
+As such, scenarios that can cause an Offline status include:
+
+* SSH Authentication Failure (bad username, invalid credentials)
+* Timeouts and Connectivity Errors
+* Failure to execute to supremely basic ping test command
+
+We consider "Online" to mean "the system is up and ready to process further queries",
+instead of just "the system is reachable over the network".
+
+This is by design, and aims to avoid scenarios where the system is reachable,
+but is currently shutting down, or has not finished booting.
+
+Generally, if the host shows up as Offline, you would not be able to
+perform any of the other operations on it anyways.
+
+You can re-run the ``discovery`` command to find out what the issue is and
+correct it, if you are getting this during initial setup.
 
 Can I specify a custom path for the configuration file?
 -------------------------------------------------------
