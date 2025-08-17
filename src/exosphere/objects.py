@@ -286,6 +286,7 @@ class Host:
             self.logger.warning("Host %s is offline, skipping discover.", self.name)
             raise
 
+        # Platform detection
         try:
             platform_info: HostInfo = detect.platform_detect(self.connection)
         except OfflineHostError as e:
@@ -306,18 +307,41 @@ class Host:
             self.online = False
             raise
 
+        # Update host info based on detection results
         self.os = platform_info.os
+        self.supported = platform_info.is_supported
+
+        # In case of unsupported platform, return OS name only
+        if not platform_info.is_supported:
+            self.logger.info(
+                "Host %s is online but uses an unsupported OS/platform: %s",
+                self.name,
+                platform_info.os,
+            )
+            self.version = None
+            self.flavor = None
+            self.package_manager = None
+            self._pkginst = None
+            return
+
         self.version = platform_info.version
         self.flavor = platform_info.flavor
         self.package_manager = platform_info.package_manager
 
-        self._pkginst = PkgManagerFactory.create(self.package_manager)
-        self.logger.debug(
-            "Using concrete package manager %s.%s for %s",
-            self._pkginst.__class__.__module__,
-            self._pkginst.__class__.__qualname__,
-            self.package_manager,
-        )
+        if self.package_manager:
+            self._pkginst = PkgManagerFactory.create(self.package_manager)
+            self.logger.debug(
+                "Using concrete package manager %s.%s for %s",
+                self._pkginst.__class__.__module__,
+                self._pkginst.__class__.__qualname__,
+                self.package_manager,
+            )
+        else:
+            self.logger.error(
+                "Supported platform without a package manager!"
+                " This is likely a bug, and should be reported."
+            )
+            self._pkginst = None
 
     def sync_repos(self) -> None:
         """
