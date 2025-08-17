@@ -40,6 +40,7 @@ def host_unsupported():
     host = Host(name="host4", ip="127.0.0.5", description=None)
     host.online = True
     host.supported = False
+    host.os = "exotic-os"
     host.flavor = None
     host.version = None
     return host
@@ -175,7 +176,7 @@ def test_hostwidget_compose_online_unsupported(mocker, host_unsupported):
 
     calls = label_mock.call_args_list
     assert "[b]host4[/b]" in calls[0][0][0]  # name
-    assert "[dim](Unsupported)[/dim]" in calls[1][0][0]
+    assert "[dim]exotic-os (unsupported)[/dim]" in calls[1][0][0]
     assert "[green]Online[/green]" in calls[3][0][0]
 
 

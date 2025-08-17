@@ -41,7 +41,9 @@ class HostDetailsPanel(Screen):
 
         platform: str
 
-        if not self.host.flavor or not self.host.version:
+        if not self.host.supported:
+            platform = f"{self.host.os} [yellow](Unsupported)[/yellow]"
+        elif not self.host.flavor or not self.host.version:
             platform = "(Undiscovered)"
         elif self.host.os == self.host.flavor:
             platform = f"{self.host.os} {self.host.version}"
@@ -331,9 +333,12 @@ class InventoryScreen(Screen):
     def _populate_table(self, table: DataTable, hosts: list[Host]):
         """Populate given table with host data"""
 
-        def maybe_undiscovered(value: str | None) -> str:
+        def maybe_unknown(value: str | None, supported: bool = False) -> str:
             """Format as undiscovered if None or empty"""
-            return value if value else "[dim](undiscovered)[/dim]"
+            state = (
+                "[dim](undiscovered)[/dim]" if supported else "[dim](unsupported)[/dim]"
+            )
+            return value if value else state
 
         for host in hosts:
             sec_count: int = len(host.security_updates) if host.security_updates else 0
@@ -354,9 +359,9 @@ class InventoryScreen(Screen):
 
             table.add_row(
                 host.name,
-                maybe_undiscovered(host.os),
-                maybe_undiscovered(host.flavor),
-                maybe_undiscovered(host.version),
+                maybe_unknown(host.os, host.supported),
+                maybe_unknown(host.flavor, host.supported),
+                maybe_unknown(host.version, host.supported),
                 updates,
                 security_updates,
                 status_str,
