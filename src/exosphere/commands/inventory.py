@@ -319,26 +319,27 @@ def status(
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
         unknown_status = "[dim](unknown)[/dim]"
         unsupported_status = "[dim](unsupported)[/dim]"
+        empty_placeholder = "[dim]—[/dim]"
 
-        # Prepare the table row data
-        updates = f"{len(host.updates)}{stale_suffix}"
+        # Prepare table row data
+        if getattr(host, "supported", True):
+            updates = f"{len(host.updates)}{stale_suffix}"
 
-        sec_count = len(host.security_updates) if host.security_updates else 0
-        security_updates = (
-            f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
-        ) + stale_suffix
+            sec_count = len(host.security_updates) if host.security_updates else 0
+            security_updates = (
+                f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
+            ) + stale_suffix
+        else:
+            # Do not show update counts for unsupported hosts
+            updates = empty_placeholder
+            security_updates = empty_placeholder
 
         online_status = (
             "[bold green]Online[/bold green]" if host.online else "[red]Offline[/red]"
         )
 
-        # Do not show update counts for unsupported hosts
-        if not getattr(host, "supported", True):
-            updates = "[dim]—[/dim]"
-            security_updates = "[dim]—[/dim]"
-
         # Handle platform info display with unsupported status
-        def get_platform_info(value, attr_name):
+        def get_platform_info(value):
             if value:
                 return value
             elif host.online and not getattr(host, "supported", True):
@@ -349,9 +350,9 @@ def status(
         # Construct table
         table.add_row(
             host.name,
-            get_platform_info(host.os, "os"),
-            get_platform_info(host.flavor, "flavor"),
-            get_platform_info(host.version, "version"),
+            get_platform_info(host.os),
+            get_platform_info(host.flavor),
+            get_platform_info(host.version),
             updates,
             security_updates,
             online_status,
