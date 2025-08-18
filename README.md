@@ -25,6 +25,7 @@ or see [the documentation](https://exosphere.readthedocs.io/en/stable/) to get s
 - Consistent view of information across different platforms and package managers
 - See everything in one spot, at a glance, without complex automation or enterprise
   solutions
+- Does not require Python (or anything else) to be installed on remote systems.
 
 ## Compatibility
 
@@ -37,6 +38,15 @@ Supported platforms for remote hosts include:
 - Debian/Ubuntu and derivatives (using APT)
 - Red Hat/CentOS and derivatives (using YUM/DNF)
 - FreeBSD (using pkg)
+
+Unsupported platform with with SSH connectivity checks only:
+
+- Other Linux distributions (e.g., Arch Linux, Gentoo, NixOS, etc.)
+- Other BSD systems (e.g., OpenBSD, NetBSD)
+- Other Unix-like systems (e.g., Solaris, AIX, IRIX, Mac OS)
+
+Exosphere **does not support** other platforms where SSH is available.
+This includes network equipment with proprietary operating systems, etc.
 
 ## Documentation
 
