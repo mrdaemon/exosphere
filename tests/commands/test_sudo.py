@@ -45,6 +45,7 @@ def dummy_host(mocker):
     dummy_host.package_manager = "apt"
     dummy_host.sudo_policy = SudoPolicy.SKIP  # Match the default sudo policy
     dummy_host.username = "testuser"
+    dummy_host.supported = True
 
     return dummy_host
 
@@ -220,17 +221,18 @@ class TestCheckCommand:
             "Host 'dummy_host' does not have a package manager defined" in result.output
         )
 
-    def test_with_inventory_uninitialized(self, mocker):
+    def test_with_unsupported_host(self, mock_inventory, dummy_host):
         """
-        Test the sudo check command when the inventory is not initialized.
-        This should raise an error.
+        Test the sudo check command with a host that is unsupported.
         """
-        mocker.patch("exosphere.commands.sudo.context.inventory", None)
+        dummy_host.supported = False
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
 
         result = runner.invoke(sudo.app, ["check", "dummy_host"])
 
         assert result.exit_code == 1
-        assert "Inventory is not initialized" in result.output
+        assert "Host 'dummy_host' is not running a supported OS." in result.output
 
 
 class TestProvidersCommand:
@@ -372,6 +374,21 @@ class TestGenerateCommand:
 
         assert result.exit_code == 1
         assert "Host 'dummy_host' does not have a package manager" in result.output
+
+    def test_with_host_unsupported(
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+    ):
+        """
+        Test the sudo generate command with a host that is unsupported.
+        """
+        dummy_host.supported = False
+        mock_inventory.get_host.return_value = dummy_host
+        mock_inventory.hosts = [dummy_host]
+
+        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
+
+        assert result.exit_code == 1
+        assert "Host 'dummy_host' is not running a supported OS." in result.output
 
     def test_with_host_no_username_fallback(
         self, mock_inventory, dummy_host, mock_pkgmanager_factory
@@ -550,3 +567,27 @@ class TestGenerateCommand:
         assert result.exit_code == 1
         assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" not in result.output
         assert "Provider 'fucky' does not define any sudo commands!" in result.output
+
+
+class TestSudoCommands:
+    """Common Tests across sudo commands"""
+
+    @pytest.mark.parametrize(
+        "command,args",
+        [
+            ("check", ["testhost"]),
+            ("generate", ["--host", "testhost"]),
+        ],
+        ids=["check", "generate"],
+    )
+    def test_commands_bail_with_uninitialized_inventory(self, mocker, command, args):
+        """
+        Test that sudo commands bail out with an uninitialized inventory.
+        """
+        # Patch the inventory to simulate it being uninitialized
+        mocker.patch("exosphere.commands.sudo.context.inventory", None)
+
+        result = runner.invoke(sudo.app, [command] + args)
+
+        assert result.exit_code == 1
+        assert "Inventory is not initialized" in result.output
