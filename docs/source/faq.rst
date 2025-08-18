@@ -19,11 +19,16 @@ already exists, such as `UnattendedUpgrades`_, `Ansible`_, `RunDeck`_, etc.
 I really like the dashboard. Can I still use it if my systems are unsupported?
 ------------------------------------------------------------------------------
 
-Yes. If your remote operating system is not supported, Exosphere will allow
+Yes, as long as it the remote system is a Unix-like operating system.
+
+In this case, if your remote operating system is not supported, Exosphere will allow
 you to use the dashboard and online checks (ping command, etc) just fine.
 
 You won't be able to perform refresh or sync operation on them, and the update
 counts will be disabled, but this part will remain functional.
+
+If the system in question is not a Unix-like operating system, it will not
+be discoverable at all, and should not be added to the inventory.
 
 Why does ping report Offline when the system is reachable?
 ----------------------------------------------------------

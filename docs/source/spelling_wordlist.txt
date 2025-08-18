@@ -41,3 +41,4 @@ subcommands
 keybind
 keybinds
 tcp
+solaris
