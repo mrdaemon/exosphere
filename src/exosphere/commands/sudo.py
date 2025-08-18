@@ -170,6 +170,11 @@ def check(
         err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
         raise typer.Exit(1)
 
+    # We cannot check unsupported hosts, as they don't have providers.
+    if not getattr(target_host, "supported", True):
+        err_console.print(f"[red]Host '{host}' is not running a supported OS.[/red]")
+        raise typer.Exit(1)
+
     # Collect sudo policies
     host_policy: SudoPolicy = target_host.sudo_policy
     policy_is_local = host_policy != global_policy
@@ -352,6 +357,13 @@ def generate(
         target_host = inventory.get_host(host)
         if not target_host:
             err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
+            raise typer.Exit(1)
+
+        # We can't generate anything for unsupported hosts.
+        if not getattr(target_host, "supported", True):
+            err_console.print(
+                f"[red]Host '{host}' is not running a supported OS.[/red]"
+            )
             raise typer.Exit(1)
 
         target_provider_name = target_host.package_manager

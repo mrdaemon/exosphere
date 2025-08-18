@@ -205,7 +205,9 @@ class TestShowCommand:
         assert result.exit_code == 0
         assert "irix (Unsupported OS)" in result.output
 
-    def test_unsupported_host_no_updates_display(self, mock_host, patch_context_inventory):
+    def test_unsupported_host_no_updates_display(
+        self, mock_host, patch_context_inventory
+    ):
         """
         Test that updates are not shown for unsupported hosts.
         """
