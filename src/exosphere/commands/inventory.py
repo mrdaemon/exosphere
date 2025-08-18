@@ -411,7 +411,10 @@ def clear(
     confirm: Annotated[
         bool,
         typer.Option(
-            "--force", "-f", help="Do not prompt for confirmation", prompt=True
+            "--force",
+            "-f",
+            help="Do not prompt for confirmation",
+            prompt="Clear inventory state?",
         ),
     ],
 ) -> None:

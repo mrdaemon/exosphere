@@ -350,7 +350,7 @@ class TestClearCommand:
         result = runner.invoke(inventory_module.app, ["clear"])
 
         assert result.exit_code != 0
-        assert "Confirm [y/n]" in result.output
+        assert "Clear inventory state? [y/n]" in result.output
 
     def test_confirmation(self, mocker, mock_inventory):
         """
