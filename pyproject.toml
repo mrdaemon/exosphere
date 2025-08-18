@@ -1,7 +1,7 @@
 [project]
 name = "exosphere-cli"
 version = "1.3.0.dev0"
-description = "A simple centralized patch reporting tool for unix systems"
+description = "CLI/TUI driven patch reporting for remote Unix-like systems."
 readme = "README.md"
 authors = [
     { name = "Alexandre Gauthier", email = "alex@underwares.org" }
