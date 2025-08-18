@@ -53,7 +53,13 @@ it will be marked as such, and left available for Online checks. You will not be
 able to perform refresh or repo sync operations on them, and display panels will
 omit update information for them.
 
-This can be done by running:
+If a host is present in the inventory, not supported by Exosphere and also
+fails discovery due to not being a Unix-like operating system, it will return
+an explicit error, and should be removed for smooth operation.
+
+For more details, see the :doc:`supportedos` page.
+
+Inventory discovery can be done by running:
 
 .. code-block:: exosphere
 
