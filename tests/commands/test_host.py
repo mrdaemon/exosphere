@@ -188,6 +188,37 @@ class TestShowCommand:
         assert result.exit_code == 0
         assert "No updates available for this host." in result.output
 
+    def test_unsupported_host_display(self, mock_host, patch_context_inventory):
+        """
+        Test host show with an unsupported host.
+        """
+        # Mark host as unsupported but online
+        mock_host.supported = False
+        mock_host.online = True
+        mock_host.os = "irix"
+        mock_host.flavor = None
+        mock_host.version = None
+        mock_host.package_manager = None
+
+        result = runner.invoke(host_module.app, ["show", mock_host.name])
+
+        assert result.exit_code == 0
+        assert "irix (Unsupported OS)" in result.output
+
+    def test_unsupported_host_no_updates_display(self, mock_host, patch_context_inventory):
+        """
+        Test that updates are not shown for unsupported hosts.
+        """
+        # Mark host as unsupported
+        mock_host.supported = False
+        mock_host.online = True
+        mock_host.os = "Darwin"
+
+        result = runner.invoke(host_module.app, ["show", mock_host.name, "--updates"])
+
+        assert result.exit_code == 0
+        assert "Update info is not available for unsupported hosts." in result.output
+
 
 class TestDiscoverCommand:
     """Tests for the 'host discover' command."""
