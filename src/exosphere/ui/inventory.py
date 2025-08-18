@@ -363,7 +363,7 @@ class InventoryScreen(Screen):
             updates = str(upd_count)
 
             # Do not show updates for unsupported hosts
-            if not getattr(host, "supported", True):
+            if not host.supported:
                 security_updates = "[dim]—[/dim]"
                 updates = "[dim]—[/dim]"
 

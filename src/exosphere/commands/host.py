@@ -72,7 +72,7 @@ def _make_host_panel_content(host: Host) -> str:
     )
 
     # Show specific content for supported and unsupported hosts
-    if getattr(host, "supported", True):
+    if host.supported:
         content += _make_supported_host_content(host)
     else:
         content += _make_unsupported_host_content(host)
@@ -181,16 +181,15 @@ def show(
         )
     )
 
-    # Handle unsupported hosts
-    if not getattr(host, "supported", True):
-        if include_updates:
-            console.print(
-                "[yellow]Update info is not available for unsupported hosts.[/yellow]"
-            )
-        raise typer.Exit(code=0)
-
     # Exit early if updates not requested
     if not include_updates:
+        raise typer.Exit(code=0)
+
+    # Handle unsupported hosts
+    if not host.supported:
+        console.print(
+            "[yellow]Update info is not available for unsupported hosts.[/yellow]"
+        )
         raise typer.Exit(code=0)
 
     # Display updates table

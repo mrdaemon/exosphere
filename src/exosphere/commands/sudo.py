@@ -171,7 +171,7 @@ def check(
         raise typer.Exit(1)
 
     # We cannot check unsupported hosts, as they don't have providers.
-    if not getattr(target_host, "supported", True):
+    if not target_host.supported:
         err_console.print(f"[red]Host '{host}' is not running a supported OS.[/red]")
         raise typer.Exit(1)
 
@@ -360,7 +360,7 @@ def generate(
             raise typer.Exit(1)
 
         # We can't generate anything for unsupported hosts.
-        if not getattr(target_host, "supported", True):
+        if not target_host.supported:
             err_console.print(
                 f"[red]Host '{host}' is not running a supported OS.[/red]"
             )
