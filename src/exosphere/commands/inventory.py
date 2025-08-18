@@ -322,7 +322,7 @@ def status(
         empty_placeholder = "[dim]—[/dim]"
 
         # Prepare table row data
-        if getattr(host, "supported", True):
+        if host.supported:
             updates = f"{len(host.updates)}{stale_suffix}"
 
             sec_count = len(host.security_updates) if host.security_updates else 0
@@ -342,7 +342,7 @@ def status(
         def get_platform_info(value):
             if value:
                 return value
-            elif host.online and not getattr(host, "supported", True):
+            elif host.online and not host.supported:
                 return unsupported_status
             else:
                 return unknown_status

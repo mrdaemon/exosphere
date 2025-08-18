@@ -30,6 +30,7 @@ def mock_host(mocker):
     instance.port = 22
     instance.description = "Mock Host"
     instance.online = True
+    instance.supported = True
     instance.is_stale = False
     instance.flavor = "ubuntu"
     instance.os = "ubuntu"

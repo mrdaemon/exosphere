@@ -44,7 +44,7 @@ class HostWidget(Widget):
             # Version info
             if not self.host.flavor or not self.host.version:
                 # Differenciate between unsupported and undiscovered
-                if self.host.online and not getattr(self.host, "supported", True):
+                if self.host.online and not self.host.supported:
                     version_text = f"[dim]{self.host.os} (unsupported)[/dim]"
                 else:
                     version_text = "[dim](Undiscovered)[/dim]"
@@ -85,7 +85,7 @@ class HostWidget(Widget):
         # Update version info, with unsupported/undiscovered status
         version_label = self.query_one(".host-version", Label)
         if not self.host.flavor or not self.host.version:
-            if self.host.online and not getattr(self.host, "supported", True):
+            if self.host.online and not self.host.supported:
                 version_text = f"[dim]{self.host.os} (unsupported)[/dim]"
             else:
                 version_text = "[dim](Undiscovered)[/dim]"
