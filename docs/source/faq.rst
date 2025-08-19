@@ -35,8 +35,8 @@ Why does ping report Offline when the system is reachable?
 
 The ``ping`` checks in exosphere aren't ICMP ping, but SSH pings.
 They will only return an Online status if the remote system can be
-connected to successfully, over SSH, and a simple echo command can be
-executed.
+connected to successfully, over SSH, and a simple POSIX test command 
+can be executed. (``/bin/true`` or shell built-in equivalent)
 
 As such, scenarios that can cause an Offline status include:
 

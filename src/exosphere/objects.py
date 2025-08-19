@@ -7,7 +7,12 @@ from paramiko.ssh_exception import PasswordRequiredException
 
 from exosphere import app_config
 from exosphere.data import HostInfo, Update
-from exosphere.errors import DataRefreshError, OfflineHostError
+from exosphere.errors import (
+    AUTH_FAILURE_MESSAGE,
+    DataRefreshError,
+    OfflineHostError,
+    UnsupportedOSError,
+)
 from exosphere.providers import PkgManagerFactory
 from exosphere.providers.api import PkgManager
 from exosphere.security import SudoPolicy, check_sudo_policy
@@ -280,36 +285,63 @@ class Host:
         Online status is also updated in the process.
         """
 
-        # Check if the host is reachable before attempting anything else
-        # This also updates the online status
+        # Try ping first for auth/connectivity validation
+        ping_failed = False
+        ping_exception = None
         try:
             self.ping(raise_on_error=True)
-        except OfflineHostError:
-            # Log error but re-raise to not mask the issue details for
-            # the caller, since discover() is used for initial setup.
-            self.logger.warning("Host %s is offline, skipping discover.", self.name)
-            raise
+        except OfflineHostError as e:
+            ping_failed = True
+            ping_exception = e
+            self.logger.debug(
+                "Ping failed, will attempt platform detection for better error diagnosis"
+            )
 
-        # Platform detection
         try:
             platform_info: HostInfo = detect.platform_detect(self.connection)
+            # Handle the rare case where we'd get here with a ping issue
+            if ping_failed:
+                self.logger.warning(
+                    "Ping failed but platform detection succeeded for host %s",
+                    self.name,
+                )
+                self.online = True
         except OfflineHostError as e:
-            self.logger.warning(
-                "Host %s has gone offline during sync, received: %s",
+            # If both ping and platform detection failed, prefer the ping error
+            # since it likely has better auth/connectivity failure details.
+            if ping_failed and ping_exception:
+                self.logger.warning("Host %s is offline, skipping discover.", self.name)
+                raise ping_exception
+            else:
+                self.logger.warning(
+                    "Host %s has gone offline during sync, received: %s",
+                    self.name,
+                    str(e),
+                )
+                self.online = False
+                raise
+        except UnsupportedOSError:
+            # This is the real issue - more useful than any ping failure
+            self.logger.error(
+                "Host %s is running a completely unsupported OS.",
                 self.name,
-                str(e),
             )
+            # Don't mark as Online in this case
             self.online = False
             raise
-
         except DataRefreshError as e:
-            self.logger.debug(
-                "An error occurred during discover for %s: %s",
-                self.name,
-                e.stderr,
-            )
-            self.online = False
-            raise
+            # Prefer the ping error here as well, if available
+            if ping_failed and ping_exception:
+                self.logger.warning("Host %s is offline, skipping discover.", self.name)
+                raise ping_exception
+            else:
+                self.logger.debug(
+                    "An error occurred during discover for %s: %s",
+                    self.name,
+                    e.stderr,
+                )
+                self.online = False
+                raise
 
         # Update host info based on detection results
         self.os = platform_info.os
@@ -463,7 +495,7 @@ class Host:
                 self.logger.debug(
                     "Pinging host %s at %s:%s", self.name, self.ip, self.port
                 )
-                conn.run("echo 'ping'", hide=True)
+                conn.run("true", hide=True)
 
             self.online = True
         except PasswordRequiredException as e:
@@ -482,11 +514,7 @@ class Host:
             self.online = False
 
             if raise_on_error:
-                raise OfflineHostError(
-                    "Auth Failure. "
-                    "Verify that keypair authentication is enabled on the server "
-                    "and that your agent is running with the correct keys loaded."
-                ) from e
+                raise OfflineHostError(AUTH_FAILURE_MESSAGE) from e
         except Exception as e:
             self.logger.error("Ping to host %s failed: %s", self.name, e)
             self.online = False
