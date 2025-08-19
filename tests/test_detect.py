@@ -293,12 +293,45 @@ class TestDetection:
 
         assert platform_info == expected
 
-    def test_platform_detect_error(self, connection) -> None:
+    def test_platform_detect_error(self, mocker, connection) -> None:
         """
-        Test for DataRefreshError during platform refresh
+        Test for DataRefreshError during platform refresh (post OS detection)
         """
+        # Mock os_detect to succeed
+        mocker.patch("exosphere.setup.detect.os_detect", return_value="linux")
 
-        connection.run.side_effect = DataRefreshError("Stuff broke")
+        # Mock flavor_detect to fail with DataRefreshError
+        mocker.patch(
+            "exosphere.setup.detect.flavor_detect",
+            side_effect=DataRefreshError("Stuff broke"),
+        )
 
         with pytest.raises(DataRefreshError, match="Stuff broke"):
+            platform_detect(connection)
+
+    def test_platform_detect_uname_failure(self, connection) -> None:
+        """
+        Test that platform_detect raises UnsupportedOSError when uname -s fails
+        indicating a non-Unix-like system
+        """
+        # Mock uname -s to fail (indicating non-Unix system)
+        connection.run.return_value.failed = True
+        connection.run.return_value.stderr = "command not found"
+
+        with pytest.raises(UnsupportedOSError, match="Unable to detect OS"):
+            platform_detect(connection)
+
+    def test_platform_detect_auth_error(self, mocker, connection) -> None:
+        """
+        Test that platform_detect converts PasswordRequiredException to friendly
+        OfflineHostError
+        """
+        from paramiko.ssh_exception import PasswordRequiredException
+
+        mocker.patch(
+            "exosphere.setup.detect.os_detect",
+            side_effect=PasswordRequiredException("Private key file is encrypted"),
+        )
+
+        with pytest.raises(OfflineHostError, match="Auth Failure"):
             platform_detect(connection)

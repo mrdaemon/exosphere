@@ -340,15 +340,20 @@ class TestHostObject:
         Test the discover functionality for Host objects when the host
         is offline.
         """
+        # Mock platform_detect to also fail, since it is tried anyway
         mock_setup = mocker.patch(
             "exosphere.setup.detect.platform_detect",
+            side_effect=OfflineHostError("Platform detection also failed"),
         )
 
+        # Mock ping failure with specific message
         host = Host(name="test_host", ip="127.0.0.1")
         mocker.patch.object(
             host, "ping", side_effect=OfflineHostError("Test Condition")
         )
 
+        # Should raise the original ping error since both fail
+        # Raising the platform_detect error here is unexpected.
         with pytest.raises(OfflineHostError, match="Test Condition"):
             host.discover()
 
@@ -360,8 +365,8 @@ class TestHostObject:
         assert host.online is False
 
         assert (
-            mock_setup.call_count == 0
-        )  # platform_detect should not be called if ping fails
+            mock_setup.call_count == 1
+        )  # platform_detect will be called once even if ping fails
 
     def test_host_discovery_offline_after_ping(self, mocker, mock_connection):
         """
@@ -525,7 +530,7 @@ class TestHostObject:
     def test_host_setstate_valueerror_on_missing_required(self, mocker):
         """
         Test that __setstate__ raises ValueError if required parameters are missing.
-        Ensures de-serialization fails agressively if required parameters are not present.
+        Ensures de-serialization fails aggressively if required parameters are not present.
         """
         state = {
             "name": "test_host",
@@ -869,6 +874,65 @@ class TestHostObject:
         assert host.flavor is None
         assert host.package_manager is None
         assert host._pkginst is None
+
+    def test_host_discovery_non_unix_system(self, mocker, mock_connection):
+        """
+        Test that discover raises UnsupportedOSError for non-Unix systems
+        where uname -s fails
+        """
+        from exosphere.errors import UnsupportedOSError
+
+        # Mock platform_detect to raise UnsupportedOSError for non-Unix systems
+        mocker.patch(
+            "exosphere.setup.detect.platform_detect",
+            side_effect=UnsupportedOSError(
+                "Unable to detect OS: 'uname -s' command failed. "
+                "This likely indicates a non-Unix-like system which is not supported by Exosphere."
+            ),
+        )
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        # Mock ping to set online status to True and return True
+        def mock_ping(raise_on_error=False):
+            host.online = True
+            return True
+
+        mocker.patch.object(host, "ping", side_effect=mock_ping)
+
+        # discover() should raise UnsupportedOSError and mark host as online but unsupported
+        with pytest.raises(UnsupportedOSError, match="Unable to detect OS"):
+            host.discover()
+
+        # Host should be marked as offline in this failure case
+        assert host.online is False
+
+    def test_host_discovery_auth_error_priority(self, mocker, mock_connection):
+        """
+        Test that UnsupportedOSError from platform detection takes precedence
+        when it provides more specific information than ping failures
+        """
+        from exosphere.errors import OfflineHostError, UnsupportedOSError
+
+        # Mock platform_detect to raise UnsupportedOSError
+        mocker.patch(
+            "exosphere.setup.detect.platform_detect",
+            side_effect=UnsupportedOSError("Unable to detect OS"),
+        )
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        # Mock ping to raise an authentication error with the friendly message
+        auth_error = OfflineHostError(
+            "Auth Failure. "
+            "Verify that keypair authentication is enabled on the server "
+            "and that your agent is running with the correct keys loaded."
+        )
+        mocker.patch.object(host, "ping", side_effect=auth_error)
+
+        # discover() should raise the UnsupportedOSError as it provides more specific info
+        with pytest.raises(UnsupportedOSError, match="Unable to detect OS"):
+            host.discover()
 
     @pytest.mark.parametrize(
         "method_name, expected_warning",

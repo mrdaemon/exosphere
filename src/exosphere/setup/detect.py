@@ -9,9 +9,15 @@ determine platform, operating system and other relevant platform data.
 import logging
 
 from fabric import Connection
+from paramiko.ssh_exception import PasswordRequiredException
 
 from exosphere.data import HostInfo
-from exosphere.errors import DataRefreshError, OfflineHostError, UnsupportedOSError
+from exosphere.errors import (
+    AUTH_FAILURE_MESSAGE,
+    DataRefreshError,
+    OfflineHostError,
+    UnsupportedOSError,
+)
 
 SUPPORTED_PLATFORMS = ["linux", "freebsd"]
 SUPPORTED_FLAVORS = ["ubuntu", "debian", "rhel", "freebsd"]
@@ -33,9 +39,20 @@ def platform_detect(cx: Connection) -> HostInfo:
         result_os = os_detect(cx)
     except TimeoutError as e:
         raise OfflineHostError(f"Host {cx.host} is offline. Error: {e}") from e
+    except PasswordRequiredException as e:
+        # Rewrite general Paramiko authentication errors to OfflineHostError
+        # for better UX and more helpful error messages
+        raise OfflineHostError(AUTH_FAILURE_MESSAGE) from e
     except DataRefreshError as e:
         logger.error("OS Detection failed: %s", e)
-        raise
+        raise UnsupportedOSError(
+            "Unable to detect OS: 'uname -s' command failed. "
+            "This likely indicates a non-Unix-like system which is not supported by Exosphere. "
+            "See logs for details."
+        ) from e
+    except Exception as e:
+        logger.error("Unexpected error during OS detection: %s", e)
+        raise DataRefreshError("Unexpected error during OS detection") from e
 
     # Retreive platform details
     try:
