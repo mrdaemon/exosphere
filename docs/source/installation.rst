@@ -41,7 +41,8 @@ The package name is `exosphere-cli`.
     .. group-tab:: pipx
 
         This is the recommended way to install Exosphere, as it creates a
-        virtual environment and isolates the application.
+        virtual environment and isolates the application. You can install
+        ``pipx`` from your distribution's repositories.
 
         .. code-block:: bash
 
@@ -61,19 +62,14 @@ The package name is `exosphere-cli`.
         runtime and dependencies for you, and then make the `exosphere`
         command available in your PATH.
 
-    .. group-tab:: pip
-
-        If you prefer to use `pip`, you can install Exosphere globally or
-        for your user only. However, this is not recommended as it may
-        lead to conflicts with other Python packages.
-
-        .. code-block:: bash
-
-            pip install --user exosphere-cli
 
 The ``pipx`` or ``uv tool`` methods are recommended as they create a virtual
 environment and isolate the application, making it readily available without
 having to contend with potential conflicts with other Python packages.
+
+``pip install`` is **not recommended** outside of a venv, as it *will* interfere
+with other Python packages and system versions of the libraries, and many
+distributions will in fact not allow you to install it that way.
 
 Once installed, you can run Exosphere using the `exosphere` command, like so:
 
@@ -224,13 +220,6 @@ From PyPI
 
             uv tool upgrade exosphere-cli
 
-    .. group-tab:: pip
-
-        If you installed Exosphere using `pip`, you can update it with:
-
-        .. code-block:: bash
-
-            pip install --user --upgrade exosphere-cli
 
 From Git Repository
 -------------------
