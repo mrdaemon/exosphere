@@ -43,7 +43,7 @@ class HostWidget(Widget):
 
             # Version info
             if not self.host.flavor or not self.host.version:
-                # Differenciate between unsupported and undiscovered
+                # Differentiate between unsupported and undiscovered
                 if self.host.online and not self.host.supported:
                     version_text = f"[dim]{self.host.os} (unsupported)[/dim]"
                 else:

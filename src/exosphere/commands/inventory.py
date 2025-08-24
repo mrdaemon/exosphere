@@ -63,7 +63,7 @@ def discover(
 
     The discover operation will connect to the specified host(s)
     and gather their current state, including Operating System, flavor,
-    version and pick a Package Mananager implementation for further
+    version and pick a Package Manager implementation for further
     operations.
     """
     logger = logging.getLogger(__name__)

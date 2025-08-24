@@ -54,7 +54,7 @@ def platform_detect(cx: Connection) -> HostInfo:
         logger.error("Unexpected error during OS detection: %s", e)
         raise DataRefreshError("Unexpected error during OS detection") from e
 
-    # Retreive platform details
+    # Retrieve platform details
     try:
         result_flavor = flavor_detect(cx, result_os)
         result_version = version_detect(cx, result_flavor)

@@ -188,7 +188,7 @@ def check(
         )
         raise typer.Exit(1)
 
-    # Get the package mananager class from the factory registry
+    # Get the package manager class from the factory registry
     # We get the raw class to inspect, and do not need/want an instance
     host_pkg_manager = PkgManagerFactory.get_registry().get(host_pkg_manager_name)
     if not host_pkg_manager:
