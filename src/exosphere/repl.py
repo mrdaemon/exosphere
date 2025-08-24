@@ -91,7 +91,7 @@ class ExosphereCompleter(Completer):
             return
 
         # Collect already used options to avoid repeating them
-        # This kind of a hack, but it's enough for our needs so far
+        # This is kind of a hack, but it's enough for our needs so far
         used_opts = set(w for w in words[1:] if w.startswith("-"))
 
         current = words[-1] if not text.endswith(" ") else ""

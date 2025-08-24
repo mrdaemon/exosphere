@@ -53,7 +53,7 @@ class Host:
         """
         Create a new Host Object
 
-        Note: The paramaters of the Host object can and will be
+        Note: The parameters of the Host object can and will be
         affected by the process of reloading them from cache!
         See: `exosphere.inventory.Inventory.load_or_create_host`
 
