@@ -19,7 +19,7 @@ already exists, such as `UnattendedUpgrades`_, `Ansible`_, `RunDeck`_, etc.
 I really like the dashboard. Can I still use it if my systems are unsupported?
 ------------------------------------------------------------------------------
 
-Yes, as long as it the remote system is a Unix-like operating system.
+Yes, as long as the remote system is a Unix-like operating system.
 
 In this case, if your remote operating system is not supported, Exosphere will allow
 you to use the dashboard and online checks (ping command, etc) just fine.
@@ -42,7 +42,7 @@ As such, scenarios that can cause an Offline status include:
 
 * SSH Authentication Failure (bad username, invalid credentials)
 * Timeouts and Connectivity Errors
-* Failure to execute to supremely basic ping test command
+* Failure to execute the supremely basic test command
 
 We consider "Online" to mean "the system is up and ready to process further queries",
 instead of just "the system is reachable over the network".

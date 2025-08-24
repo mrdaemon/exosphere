@@ -61,7 +61,7 @@ You can launch the WebUI by running:
     executable, as arguments.
 
 
-Once started, you you should see output similar to:
+Once started, you should see output similar to:
 
 .. code-block:: shell
 
