@@ -30,7 +30,7 @@ The package name is `exosphere-cli`.
 
 .. admonition:: Note
 
-    Exosphere requires **Python 3.13 or later** or run.
+    Exosphere requires **Python 3.13 or later** to run.
     If you do not have it available on your system, you can still install
     Exosphere using `uv`_, which will download and manage the necessary Python
     runtime and dependencies for you.
@@ -123,7 +123,7 @@ If you want the stable version, you can switch to the latest tag.
     .. group-tab:: Stable Release
 
         This will fetch the code for the latest stable release of Exosphere.
-        This is recommend for most users.
+        This is recommended for most users.
 
         .. parsed-literal::
 
