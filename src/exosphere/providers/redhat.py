@@ -348,6 +348,16 @@ class Dnf(PkgManager):
             if not line or "Installed Packages" in line:
                 continue
 
+            # Stop parsing at "Available packages" section
+            # This is for DNF5 compatibility, which helpfully lists them
+            # and our clobbering logic prevents current version logic from
+            # working.
+            if "Available packages" in line:
+                self.logger.debug(
+                    "Reached 'Available packages' section, stopping parsing."
+                )
+                break
+
             parts = self._parse_line(line)
 
             if parts is None:
