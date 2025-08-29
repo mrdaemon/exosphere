@@ -100,7 +100,7 @@ class Dnf(PkgManager):
                 continue
 
             # Stop processing at "Obsoleting Packages" section
-            if line.startswith("Obsoleting Packages"):
+            if "obsoleting packages" in line.lower():
                 self.logger.debug(
                     "Reached 'Obsoleting Packages' section, stopping parsing."
                 )
@@ -345,14 +345,14 @@ class Dnf(PkgManager):
 
         for line in result.stdout.splitlines():
             line = line.strip()
-            if not line or "Installed Packages" in line:
+            if not line or "installed packages" in line.lower():
                 continue
 
             # Stop parsing at "Available packages" section
             # This is for DNF5 compatibility, which helpfully lists them
             # and our clobbering logic prevents current version logic from
             # working.
-            if "Available packages" in line:
+            if "available packages" in line.lower():
                 self.logger.debug(
                     "Reached 'Available packages' section, stopping parsing."
                 )
