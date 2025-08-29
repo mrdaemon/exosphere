@@ -58,7 +58,7 @@ class TestDetection:
         "os_name,id,like,expected",
         [
             ("linux", "ubuntu", "debian", "ubuntu"),
-            ("linux", "fedora", "rhel fedora", "rhel"),
+            ("linux", "fedora", "", "fedora"),
             ("linux", "almalinux", "rhel centos fedora", "rhel"),
             ("linux", "rockylinux", "rhel centos fedora", "rhel"),
             ("freebsd", "", "", "freebsd"),

@@ -43,7 +43,7 @@ class Dnf(PkgManager):
 
         with cx as c:
             update = c.run(
-                f"{self.pkgbin} makecache --refresh --quiet -y", hide=True, warn=True
+                f"{self.pkgbin} --quiet -y makecache --refresh", hide=True, warn=True
             )
 
         if update.failed:
@@ -77,7 +77,7 @@ class Dnf(PkgManager):
         # Get all other updates
         with cx as c:
             raw_query = c.run(
-                f"{self.pkgbin} check-update --quiet -y", hide=True, warn=True
+                f"{self.pkgbin} --quiet -y check-update", hide=True, warn=True
             )
 
         if raw_query.return_code == 0:
@@ -255,7 +255,7 @@ class Dnf(PkgManager):
 
         with cx as c:
             raw_query = c.run(
-                f"{self.pkgbin} check-update --security --quiet -y",
+                f"{self.pkgbin} --quiet -y check-update --security",
                 hide=True,
                 warn=True,
             )
@@ -333,7 +333,7 @@ class Dnf(PkgManager):
 
         with cx as c:
             result = c.run(
-                f"{self.pkgbin} list installed --quiet -y {' '.join(package_names)}",
+                f"{self.pkgbin} --quiet -y list installed {' '.join(package_names)}",
                 hide=True,
                 warn=True,
             )
@@ -389,7 +389,7 @@ class Yum(Dnf):
     Implements the Yum package manager interface.
     Wraps Dnf, and is mainly a compatibility layer for older systems.
     Yum and DNF thankfully have identical interfaces, but if any
-    disreptancies reveal themselves, they can be implemented here.
+    discrepancies reveal themselves, they can be implemented here.
     """
 
     def __init__(self) -> None:
