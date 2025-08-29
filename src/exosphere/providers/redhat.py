@@ -173,11 +173,11 @@ class Dnf(PkgManager):
         self.logger.debug("Querying repository for latest kernel")
 
         # Format the output to match 'check-update'
-        queryformat = "%{NAME}.%{ARCH}\t%{VERSION}-%{RELEASE}\t%{REPOID}"
+        queryformat = "%{name}.%{arch}  %{version}-%{release}  %{repoid}\n"
 
         with cx as c:
             raw_query = c.run(
-                f"{self.pkgbin} repoquery -q kernel --latest-limit=1 --qf '{queryformat}'",
+                f"{self.pkgbin} --quiet -y repoquery kernel --latest-limit=1 --queryformat='{queryformat}'",
                 hide=True,
                 warn=True,
             )
