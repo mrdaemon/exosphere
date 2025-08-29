@@ -20,7 +20,7 @@ from exosphere.errors import (
 )
 
 SUPPORTED_PLATFORMS = ["linux", "freebsd"]
-SUPPORTED_FLAVORS = ["ubuntu", "debian", "rhel", "freebsd"]
+SUPPORTED_FLAVORS = ["ubuntu", "debian", "rhel", "fedora", "freebsd"]
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -203,7 +203,7 @@ def version_detect(cx: Connection, flavor_name: str) -> str:
         return result_version.stdout.strip()
 
     # Redhat-likes
-    if flavor_name == "rhel":
+    if flavor_name in ["rhel", "fedora"]:
         with cx as c:
             result_version = c.run(
                 "grep ^VERSION_ID= /etc/os-release", hide=True, warn=True
@@ -216,7 +216,10 @@ def version_detect(cx: Connection, flavor_name: str) -> str:
                 stdout=result_version.stdout,
             )
 
-        return result_version.stdout.strip().split('"')[1::2][0].lower()
+        version_line = result_version.stdout.strip()
+        version_value = version_line.partition("=")[2].strip().strip("\"'")
+
+        return version_value.lower()
 
     # FreeBSD
     if flavor_name == "freebsd":
@@ -253,7 +256,7 @@ def package_manager_detect(cx: Connection, flavor_name: str) -> str:
         return "apt"
 
     # Redhat-likes
-    if flavor_name == "rhel":
+    if flavor_name in ["rhel", "fedora"]:
         with cx as c:
             result_dnf = c.run("command -v dnf", hide=True, warn=True)
             result_yum = c.run("command -v yum", hide=True, warn=True)

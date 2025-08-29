@@ -669,19 +669,19 @@ class TestDnfProvider:
         mock_dnf_kernel_repoquery_return,
     ):
         def _side_effect(cmd, *args, **kwargs):
-            if "dnf check-update --security" in cmd:
+            if "check-update --security" in cmd:
                 return mock_dnf_security_output_return
-            elif "dnf check-update" in cmd:
+            elif "check-update" in cmd:
                 return mock_dnf_output_return
             elif (
-                "dnf list installed" in cmd
+                "list installed" in cmd
                 and "kernel" in cmd
                 and "kernel.x86_64" not in cmd
             ):
                 return mock_dnf_current_versions_kernel_return
-            elif "dnf list installed" in cmd:
+            elif "list installed" in cmd:
                 return mock_dnf_current_versions_return
-            elif "dnf repoquery" in cmd and "kernel" in cmd:
+            elif "repoquery" in cmd and "kernel" in cmd:
                 return mock_dnf_kernel_repoquery_return
 
         return _side_effect
@@ -770,7 +770,7 @@ class TestDnfProvider:
         result = dnf.reposync(mock_connection)
 
         mock_connection.run.assert_called_once_with(
-            "dnf makecache --refresh --quiet -y", hide=True, warn=True
+            "dnf --quiet -y makecache --refresh", hide=True, warn=True
         )
 
         assert result is expected
@@ -877,11 +877,12 @@ class TestDnfProvider:
 
         # Should contain the expected command binary in security, regular updates, and kernel queries
         assert any(
-            f"{expected_command} check-update --security" in cmd
+            f"{expected_command} --quiet -y check-update --security" in cmd
             for cmd in command_calls
         )
         assert any(
-            f"{expected_command} check-update" in cmd and "--security" not in cmd
+            f"{expected_command} --quiet -y check-update" in cmd
+            and "--security" not in cmd
             for cmd in command_calls
         )
         assert any(f"{expected_command} repoquery" in cmd for cmd in command_calls)
