@@ -68,11 +68,11 @@ Exact Commands ran on remote systems
 
    If your system uses ``yum`` you can replace ``dnf`` with it here.
 
-- ``dnf makecache --refresh --quiet -y``
-- ``dnf check-update --quiet -y``
-- ``dnf check-update --security --quiet -y``
-- ``dnf list installed --quiet -y <package_name>``
-- ``dnf repoquery -q kernel --latest-limit=1 -qf '%{NAME}.%{ARCH}\t%{VERSION}-%{RELEASE}\t%{REPOID}'``
+- ``dnf --quiet -y makecache --refresh``
+- ``dnf --quiet -y check-update``
+- ``dnf --quiet -y check-update --security``
+- ``dnf --quiet -y list installed <package_name>``
+- ``dnf --quiet -y repoquery kernel --latest-limit=1 --queryformat='%{name}.%{arch}  %{version}-%{release}  %{repoid}\n'``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
@@ -90,6 +90,9 @@ The provider is written to avoid this, but if you do encounter this, simply run
 and answer any prompts that may appear.
 
 Once that is done, you should be able to run Exosphere commands without issues.
+
+Note that we consider having to do this a bug, and would appreciate if you could
+`file a bug report`_.
 
 FreeBSD (Pkg)
 -------------
@@ -115,3 +118,5 @@ Command dependencies
 
 - `pkg`
 - `grep`
+
+.. _file a bug report: https://github.com/mrdaemon/exosphere/issues
