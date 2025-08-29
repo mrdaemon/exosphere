@@ -543,6 +543,9 @@ class TestDnfProvider:
         systemd-libs.x86_64                   252-17.el9_5                      @baseos
         curl.x86_64                           7.76.1-18.el9_5                   @baseos
         curl-minimal.x86_64                   7.76.1-18.el9_5                   @baseos
+
+        Available packages
+        git.x86_64                            2.47.1-2.el9_6                    appstream
         """
 
         mock_return = mocker.MagicMock()
@@ -811,6 +814,11 @@ class TestDnfProvider:
         # Ensure no kernel updates are reported in this basic scenario
         kernel_updates = [u for u in updates if "kernel" in u.name]
         assert len(kernel_updates) == 0
+
+        # Ensure versions in Available package block are NOT set as
+        # currently installed version
+        git = update_by_name["git.x86_64"]
+        assert git.current_version != "2.47.1-1.el9_5"
 
     def test_get_updates_no_updates(self, mock_dnf_output_no_updates):
         """
