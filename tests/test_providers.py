@@ -619,7 +619,7 @@ class TestDnfProvider:
 
         # Mock for kernel repoquery (same version as installed = no update)
         mock_kernel = mocker.MagicMock()
-        mock_kernel.stdout = "kernel.x86_64\t5.14.0-570.18.1.el9_6\tbaseos"
+        mock_kernel.stdout = "kernel.x86_64  5.14.0-570.18.1.el9_6  baseos\n"
         mock_kernel.return_code = 0
         mock_kernel.failed = False
 
@@ -650,7 +650,7 @@ class TestDnfProvider:
         Fixture to mock the output of the dnf repoquery command for latest kernel.
         Returns the same version as the most recent installed kernel (no update needed).
         """
-        output = "kernel.x86_64\t5.14.0-570.18.1.el9_6\tbaseos"
+        output = "kernel.x86_64  5.14.0-570.18.1.el9_6  baseos\n"
 
         mock_return = mocker.MagicMock()
         mock_return.stdout = output
@@ -885,7 +885,9 @@ class TestDnfProvider:
             and "--security" not in cmd
             for cmd in command_calls
         )
-        assert any(f"{expected_command} repoquery" in cmd for cmd in command_calls)
+        assert any(
+            f"{expected_command} --quiet -y repoquery" in cmd for cmd in command_calls
+        )
 
     def test_get_updates_kernel(self, mock_kernel_test_scenario, caplog):
         """
