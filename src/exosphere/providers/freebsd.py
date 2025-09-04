@@ -31,9 +31,6 @@ class Pkg(PkgManager):
     def __init__(self) -> None:
         """
         Initialize the Pkg package manager.
-
-        :param sudo: Whether to use sudo for package refresh operations (default is True).
-        :param password: Optional password for sudo operations, if not using NOPASSWD.
         """
         super().__init__()
         self.logger.debug("Initializing FreeBSD pkg package manager")
@@ -145,12 +142,17 @@ class Pkg(PkgManager):
         Parse a line from the output of pkg upgrade.
 
         Extracts the package name, current version, and proposed version.
+        Also extracts the repository name in case of recent versions of pkg.
         """
 
         pattern = (
             r"^\s*(?P<name>\S+):\s+"  # Package name, followed by colon and spaces
             r"(?P<version>[^\s]+)"  # Current version: non-space characters
-            r"(?:\s+->\s+(?P<new>[^\s]+))?$"  # optional separator, new version, eol
+            r"(?:"  # Start of alternation group
+            r"(?:\s+->\s+(?P<new>[^\s]+))?"  # Optional separator and new version
+            r")"  # End of alternation group
+            r"(?:\s*\[(?P<repo>.*?)\])?"  # Optional repo tag in brackets (e.g., [FreeBSD])
+            r"$"  # End of line
         )
 
         match = re.match(pattern, line)
@@ -160,6 +162,7 @@ class Pkg(PkgManager):
         package_name = match["name"].strip()
         pkg_version = match["version"].strip()
         new_version = match["new"].strip() if match["new"] else f"{pkg_version}"
+        repo_name = match["repo"].strip() if match["repo"] else "Packages Mirror"
 
         if match["new"] is None:
             # New package, no ->, treat as such
@@ -182,6 +185,6 @@ class Pkg(PkgManager):
             name=package_name,
             current_version=pkg_version,
             new_version=new_version,
-            source="Packages Mirror",  # FreeBSD only has this source
+            source=repo_name,
             security=is_security,
         )

@@ -298,6 +298,71 @@ class TestPkgProvider:
         return mock_connection
 
     @pytest.fixture
+    def mock_pkg_output_with_repo(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of recent pkg with repo tag in output
+        """
+        output = """
+        The following 19 package(s) will be affected (of 0 checked):
+
+        Installed packages to be UPGRADED:
+                bash-completion-zfs: 2.3.1 [FreeBSD]
+                btop: 1.4.1 -> 1.4.3 [FreeBSD]
+                cmake: 3.31.6 -> 3.31.7 [FreeBSD]
+                cmake-core: 3.31.6 -> 3.31.7 [FreeBSD]
+                cmake-doc: 3.31.6 -> 3.31.7 [FreeBSD]
+                cmake-man: 3.31.6 -> 3.31.7 [FreeBSD]
+                curl: 8.13.0 -> 8.13.0_2 [FreeBSD]
+                en-freebsd-doc: 20250425,1 -> 20250509,1 [FreeBSD]
+                libgcrypt: 1.11.0 -> 1.11.1 [FreeBSD]
+                mpdecimal: 4.0.0 -> 4.0.1 [FreeBSD]
+                p5-URI: 5.31 -> 5.32 [FreeBSD]
+                pciids: 20250309 -> 20250415 [FreeBSD]
+                py311-cryptography: 44.0.1,1 -> 44.0.2,1 [FreeBSD]
+                py311-h11: 0.14.0_1 -> 0.16.0 [FreeBSD]
+                py311-httpcore: 1.0.7 -> 1.0.9 [FreeBSD]
+                py311-markdown: 3.6 -> 3.7 [FreeBSD]
+                py311-typing-extensions: 4.13.1 -> 4.13.2 [FreeBSD]
+                smartmontools: 7.4_2 -> 7.5 [FreeBSD]
+                vim: 9.1.1265 -> 9.1.1378 [FreeBSD]
+                xxd: 9.1.1265 -> 9.1.1378 [FreeBSD]
+                autoconf-2.72 [FreeBSD] (direct dependency changed: perl5)
+                net-snmp-5.9.4_6,1 [FreeBSD] (direct dependency changed: perl5)
+
+        Number of packages to be upgraded: 19
+
+        77 MiB to be downloaded.
+
+        """
+        output_vulnerable = "py311-h11-0.14.0_1"
+
+        mock_audit = mocker.MagicMock()
+        mock_audit.failed = True  # Audit returns non-zero exit code on match
+        mock_audit.stdout = output_vulnerable
+        mock_audit.stderr = ""  # No error message for successful audit
+
+        mock_packages = mocker.MagicMock()
+        mock_packages.failed = False
+        mock_packages.stdout = output
+
+        def side_effect(cmd, *args, **kwargs):
+            if "pkg audit" in cmd:
+                return mock_audit
+            elif "pkg upgrade" in cmd:
+                return mock_packages
+            else:
+                # Default empty response
+                result = mocker.MagicMock()
+                result.stdout = ""
+                result.failed = False
+                result.return_code = 0
+                return result
+
+        mock_connection.run.side_effect = side_effect
+
+        return mock_connection
+
+    @pytest.fixture
     def mock_pkg_output_audit_failed(self, mocker, mock_connection):
         """
         Fixture to mock the output of the pkg command when the audit fails.
@@ -371,19 +436,30 @@ class TestPkgProvider:
 
         assert result is True
 
-    def test_get_updates(self, mock_pkg_output):
+    @pytest.mark.parametrize(
+        "fixture_name,expected_repo_name",
+        [
+            ("mock_pkg_output", "Packages Mirror"),
+            ("mock_pkg_output_with_repo", "FreeBSD"),
+        ],
+        ids=["legacy_format", "new_pkg_format"],
+    )
+    def test_get_updates(self, request, fixture_name, expected_repo_name):
         """
         Test the get_updates method of the Pkg provider.
-        The data is provided by the mock_pkg_output fixture.
+        Tests both legacy format and new format with repository tags.
 
         Note: Closely coupled with implementation due to use
         of side effect to mock to two separate calls to the
         mock_connection.run method.
         """
+        # Get the fixture dynamically
+        mock_output = request.getfixturevalue(fixture_name)
+
         pkg = Pkg()
 
         try:
-            updates: list[Update] = pkg.get_updates(mock_pkg_output)
+            updates: list[Update] = pkg.get_updates(mock_output)
         except DataRefreshError as e:
             pytest.fail(f"DataRefreshError should not be raised, got: {e}")
 
@@ -393,16 +469,19 @@ class TestPkgProvider:
         assert updates[0].name == "bash-completion-zfs"
         assert updates[0].current_version is None
         assert updates[0].new_version == "2.3.1"
+        assert updates[0].source == expected_repo_name
         assert not updates[0].security
 
         # normal package update
         assert updates[1].name == "btop"
         assert updates[1].current_version == "1.4.1"
         assert updates[1].new_version == "1.4.3"
+        assert updates[1].source == expected_repo_name
         assert not updates[1].security
 
         # Ensure security updates are correctly identified
         assert updates[13].name == "py311-h11"
+        assert updates[13].source == expected_repo_name
         assert updates[13].security
 
     def test_get_updates_no_updates(self, mock_pkg_output_no_updates):
