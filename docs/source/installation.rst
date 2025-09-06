@@ -56,16 +56,22 @@ The package name is `exosphere-cli`.
 
         .. code-block:: bash
 
-            uv tool install exosphere-cli
+            uvx install exosphere-cli
 
-        `uv`_ will handle downloading and installing the necessary Python
+        `uvx` will handle downloading and installing the necessary Python
         runtime and dependencies for you, and then make the `exosphere`
         command available in your PATH.
 
+        If `uvx` is not available in your version of `uv`, you can substitute
+        `uv tool` instead, which accomplishes the same thing.
 
-The ``pipx`` or ``uv tool`` methods are recommended as they create a virtual
+
+The ``pipx`` or ``uvx`` methods are recommended as they create a virtual
 environment and isolate the application, making it readily available without
 having to contend with potential conflicts with other Python packages.
+
+The main difference is that ``uvx`` will also download and manage the necessary
+Python runtime for you, if you do not have a suitable version available.
 
 ``pip install`` is **not recommended** outside of a venv, as it *will* interfere
 with other Python packages and system versions of the libraries, and many
@@ -218,7 +224,7 @@ From PyPI
 
         .. code-block:: bash
 
-            uv tool upgrade exosphere-cli
+            uvx upgrade exosphere-cli
 
 
 From Git Repository
