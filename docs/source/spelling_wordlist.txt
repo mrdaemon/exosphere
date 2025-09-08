@@ -33,6 +33,7 @@ resolver
 resolvers
 sshd
 cron
+cronjob
 pre
 scrollable
 webstart

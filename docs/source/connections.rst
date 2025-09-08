@@ -130,12 +130,12 @@ exosphere CLI and its ``sudo`` command. Here is an example below:
     ┃ Provider ┃ Platform                       ┃ Sync Repositories ┃ Refresh Updates ┃
     ┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
     │ Apt      │ Debian/Ubuntu Derivatives      │ Requires Sudo     │ No Privileges   │
-    │ Pkg      │ FreeBSD                        │ No Privileges     │ No Privileges   │
+    │ Pkg      │ FreeBSD                        │ Requires Sudo     │ No Privileges   │
     │ Dnf      │ Fedora/RHEL/CentOS Derivatives │ No Privileges     │ No Privileges   │
     │ Yum      │ RHEL/CentOS 7 and earlier      │ No Privileges     │ No Privileges   │
     └──────────┴────────────────────────────────┴───────────────────┴─────────────────┘
 
-For instance, we can see here that the ``Apt`` provider requires sudo privileges
+For instance, we can see here that the ``Apt`` and ``Pkg`` providers require sudo privileges
 to sync repositories, but does not require any privileges to refresh updates.
 
 .. note::
@@ -182,7 +182,7 @@ with the username ``bigadmin``, you can run the following command:
 
 .. code-block:: console
 
-    $ exosphere sudo generate --provider apt --username bigadmin
+    $ exosphere sudo generate --provider apt --user bigadmin
     # Generated for Debian/Ubuntu Derivatives
     Cmnd_Alias EXOSPHERE_CMDS = /usr/bin/apt-get update
     bigadmin ALL=(root) NOPASSWD: EXOSPHERE_CMDS
@@ -210,6 +210,7 @@ Security Considerations
 The generated sudoers configuration is designed to be as secure as possible:
 
 * **Specific commands only**: Only the exact commands needed by the provider are allowed
+* **Absolute paths**: Commands use full absolute paths (e.g., ``/usr/bin/apt-get``)
 * **Root user only**: Commands are restricted to run as ``root`` (not ``ALL``)
 * **No password required**: Uses ``NOPASSWD:`` to avoid credential storage/prompting
 * **Command aliases**: Uses ``Cmnd_Alias`` for better maintainability
@@ -235,6 +236,9 @@ On Debian/Ubuntu systems, consider these options:
   run ``apt-get update`` and optionally ``apt-get upgrade`` on a schedule
 * The ``apt-config-auto-update`` package for simpler automatic update configuration
 * Custom cron jobs with ``apt-get update`` if you prefer manual control
+
+On FreeBSD, you can set up a cron job or periodic task to run
+``/usr/sbin/pkg update`` regularly.
 
 For other distributions, similar automated package management tools are available.
 

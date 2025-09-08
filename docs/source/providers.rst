@@ -33,7 +33,7 @@ and does *not* require elevated privileges.
 Exact Commands ran on remote hosts
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- ``apt-get update``
+- ``/usr/bin/apt-get update`` **(requires sudo)**
 - ``apt-get dist-upgrade -s | grep -e '^Inst'``
 
 
@@ -100,9 +100,16 @@ FreeBSD (Pkg)
 The FreeBSD provider is implemented in the `exosphere.providers.freebsd` module.
 It uses the `pkg` command to manage packages and updates.
 
-Repo sync *does not* require sudo privileges, as it is a no-op, since `pkg`
-does not actually require a separate step, and the repositories are synced
-automatically otherwise.
+Repo sync *requires* sudo privileges, as it needs to run ``/usr/sbin/pkg update``
+to update the package cache from repository.
+
+By default, given the stock :ref:`Sudo Policy <default_sudo_policy_option>`,
+in Exosphere, Repo sync will **not** run for FreeBSD hosts, and you will need
+to configure sudoers appropriately before changing the Sudo Policy.
+
+Alternatively, you can run ``/usr/sbin/pkg update`` via a cronjob or similar
+mechanism to keep the repository information up to date without having
+to configure sudo privileges for Exosphere.
 
 Updates retrieval is done using ``pkg upgrade`` in simulation mode, and *does not*
 require elevated privileges.
@@ -110,6 +117,7 @@ require elevated privileges.
 Exact Commands ran on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- ``/usr/sbin/pkg update -q`` **(requires sudo)**
 - ``pkg audit -q`` for security updates
 - ``pkg upgrade -qn | grep -e '^\\s'``
 
