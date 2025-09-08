@@ -42,7 +42,7 @@ class Apt(PkgManager):
         self.logger.debug("Synchronizing apt repositories")
 
         with cx as c:
-            update = c.sudo("apt-get update", hide=True, warn=True)
+            update = c.sudo("/usr/bin/apt-get update", hide=True, warn=True)
 
         if update.failed:
             self.logger.error(
