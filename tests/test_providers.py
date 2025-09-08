@@ -424,17 +424,28 @@ class TestPkgProvider:
         mock_connection.run.side_effect = side_effect
         return mock_connection
 
-    def test_reposync(self, mock_connection):
+    @pytest.mark.parametrize(
+        "connection_fixture, expected",
+        [
+            ("mock_connection_sudo", True),
+            ("mock_connection_sudo_failed", False),
+        ],
+        ids=["success", "failure"],
+    )
+    def test_reposync(self, request, connection_fixture, expected):
         """
         Test the reposync method of the Pkg provider.
-        This method is a no-op for FreeBSD, since pkg automatically
-        syncs the repositories on update checks.
         """
+        mock_connection = request.getfixturevalue(connection_fixture)
 
         pkg = Pkg()
         result = pkg.reposync(mock_connection)
 
-        assert result is True
+        mock_connection.sudo.assert_called_once_with(
+            "pkg update -q", hide=True, warn=True
+        )
+
+        assert result is expected
 
     @pytest.mark.parametrize(
         "fixture_name,expected_repo_name",

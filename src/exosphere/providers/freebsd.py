@@ -8,8 +8,7 @@ from fabric import Connection
 
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
-
-from .api import PkgManager
+from exosphere.providers.api import PkgManager, requires_sudo
 
 
 class Pkg(PkgManager):
@@ -28,6 +27,10 @@ class Pkg(PkgManager):
           anyways, when properly configured, and it's easier to track.
     """
 
+    SUDOERS_COMMANDS: list[str] | None = [
+        "/usr/sbin/pkg update -q",
+    ]
+
     def __init__(self) -> None:
         """
         Initialize the Pkg package manager.
@@ -36,19 +39,29 @@ class Pkg(PkgManager):
         self.logger.debug("Initializing FreeBSD pkg package manager")
         self.vulnerable: list[str] = []
 
+    @requires_sudo
     def reposync(self, cx: Connection) -> bool:
         """
         Synchronize the package repository.
 
-        FreeBSD automatically syncs the repositories on update checks,
-        so this method is more or less a no-op and just returns True.
+        This method is equivalent to running 'pkg update -q'.
 
         :param cx: Fabric Connection object
         :return: True if synchronization is successful, False otherwise.
         """
-        self.logger.debug(
-            "FreeBSD pkg does not require explicit repository synchronization, returning True"
-        )
+        self.logger.debug("Synchronizing FreeBSD pkg repositories")
+
+        with cx as c:
+            result = c.sudo("/usr/sbin/pkg update -q", hide=True, warn=True)
+
+        if result.failed:
+            self.logger.error(
+                f"Failed to synchronize FreeBSD pkg repositories: {result.stderr}"
+            )
+            return False
+
+        self.logger.debug("FreeBSD pkg repositories synchronized successfully")
+
         return True
 
     def get_updates(self, cx: Connection) -> list[Update]:
