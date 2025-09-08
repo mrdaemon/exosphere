@@ -124,7 +124,7 @@ class TestAptProvider:
         result = apt.reposync(mock_connection)
 
         mock_connection.sudo.assert_called_once_with(
-            "apt-get update", hide=True, warn=True
+            "/usr/bin/apt-get update", hide=True, warn=True
         )
         assert result is expected
 
@@ -442,7 +442,7 @@ class TestPkgProvider:
         result = pkg.reposync(mock_connection)
 
         mock_connection.sudo.assert_called_once_with(
-            "pkg update -q", hide=True, warn=True
+            "/usr/sbin/pkg update -q", hide=True, warn=True
         )
 
         assert result is expected
