@@ -103,6 +103,10 @@ It uses the `pkg` command to manage packages and updates.
 Repo sync *requires* sudo privileges, as it needs to run ``/usr/sbin/pkg update``
 to update the package cache from repository.
 
+This also means you will need to have the ``sudo`` package installed on the
+remote system if you want to use this functionality. Unfortunately, ``doas``
+is not supported at this time.
+
 By default, given the stock :ref:`Sudo Policy <default_sudo_policy_option>`,
 in Exosphere, Repo sync will **not** run for FreeBSD hosts, and you will need
 to configure sudoers appropriately before changing the Sudo Policy.
