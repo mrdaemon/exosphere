@@ -29,7 +29,7 @@ when installing Exosphere. You can do this by running:
 
         .. code-block:: shell
 
-            $ uvx install exosphere-cli[web]
+            $ uv tool install exosphere-cli[web]
 
     .. group-tab:: git
 
