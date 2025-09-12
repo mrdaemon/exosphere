@@ -45,6 +45,8 @@ Compatibility List
 
 **BSD Systems**
   - FreeBSD (all supported versions and minor variants)
+  - Optionally requires the ``sudo`` package for repository sync operations.
+    Unfortunately ``doas`` is not supported at this time.
   - *Package Manager*: ``pkg``
 
 ☑️ Exosphere has **limited support** for the following platforms:
@@ -80,7 +82,10 @@ entirely through SSH connections and standard system utilities.
 
 **Optional Requirements**
 
-- **Elevated privileges** (sudo) for certain operations on some platforms
+- **Elevated privileges** for certain operations on some platforms (i.e. `root`)
+- ``sudo`` installed on the remote host (if needed) and :ref:`configured properly <sudo-policies-and-privileges>`
+
+See below for more details.
 
 **Network Requirements**
 

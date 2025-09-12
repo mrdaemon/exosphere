@@ -99,6 +99,8 @@ pinpoint the exact issue with authentication or connectivity.
 .. _Windows OpenSSH Agent: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement
 .. _SSH Client feature: https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
 
+.. _sudo-policies-and-privileges:
+
 Sudo Policies and Privileges
 ============================
 
