@@ -147,17 +147,45 @@ them as a synthetic package in the updates view, but this needs more work.
 Does FreeBSD support extends to things like OPNSense?
 -----------------------------------------------------
 
-Partially, but probably not in the way you expect. `Discover` will work and pick them up
-as FreeBSD systems generally, but the `Updates` data may or may not contain things that are
-actually of interest.
+Up to a point. Exosphere can (and will) successfully invoke `pkg` commands
+and parse their output, but OPNSense often calls its own `pkg-ng` binary for some
+operations.
 
-Generally, OPNsense, while it does use `pkg-ng` under the hood, tends to run it in a very specific
-context when checking for package updates, and querying it from a user normally only sometimes
-yields useful results for *some* packages, and only in certain contexts.
+You're likely to get, at worst, partial results with the repo sync feature.
+However, updates retrieval should work fine, if you use the 'check for updates'
+feature in the OPNSense web interface first.
 
-We'd love to extend this support, but it is not currently implemented. You can still add the
-systems to the inventory, and you will get the Online checks, but the Updates view may not
-actually contain OPNSense updates.
+So essentially, "mostly, yes, a lot of the time, but not always".
+
+Help, the sudoers snippet I generated does not work!
+----------------------------------------------------
+
+The usual checklist for files in sudoers.d applies here:
+
+- The file must be owned by root
+- Must have permissions of 0440
+- Must not contain syntax errors (check with `visudo -c -f /etc/sudoers.d/yourfile`)
+
+If you are still having issues, a common problem is another rule matching last.
+Sudo reads rules in lexicographic order (i.e not strictly alphabetical), but does not 
+merge them, and the last matching rule wins.
+
+You can verify ordering with `visudo -c` and find out which rule is matching
+last with: 
+
+.. code-block:: bash
+
+    sudo -l -U youruser /the/sudo/commmand --and --args
+
+and compare with the output of ``sudo -ll`` to see which rule matched vs which was expected.
+
+You can find which exact command exosphere is trying to run in the :doc:`providers`
+documentation.
+
+A quick workaround for ordering issues is to just name the generated snippet with a prefix
+that ensures it is loaded and matched last, for instance:
+
+``/etc/sudoers.d/zz-exosphere``
 
 Is Windows support planned or even possible?
 ------------------------------------------------
