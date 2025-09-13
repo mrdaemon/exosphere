@@ -11,6 +11,7 @@ class of a package manager provider implementation.
 from exosphere.providers.api import PkgManager
 from exosphere.providers.debian import Apt
 from exosphere.providers.freebsd import Pkg
+from exosphere.providers.openbsd import PkgAdd
 from exosphere.providers.redhat import Dnf, Yum
 
 
@@ -22,6 +23,7 @@ class PkgManagerFactory:
     _REGISTRY = {
         "apt": Apt,
         "pkg": Pkg,
+        "pkg_add": PkgAdd,
         "dnf": Dnf,
         "yum": Yum,
     }
