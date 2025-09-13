@@ -20,6 +20,10 @@ the following platforms:
 Platform specific notes will appear whenever relevant, but the process
 should be the same across all platforms.
 
+Exosphere technically supports more platforms than the ones listed above,
+but these are the ones we have explicitly tested. You can still follow
+the instructions below in most cases, but your mileage may vary.
+
 Installing from PyPI
 ----------------------
 

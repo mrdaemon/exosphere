@@ -45,14 +45,19 @@ Compatibility List
 
 **BSD Systems**
   - FreeBSD (all supported versions and minor variants)
-  - Optionally requires the ``sudo`` package for repository sync operations.
-    Unfortunately ``doas`` is not supported at this time.
-  - *Package Manager*: ``pkg``
+  - OpenBSD (all supported versions)
+  - *Package Manager*: ``pkg`` (FreeBSD), ``pkg_add`` (OpenBSD)
+
+.. admonition:: note
+
+   FreeBSD Optionally requires the ``sudo`` package for repository sync operations.
+   Unfortunately ``doas`` is not supported at this time.
+
 
 ☑️ Exosphere has **limited support** for the following platforms:
 
 - Other Linux distributions (e.g., Arch Linux, Gentoo, NixOS, etc.)
-- Other BSD systems (e.g., OpenBSD, NetBSD)
+- Other BSD systems (e.g. NetBSD)
 - Other Unix-like systems (e.g., Solaris, AIX, IRIX, Mac OS)
 
 The bar for entry is fairly low to fit this description, as long as it can be connected
