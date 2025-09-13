@@ -38,11 +38,12 @@ Supported platforms for remote hosts include:
 - Debian/Ubuntu and derivatives (using APT)
 - Red Hat/CentOS and derivatives (using YUM/DNF)
 - FreeBSD (using pkg)
+- OpenBSD (using pkg_add)
 
 Unsupported platform with with SSH connectivity checks only:
 
 - Other Linux distributions (e.g., Arch Linux, Gentoo, NixOS, etc.)
-- Other BSD systems (e.g., OpenBSD, NetBSD)
+- Other BSD systems (NetBSD)
 - Other Unix-like systems (e.g., Solaris, AIX, IRIX, Mac OS)
 
 Exosphere **does not support** other platforms where SSH is available.
