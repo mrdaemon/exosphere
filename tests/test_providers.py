@@ -702,6 +702,26 @@ class TestPkgAddProvider:
 
         assert results == []
 
+    def test_get_updates_weird_output(self, mock_connection, caplog):
+        """
+        Test the get_updates method of the PkgAdd provider with a package
+        that unexpectedly changes names between versions.
+
+        That is weird but "legal" and should be a handled case.
+        Which we handle by skipping it entirely and logging a warning.
+        """
+        pkg_add = PkgAdd()
+        mock_connection.run.return_value.stdout = (
+            "Update candidates: oldname-1.0 -> newname-2.0"
+        )
+
+        with caplog.at_level(logging.WARNING):
+            results = pkg_add.get_updates(mock_connection)
+
+        assert results == []
+        assert "Unexpected package name change" in caplog.text
+        assert "skipping" in caplog.text
+
     def test_reposync(self, mock_connection):
         """
         Test the reposync method of the PkgAdd provider.
