@@ -4,14 +4,14 @@ import pytest
 
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
-from exosphere.providers import Apt, Dnf, Pkg, PkgManagerFactory, Yum
+from exosphere.providers import Apt, Dnf, Pkg, PkgAdd, PkgManagerFactory, Yum
 
 
 class TestPkgManagerFactory:
     @pytest.mark.parametrize(
         "name, expected_class",
-        [("apt", Apt), ("pkg", Pkg), ("dnf", Dnf), ("yum", Yum)],
-        ids=["apt", "pkg", "dnf", "yum"],
+        [("apt", Apt), ("pkg", Pkg), ("pkg_add", PkgAdd), ("dnf", Dnf), ("yum", Yum)],
+        ids=["apt", "pkg", "pkg_add", "dnf", "yum"],
     )
     def test_create(self, name, expected_class):
         """
@@ -34,11 +34,12 @@ class TestPkgManagerFactory:
         registry = PkgManagerFactory.get_registry()
 
         assert isinstance(registry, dict)
-        assert len(registry) == 4
+        assert len(registry) == 5
         assert "apt" in registry
         assert "pkg" in registry
         assert "dnf" in registry
         assert "yum" in registry
+        assert "pkg_add" in registry
 
         # Ensure we got a copy and not the original
         registry["apt"] = "modified"  # type: ignore
@@ -552,6 +553,166 @@ class TestPkgProvider:
                 str(e.value)
                 == "Failed to get vulnerable packages from pkg: Generic error"
             )
+
+
+class TestPkgAddProvider:
+    @pytest.fixture
+    def mock_connection(self, mocker):
+        """
+        Fixture to mock the Fabric Connection object.
+        """
+        mock_cx_class = mocker.patch(
+            "exosphere.providers.openbsd.Connection", autospec=True
+        )
+        mock_cx = mock_cx_class.return_value
+
+        # Context manager behavior should return the same mock
+        mock_cx.__enter__.return_value = mock_cx
+        mock_cx.__exit__.return_value = False  # Don't supress exceptions
+
+        # Default to successful run
+        mock_cx.run.return_value.failed = False
+
+        return mock_cx
+
+    @pytest.fixture
+    def mock_connection_failed(self, mock_connection):
+        """
+        Fixture to mock the Fabric Connection object with a failed run.
+        """
+        mock_connection.run.return_value.failed = True
+        mock_connection.run.return_value.stderr = "Generic error"
+        return mock_connection
+
+    @pytest.fixture
+    def mock_pkg_add_output(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the pkg_add command enumerating packages.
+
+        From OpenBSD 7.7, only upgradable packages are: curl, htop, isc-bind, libxml
+        """
+        output = """
+        Update candidates: curl-8.13.0 -> curl-8.13.1
+        Update candidates: ngtcp2-1.11.0 -> ngtcp2-1.11.0
+        Update candidates: nghttp2-1.65.0 -> nghttp2-1.65.0
+        Update candidates: nghttp3-1.8.0 -> nghttp3-1.8.0
+        Update candidates: desktop-file-utils-0.28p0 -> desktop-file-utils-0.28p0
+        Update candidates: glib2-2.82.5 -> glib2-2.82.5
+        Update candidates: pcre2-10.44 -> pcre2-10.44
+        Update candidates: fio-3.38 -> fio-3.38
+        Update candidates: libnfs-5.0.2 -> libnfs-5.0.2
+        Update candidates: htop-3.4.0 -> htop-3.4.2
+        Update candidates: isc-bind-9.20.11v3 -> isc-bind-9.20.13v3
+        Update candidates: liburcu-0.15.1 -> liburcu-0.15.1
+        Update candidates: libuv-1.50.0p0 -> libuv-1.50.0p0
+        Update candidates: libxml-2.13.8 -> libxml-2.13.9
+        Update candidates: json-c-0.18 -> json-c-0.18
+        Update candidates: libidn2-2.3.0p0 -> libidn2-2.3.0p0
+        Update candidates: libunistring-0.9.7 -> libunistring-0.9.7
+        Update candidates: libsodium-1.0.20 -> libsodium-1.0.20
+        Update candidates: py3-pyrsistent-0.20.0p0 -> py3-pyrsistent-0.20.0p0
+        Update candidates: qemu-ga-9.2.2 -> qemu-ga-9.2.2
+        Update candidates: sudo-1.9.17.1p0-gettext -> sudo-1.9.17.1p0-gettext
+        Update candidates: updatedb-0p0 -> updatedb-0p0
+        Update candidates: vim-9.1.1265-no_x11-python3 -> vim-9.1.1265-no_x11-python3
+        """
+
+        mock_packages = mocker.MagicMock()
+        mock_packages.failed = False
+        mock_packages.stdout = output
+
+        mock_connection.run.return_value = mock_packages
+
+        return mock_connection
+
+    @pytest.fixture
+    def mock_pkg_add_output_no_updates(self, mocker, mock_connection):
+        """
+        Fixture to mock the output of the pkg_add command when no updates are available.
+        """
+        mock_output = mocker.MagicMock()
+        mock_output.failed = False
+        mock_output.stdout = """
+        Update candidates: ngtcp2-1.11.0 -> ngtcp2-1.11.0
+        Update candidates: nghttp2-1.65.0 -> nghttp2-1.65.0
+        Update candidates: nghttp3-1.8.0 -> nghttp3-1.8.0
+        Update candidates: desktop-file-utils-0.28p0 -> desktop-file-utils-0.28p0
+        Update candidates: glib2-2.82.5 -> glib2-2.82.5
+        Update candidates: pcre2-10.44 -> pcre2-10.44
+        Update candidates: fio-3.38 -> fio-3.38
+        Update candidates: libnfs-5.0.2 -> libnfs-5.0.2
+        """
+
+        mock_connection.run.return_value = mock_output
+
+        return mock_connection
+
+    def test_get_updates(self, mock_pkg_add_output):
+        """
+        Test the get_updates method of the PkgAdd provider.
+        """
+        pkg_add = PkgAdd()
+        updates: list[Update] = pkg_add.get_updates(mock_pkg_add_output)
+
+        assert len(updates) == 4
+
+        assert updates[0].name == "curl"
+        assert updates[0].current_version == "8.13.0"
+        assert updates[0].new_version == "8.13.1"
+
+        assert updates[1].name == "htop"
+        assert updates[1].current_version == "3.4.0"
+        assert updates[1].new_version == "3.4.2"
+
+        assert updates[2].name == "isc-bind"
+        assert updates[2].current_version == "9.20.11v3"
+        assert updates[2].new_version == "9.20.13v3"
+
+        assert updates[3].name == "libxml"
+        assert updates[3].current_version == "2.13.8"
+        assert updates[3].new_version == "2.13.9"
+
+    def test_get_updates_no_updates(self, mock_pkg_add_output_no_updates):
+        """
+        Test the get_updates method of the PkgAdd provider when no updates are available.
+        """
+        pkg_add = PkgAdd()
+        updates: list[Update] = pkg_add.get_updates(mock_pkg_add_output_no_updates)
+
+        assert updates == []
+
+    def test_get_updates_query_failed(self, mock_connection_failed):
+        """
+        Test the get_updates method of the PkgAdd provider when the query fails.
+        """
+        pkg_add = PkgAdd()
+
+        with pytest.raises(DataRefreshError):
+            pkg_add.get_updates(mock_connection_failed)
+
+    def test_get_updates_invalid_output(self, mock_connection):
+        """
+        Test the get_updates method of the PkgAdd provider with invalid output.
+        Unparsable output in lines should be ignored.
+        """
+        pkg_add = PkgAdd()
+        mock_connection.run.return_value.stdout = "Invalid output"
+
+        results = pkg_add.get_updates(mock_connection)
+
+        assert results == []
+
+    def test_reposync(self, mock_connection):
+        """
+        Test the reposync method of the PkgAdd provider.
+        It's a big no-op for pkg_add.
+        """
+        pkg_add = PkgAdd()
+        result = pkg_add.reposync(mock_connection)
+
+        assert result is True
+        mock_connection.run.assert_not_called()
+        mock_connection.sudo.assert_not_called()
 
 
 class TestDnfProvider:

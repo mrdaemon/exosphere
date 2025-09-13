@@ -62,8 +62,9 @@ class TestDetection:
             ("linux", "almalinux", "rhel centos fedora", "rhel"),
             ("linux", "rockylinux", "rhel centos fedora", "rhel"),
             ("freebsd", "", "", "freebsd"),
+            ("openbsd", "", "", "openbsd"),
         ],
-        ids=["ubuntu", "fedora", "almalinux", "centos", "freebsd"],
+        ids=["ubuntu", "fedora", "almalinux", "centos", "freebsd", "openbsd"],
     )
     def test_flavor_detect(self, connection, os_name, id, like, expected) -> None:
         """
@@ -86,9 +87,9 @@ class TestDetection:
         [
             ("linux", "arch", "arch"),
             ("linux", "gentoo", "gentoo"),
-            ("openbsd", "", "openbsd"),
+            ("netbsd", "", "netbsd"),
         ],
-        ids=["arch", "gentoo", "openbsd"],
+        ids=["arch", "gentoo", "netbsd"],
     )
     def test_flavor_detect_failure(self, connection, os_name, id, like) -> None:
         """
@@ -140,8 +141,9 @@ class TestDetection:
             ("debian", "12\n", "12"),
             ("rhel", 'VERSION_ID="8.3"\n', "8.3"),
             ("freebsd", "13.0-RELEASE-p4\n", "13.0-RELEASE-p4"),
+            ("openbsd", "7.3\n", "7.3"),
         ],
-        ids=["ubuntu", "debian", "rhel", "freebsd"],
+        ids=["ubuntu", "debian", "rhel", "freebsd", "openbsd"],
     )
     def test_version_detect(self, connection, flavor, stdout, expected) -> None:
         """
@@ -159,7 +161,7 @@ class TestDetection:
 
     @pytest.mark.parametrize(
         "flavor",
-        ["arch", "gentoo", "openbsd"],  # Unsupported flavors
+        ["arch", "gentoo", "netbsd"],  # Unsupported flavors
     )
     def test_version_detect_failure(self, connection, flavor) -> None:
         """
@@ -171,7 +173,7 @@ class TestDetection:
 
     @pytest.mark.parametrize(
         "flavor",
-        ["ubuntu", "debian", "rhel", "freebsd"],
+        ["ubuntu", "debian", "rhel", "freebsd", "openbsd"],
     )
     def test_version_detect_connection_failure(self, connection, flavor) -> None:
         """
@@ -192,8 +194,16 @@ class TestDetection:
             ("rhel", True, "yum"),
             ("rhel", False, "dnf"),
             ("freebsd", False, "pkg"),
+            ("openbsd", False, "pkg_add"),
         ],
-        ids=["ubuntu", "debian", "rhel_fallback", "rhel_no_fallback", "freebsd"],
+        ids=[
+            "ubuntu",
+            "debian",
+            "rhel_fallback",
+            "rhel_no_fallback",
+            "freebsd",
+            "openbsd",
+        ],
     )
     def test_package_manager_detect(
         self, connection, flavor, fallback, expected
