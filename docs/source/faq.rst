@@ -160,6 +160,17 @@ feature in the OPNSense web interface first.
 
 So essentially, "mostly, yes, a lot of the time, but not always".
 
+Updates refresh fails on my OpenBSD system with an exotic architecture!
+-----------------------------------------------------------------------
+
+Exosphere relies on the availability of the ``syspatch`` command to determine
+if the system is tracking a stable release or `-current`.
+
+If you're running a more exotic, non-x86 architecture, Exosphere may not
+be able to handle the failure mode gracefully, and we'd deeply appreciate
+it if you could `file a bug report`_ with the output of ``syspatch -l``
+so we can improve this situation.
+
 Help, the sudoers snippet I generated does not work!
 ----------------------------------------------------
 
@@ -231,3 +242,4 @@ Compatibility test matrices are unfortunately not a source of happiness.
 .. _Ansible: https://www.ansible.com/
 .. _RunDeck: https://www.rundeck.com/
 .. _Known Issue: https://github.com/paramiko/paramiko/issues/387
+.. _file a bug report: https://github.com/mrdaemon/exosphere/issues

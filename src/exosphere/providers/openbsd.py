@@ -16,8 +16,12 @@ class PkgAdd(PkgManager):
     Package manager for OpenBSD using pkg_add
 
     Limitations:
-        - Does not check security state at all, by default all updates
-          are considered normal.
+        - Does not check security state at all if system is tracking -current,
+          as it then behaves like a rolling release and there is no way to tell
+        - On stable/release, all updates are assumed to be security updates,
+          as OpenBSD only ever updates packages for security issues.
+        - Thouroughly untested on more exotic architectures where syspatch
+          may not be available or fail in different ways. Bug reports welcome!
     """
 
     def __init__(self) -> None:
@@ -55,29 +59,46 @@ class PkgAdd(PkgManager):
         """
 
         updates: list[Update] = []
+        is_current = False  # Whether or not the system is tracking -current or -beta
 
-        # Collect data for updates
+        # Run queries within the same connection
         with cx as c:
-            query_result = c.run(
+            version_query = c.run("/usr/sbin/syspatch -l", hide=True, warn=True)
+            packages_query = c.run(
                 "/usr/sbin/pkg_add -u -v -x -n | grep -e '^Update candidate'",
                 hide=True,
                 warn=True,
             )
 
-        if query_result.failed:
+        # Syspatch returns non-zero exit code if the release is unsupported,
+        # and we use this to determine if we can track security status.
+        if version_query.failed:
+            if "unsupported release" in version_query.stderr.lower():
+                self.logger.warning(
+                    "Host is running unsupported OpenBSD release. "
+                    "Security status will not be tracked.",
+                )
+                is_current = True
+            else:
+                # Call to syspatch failed unexpectedly
+                raise DataRefreshError(
+                    f"Failed to query OpenBSD version: {version_query.stderr}"
+                )
+
+        if packages_query.failed:
             raise DataRefreshError(
-                f"Failed to query OpenBSD pkg_add updates: {query_result.stderr}"
+                f"Failed to query OpenBSD pkg_add updates: {packages_query.stderr}"
             )
 
         # Parse output and filter out packages that don't actually change version
-        for line in query_result.stdout.splitlines():
+        for line in packages_query.stdout.splitlines():
             line = line.strip()
 
             # Skip blanks
             if not line:
                 continue
 
-            update = self._parse_line(line)
+            update = self._parse_line(line, is_current=is_current)
 
             if update is None:
                 continue
@@ -92,7 +113,7 @@ class PkgAdd(PkgManager):
 
         return updates
 
-    def _parse_line(self, line: str) -> Update | None:
+    def _parse_line(self, line: str, is_current: bool = False) -> Update | None:
         """
         Parse a line of pkg_add output to extract update information.
 
@@ -120,7 +141,7 @@ class PkgAdd(PkgManager):
 
         if package_name != new_name:
             self.logger.warning(
-                "Unexpected package name change: %s -> %s , skipping.",
+                "Unexpected package name change: %s -> %s , ignoring.",
                 package_name,
                 new_name,
             )
@@ -128,7 +149,7 @@ class PkgAdd(PkgManager):
 
         if current_version == new_version:
             self.logger.debug(
-                "No version change for %s: %s -> %s , skipping.",
+                "No version change for %s: %s -> %s , ignoring.",
                 package_name,
                 current_version,
                 new_version,
@@ -146,6 +167,6 @@ class PkgAdd(PkgManager):
             name=package_name,
             current_version=current_version,
             new_version=new_version,
-            security=False,  # OpenBSD does not track this for packages
+            security=not is_current,  # All updates are security unless on -current
             source="Packages Mirror",
         )

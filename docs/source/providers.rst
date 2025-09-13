@@ -141,14 +141,19 @@ Repo sync is essentially a no-op, as OpenBSD does not have a command to
 synchronize package repositories. The command being run will directly query
 package mirrors on demand, and maintains no cache.
 
-Updates retrieval is done using ``pkg_add -u -n``, and *does not* require
+Updates retrieval is done using ``pkg_add -un``, and *does not* require
 elevated privileges.
 
-Limitations:
-^^^^^^^^^^^^
+Limitations
+^^^^^^^^^^^
 
-- OpenBSD packages do not have the concept of security updates, so
-  all updates are treated as regular updates.
+- On **stable/release**, all package updates are assumed to be security updates,
+  since OpenBSD only ever updates packages for security issues.
+- If the system is tracking `-current` or `-beta`, security status will default to
+  False, as there is no way to tell given the rolling release nature of these branches.
+- On more exotic architectures, `syspatch` may not be available and the failure
+  modes are untested. If you have such a system, and this breaks for you, please
+  `file a bug report`_ and include the output of ``syspatch -l``.
 - Only handles binary packages, does not support ports or syspatch/system updates.
 - Handles transitive dependencies without marking them as such, and may,
   in some edge cases, list more packages than strictly necessary for an update.
@@ -156,11 +161,13 @@ Limitations:
 Exact Commands ran on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- ``/usr/sbin/syspatch -l``
 - ``/usr/sbin/pkg_add -u -v -x -n | grep -e '^Update candidate'"``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
 
+- `uname`
 - `pkg_add`
 - `grep`
 

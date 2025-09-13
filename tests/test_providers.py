@@ -576,15 +576,6 @@ class TestPkgAddProvider:
         return mock_cx
 
     @pytest.fixture
-    def mock_connection_failed(self, mock_connection):
-        """
-        Fixture to mock the Fabric Connection object with a failed run.
-        """
-        mock_connection.run.return_value.failed = True
-        mock_connection.run.return_value.stderr = "Generic error"
-        return mock_connection
-
-    @pytest.fixture
     def mock_pkg_add_output(self, mocker, mock_connection):
         """
         Fixture to mock the output of the pkg_add command enumerating packages.
@@ -621,9 +612,7 @@ class TestPkgAddProvider:
         mock_packages.failed = False
         mock_packages.stdout = output
 
-        mock_connection.run.return_value = mock_packages
-
-        return mock_connection
+        return mock_packages
 
     @pytest.fixture
     def mock_pkg_add_output_no_updates(self, mocker, mock_connection):
@@ -643,14 +632,181 @@ class TestPkgAddProvider:
         Update candidates: libnfs-5.0.2 -> libnfs-5.0.2
         """
 
-        mock_connection.run.return_value = mock_output
+        return mock_output
 
+    @pytest.fixture
+    def mock_uname_stable_or_release(self, mocker):
+        """
+        Fixture to mock the output of uname -r to return a stable or release version
+        """
+        mock_version = mocker.MagicMock()
+        mock_version.failed = False
+        mock_version.stdout = ""
+        mock_version.stderr = ""
+
+        return mock_version
+
+    @pytest.fixture
+    def mock_uname_current(self, mocker):
+        """
+        Fixture to mock the output of uname -r to return a current version
+        """
+        mock_version = mocker.MagicMock()
+        mock_version.failed = True
+        mock_version.stdout = ""
+        mock_version.stderr = "syspatch: Unsupported release: 7.8-beta"
+
+        return mock_version
+
+    @pytest.fixture
+    def mock_pkg_add_output_connection_stable(
+        self, mock_connection, mock_pkg_add_output, mock_uname_stable_or_release
+    ):
+        """
+        Fixture to mock the output of pkg_add add with a stable or release
+        version of OpenBSD where all updates should be security updates.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_uname_stable_or_release
+            else:
+                return mock_pkg_add_output
+
+        mock_connection.run.side_effect = side_effects
         return mock_connection
 
-    def test_get_updates(self, mock_pkg_add_output):
+    @pytest.fixture
+    def mock_pkg_add_output_connection_current(
+        self, mock_connection, mock_pkg_add_output, mock_uname_current
+    ):
+        """
+        Fixture to mock the output of pkg_add add with a current
+        version of OpenBSD where no updates should be security updates.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_uname_current
+            else:
+                return mock_pkg_add_output
+
+        mock_connection.run.side_effect = side_effects
+        return mock_connection
+
+    @pytest.fixture
+    def mock_pkg_add_no_updates_connection_stable(
+        self,
+        mock_connection,
+        mock_pkg_add_output_no_updates,
+        mock_uname_stable_or_release,
+    ):
+        """
+        Fixture to mock the output of pkg_add add with a stable or release
+        version of OpenBSD where no updates are available.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_uname_stable_or_release
+            else:
+                return mock_pkg_add_output_no_updates
+
+        mock_connection.run.side_effect = side_effects
+        return mock_connection
+
+    @pytest.fixture
+    def mock_pkg_add_no_updates_connection_current(
+        self, mock_connection, mock_pkg_add_output_no_updates, mock_uname_current
+    ):
+        """
+        Fixture to mock the output of pkg_add add with a current
+        version of OpenBSD where no updates are available.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_uname_current
+            else:
+                return mock_pkg_add_output_no_updates
+
+        mock_connection.run.side_effect = side_effects
+        return mock_connection
+
+    @pytest.fixture
+    def mock_connection_uname_failed(
+        self, mocker, mock_connection, mock_pkg_add_output
+    ):
+        """
+        Fixture to mock the Fabric Connection object with a failed uname command.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                value = mocker.MagicMock()
+                value.failed = True
+                value.stderr = "Generic error"
+                return value
+            else:
+                return mock_pkg_add_output
+
+        mock_connection.run.side_effect = side_effects
+        return mock_connection
+
+    @pytest.fixture
+    def mock_connection_pkg_add_query_failed(
+        self, mocker, mock_connection, mock_uname_stable_or_release
+    ):
+        """
+        Fixture to mock the Fabric Connection object with a failed pkg_add command.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_uname_stable_or_release
+            else:
+                value = mocker.MagicMock()
+                value.failed = True
+                value.stderr = "Generic error"
+                return value
+
+        mock_connection.run.side_effect = side_effects
+        return mock_connection
+
+    @pytest.fixture
+    def mock_connection_pkg_add_invalid_output(
+        self, mocker, mock_connection, mock_uname_stable_or_release
+    ):
+        """
+        Fixture to mock the Fabric Connection object with invalid pkg_add output.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_uname_stable_or_release
+            else:
+                value = mocker.MagicMock()
+                value.failed = False
+                value.stdout = "Invalid output"
+                return value
+
+        mock_connection.run.side_effect = side_effects
+        return mock_connection
+
+    @pytest.mark.parametrize(
+        "connection_fixture, expected_security",
+        [
+            ("mock_pkg_add_output_connection_stable", True),
+            ("mock_pkg_add_output_connection_current", False),
+        ],
+        ids=["stable_or_release", "current"],
+    )
+    def test_get_updates(self, request, connection_fixture, expected_security):
         """
         Test the get_updates method of the PkgAdd provider.
         """
+        mock_pkg_add_output = request.getfixturevalue(connection_fixture)
+
         pkg_add = PkgAdd()
         updates: list[Update] = pkg_add.get_updates(mock_pkg_add_output)
 
@@ -672,37 +828,68 @@ class TestPkgAddProvider:
         assert updates[3].current_version == "2.13.8"
         assert updates[3].new_version == "2.13.9"
 
-    def test_get_updates_no_updates(self, mock_pkg_add_output_no_updates):
+        for u in updates:
+            assert u.security == expected_security
+
+    def test_get_current_generates_warning(
+        self, mock_pkg_add_output_connection_current, caplog
+    ):
+        """
+        Test that a warning is logged if the system is tracking -current
+        """
+        pkg_add = PkgAdd()
+
+        with caplog.at_level(logging.WARNING):
+            updates: list[Update] = pkg_add.get_updates(
+                mock_pkg_add_output_connection_current
+            )
+
+        assert len(updates) == 4
+        assert "Host is running unsupported OpenBSD release" in caplog.text
+        assert "Security status will not be tracked" in caplog.text
+
+    @pytest.mark.parametrize(
+        "connection_fixture",
+        [
+            "mock_pkg_add_no_updates_connection_stable",
+            "mock_pkg_add_no_updates_connection_current",
+        ],
+        ids=["stable_or_release", "current"],
+    )
+    def test_get_updates_no_updates(self, request, connection_fixture):
         """
         Test the get_updates method of the PkgAdd provider when no updates are available.
         """
+        mock_connection = request.getfixturevalue(connection_fixture)
         pkg_add = PkgAdd()
-        updates: list[Update] = pkg_add.get_updates(mock_pkg_add_output_no_updates)
+        updates: list[Update] = pkg_add.get_updates(mock_connection)
 
         assert updates == []
 
-    def test_get_updates_query_failed(self, mock_connection_failed):
+    @pytest.mark.parametrize(
+        "connection_fixture, exception_expected",
+        [
+            ("mock_connection_uname_failed", "Failed to query OpenBSD version"),
+            ("mock_connection_pkg_add_query_failed", "Failed to query OpenBSD pkg_add"),
+        ],
+        ids=["uname_failure", "pkg_add_failure"],
+    )
+    def test_get_updates_command_failure(
+        self, request, connection_fixture, exception_expected
+    ):
         """
         Test the get_updates method of the PkgAdd provider when the query fails.
         """
+        mock_connection = request.getfixturevalue(connection_fixture)
+
         pkg_add = PkgAdd()
 
-        with pytest.raises(DataRefreshError):
-            pkg_add.get_updates(mock_connection_failed)
+        with pytest.raises(DataRefreshError, match=exception_expected):
+            pkg_add.get_updates(mock_connection)
 
-    def test_get_updates_invalid_output(self, mock_connection):
-        """
-        Test the get_updates method of the PkgAdd provider with invalid output.
-        Unparsable output in lines should be ignored.
-        """
-        pkg_add = PkgAdd()
-        mock_connection.run.return_value.stdout = "Invalid output"
-
-        results = pkg_add.get_updates(mock_connection)
-
-        assert results == []
-
-    def test_get_updates_weird_output(self, mock_connection, caplog):
+    def test_get_updates_weird_output(
+        self, mocker, mock_connection, mock_uname_stable_or_release, caplog
+    ):
         """
         Test the get_updates method of the PkgAdd provider with a package
         that unexpectedly changes names between versions.
@@ -710,17 +897,43 @@ class TestPkgAddProvider:
         That is weird but "legal" and should be a handled case.
         Which we handle by skipping it entirely and logging a warning.
         """
+
+        output = "Update candidates: oldname-1.0 -> newname-2.0"
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_uname_stable_or_release
+            else:
+                mock_packages = mocker.MagicMock()
+                mock_packages.failed = False
+                mock_packages.stdout = output
+                return mock_packages
+
+        mock_connection.run.side_effect = side_effects
+
         pkg_add = PkgAdd()
-        mock_connection.run.return_value.stdout = (
-            "Update candidates: oldname-1.0 -> newname-2.0"
-        )
 
         with caplog.at_level(logging.WARNING):
             results = pkg_add.get_updates(mock_connection)
 
         assert results == []
         assert "Unexpected package name change" in caplog.text
-        assert "skipping" in caplog.text
+        assert "ignoring" in caplog.text
+
+    def test_get_updates_invalid_output(
+        self, mock_connection_pkg_add_invalid_output, caplog
+    ):
+        """
+        Test the get_updates method of the PkgAdd provider with invalid output.
+        Unparsable output in lines should be ignored.
+        """
+        pkg_add = PkgAdd()
+
+        with caplog.at_level(logging.DEBUG):
+            results = pkg_add.get_updates(mock_connection_pkg_add_invalid_output)
+
+        assert results == []
+        assert "Could not parse" in caplog.text
 
     def test_reposync(self, mock_connection):
         """
