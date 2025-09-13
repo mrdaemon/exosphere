@@ -19,8 +19,8 @@ from exosphere.errors import (
     UnsupportedOSError,
 )
 
-SUPPORTED_PLATFORMS = ["linux", "freebsd"]
-SUPPORTED_FLAVORS = ["ubuntu", "debian", "rhel", "fedora", "freebsd"]
+SUPPORTED_PLATFORMS = ["linux", "freebsd", "openbsd"]
+SUPPORTED_FLAVORS = ["ubuntu", "debian", "rhel", "fedora", "freebsd", "openbsd"]
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -108,10 +108,10 @@ def flavor_detect(cx: Connection, platform_name: str) -> str:
     if platform_name.lower() not in SUPPORTED_PLATFORMS:
         raise UnsupportedOSError(f"Unsupported platform: {platform_name}")
 
-    # FreeBSD doesn't have flavors that matter so far.
-    # So we just put "freebsd" in there.
-    if platform_name == "freebsd":
-        return "freebsd"
+    # The BSDs don't have flavors that matter so far.
+    # So we just return the platform name.
+    if platform_name in ["freebsd", "openbsd"]:
+        return platform_name
 
     # Linux
     if platform_name == "linux":
@@ -235,6 +235,20 @@ def version_detect(cx: Connection, flavor_name: str) -> str:
 
         return result_version.stdout.strip()
 
+    # OpenBSD
+    if flavor_name == "openbsd":
+        with cx as c:
+            result_version = c.run("uname -r", hide=True, warn=True)
+
+        if result_version.failed:
+            raise DataRefreshError(
+                "Failed to detect OS version via uname -r.",
+                stderr=result_version.stderr,
+                stdout=result_version.stdout,
+            )
+
+        return result_version.stdout.strip()
+
     raise UnsupportedOSError(
         f"Unknown issue in detecting version for flavor: {flavor_name}"
     )
@@ -274,6 +288,10 @@ def package_manager_detect(cx: Connection, flavor_name: str) -> str:
     # FreeBSD
     if flavor_name == "freebsd":
         return "pkg"
+
+    # OpenBSD
+    if flavor_name == "openbsd":
+        return "pkg_add"
 
     raise UnsupportedOSError(
         f"Unknown issue in detecting package manager for flavor: {flavor_name}"

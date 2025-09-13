@@ -59,6 +59,7 @@ def _get_provider_infos() -> dict[str, ProviderInfo]:
         "dnf": "Fedora/RHEL/CentOS Derivatives",
         "yum": "RHEL/CentOS 7 and earlier",
         "pkg": "FreeBSD",
+        "pkg_add": "OpenBSD",
     }
 
     results = {}

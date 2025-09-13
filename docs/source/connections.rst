@@ -127,12 +127,13 @@ exosphere CLI and its ``sudo`` command. Here is an example below:
 .. code-block:: console
 
     $ exosphere sudo providers
-                                    Providers Requirements                               
+                                    Providers Requirements
     ┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
     ┃ Provider ┃ Platform                       ┃ Sync Repositories ┃ Refresh Updates ┃
     ┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
     │ Apt      │ Debian/Ubuntu Derivatives      │ Requires Sudo     │ No Privileges   │
     │ Pkg      │ FreeBSD                        │ Requires Sudo     │ No Privileges   │
+    │ PkgAdd   │ OpenBSD                        │ No Privileges     │ No Privileges   │
     │ Dnf      │ Fedora/RHEL/CentOS Derivatives │ No Privileges     │ No Privileges   │
     │ Yum      │ RHEL/CentOS 7 and earlier      │ No Privileges     │ No Privileges   │
     └──────────┴────────────────────────────────┴───────────────────┴─────────────────┘

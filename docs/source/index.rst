@@ -27,7 +27,7 @@ If you have SSH access to the hosts with an `agent`_, you are good to go!
 **Compatibility**
 
 - **Exosphere**: Linux, BSDs, MacOS, Windows (and more!)
-- **Target systems**: Debian/Ubuntu-likes (apt), RedHat-Likes (yum/dnf), FreeBSD (pkg)
+- **Remote**: Debian/Ubuntu-likes, RedHat-Likes, FreeBSD, OpenBSD
 
 .. note::
 

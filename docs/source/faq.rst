@@ -135,14 +135,17 @@ Exosphere does not currently support snaps or flatpaks.
 There are no immediate plans to add support for these, but it is certainly possible
 in the future, if this becomes a common facet of server management.
 
-On FreeBSD systems, will this handle system updates and source ports?
----------------------------------------------------------------------
+On BSD systems, will this handle system updates and source ports?
+-----------------------------------------------------------------
 
-Exosphere does not currently support FreeBSD system updates or source ports.
-It only supports FreeBSD Binary Packages, using `pkg`.
+Exosphere does not currently support system updates or source ports.
+It only supports Binary Packages, for both FreeBSD and OpenBSD.
 
 There are plans to add support for system updates in the future, presenting
 them as a synthetic package in the updates view, but this needs more work.
+
+For the time being, cron reports and mailing lists for `syspatch` and
+`freebsd-update` are recommended to keep tabs on these.
 
 Does FreeBSD support extends to things like OPNSense?
 -----------------------------------------------------
