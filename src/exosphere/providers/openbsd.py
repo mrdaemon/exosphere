@@ -85,7 +85,9 @@ class PkgAdd(PkgManager):
                     f"Failed to query OpenBSD version: {version_query.stderr}"
                 )
 
-        # grep will return 1 if there are no candidates at all
+        # grep will exit with 1 if there are no candidates at all
+        # This is expected if packages are up to date AND if there are
+        # no updated versions of any package available at all.
         if packages_query.failed:
             if (
                 packages_query.return_code == 1
