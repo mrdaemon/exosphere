@@ -611,6 +611,7 @@ class TestPkgAddProvider:
         mock_packages = mocker.MagicMock()
         mock_packages.failed = False
         mock_packages.stdout = output
+        mock_packages.stderr = "pkg_add should be run as root\n"
 
         return mock_packages
 
@@ -631,13 +632,28 @@ class TestPkgAddProvider:
         Update candidates: fio-3.38 -> fio-3.38
         Update candidates: libnfs-5.0.2 -> libnfs-5.0.2
         """
+        mock_output.stderr = "pkg_add should be run as root\n"
 
         return mock_output
 
     @pytest.fixture
-    def mock_uname_stable_or_release(self, mocker):
+    def mock_pkg_add_output_no_packages(self, mocker, mock_connection):
         """
-        Fixture to mock the output of uname -r to return a stable or release version
+        Fixture to mock the output of pkg_add when no packages have updates
+        and grep returns no matches.
+        """
+        mock_output = mocker.MagicMock()
+        mock_output.failed = True
+        mock_output.stdout = ""
+        mock_output.stderr = "pkg_add should be run as root\n"
+        mock_output.return_code = 1
+
+        return mock_output
+
+    @pytest.fixture
+    def mock_system_stable_or_release(self, mocker):
+        """
+        Fixture to mock the output of syspatch to return a stable or release version
         """
         mock_version = mocker.MagicMock()
         mock_version.failed = False
@@ -647,9 +663,9 @@ class TestPkgAddProvider:
         return mock_version
 
     @pytest.fixture
-    def mock_uname_current(self, mocker):
+    def mock_system_current(self, mocker):
         """
-        Fixture to mock the output of uname -r to return a current version
+        Fixture to mock the output of syspatch to return a current version
         """
         mock_version = mocker.MagicMock()
         mock_version.failed = True
@@ -660,7 +676,7 @@ class TestPkgAddProvider:
 
     @pytest.fixture
     def mock_pkg_add_output_connection_stable(
-        self, mock_connection, mock_pkg_add_output, mock_uname_stable_or_release
+        self, mock_connection, mock_pkg_add_output, mock_system_stable_or_release
     ):
         """
         Fixture to mock the output of pkg_add add with a stable or release
@@ -669,7 +685,7 @@ class TestPkgAddProvider:
 
         def side_effects(cmd, *args, **kwargs):
             if "syspatch" in cmd:
-                return mock_uname_stable_or_release
+                return mock_system_stable_or_release
             else:
                 return mock_pkg_add_output
 
@@ -678,7 +694,7 @@ class TestPkgAddProvider:
 
     @pytest.fixture
     def mock_pkg_add_output_connection_current(
-        self, mock_connection, mock_pkg_add_output, mock_uname_current
+        self, mock_connection, mock_pkg_add_output, mock_system_current
     ):
         """
         Fixture to mock the output of pkg_add add with a current
@@ -687,7 +703,7 @@ class TestPkgAddProvider:
 
         def side_effects(cmd, *args, **kwargs):
             if "syspatch" in cmd:
-                return mock_uname_current
+                return mock_system_current
             else:
                 return mock_pkg_add_output
 
@@ -699,7 +715,7 @@ class TestPkgAddProvider:
         self,
         mock_connection,
         mock_pkg_add_output_no_updates,
-        mock_uname_stable_or_release,
+        mock_system_stable_or_release,
     ):
         """
         Fixture to mock the output of pkg_add add with a stable or release
@@ -708,7 +724,7 @@ class TestPkgAddProvider:
 
         def side_effects(cmd, *args, **kwargs):
             if "syspatch" in cmd:
-                return mock_uname_stable_or_release
+                return mock_system_stable_or_release
             else:
                 return mock_pkg_add_output_no_updates
 
@@ -717,7 +733,7 @@ class TestPkgAddProvider:
 
     @pytest.fixture
     def mock_pkg_add_no_updates_connection_current(
-        self, mock_connection, mock_pkg_add_output_no_updates, mock_uname_current
+        self, mock_connection, mock_pkg_add_output_no_updates, mock_system_current
     ):
         """
         Fixture to mock the output of pkg_add add with a current
@@ -726,9 +742,46 @@ class TestPkgAddProvider:
 
         def side_effects(cmd, *args, **kwargs):
             if "syspatch" in cmd:
-                return mock_uname_current
+                return mock_system_current
             else:
                 return mock_pkg_add_output_no_updates
+
+        mock_connection.run.side_effect = side_effects
+        return mock_connection
+
+    @pytest.fixture
+    def mock_pkg_add_no_packages_connection_stable(
+        self,
+        mock_connection,
+        mock_pkg_add_output_no_packages,
+        mock_system_stable_or_release,
+    ):
+        """
+        Fixture to mock the output of pkg_add when no packages have updates.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_system_stable_or_release
+            else:
+                return mock_pkg_add_output_no_packages
+
+        mock_connection.run.side_effect = side_effects
+        return mock_connection
+
+    @pytest.fixture
+    def mock_pkg_add_no_packages_connection_current(
+        self, mock_connection, mock_pkg_add_output_no_packages, mock_system_current
+    ):
+        """
+        Fixture to mock the output of pkg_add when no packages have updates.
+        """
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_system_current
+            else:
+                return mock_pkg_add_output_no_packages
 
         mock_connection.run.side_effect = side_effects
         return mock_connection
@@ -755,7 +808,7 @@ class TestPkgAddProvider:
 
     @pytest.fixture
     def mock_connection_pkg_add_query_failed(
-        self, mocker, mock_connection, mock_uname_stable_or_release
+        self, mocker, mock_connection, mock_system_stable_or_release
     ):
         """
         Fixture to mock the Fabric Connection object with a failed pkg_add command.
@@ -763,7 +816,7 @@ class TestPkgAddProvider:
 
         def side_effects(cmd, *args, **kwargs):
             if "syspatch" in cmd:
-                return mock_uname_stable_or_release
+                return mock_system_stable_or_release
             else:
                 value = mocker.MagicMock()
                 value.failed = True
@@ -775,7 +828,7 @@ class TestPkgAddProvider:
 
     @pytest.fixture
     def mock_connection_pkg_add_invalid_output(
-        self, mocker, mock_connection, mock_uname_stable_or_release
+        self, mocker, mock_connection, mock_system_stable_or_release
     ):
         """
         Fixture to mock the Fabric Connection object with invalid pkg_add output.
@@ -783,7 +836,7 @@ class TestPkgAddProvider:
 
         def side_effects(cmd, *args, **kwargs):
             if "syspatch" in cmd:
-                return mock_uname_stable_or_release
+                return mock_system_stable_or_release
             else:
                 value = mocker.MagicMock()
                 value.failed = False
@@ -867,6 +920,28 @@ class TestPkgAddProvider:
         assert updates == []
 
     @pytest.mark.parametrize(
+        "connection_fixture",
+        [
+            "mock_pkg_add_no_packages_connection_stable",
+            "mock_pkg_add_no_packages_connection_current",
+        ],
+        ids=["stable_or_release", "current"],
+    )
+    def test_get_updates_no_packages(self, request, connection_fixture, caplog):
+        """
+        Test the get_updates method of the PkgAdd provider when no upgradable
+        packages are found in the output.
+        """
+        mock_connection = request.getfixturevalue(connection_fixture)
+
+        pkg_add = PkgAdd()
+        with caplog.at_level(logging.DEBUG):
+            updates: list[Update] = pkg_add.get_updates(mock_connection)
+
+        assert updates == []
+        assert "No OpenBSD packages with updates" in caplog.text
+
+    @pytest.mark.parametrize(
         "connection_fixture, exception_expected",
         [
             ("mock_connection_uname_failed", "Failed to query OpenBSD version"),
@@ -888,7 +963,7 @@ class TestPkgAddProvider:
             pkg_add.get_updates(mock_connection)
 
     def test_get_updates_weird_output(
-        self, mocker, mock_connection, mock_uname_stable_or_release, caplog
+        self, mocker, mock_connection, mock_system_stable_or_release, caplog
     ):
         """
         Test the get_updates method of the PkgAdd provider with a package
@@ -902,7 +977,7 @@ class TestPkgAddProvider:
 
         def side_effects(cmd, *args, **kwargs):
             if "syspatch" in cmd:
-                return mock_uname_stable_or_release
+                return mock_system_stable_or_release
             else:
                 mock_packages = mocker.MagicMock()
                 mock_packages.failed = False

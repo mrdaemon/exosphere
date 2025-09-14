@@ -85,7 +85,17 @@ class PkgAdd(PkgManager):
                     f"Failed to query OpenBSD version: {version_query.stderr}"
                 )
 
+        # grep will return 1 if there are no candidates at all
         if packages_query.failed:
+            if (
+                packages_query.return_code == 1
+                and not packages_query.stdout
+                and packages_query.stderr == "pkg_add should be run as root\n"
+            ):
+                self.logger.debug("No OpenBSD packages with updates.")
+                return updates
+
+            # Call to pkg_add failed unexpectedly
             raise DataRefreshError(
                 f"Failed to query OpenBSD pkg_add updates: {packages_query.stderr}"
             )
