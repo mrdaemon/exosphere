@@ -13,7 +13,7 @@ Debian/Ubuntu (Apt)
 
 The Debian/Ubuntu provider is implemented in the `exosphere.providers.debian` module.
 
-Repo sync *requires* sudo privileges, as it needs to run ``apt-get update`` to
+Repo sync **requires** sudo privileges, as it needs to run ``apt-get update`` to
 update the package cache from repository.
 
 By default, given the stock :ref:`Sudo Policy <default_sudo_policy_option>`,
@@ -21,7 +21,7 @@ in Exosphere, Repo sync will **not** run for Debian-like hosts, and you will nee
 to configure sudoers appropriately before changing the Sudo Policy.
 
 Updates retrieval is done using ``apt-get dist-upgrade`` in simulation mode, 
-and does *not* require elevated privileges.
+and **does not** require elevated privileges.
 
 .. admonition:: Note
 
@@ -55,7 +55,7 @@ an interface for the relevant commands. The only distinction is the command name
 
 Internally, using Yum as a provider wraps Dnf, but with a different command name.
 
-Repo sync *does not* require sudo privileges, as it runs ``yum/dnf makecache``
+Repo sync **does not** require sudo privileges, as it runs ``yum/dnf makecache``
 as the connection user to retrieve the information.
 
 Updates retrieval is done using ``yum/dnf check-update``, and does *not* require
@@ -100,7 +100,7 @@ FreeBSD (Pkg)
 The FreeBSD provider is implemented in the `exosphere.providers.freebsd` module.
 It uses the `pkg` command to manage packages and updates.
 
-Repo sync *requires* sudo privileges, as it needs to run ``/usr/sbin/pkg update``
+Repo sync **requires** sudo privileges, as it needs to run ``/usr/sbin/pkg update``
 to update the package cache from repository.
 
 This also means you will need to have the ``sudo`` package installed on the
@@ -115,7 +115,7 @@ Alternatively, you can run ``/usr/sbin/pkg update`` via a cronjob or similar
 mechanism to keep the repository information up to date without having
 to configure sudo privileges for Exosphere.
 
-Updates retrieval is done using ``pkg upgrade`` in simulation mode, and *does not*
+Updates retrieval is done using ``pkg upgrade`` in simulation mode, and **does not**
 require elevated privileges.
 
 Exact Commands ran on remote systems
@@ -141,8 +141,12 @@ Repo sync is essentially a no-op, as OpenBSD does not have a command to
 synchronize package repositories. The command being run will directly query
 package mirrors on demand, and maintains no cache.
 
-Updates retrieval is done using ``pkg_add -un``, and *does not* require
+Updates retrieval is done using ``pkg_add -un``, and **does not** require
 elevated privileges.
+
+Branch detection is done using ``syspatch -l``, which is in turn used to
+determine whether updates should be considered security updates or not.
+This **does not** require elevated privileges either.
 
 Limitations
 ^^^^^^^^^^^
@@ -167,8 +171,8 @@ Exact Commands ran on remote systems
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
 
-- `uname`
 - `pkg_add`
 - `grep`
+- `syspatch`
 
 .. _file a bug report: https://github.com/mrdaemon/exosphere/issues
