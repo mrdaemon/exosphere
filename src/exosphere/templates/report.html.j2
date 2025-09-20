@@ -1,0 +1,210 @@
+{%- set current_time = now().strftime('%Y-%m-%d %H:%M:%S %z') -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Exosphere {{ exosphere_version }}">
+    <title>System Updates Report - {{ current_time }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-top: 0;}
+        h2 { color: #34495e; border-bottom: 1px solid #ecf0f1; padding-bottom: 5px; margin-top: 0; }
+        .summary {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .summary h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .host-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .security {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .stale {
+            color: #e67e22;
+            font-style: italic;
+            font-weight: normal;
+        }
+        .meta {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: -10px;
+        }
+        .host-description {
+            color: #7f8c8d;
+            font-size: 1em;
+            font-weight: normal;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        .toc {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+        .toc h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        .toc-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .toc-link {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s ease;
+        }
+        .toc-link:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            text-decoration: none;
+        }
+        .update-count {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>System Updates Report</h1>
+
+        <div class="meta">Generated on {{ current_time }}</div>
+
+        <div class="summary">
+            <h3>Summary</h3>
+            <ul>
+                <li><strong>Total hosts:</strong> {{ hosts|length }}</li>
+                <li><strong>Hosts with updates:</strong> {{ hosts|selectattr('updates')|list|length }}</li>
+                <li><strong>Total updates:</strong> {{ hosts|map(attribute='updates')|map('length')|sum }}</li>
+                <li><strong>Security updates:</strong> {{ hosts|map(attribute='security_updates')|map('length')|sum }}</li>
+            </ul>
+        </div>
+        {%- if navigation %}
+
+        <div class="toc">
+            <h3>Quick Navigation</h3>
+            <div class="toc-links">
+                {%- for host in hosts %}
+                <a href="#host-{{ loop.index0 }}" class="toc-link">
+                    {%- if host.updates %}
+                    <strong>{{ host.name }}</strong>
+                    <span class="update-count">({{ host.updates|length }})</span>
+                    {%- else %}
+                    {{ host.name }}
+                    <span class="update-count">(0)</span>
+                    {%- endif %}
+                </a>
+                {%- endfor %}
+            </div>
+        </div>
+        {%- endif %}
+
+        {% for host in hosts %}
+        <div class="host-section" id="host-{{ loop.index0 }}">
+            <h2>{{ host.name }} ({{ host.ip }})</h2>
+            {%- if host.description %}
+            <div class="host-description">{{ host.description }}</div>
+            {%- endif %}
+            
+            <p>
+                <strong>OS:</strong> {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}<br>
+                <strong>Package Manager:</strong> {{ host.package_manager or 'N/A' }}<br>
+                <strong>Last Refresh:</strong> {% if host.last_refresh %}{{ host.last_refresh.strftime('%Y-%m-%d %H:%M:%S') }} {{ now().strftime('%z') }}{% else %}Never{% endif %}{% if host.is_stale %} <span class="stale">(stale, needs refresh)</span>{% endif %}
+            </p>
+
+            {% if host.updates -%}
+            <h3>Available Updates ({{ host.updates|length }})</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {%- for update in host.updates %}
+                    <tr>
+                        <td><strong>{{ update.name }}</strong></td>
+                        <td>{{ update.current_version or '(NEW)' }}</td>
+                        <td>{{ update.new_version }}</td>
+                        <td>{% if update.security %}<span class="security">Yes</span>{% else %}No{% endif %}</td>
+                        <td>{{ update.source or 'N/A' }}</td>
+                    </tr>
+                    {%- endfor %}
+                </tbody>
+            </table>
+            {%- else %}
+            <p><em>No updates available.</em></p>
+            {%- endif %}
+        </div>
+        {%- endfor %}
+        
+        <footer>
+            Generated with <a href="https://github.com/mrdaemon/exosphere">Exosphere</a> version {{ exosphere_version }}
+        </footer>
+    </div>
+</body>
+</html>

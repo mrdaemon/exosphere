@@ -16,7 +16,7 @@ from rich.console import Console
 from typer import Context, Exit, Option, Typer
 
 from exosphere import __version__
-from exosphere.commands import config, host, inventory, sudo, ui
+from exosphere.commands import config, host, inventory, report, sudo, ui
 from exosphere.repl import start_repl
 
 banner = f"""[turquoise4]
@@ -39,6 +39,7 @@ app.add_typer(inventory.app, name="inventory")
 app.add_typer(host.app, name="host")
 app.add_typer(ui.app, name="ui")
 app.add_typer(config.app, name="config")
+app.add_typer(report.app, name="report")
 app.add_typer(sudo.app, name="sudo")
 
 

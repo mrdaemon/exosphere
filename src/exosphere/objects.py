@@ -204,6 +204,39 @@ class Host:
                     local_timestamp, tz=timezone.utc
                 )
 
+    def to_dict(self) -> dict:
+        """
+        Convert the Host object to a dictionary representation.
+        Useful for serialization or reporting
+
+        Note: Only includes informational fields, does not include
+        configuration or connection details.
+
+        Any datetime fields are represented as ISO 8601 strings in UTC.
+        They explicitly follow what JavaScript's Date.toJSON() produces
+        for maximum compatibility.
+
+        :return: Dictionary representation of the Host object
+        """
+        return {
+            "name": str(self.name),
+            "description": str(self.description),
+            "ip": str(self.ip),
+            "port": int(self.port),
+            "os": str(self.os),
+            "flavor": str(self.flavor),
+            "version": str(self.version),
+            "supported": self.supported,
+            "online": self.online,
+            "package_manager": str(self.package_manager),
+            "updates": [update.__dict__ for update in self.updates],
+            "last_refresh": self.last_refresh.isoformat(
+                timespec="milliseconds"
+            ).replace("+00:00", "Z")
+            if self.last_refresh
+            else None,
+        }
+
     @property
     def connection(self) -> Connection:
         """

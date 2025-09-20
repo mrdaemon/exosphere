@@ -1,0 +1,42 @@
+{%- set report_title = "SYSTEM UPDATES REPORT" %}
+{% for char in report_title %}={% endfor %}
+{{ report_title }}
+{% for char in report_title %}={% endfor %}
+
+Generated: {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
+
+Summary:
+
+  Total hosts: {{ hosts|length }}
+  Hosts with updates: {{ hosts|selectattr('updates')|list|length }}
+  Total updates: {{ hosts|map(attribute='updates')|map('length')|sum }}
+  Security updates: {{ hosts|map(attribute='security_updates')|map('length')|sum }}
+{%- for host in hosts %}
+
+{{ host.name }} ({{ host.ip }})
+{% for char in (host.name + " (" + host.ip + ")") %}-{% endfor %}
+{%- if host.description %}
+{{ host.description }}
+{%- endif %}
+
+  System: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}
+  Package Manager: {{ host.package_manager or 'None' }}
+  Last Refresh: {% if host.last_refresh %}{{ host.last_refresh.strftime('%Y-%m-%d %H:%M:%S') }} {{ now().strftime('%z') }}{% else %}Never{% endif %}{% if host.is_stale %} (Stale, needs refresh){% endif %}
+{%- if host.updates %}
+
+  Updates ({{ host.updates|length }}):
+{%- for update in host.updates %}
+    - {{ update.name }}: {{ update.current_version or '(NEW)' }} -> {{ update.new_version }}{{ ' *SECURITY*' if update.security else '' }}
+{%- if update.source %}
+      Source: {{ update.source }}
+{%- endif %}
+{%- endfor %}
+{%- else %}
+
+  No updates available.
+{%- endif %}
+{%- endfor %}
+
+---
+Generated with Exosphere version {{ exosphere_version }}
+https://github.com/mrdaemon/exosphere

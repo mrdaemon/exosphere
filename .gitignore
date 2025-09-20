@@ -39,5 +39,8 @@ docs/build/
 /exosphere.log
 /test_cache.db
 
+# in-dir reports
+/testreport*
+
 # In dir volumes
 /volume/
