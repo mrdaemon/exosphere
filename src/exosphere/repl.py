@@ -358,7 +358,12 @@ class ExosphereREPL:
                 if getattr(cmd, "hidden", False):
                     continue
                 help_text = getattr(cmd, "help", None) or "No description available."
-                lines.append(f"[cyan]{name:<11}[/cyan] {help_text}")
+
+                # Show only the first line of the help text for brevity
+                # This can be a multi-line string
+                first_line = help_text.split("\n")[0]
+
+                lines.append(f"[cyan]{name:<11}[/cyan] {first_line}")
 
             if lines:
                 content = "\n".join(lines)
