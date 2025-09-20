@@ -119,10 +119,17 @@ def discover(
 @app.command()
 def refresh(
     discover: Annotated[
-        bool, typer.Option(help="Also refresh platform information")
+        bool, typer.Option("-d", "--discover", help="Also refresh platform information")
     ] = False,
     sync: Annotated[
-        bool, typer.Option(help="Sync the package repositories as well as updates")
+        bool,
+        typer.Option(
+            "-s", "--sync", help="Sync the package repositories as well as updates"
+        ),
+    ] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option("-v", "--verbose", help="Show verbose output during operations"),
     ] = False,
     names: Annotated[
         list[str] | None,
@@ -147,6 +154,10 @@ def refresh(
     the package manager uses to achieve this, and can be a very expensive
     operation, which may take a long time, especially on large inventories
     with a handful of slow hosts.
+
+    By default, only the progress bar is shown during the operation.
+    If --verbose is specified, the name and completion status of each host
+    will be shown in real time.
     """
     logger = logging.getLogger(__name__)
     logger.info("Refreshing inventory data")
@@ -161,39 +172,44 @@ def refresh(
     # Start with discovery, if requested.
     # Displays a simple spinner with no ETA, and no progress bar.
     if discover:
+        console.print("[dim]Discovery:[/dim]") if verbose else None
         run_task_with_progress(
             inventory=inventory,
             hosts=hosts,
             task_name="discover",
             task_description="Gathering platform information",
-            display_hosts=False,
+            display_hosts=verbose,
             collect_errors=False,
             immediate_error_display=True,
             progress_args=SPINNER_PROGRESS_ARGS,
         )
+        console.print() if verbose else None
 
     # If sync is requested, we will run the sync_repos task
     # Same as discovery, simple spinner
     if sync:
+        console.print("[dim]Repository Sync:[/dim]") if verbose else None
         run_task_with_progress(
             inventory=inventory,
             hosts=hosts,
             task_name="sync_repos",
             task_description="Syncing package repositories",
-            display_hosts=False,
+            display_hosts=verbose,
             collect_errors=False,
             immediate_error_display=True,
             progress_args=SPINNER_PROGRESS_ARGS,
         )
+        console.print() if verbose else None
 
     # Finally, refresh the updates for all hosts
     # We want this one to display the progress bar and summarize errors.
+    console.print("[dim]Updates Refresh:[/dim]") if verbose else None
     errors = run_task_with_progress(
         inventory=inventory,
         hosts=hosts,
         task_name="refresh_updates",
         task_description="Refreshing package updates",
-        display_hosts=False,
+        display_hosts=verbose,
         collect_errors=True,
         immediate_error_display=False,
     )
