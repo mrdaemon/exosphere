@@ -13,8 +13,14 @@ from rich.text import Text
 from exosphere import app_config, context, fspaths
 from exosphere.config import Configuration
 
+ROOT_HELP = """
+Configuration-related Commands
+
+Commands to inspect the currently loaded configuration.
+"""
+
 app = typer.Typer(
-    help="Configuration related commands",
+    help=ROOT_HELP,
     no_args_is_help=True,
 )
 

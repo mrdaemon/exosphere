@@ -9,8 +9,14 @@ from rich.console import Console
 
 from exosphere.ui.app import ExosphereUi
 
+ROOT_HELP = """
+Exosphere User Interface
+
+Commands to start the Text-based or Web-based User Interface.
+"""
+
 app = typer.Typer(
-    help="Exosphere UI",
+    help=ROOT_HELP,
     no_args_is_help=True,
 )
 

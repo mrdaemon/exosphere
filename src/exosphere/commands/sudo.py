@@ -15,8 +15,15 @@ from exosphere.objects import Host
 from exosphere.providers.factory import PkgManagerFactory
 from exosphere.security import SudoPolicy, check_sudo_policy, has_sudo_flag
 
+ROOT_HELP = """
+Sudo Policy Management
+
+Commands to view Sudo Policies, check resultant host policies,
+list provider requirements, and generate sudoers snippets.
+"""
+
 app = typer.Typer(
-    help="Sudo Policy Management",
+    help=ROOT_HELP,
     no_args_is_help=True,
 )
 
@@ -143,9 +150,8 @@ def policy():
     """
     Show the current global Sudo Policy.
 
-    This command will display the current global Sudo Policy that is used
-    to determine if a host can execute all of its Package Manager provider
-    operations.
+    This command will display the current global Sudo Policy in effect.
+    Individual hosts may override this with their own Sudo Policy.
     """
     console.print(f"Global SudoPolicy: {_get_global_policy()}")
 
@@ -262,7 +268,7 @@ def providers(
     Show Sudo Policy requirements for available providers.
 
     Some providers require sudo privileges to execute certain operations.
-    You can use this command to list them.
+    You can use this command to what they are, if applicable.
     """
 
     # prepare a nice rich Table for providers

@@ -40,8 +40,15 @@ SPINNER_PROGRESS_ARGS = (
     TimeElapsedColumn(),
 )
 
+ROOT_HELP = """
+Inventory and Bulk Management Commands
+
+Commands to bulk query, discover and refresh hosts in the inventory.
+Most commands acccept an optional list of host names to operate on.
+"""
+
 app = typer.Typer(
-    help="Inventory and Bulk Management Commands",
+    help=ROOT_HELP,
     no_args_is_help=True,
 )
 
@@ -59,7 +66,9 @@ def discover(
     Gather platform information for hosts
 
     On a fresh inventory start, this needs done at least once before
-    operations can be performed on the hosts.
+    operations can be performed on the hosts. It can also be used to
+    refresh this information if it has changed, or if a new provider
+    has been added to Exosphere.
 
     The discover operation will connect to the specified host(s)
     and gather their current state, including Operating System, flavor,

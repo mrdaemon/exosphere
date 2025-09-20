@@ -28,8 +28,14 @@ SPINNER_PROGRESS_ARGS = (
     TimeElapsedColumn(),
 )
 
+ROOT_HELP = """
+Host Management Commands
+
+Commands to query, refresh and discover individual hosts.
+"""
+
 app = typer.Typer(
-    help="Host management commands",
+    help=ROOT_HELP,
     no_args_is_help=True,
 )
 
@@ -204,7 +210,8 @@ def discover(
     Gather platform data for host.
 
     This command retrieves the host by name from the inventory
-    and synchronizes its platform data.
+    and synchronizes its platform data, such as OS, version and
+    package manager.
     """
     host = get_host_or_error(name)
 
@@ -244,7 +251,7 @@ def refresh(
     Refresh the updates for a specific host.
 
     This command retrieves the host by name from the inventory
-    and refreshes its updates.
+    and refreshes its available updates.
     """
     host = get_host_or_error(name)
 
