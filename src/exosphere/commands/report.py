@@ -13,8 +13,9 @@ from exosphere.commands.utils import (
     err_console,
     get_hosts_or_error,
 )
+from exosphere.reporting import ReportRenderer
 
-OUTPUT_FORMATS = ["json", "text"]
+OUTPUT_FORMATS = ["json", "text", "markdown", "html"]
 
 ROOT_HELP = """
 Reporting Commands
@@ -37,7 +38,7 @@ def generate(
         typer.Option(
             "--format",
             "-f",
-            help="Output format. Supported: json, text",
+            help="Output format. Supported: json, text, markdown, html",
         ),
     ] = "text",
     output: Annotated[
@@ -103,27 +104,21 @@ def generate(
         )
         raise typer.Exit(code=1)
 
+    # Initialize the report renderer
+    renderer = ReportRenderer()
+
     if format == "json":
         report_data = [host.to_dict() for host in selected_hosts]
         console.print(JSON(json.dumps(report_data, indent=2)))
     elif format == "text":
-        for host in selected_hosts:
-            console.print(f"[bold]{host.name}[/bold] ({host.ip})")
-            if host.package_manager:
-                console.print(f"  Package Manager: {host.package_manager}")
-            else:
-                console.print("  Package Manager: [red]None[/red]")
-
-            if not host.updates:
-                console.print("  No updates available.")
-            else:
-                console.print("  Updates:")
-                for update in host.updates:
-                    security_suffix = "[red]*[/red]" if update.security else ""
-                    console.print(
-                        f"    - {update.name}: {update.current_version} -> {update.new_version} {security_suffix}"
-                    )
-            console.print()  # Blank line between hosts
+        output = renderer.render_text(selected_hosts)
+        console.print(output)
+    elif format == "markdown":
+        output = renderer.render_markdown(selected_hosts)
+        console.print(output)
+    elif format == "html":
+        output = renderer.render_html(selected_hosts)
+        console.print(output)
     else:
         err_console.print(f"[red]Unsupported format: {format}[/red]")
         raise typer.Exit(code=1)
