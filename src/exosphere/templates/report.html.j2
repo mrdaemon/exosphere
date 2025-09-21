@@ -131,6 +131,7 @@
                 <li><strong>Security updates:</strong> {{ hosts|map(attribute='security_updates')|map('length')|sum }}</li>
             </ul>
         </div>
+        {%- if navigation %}
 
         <div class="toc">
             <h3>Quick Navigation</h3>
@@ -148,6 +149,7 @@
                 {%- endfor %}
             </div>
         </div>
+        {%- endif %}
 
         {% for host in hosts %}
         <div class="host-section" id="host-{{ loop.index0 }}">

@@ -33,6 +33,15 @@ app = typer.Typer(
 
 @app.command()
 def generate(
+    updates_only: Annotated[
+        bool,
+        typer.Option(
+            "--updates-only",
+            "-u",
+            help="Only include hosts with available updates in the report.",
+            is_flag=True,
+        ),
+    ] = False,
     format: Annotated[
         str,
         typer.Option(
@@ -58,10 +67,16 @@ def generate(
             is_flag=True,
         ),
     ] = False,
+    navigation: Annotated[
+        bool,
+        typer.Option(
+            help="Include navigation section in report, if supported by format.",
+        ),
+    ] = True,
     hosts: Annotated[
         list[str] | None,
         typer.Argument(
-            help="List of hostnames or IP addresses to include in the report. All if not specified.",
+            help="List of hosts to include in the report. All if not specified.",
             metavar="[HOST]...",
         ),
     ] = None,
@@ -104,6 +119,14 @@ def generate(
         )
         raise typer.Exit(code=1)
 
+    if updates_only:
+        selected_hosts = [host for host in selected_hosts if host.updates]
+        if not selected_hosts:
+            err_console.print(
+                "No hosts with available updates found, nothing to report."
+            )
+            raise typer.Exit(code=0)
+
     # Initialize the report renderer
     renderer = ReportRenderer()
 
@@ -111,13 +134,13 @@ def generate(
         report_data = [host.to_dict() for host in selected_hosts]
         console.print(JSON(json.dumps(report_data, indent=2)))
     elif format == "text":
-        output = renderer.render_text(selected_hosts)
+        output = renderer.render_text(selected_hosts, navigation=navigation)
         console.print(output)
     elif format == "markdown":
-        output = renderer.render_markdown(selected_hosts)
+        output = renderer.render_markdown(selected_hosts, navigation=navigation)
         console.print(output)
     elif format == "html":
-        output = renderer.render_html(selected_hosts)
+        output = renderer.render_html(selected_hosts, navigation=navigation)
         console.print(output)
     else:
         err_console.print(f"[red]Unsupported format: {format}[/red]")
