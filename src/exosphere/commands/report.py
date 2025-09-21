@@ -103,34 +103,7 @@ def generate(
         raise typer.Exit(code=1)
 
     if format == "json":
-        report_data = []
-        for host in selected_hosts:
-            host_data = {
-                "name": host.name,
-                "ip": host.ip,
-                "port": host.port,
-                "os": host.os,
-                "flavor": host.flavor,
-                "version": host.version,
-                "online": host.online,
-                "supported": host.supported,
-                "package_manager": host.package_manager,
-                "last_refresh": host.last_refresh.isoformat()
-                if host.last_refresh
-                else None,
-                "updates": [
-                    {
-                        "name": update.name,
-                        "current_version": update.current_version,
-                        "new_version": update.new_version,
-                        "security": update.security,
-                        "source": update.source,
-                    }
-                    for update in host.updates
-                ],
-            }
-            report_data.append(host_data)
-
+        report_data = [host.to_dict() for host in selected_hosts]
         console.print(json.dumps(report_data, indent=2))
     elif format == "text":
         for host in selected_hosts:

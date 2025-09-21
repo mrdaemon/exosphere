@@ -204,6 +204,33 @@ class Host:
                     local_timestamp, tz=timezone.utc
                 )
 
+    def to_dict(self) -> dict:
+        """
+        Convert the Host object to a dictionary representation.
+        Useful for serialization or reporting
+
+        Note: Only includes informational fields, does not include
+        configuration or connection details.
+
+        :return: Dictionary representation of the Host object
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "ip": self.ip,
+            "port": self.port,
+            "os": self.os,
+            "flavor": self.flavor,
+            "version": self.version,
+            "supported": self.supported,
+            "online": self.online,
+            "package_manager": self.package_manager,
+            "updates": [update.__dict__ for update in self.updates],
+            "last_refresh": self.last_refresh.isoformat()
+            if self.last_refresh
+            else None,
+        }
+
     @property
     def connection(self) -> Connection:
         """
