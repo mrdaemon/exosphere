@@ -5,6 +5,7 @@ Reporting command module
 import json
 
 import typer
+from rich.json import JSON
 from typing_extensions import Annotated
 
 from exosphere.commands.utils import (
@@ -104,7 +105,7 @@ def generate(
 
     if format == "json":
         report_data = [host.to_dict() for host in selected_hosts]
-        console.print(json.dumps(report_data, indent=2))
+        console.print(JSON(json.dumps(report_data, indent=2)))
     elif format == "text":
         for host in selected_hosts:
             console.print(f"[bold]{host.name}[/bold] ({host.ip})")
