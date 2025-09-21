@@ -73,6 +73,8 @@ def generate(
     The report can also be filtered to include only specific hosts by
     providing their names as arguments. If no hosts are specified,
     the report will include all hosts in the inventory.
+
+    Note: Undiscovered or unsupported hosts are excluded from the report.
     """
 
     # FIXME: This is kind of a bullshit proof of concept, fields, formats
@@ -87,20 +89,40 @@ def generate(
     if selected_hosts is None:
         raise typer.Exit(code=1)
 
+    # Filter out hosts that are unsupported or without a package manager
+    # This excludes both undiscovered and unsupported hosts
+    selected_hosts = [
+        host for host in selected_hosts if host.supported and host.package_manager
+    ]
+
+    if not selected_hosts:
+        err_console.print("[yellow]Host(s) found but none can be used![/yellow]")
+        err_console.print(
+            "Selected hosts must be supported and 'discover' must have been run."
+        )
+        raise typer.Exit(code=1)
+
     if format == "json":
         report_data = []
         for host in selected_hosts:
             host_data = {
                 "name": host.name,
                 "ip": host.ip,
-                "package_manager": host.package_manager
-                if host.package_manager
+                "port": host.port,
+                "os": host.os,
+                "flavor": host.flavor,
+                "version": host.version,
+                "online": host.online,
+                "supported": host.supported,
+                "package_manager": host.package_manager,
+                "last_refresh": host.last_refresh.isoformat()
+                if host.last_refresh
                 else None,
                 "updates": [
                     {
                         "name": update.name,
                         "current_version": update.current_version,
-                        "available_version": update.new_version,
+                        "new_version": update.new_version,
                         "security": update.security,
                         "source": update.source,
                     }
