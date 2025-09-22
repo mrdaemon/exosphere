@@ -19,7 +19,7 @@ Summary:
 {{ host.description }}
 {%- endif %}
 
-  System: {{ host.os }}{% if host.flavor %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}
+  System: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}
   Package Manager: {{ host.package_manager or 'None' }}
   Last Refresh: {{ host.last_refresh.strftime('%Y-%m-%d %H:%M:%S') if host.last_refresh else 'Never' }}{% if host.is_stale %} (Stale, needs refresh){% endif %}
 {%- if host.updates %}

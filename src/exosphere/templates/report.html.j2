@@ -159,7 +159,7 @@
             {%- endif %}
             
             <p>
-                <strong>OS:</strong> {{ host.os }}{% if host.flavor %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}<br>
+                <strong>OS:</strong> {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}<br>
                 <strong>Package Manager:</strong> {{ host.package_manager or 'N/A' }}<br>
                 <strong>Last Refresh:</strong> {{ host.last_refresh.strftime('%Y-%m-%d %H:%M:%S') if host.last_refresh else 'Never' }}{% if host.is_stale %} <span class="stale">(stale, needs refresh)</span>{% endif %}
             </p>

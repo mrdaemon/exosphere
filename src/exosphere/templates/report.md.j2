@@ -19,7 +19,7 @@ Generated on {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 {% if host.description -%}
 - **Description**: {{ host.description }}
 {% endif -%}
-- **OS**: {{ host.os }}{% if host.flavor %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}
+- **OS**: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}
 - **Package Manager**: {{ host.package_manager or 'N/A' }}
 - **Last Refresh**: {{ host.last_refresh.strftime('%Y-%m-%d %H:%M:%S') if host.last_refresh else 'Never' }}{% if host.is_stale %} *(Stale, needs refresh)*{% endif %}
 {%- if host.updates %}
