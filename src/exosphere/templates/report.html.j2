@@ -182,7 +182,7 @@
                         <td><strong>{{ update.name }}</strong></td>
                         <td>{{ update.current_version or '(NEW)' }}</td>
                         <td>{{ update.new_version }}</td>
-                        <td>{% if update.security %}<span class="security">🔒 Yes</span>{% endif %}</td>
+                        <td>{% if update.security %}<span class="security">Yes</span>{% else %}No{% endif %}</td>
                         <td>{{ update.source or 'N/A' }}</td>
                     </tr>
                     {%- endfor %}
