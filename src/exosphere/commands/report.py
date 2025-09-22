@@ -39,7 +39,6 @@ def generate(
             "--updates-only",
             "-u",
             help="Only include hosts with available updates in the report.",
-            is_flag=True,
         ),
     ] = False,
     format: Annotated[
@@ -64,7 +63,6 @@ def generate(
         typer.Option(
             "--tee",
             help="Also print the report to stdout when writing to a file.",
-            is_flag=True,
         ),
     ] = False,
     navigation: Annotated[
