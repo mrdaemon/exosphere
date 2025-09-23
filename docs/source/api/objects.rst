@@ -11,6 +11,8 @@ operations on them.
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: OPTIONAL_PARAMS
+   :special-members: __init__
 
 .. autoclass:: exosphere.inventory.Inventory
    :members:
