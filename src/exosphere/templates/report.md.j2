@@ -21,7 +21,7 @@ Generated on {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
 {% endif -%}
 - **OS**: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}
 - **Package Manager**: {{ host.package_manager or 'N/A' }}
-- **Last Refresh**: {% if host.last_refresh %}{{ host.last_refresh.strftime('%Y-%m-%d %H:%M:%S') }} {{ now().strftime('%z') }}{% else %}Never{% endif %}{% if host.is_stale %} *(Stale, needs refresh)*{% endif %}
+- **Last Refresh**: {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} *(Stale, needs refresh)*{% endif %}
 {%- if host.updates %}
 
 **Available Updates ({{ host.updates|length }}):**
