@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -598,7 +598,7 @@ class TestHostObject:
         )
 
         # Set last_refresh to 20 seconds ago
-        host.last_refresh = datetime.now() - timedelta(seconds=20)
+        host.last_refresh = datetime.now(timezone.utc) - timedelta(seconds=20)
 
         assert host.is_stale is True
 
@@ -614,7 +614,7 @@ class TestHostObject:
         )
 
         # Set last_refresh to 30 seconds ago
-        host.last_refresh = datetime.now() - timedelta(seconds=30)
+        host.last_refresh = datetime.now(timezone.utc) - timedelta(seconds=30)
 
         assert host.is_stale is False
 
@@ -630,7 +630,7 @@ class TestHostObject:
             "exosphere.objects.app_config", {"options": {"stale_threshold": 60}}
         )
 
-        host.last_refresh = datetime.now() - timedelta(seconds=30)
+        host.last_refresh = datetime.now(timezone.utc) - timedelta(seconds=30)
 
         assert host.is_stale is False
 
@@ -742,9 +742,9 @@ class TestHostObject:
         pkg_manager.get_updates.return_value = updates_list
         host._pkginst = pkg_manager
 
-        before = datetime.now()
+        before = datetime.now(timezone.utc)
         host.refresh_updates()
-        after = datetime.now()
+        after = datetime.now(timezone.utc)
 
         pkg_manager.get_updates.assert_called_once_with(host.connection)
         assert host.updates == updates_list

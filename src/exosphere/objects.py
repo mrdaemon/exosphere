@@ -1,6 +1,6 @@
 import inspect
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fabric import Connection
 from paramiko.ssh_exception import PasswordRequiredException
@@ -272,7 +272,7 @@ class Host:
             return True
 
         stale_threshold = app_config["options"]["stale_threshold"]
-        timedelta = datetime.now() - self.last_refresh
+        timedelta = datetime.now(timezone.utc) - self.last_refresh
 
         return timedelta.total_seconds() > stale_threshold
 
@@ -474,7 +474,7 @@ class Host:
             )
 
         # Update the last refresh timestamp
-        self.last_refresh = datetime.now()
+        self.last_refresh = datetime.now(timezone.utc)
 
     def ping(self, raise_on_error: bool = False) -> bool:
         """
