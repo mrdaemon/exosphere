@@ -58,7 +58,7 @@ def _format_last_refresh(host: Host) -> str:
     if not host.last_refresh:
         return "[red]Never[/red]"
     else:
-        return host.last_refresh.strftime("%a %b %d %H:%M:%S %Y")
+        return host.last_refresh.astimezone().strftime("%a %b %d %H:%M:%S %Y")
 
 
 def _make_host_panel_content(host: Host) -> str:

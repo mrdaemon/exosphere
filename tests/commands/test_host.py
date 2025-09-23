@@ -150,15 +150,19 @@ class TestShowCommand:
         """
         Test showing a host with a last refresh date displayed.
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        # Set a last refresh date on the mock host
-        mock_host.last_refresh = datetime(2025, 7, 22, 14, 30, 45)
+        # Set a UTC datetime on the mock host
+        utc_time = datetime(2025, 7, 22, 14, 30, 45, tzinfo=timezone.utc)
+        mock_host.last_refresh = utc_time
 
         result = runner.invoke(host_module.app, ["show", mock_host.name])
 
         assert result.exit_code == 0
-        assert "Tue Jul 22 14:30:45 2025" in result.output
+
+        # Output should display local time
+        expected_local = utc_time.astimezone().strftime("%a %b %d %H:%M:%S %Y")
+        assert expected_local in result.output
 
     def test_security_only_without_updates_flag(
         self, mock_host, patch_context_inventory

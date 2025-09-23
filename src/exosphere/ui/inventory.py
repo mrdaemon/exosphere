@@ -73,7 +73,7 @@ class HostDetailsPanel(Screen):
         if self.host.supported:
             components += [
                 Label(
-                    f"[i]Last Refreshed:[/i]\n  {self.host.last_refresh.strftime('%a %b %d %H:%M:%S %Y') if self.host.last_refresh else 'Never'}",
+                    f"[i]Last Refreshed:[/i]\n  {self.host.last_refresh.astimezone().strftime('%a %b %d %H:%M:%S %Y') if self.host.last_refresh else 'Never'}",
                     id="host-last-updated",
                 ),
                 Label(
