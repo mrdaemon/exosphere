@@ -41,7 +41,7 @@ class ReportRenderer:
         )
 
         # Add utility functions to the global context
-        env.globals["now"] = datetime.now
+        env.globals["now"] = lambda: datetime.now().astimezone()
         env.globals["exosphere_version"] = __version__
 
         # Add custom filters for table formatting
