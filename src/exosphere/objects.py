@@ -1,6 +1,7 @@
 import inspect
 import logging
 from datetime import datetime, timezone
+from typing import TypeAlias
 
 from fabric import Connection
 from paramiko.ssh_exception import PasswordRequiredException
@@ -17,6 +18,10 @@ from exosphere.providers import PkgManagerFactory
 from exosphere.providers.api import PkgManager
 from exosphere.security import SudoPolicy, check_sudo_policy
 from exosphere.setup import detect
+
+# Define a type alias for timezone-aware UTC datetime
+# This is to help communicate intent better in type hints
+UtcDateTime: TypeAlias = datetime
 
 
 class Host:
@@ -117,8 +122,8 @@ class Host:
         self.updates: list[Update] = []
 
         # Timestamp of the last refresh operation
-        # We store the datetime object straight up for convenience.
-        self.last_refresh: datetime | None = None
+        # This should be a timezone-aware UTC datetime!
+        self.last_refresh: UtcDateTime | None = None
 
     def __getstate__(self) -> dict:
         """
