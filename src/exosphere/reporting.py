@@ -5,7 +5,7 @@ This module provides functionality to render reports in various formats
 using Jinja2 templates.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import jinja2
@@ -41,7 +41,7 @@ class ReportRenderer:
         )
 
         # Add utility functions to the global context
-        env.globals["now"] = lambda: datetime.now().astimezone()
+        env.globals["now"] = lambda: datetime.now(tz=timezone.utc).astimezone()
         env.globals["exosphere_version"] = __version__
 
         # Add custom filters for table formatting

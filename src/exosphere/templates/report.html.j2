@@ -169,7 +169,7 @@
             <p>
                 <strong>OS:</strong> {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}<br>
                 <strong>Package Manager:</strong> {{ host.package_manager or 'N/A' }}<br>
-                <strong>Last Refresh:</strong> {% if host.last_refresh %}{{ host.last_refresh.strftime('%Y-%m-%d %H:%M:%S') }} {{ now().strftime('%z') }}{% else %}Never{% endif %}{% if host.is_stale %} <span class="stale">(stale, needs refresh)</span>{% endif %}
+                <strong>Last Refresh:</strong> {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} <span class="stale">(stale, needs refresh)</span>{% endif %}
             </p>
 
             {% if host.updates -%}
