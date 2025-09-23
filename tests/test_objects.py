@@ -527,6 +527,57 @@ class TestHostObject:
         assert host.sudo_policy == SudoPolicy.SKIP
         assert host.supported is True
 
+    def test_host_setstate_migrates_naive_datetime_to_utc(self, mocker):
+        """
+        Test that __setstate__ automatically migrates naive datetime to UTC timezone-aware.
+        This ensures backward compatibility with old serialized data.
+        """
+        # Create a naive datetime (simulating old serialized data)
+        naive_datetime = datetime(2025, 9, 23, 10, 30, 45)  # No timezone
+
+        legacy_state = {
+            "name": "test_host",
+            "ip": "127.0.0.1",
+            "port": 22,
+            "last_refresh": naive_datetime,
+        }
+
+        host = Host.__new__(Host)
+        host.__setstate__(legacy_state)
+
+        # Verify the datetime was converted to UTC timezone-aware
+        assert host.last_refresh is not None
+        assert host.last_refresh.tzinfo is not None
+        assert host.last_refresh.tzinfo == timezone.utc
+
+        # The actual timestamp should be preserved (converted from local to UTC)
+        expected_utc = datetime.fromtimestamp(
+            naive_datetime.timestamp(), tz=timezone.utc
+        )
+        assert host.last_refresh == expected_utc
+
+    def test_host_setstate_preserves_timezone_aware_datetime(self, mocker):
+        """
+        Test that __setstate__ preserves already timezone-aware datetime.
+        """
+        # Create a timezone-aware datetime (simulating new serialized data)
+        utc_datetime = datetime(2025, 9, 23, 14, 30, 45, tzinfo=timezone.utc)
+
+        state = {
+            "name": "test_host",
+            "ip": "127.0.0.1",
+            "port": 22,
+            "last_refresh": utc_datetime,
+        }
+
+        host = Host.__new__(Host)
+        host.__setstate__(state)
+
+        # Verify the datetime was preserved unchanged
+        assert host.last_refresh is not None
+        assert host.last_refresh == utc_datetime
+        assert host.last_refresh.tzinfo == timezone.utc
+
     def test_host_setstate_valueerror_on_missing_required(self, mocker):
         """
         Test that __setstate__ raises ValueError if required parameters are missing.

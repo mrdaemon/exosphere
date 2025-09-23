@@ -185,6 +185,20 @@ class Host:
                         f"Missing required parameter '{name}'"
                     )
 
+        # Handle timezone-naive datetimes for backward compatibility
+        if hasattr(self, "last_refresh") and self.last_refresh is not None:
+            if self.last_refresh.tzinfo is None:
+                self.logger.debug(
+                    "Converting timezone-naive last_refresh datetime to UTC for host %s",
+                    self.name,
+                )
+                # We can safely assume the original datetime was in local time
+                # and convert to UTC. This is not IDEAL, but good enough.
+                local_timestamp = self.last_refresh.timestamp()
+                self.last_refresh = datetime.fromtimestamp(
+                    local_timestamp, tz=timezone.utc
+                )
+
     @property
     def connection(self) -> Connection:
         """
