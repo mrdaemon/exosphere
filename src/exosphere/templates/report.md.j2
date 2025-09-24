@@ -2,14 +2,10 @@
 
 Generated on {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
 
-## Summary
-
 - **Total hosts:** {{ hosts|length }}
 - **Hosts with updates:** {{ hosts|selectattr('updates')|list|length }}
 - **Total updates:** {{ hosts|map(attribute='updates')|map('length')|sum }}
 - **Security updates:** {{ hosts|map(attribute='security_updates')|map('length')|sum }}
-
----
 
 {% for host in hosts %}
 ## {{ host.name }} ({{ host.ip }})
@@ -26,10 +22,10 @@ Generated on {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
 
 **Available Updates ({{ host.updates|length }}):**
 
-| Package        | Current Version    | New Version        | Sec | Source                     |
-|:---------------|:-------------------|:-------------------|:----|:---------------------------|
+| Package | Current Version | New Version | Sec | Source |
+|---------|-----------------|-------------|-----|--------|
         {% for update in host.updates %}
-| {{ update.name|ljust(14) }} | {{ (update.current_version or '(NEW)')|ljust(18) }} | {{ update.new_version|ljust(18) }} | {{ ('**Yes**' if update.security else 'No')|ljust(3) }} | {{ (update.source or 'N/A')|ljust(26) }} |
+| **{{ update.name }}** | {{ update.current_version or '(NEW)' }} | {{ update.new_version }} | {{ '**Yes**' if update.security else 'No' }} | {{ update.source or 'N/A' }} |
         {% endfor %}
     {% else %}
 
