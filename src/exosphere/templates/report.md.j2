@@ -10,37 +10,34 @@ Generated on {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
 - **Security updates:** {{ hosts|map(attribute='security_updates')|map('length')|sum }}
 
 ---
-{%- for host in hosts %}
 
+{% for host in hosts %}
 ## {{ host.name }} ({{ host.ip }})
 
 **System Information:**
 
-{% if host.description -%}
+    {% if host.description %}
 - **Description**: {{ host.description }}
-{% endif -%}
-- **OS**: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}
+    {% endif %}
+- **OS**: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif +%}
 - **Package Manager**: {{ host.package_manager or 'N/A' }}
-- **Last Refresh**: {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} *(Stale, needs refresh)*{% endif %}
-{%- if host.updates %}
+- **Last Refresh**: {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} *(Stale, needs refresh)*{% endif +%}
+    {% if host.updates %}
 
 **Available Updates ({{ host.updates|length }}):**
 
 | Package        | Current Version    | New Version        | Sec | Source                     |
 |:---------------|:-------------------|:-------------------|:----|:---------------------------|
-{%- for update in host.updates %}
-| {{ update.name|ljust(14) }} | {{ (update.current_version or '(NEW)')|ljust(18) }} | {{ update.new_version|ljust(18) }} | {{ ('YES' if update.security else 'No')|ljust(3) }} | {{ (update.source or 'N/A')|ljust(26) }} |
-{%- endfor %}
-{%- else %}
+        {% for update in host.updates %}
+| {{ update.name|ljust(14) }} | {{ (update.current_version or '(NEW)')|ljust(18) }} | {{ update.new_version|ljust(18) }} | {{ ('**Yes**' if update.security else 'No')|ljust(3) }} | {{ (update.source or 'N/A')|ljust(26) }} |
+        {% endfor %}
+    {% else %}
 
 **No updates available.**
-{%- endif %}
-{%- if not loop.last %}
+    {% endif %}
 
----
-{%- endif %}
-{%- endfor %}
-
+{% endfor %}
 ---
 
 *Generated with [Exosphere](https://github.com/mrdaemon/exosphere) version {{ exosphere_version }}*
+{# EOF +#}

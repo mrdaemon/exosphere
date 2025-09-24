@@ -28,14 +28,16 @@ class ReportRenderer:
     """
 
     def __init__(self):
-        self.env = self.setup_jinja_environment()
+        self.text_env = self.setup_jinja_environment(text=True)
+        self.html_env = self.setup_jinja_environment(text=False)
 
-    def setup_jinja_environment(self) -> jinja2.Environment:
+    def setup_jinja_environment(self, text: bool) -> jinja2.Environment:
         """
         Setup Jinja2 environment with templates from the package.
 
         Configures autoescaping, global functions, and custom filters.
 
+        :param text: Turns on trim_blocks and lstrip_blocks for text templates
         :return: Configured Jinja2 Environment
         """
         logger.debug("Setting up reporting environment")
@@ -44,7 +46,10 @@ class ReportRenderer:
         # This implies templates can be found under the "templates" directory
         loader = jinja2.PackageLoader("exosphere")
         env = jinja2.Environment(
-            loader=loader, autoescape=jinja2.select_autoescape(["html", "htm", "xml"])
+            loader=loader,
+            autoescape=jinja2.select_autoescape(["html", "htm", "xml"]),
+            trim_blocks=text,
+            lstrip_blocks=text,
         )
 
         logger.debug("Setting up utility functions and filters for templates")
@@ -63,19 +68,19 @@ class ReportRenderer:
     def render_markdown(self, hosts: list[Host], **kwargs: Any) -> str:
         """Render hosts data as Markdown."""
         logger.debug("Rendering hosts data as Markdown")
-        template = self.env.get_template("report.md.j2")
+        template = self.text_env.get_template("report.md.j2")
         return template.render(hosts=hosts, **kwargs)
 
     def render_text(self, hosts: list[Host], **kwargs: Any) -> str:
         """Render hosts data as plain text."""
         logger.debug("Rendering hosts data as plain text with kwargs: %s", kwargs)
-        template = self.env.get_template("report.txt.j2")
+        template = self.text_env.get_template("report.txt.j2")
         return template.render(hosts=hosts, **kwargs)
 
     def render_html(self, hosts: list[Host], **kwargs: Any) -> str:
         """Render hosts data as HTML."""
         logger.debug("Rendering hosts data as HTML with kwargs: %s", kwargs)
-        template = self.env.get_template("report.html.j2")
+        template = self.html_env.get_template("report.html.j2")
         return template.render(hosts=hosts, **kwargs)
 
     def render_json(self, hosts: list[Host], **kwargs: Any) -> str:
