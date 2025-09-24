@@ -6,6 +6,7 @@ using Jinja2 templates.
 """
 
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
@@ -13,6 +14,8 @@ import jinja2
 
 from exosphere import __version__
 from exosphere.objects import Host
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class ReportRenderer:
@@ -35,11 +38,16 @@ class ReportRenderer:
 
         :return: Configured Jinja2 Environment
         """
-        # Use PackageLoader instead of FileSystemLoader for installed packages
+        logger.debug("Setting up reporting environment")
+
+        # Setup loader using PackageLoader for the module's namespace
+        # This implies templates can be found under the "templates" directory
         loader = jinja2.PackageLoader("exosphere")
         env = jinja2.Environment(
             loader=loader, autoescape=jinja2.select_autoescape(["html", "htm", "xml"])
         )
+
+        logger.debug("Setting up utility functions and filters for templates")
 
         # Add utility functions to the global context
         env.globals["now"] = lambda: datetime.now(tz=timezone.utc).astimezone()
@@ -54,20 +62,24 @@ class ReportRenderer:
 
     def render_markdown(self, hosts: list[Host], **kwargs: Any) -> str:
         """Render hosts data as Markdown."""
+        logger.debug("Rendering hosts data as Markdown")
         template = self.env.get_template("report.md.j2")
         return template.render(hosts=hosts, **kwargs)
 
     def render_text(self, hosts: list[Host], **kwargs: Any) -> str:
         """Render hosts data as plain text."""
+        logger.debug("Rendering hosts data as plain text with kwargs: %s", kwargs)
         template = self.env.get_template("report.txt.j2")
         return template.render(hosts=hosts, **kwargs)
 
     def render_html(self, hosts: list[Host], **kwargs: Any) -> str:
         """Render hosts data as HTML."""
+        logger.debug("Rendering hosts data as HTML with kwargs: %s", kwargs)
         template = self.env.get_template("report.html.j2")
         return template.render(hosts=hosts, **kwargs)
 
     def render_json(self, hosts: list[Host], **kwargs: Any) -> str:
         """Render hosts data as JSON."""
+        logger.debug("Rendering hosts data as JSON with kwargs: %s", kwargs)
         report_data = [host.to_dict() for host in hosts]
         return json.dumps(report_data, indent=2)
