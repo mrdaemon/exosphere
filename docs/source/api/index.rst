@@ -15,3 +15,4 @@ manager provider.
    providers_api
    dataclasses
    objects
+   reporting
