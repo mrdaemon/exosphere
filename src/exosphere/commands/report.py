@@ -42,14 +42,6 @@ app = typer.Typer(
 
 @app.command()
 def generate(
-    updates_only: Annotated[
-        bool,
-        typer.Option(
-            "--updates-only",
-            "-u",
-            help="Only include hosts with available updates in the report.",
-        ),
-    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option(
@@ -63,28 +55,44 @@ def generate(
         typer.Option(
             "--output",
             "-o",
-            help="Output file to write the report to. Defaults to stdout if not specified.",
+            help="Write report to file (defaults to stdout)",
             file_okay=True,
             dir_okay=False,
         ),
     ] = None,
+    updates_only: Annotated[
+        bool,
+        typer.Option(
+            "--updates-only",
+            "-u",
+            help="Only include hosts with available updates",
+        ),
+    ] = False,
     tee: Annotated[
         bool,
         typer.Option(
             "--tee",
-            help="Also print the report to stdout when writing to a file.",
+            help="Also print report to stdout when using --output",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Suppress informational messages",
         ),
     ] = False,
     navigation: Annotated[
         bool,
         typer.Option(
-            help="Include navigation section in report, if supported by format.",
+            help="Include navigation section (html only)",
         ),
     ] = True,
     hosts: Annotated[
         list[str] | None,
         typer.Argument(
-            help="List of hosts to include in the report. All if not specified.",
+            help="One or more hosts to include (all if not specified)",
             metavar="[HOST]...",
         ),
     ] = None,
@@ -92,8 +100,9 @@ def generate(
     """
     Generate a report of the current inventory state.
 
-    The report can be generated in various formats, including JSON for easy
-    integration with other tools, or plain text for human readability.
+    The report can be generated in various formats, including html for
+    for a pretty self-contained document, json for easy integration
+    with other tools, or plain text for human readability.
 
     The report can also be filtered to include only specific hosts by
     providing their names as arguments. If no hosts are specified,
@@ -101,9 +110,6 @@ def generate(
 
     Note: Undiscovered or unsupported hosts are excluded from the report.
     """
-
-    # FIXME: This is kind of a bullshit proof of concept, fields, formats
-    #        and logic are not final.
 
     selected_hosts = get_hosts_or_error(hosts)
     if selected_hosts is None:
@@ -124,7 +130,7 @@ def generate(
 
     if updates_only:
         selected_hosts = [host for host in selected_hosts if host.updates]
-        if not selected_hosts:
+        if not selected_hosts and not quiet:
             err_console.print(
                 "No hosts with available updates found, nothing to report."
             )
@@ -142,9 +148,10 @@ def generate(
     }
 
     render_method = render_methods.get(format)
+
     if render_method is None:
         # This should never happen due to early validation
-        err_console.print(f"[red]Unsupported format: {format}[/red]")
+        err_console.print(f"[red]Internal Error: Unsupported format: {format}[/red]")
         raise typer.Exit(code=1)
 
     content = render_method(selected_hosts, navigation=navigation)
@@ -153,14 +160,14 @@ def generate(
     if output:
         try:
             output.write_text(content, encoding="utf-8")
-
-            # FIXME: Hide with --quiet or only show with --verbose?
-            err_console.print(
-                f"Report saved to [green]{output}[/green] in [green]{format.value}[/green] format."
-            )
         except Exception as e:
             err_console.print(f"[red]Failed to write to {output}: {e}[/red]")
             raise typer.Exit(code=1)
+
+        if not tee and not quiet:
+            err_console.print(
+                f"Report saved to [green]{output}[/green] in [green]{format.value}[/green] format."
+            )
 
     # Print to console if no output OR if tee is specified
     if not output or tee:
