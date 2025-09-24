@@ -44,7 +44,7 @@ def generate(
         typer.Option(
             "--format",
             "-f",
-            help="Output format. Supported: json, text, markdown, html",
+            help=f"Output format. Supported: {', '.join(OUTPUT_FORMATS)}",
         ),
     ] = "text",
     output: Annotated[
@@ -136,6 +136,7 @@ def generate(
     elif format == "html":
         content = renderer.render_html(selected_hosts, navigation=navigation)
     else:
+        # This should never happen due to earlier check
         err_console.print(f"[red]Unsupported format: {format}[/red]")
         raise typer.Exit(code=1)
 
