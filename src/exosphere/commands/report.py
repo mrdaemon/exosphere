@@ -172,5 +172,6 @@ def generate(
         except (BrokenPipeError, OSError):
             # Handle quirky Windows platform behavior with broken pipes
             # which powershell closes early a whole lot of the time.
-            # Rich will write to stderr anyways to notify of the error.
+            # Rich will write to stderr anyways to notify of the error,
+            # this just prevents the humongous backtrace.
             pass
