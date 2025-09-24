@@ -2,6 +2,9 @@
 Reporting command module
 """
 
+from enum import Enum
+from pathlib import Path
+
 import typer
 from rich.json import JSON
 from typing_extensions import Annotated
@@ -13,7 +16,15 @@ from exosphere.commands.utils import (
 )
 from exosphere.reporting import ReportRenderer
 
-OUTPUT_FORMATS = ["json", "text", "markdown", "html"]
+
+class OutputFormat(str, Enum):
+    """Available output formats for reports"""
+
+    text = "text"
+    html = "html"
+    markdown = "markdown"
+    json = "json"
+
 
 ROOT_HELP = """
 Reporting Commands
@@ -40,20 +51,21 @@ def generate(
         ),
     ] = False,
     format: Annotated[
-        str,
+        OutputFormat,
         typer.Option(
             "--format",
             "-f",
-            help=f"Output format. Supported: {', '.join(OUTPUT_FORMATS)}",
+            help="Output format for the report",
         ),
-    ] = "text",
+    ] = OutputFormat.text,
     output: Annotated[
-        str | None,
+        Path | None,
         typer.Option(
             "--output",
             "-o",
             help="Output file to write the report to. Defaults to stdout if not specified.",
-            metavar="FILE",
+            file_okay=True,
+            dir_okay=False,
         ),
     ] = None,
     tee: Annotated[
@@ -93,11 +105,6 @@ def generate(
     # FIXME: This is kind of a bullshit proof of concept, fields, formats
     #        and logic are not final.
 
-    if format not in OUTPUT_FORMATS:
-        err_console.print(f"[red]Unsupported output format: {format}[/red]")
-        err_console.print(f"Supported formats: {', '.join(OUTPUT_FORMATS)}")
-        raise typer.Exit(code=1)
-
     selected_hosts = get_hosts_or_error(hosts)
     if selected_hosts is None:
         raise typer.Exit(code=1)
@@ -126,29 +133,30 @@ def generate(
     # Initialize the report renderer
     renderer = ReportRenderer()
 
-    # Generate the output content
-    if format == "json":
-        content = renderer.render_json(selected_hosts, navigation=navigation)
-    elif format == "text":
-        content = renderer.render_text(selected_hosts, navigation=navigation)
-    elif format == "markdown":
-        content = renderer.render_markdown(selected_hosts, navigation=navigation)
-    elif format == "html":
-        content = renderer.render_html(selected_hosts, navigation=navigation)
-    else:
-        # This should never happen due to earlier check
+    # Method dispatch table for rendering
+    render_methods = {
+        OutputFormat.json: renderer.render_json,
+        OutputFormat.text: renderer.render_text,
+        OutputFormat.markdown: renderer.render_markdown,
+        OutputFormat.html: renderer.render_html,
+    }
+
+    render_method = render_methods.get(format)
+    if render_method is None:
+        # This should never happen due to early validation
         err_console.print(f"[red]Unsupported format: {format}[/red]")
         raise typer.Exit(code=1)
+
+    content = render_method(selected_hosts, navigation=navigation)
 
     # Write file if necessary
     if output:
         try:
-            with open(output, "w", encoding="utf-8") as f:
-                f.write(content)
+            output.write_text(content, encoding="utf-8")
 
             # FIXME: Hide with --quiet or only show with --verbose?
             err_console.print(
-                f"Report saved to [green]{output}[/green] in [green]{format}[/green] format."
+                f"Report saved to [green]{output}[/green] in [green]{format.value}[/green] format."
             )
         except Exception as e:
             err_console.print(f"[red]Failed to write to {output}: {e}[/red]")
@@ -157,7 +165,7 @@ def generate(
     # Print to console if no output OR if tee is specified
     if not output or tee:
         try:
-            if format == "json":
+            if format == OutputFormat.json:
                 console.print(JSON(content))
             else:
                 console.print(content)
