@@ -5,6 +5,7 @@ This module provides functionality to render reports in various formats
 using Jinja2 templates.
 """
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -65,3 +66,8 @@ class ReportRenderer:
         """Render hosts data as HTML."""
         template = self.env.get_template("report.html.j2")
         return template.render(hosts=hosts, **kwargs)
+
+    def render_json(self, hosts: list[Host], **kwargs: Any) -> str:
+        """Render hosts data as JSON."""
+        report_data = [host.to_dict() for host in hosts]
+        return json.dumps(report_data, indent=2)
