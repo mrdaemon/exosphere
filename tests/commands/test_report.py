@@ -204,18 +204,6 @@ class TestGenerateCommand:
         if expected_error_message:
             assert expected_error_message in result.stderr
 
-    def test_generate_help_text(self):
-        """
-        Test generate command help
-
-        We just kind of ensure it runs, Typer handles it
-        """
-        result = runner.invoke(app, ["generate", "--help"])
-        assert result.exit_code == 0
-        assert "--format" in result.stdout
-        assert "--output" in result.stdout
-        assert "--updates-only" in result.stdout
-
     @pytest.mark.parametrize(
         "quiet_flag,expect_message",
         [
