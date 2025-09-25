@@ -8,7 +8,7 @@ from exosphere.config import Configuration
 from exosphere.objects import Host
 from exosphere.security import SudoPolicy
 
-runner = CliRunner()
+runner = CliRunner(env={"NO_COLOR": "1"})
 
 
 @pytest.fixture(autouse=True)
