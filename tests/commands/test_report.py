@@ -9,7 +9,7 @@ from exosphere.commands.report import app
 from exosphere.data import Update
 from exosphere.objects import Host
 
-runner = CliRunner()
+runner = CliRunner(env={"NO_COLOR": "1"})
 
 
 @pytest.fixture

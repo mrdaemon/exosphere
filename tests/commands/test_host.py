@@ -5,7 +5,7 @@ from exosphere.commands import host as host_module
 from exosphere.commands import utils as utils_module
 from exosphere.data import Update
 
-runner = CliRunner()
+runner = CliRunner(env={"NO_COLOR": "1"})
 
 
 @pytest.fixture(autouse=True)

@@ -4,7 +4,7 @@ from typer.testing import CliRunner
 from exosphere.commands import config
 from exosphere.config import Configuration
 
-runner = CliRunner()
+runner = CliRunner(env={"NO_COLOR": "1"})
 
 
 class DummyContext:
