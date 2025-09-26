@@ -125,7 +125,9 @@ class TestGenerateCommand:
 
         # Verify the correct renderer method was called
         render_method = getattr(mock_renderer, expected_method)
-        render_method.assert_called_once_with([sample_host], navigation=True)
+        render_method.assert_called_once_with(
+            [sample_host], navigation=True, security_only=False
+        )
 
         # Verify output contains expected content
         assert expected_output in result.stdout
@@ -156,7 +158,7 @@ class TestGenerateCommand:
         assert result.exit_code == 0
 
         mock_renderer.render_html.assert_called_once_with(
-            [sample_host], navigation=expected_navigation
+            [sample_host], navigation=expected_navigation, security_only=False
         )
 
     def test_generate_with_updates_only_filter(
@@ -236,6 +238,47 @@ class TestGenerateCommand:
         else:
             assert result.stderr == ""
             assert result.stdout.strip() == "[]"  # Empty JSON array rendered
+
+    def test_security_updates_only_flag(
+        self, mock_get_hosts, mock_renderer, sample_host
+    ):
+        """Test that --security-updates-only flag is passed to renderer methods."""
+        mock_get_hosts([sample_host])
+
+        result = runner.invoke(
+            app, ["generate", "--format", "json", "--security-updates-only"]
+        )
+
+        assert result.exit_code == 0
+        mock_renderer.render_json.assert_called_with(
+            [sample_host], navigation=True, security_only=True
+        )
+
+    def test_security_updates_only_short_flag(
+        self, mock_get_hosts, mock_renderer, sample_host
+    ):
+        """Test that -s short flag works for --security-updates-only."""
+        mock_get_hosts([sample_host])
+
+        result = runner.invoke(app, ["generate", "--format", "json", "-s"])
+
+        assert result.exit_code == 0
+        mock_renderer.render_json.assert_called_with(
+            [sample_host], navigation=True, security_only=True
+        )
+
+    def test_security_updates_only_filters_hosts(
+        self, mock_get_hosts, mock_renderer, empty_host
+    ):
+        """Test that hosts without security updates are filtered out."""
+        mock_get_hosts([empty_host])
+
+        result = runner.invoke(
+            app, ["generate", "--format", "json", "--security-updates-only"]
+        )
+
+        assert result.exit_code == 0
+        assert "No hosts with security updates found" in result.stderr
 
     @pytest.mark.parametrize(
         "use_tee,expect_stdout",

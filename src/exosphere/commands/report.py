@@ -68,6 +68,14 @@ def generate(
             help="Only include hosts with available updates",
         ),
     ] = False,
+    security_only: Annotated[
+        bool,
+        typer.Option(
+            "--security-updates-only",
+            "-s",
+            help="Only report security updates",
+        ),
+    ] = False,
     tee: Annotated[
         bool,
         typer.Option(
@@ -136,6 +144,14 @@ def generate(
             )
             raise typer.Exit(code=0)
 
+    if security_only:
+        selected_hosts = [host for host in selected_hosts if host.security_updates]
+        if not selected_hosts and not quiet:
+            err_console.print(
+                "No hosts with security updates found, nothing to report."
+            )
+            raise typer.Exit(code=0)
+
     # Initialize the report renderer
     renderer = ReportRenderer()
 
@@ -154,7 +170,9 @@ def generate(
         err_console.print(f"[red]Internal Error: Unsupported format: {format}[/red]")
         raise typer.Exit(code=1)
 
-    content = render_method(selected_hosts, navigation=navigation)
+    content = render_method(
+        selected_hosts, navigation=navigation, security_only=security_only
+    )
 
     # Write file if necessary
     if output:
