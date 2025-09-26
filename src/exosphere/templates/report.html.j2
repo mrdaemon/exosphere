@@ -136,7 +136,7 @@
                 {% if security_only -%}
                 <li><strong>Hosts with security updates:</strong> {{ hosts|selectattr('security_updates')|list|length }}</li>
                 {%- else -%}
-                <li><strong>Total hosts:</strong> {{ hosts|length }}</li>
+                <li><strong>Selected hosts:</strong> {{ hosts|length }}</li>
                 <li><strong>Hosts with updates:</strong> {{ hosts|selectattr('updates')|list|length }}</li>
                 <li><strong>Total updates:</strong> {{ hosts|map(attribute='updates')|map('length')|sum }}</li>
                 {%- endif %}

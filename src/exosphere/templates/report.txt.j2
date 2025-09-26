@@ -21,7 +21,7 @@ Summary:
 {% if security_only %}
   Hosts with security updates: {{ hosts|selectattr('security_updates')|list|length }}
 {% else %}
-  Total hosts: {{ hosts|length }}
+  Selected hosts: {{ hosts|length }}
   Hosts with updates: {{ hosts|selectattr('updates')|list|length }}
   Total updates: {{ hosts|map(attribute='updates')|map('length')|sum }}
 {% endif %}

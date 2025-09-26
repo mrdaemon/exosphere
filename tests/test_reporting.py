@@ -183,7 +183,7 @@ class TestReportRenderer:
         # Should contain main content structure
         assert "<h1>System Updates Report</h1>" in result
         assert '<div class="summary">' in result
-        assert "<strong>Total hosts:</strong> 1" in result
+        assert "<strong>Selected hosts:</strong> 1" in result
         assert "<strong>Security updates:</strong> 1" in result
 
         # Should contain host information
@@ -224,10 +224,10 @@ class TestReportRenderer:
         assert json.loads(json_result) == []
 
         text_result = renderer.render_text(hosts)
-        assert "Total hosts: 0" in text_result
+        assert "Selected hosts: 0" in text_result
 
         markdown_result = renderer.render_markdown(hosts)
-        assert "**Total hosts:** 0" in markdown_result
+        assert "**Selected hosts:** 0" in markdown_result
 
         html_result = renderer.render_html(hosts)
         assert "<html" in html_result  # Should still be valid HTML
