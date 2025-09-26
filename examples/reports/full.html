@@ -1,0 +1,2244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Exosphere 1.5.0.dev0">
+    <title>System Updates Report - 2025-09-26 00:08:21 -0400</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-top: 0;}
+        h2 { color: #34495e; border-bottom: 1px solid #ecf0f1; padding-bottom: 5px; margin-top: 0; }
+        .summary {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .summary h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .host-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .security {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .stale {
+            color: #e67e22;
+            font-style: italic;
+            font-weight: normal;
+        }
+        .meta {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: -10px;
+        }
+        .host-description {
+            color: #7f8c8d;
+            font-size: 1em;
+            font-weight: normal;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        .toc {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+        .toc h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        .toc-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .toc-link {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s ease;
+        }
+        .toc-link:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            text-decoration: none;
+        }
+        .update-count {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>System Updates Report</h1>
+
+        <div class="meta">Generated on 2025-09-26 00:08:21 -0400</div>
+
+        <div class="summary">
+            <h3>Summary</h3>
+            <ul>
+                <li><strong>Total hosts:</strong> 18</li>
+                <li><strong>Hosts with updates:</strong> 15</li>
+                <li><strong>Total updates:</strong> 232</li>
+                <li><strong>Security updates:</strong> 4</li>
+            </ul>
+        </div>
+
+        <div class="toc">
+            <h3>Quick Navigation</h3>
+            <div class="toc-links">
+                <a href="#host-0" class="toc-link">
+                    <strong>akaname</strong>
+                    <span class="update-count">(14)</span>
+                </a>
+                <a href="#host-1" class="toc-link">
+                    <strong>arachne</strong>
+                    <span class="update-count">(25)</span>
+                </a>
+                <a href="#host-2" class="toc-link">
+                    <strong>ayakashi</strong>
+                    <span class="update-count">(13)</span>
+                </a>
+                <a href="#host-3" class="toc-link">
+                    <strong>chiko</strong>
+                    <span class="update-count">(20)</span>
+                </a>
+                <a href="#host-4" class="toc-link">
+                    <strong>badhat</strong>
+                    <span class="update-count">(22)</span>
+                </a>
+                <a href="#host-5" class="toc-link">
+                    bitrot
+                    <span class="update-count">(0)</span>
+                </a>
+                <a href="#host-6" class="toc-link">
+                    <strong>fenrir</strong>
+                    <span class="update-count">(21)</span>
+                </a>
+                <a href="#host-7" class="toc-link">
+                    <strong>hakuzousu</strong>
+                    <span class="update-count">(26)</span>
+                </a>
+                <a href="#host-8" class="toc-link">
+                    <strong>hugin</strong>
+                    <span class="update-count">(41)</span>
+                </a>
+                <a href="#host-9" class="toc-link">
+                    <strong>lamia</strong>
+                    <span class="update-count">(13)</span>
+                </a>
+                <a href="#host-10" class="toc-link">
+                    <strong>lostsoul</strong>
+                    <span class="update-count">(1)</span>
+                </a>
+                <a href="#host-11" class="toc-link">
+                    <strong>okami</strong>
+                    <span class="update-count">(5)</span>
+                </a>
+                <a href="#host-12" class="toc-link">
+                    shinigami
+                    <span class="update-count">(0)</span>
+                </a>
+                <a href="#host-13" class="toc-link">
+                    tabris
+                    <span class="update-count">(0)</span>
+                </a>
+                <a href="#host-14" class="toc-link">
+                    <strong>taisha</strong>
+                    <span class="update-count">(14)</span>
+                </a>
+                <a href="#host-15" class="toc-link">
+                    <strong>yako</strong>
+                    <span class="update-count">(2)</span>
+                </a>
+                <a href="#host-16" class="toc-link">
+                    <strong>yokai</strong>
+                    <span class="update-count">(13)</span>
+                </a>
+                <a href="#host-17" class="toc-link">
+                    <strong>zenko</strong>
+                    <span class="update-count">(2)</span>
+                </a>
+            </div>
+        </div>
+
+        
+        <div class="host-section" id="host-0">
+            <h2>akaname (akaname.lab.underwares.org)</h2>
+            <div class="host-description">Download Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux ubuntu 24.04<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:45 -0400
+            </p>
+            <h3>Available Updates (14)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-nfacct</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>firmware-sof-signed</strong></td>
+                        <td>2023.12.1-1ubuntu1.7</td>
+                        <td>2023.12.1-1ubuntu1.9</td>
+                        <td>No</td>
+                        <td>Ubuntu:24.04/noble-updates</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-1">
+            <h2>arachne (arachne.lab.underwares.org)</h2>
+            <div class="host-description">Mastodon Instance</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 12<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:45 -0400
+            </p>
+            <h3>Available Updates (25)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-nfacct</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-client-common</strong></td>
+                        <td>281.pgdg120+1</td>
+                        <td>283.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-common</strong></td>
+                        <td>281.pgdg120+1</td>
+                        <td>283.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-common-dev</strong></td>
+                        <td>281.pgdg120+1</td>
+                        <td>283.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libpq-dev</strong></td>
+                        <td>17.6-1.pgdg12+1</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libpq5</strong></td>
+                        <td>17.6-1.pgdg12+1</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>nodejs</strong></td>
+                        <td>22.19.0-1nodesource1</td>
+                        <td>22.20.0-1nodesource1</td>
+                        <td>No</td>
+                        <td>. nodistro:nodistro</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-client-18</strong></td>
+                        <td>(NEW)</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-18</strong></td>
+                        <td>(NEW)</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql</strong></td>
+                        <td>17+281.pgdg120+1</td>
+                        <td>18+283.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-client-17</strong></td>
+                        <td>17.6-1.pgdg12+1</td>
+                        <td>17.6-2.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-17</strong></td>
+                        <td>17.6-1.pgdg12+1</td>
+                        <td>17.6-2.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-18-jit</strong></td>
+                        <td>(NEW)</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-2">
+            <h2>ayakashi (ayakashi.lab.underwares.org)</h2>
+            <div class="host-description">HA Compute Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 12<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:44 -0400
+            </p>
+            <h3>Available Updates (13)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-nfacct</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-3">
+            <h2>chiko (chiko.lab.underwares.org)</h2>
+            <div class="host-description">CI Server</div>
+            
+            <p>
+                <strong>OS:</strong> linux rhel 9.6<br>
+                <strong>Package Manager:</strong> dnf<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:48 -0400
+            </p>
+            <h3>Available Updates (20)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>kernel.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-core.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-modules.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-modules-core.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-tools.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-tools-libs.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libmongocrypt.x86_64</strong></td>
+                        <td>1.15.1-1.el9</td>
+                        <td>1.15.2-1.el9</td>
+                        <td>No</td>
+                        <td>epel</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-ebpf-legacy-code.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-4">
+            <h2>badhat (172.16.64.170)</h2>
+            <div class="host-description">Test Server</div>
+            
+            <p>
+                <strong>OS:</strong> linux fedora 42<br>
+                <strong>Package Manager:</strong> dnf<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:49 -0400
+            </p>
+            <h3>Available Updates (22)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>kernel.x86_64</strong></td>
+                        <td>6.16.7-200.fc42</td>
+                        <td>6.16.8-200.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>bluez.x86_64</strong></td>
+                        <td>5.83-2.fc42</td>
+                        <td>5.84-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>bluez-libs.x86_64</strong></td>
+                        <td>5.83-2.fc42</td>
+                        <td>5.84-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>dracut.x86_64</strong></td>
+                        <td>107-2.fc42</td>
+                        <td>107-3.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>dracut-config-rescue.x86_64</strong></td>
+                        <td>107-2.fc42</td>
+                        <td>107-3.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>dracut-network.x86_64</strong></td>
+                        <td>107-2.fc42</td>
+                        <td>107-3.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>dracut-squash.x86_64</strong></td>
+                        <td>107-2.fc42</td>
+                        <td>107-3.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-core.x86_64</strong></td>
+                        <td>6.16.7-200.fc42</td>
+                        <td>6.16.8-200.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-modules.x86_64</strong></td>
+                        <td>6.16.7-200.fc42</td>
+                        <td>6.16.8-200.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-modules-core.x86_64</strong></td>
+                        <td>6.16.7-200.fc42</td>
+                        <td>6.16.8-200.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libselinux.x86_64</strong></td>
+                        <td>3.8-2.fc42</td>
+                        <td>3.8-3.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libselinux-utils.x86_64</strong></td>
+                        <td>3.8-2.fc42</td>
+                        <td>3.8-3.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>passt.x86_64</strong></td>
+                        <td>0^20250911.g6cbcccc-1.fc42</td>
+                        <td>0^20250919.g623dbf6-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>passt-selinux.noarch</strong></td>
+                        <td>0^20250911.g6cbcccc-1.fc42</td>
+                        <td>0^20250919.g623dbf6-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>python3-libselinux.x86_64</strong></td>
+                        <td>3.8-2.fc42</td>
+                        <td>3.8-3.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>tig.x86_64</strong></td>
+                        <td>2.5.12-1.fc42</td>
+                        <td>2.6.0-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>vim-common.x86_64</strong></td>
+                        <td>2:9.1.1723-2.fc42</td>
+                        <td>2:9.1.1775-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>vim-data.noarch</strong></td>
+                        <td>2:9.1.1723-2.fc42</td>
+                        <td>2:9.1.1775-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>vim-enhanced.x86_64</strong></td>
+                        <td>2:9.1.1723-2.fc42</td>
+                        <td>2:9.1.1775-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>vim-filesystem.noarch</strong></td>
+                        <td>2:9.1.1723-2.fc42</td>
+                        <td>2:9.1.1775-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>vim-minimal.x86_64</strong></td>
+                        <td>2:9.1.1723-2.fc42</td>
+                        <td>2:9.1.1775-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>xxd.x86_64</strong></td>
+                        <td>2:9.1.1723-2.fc42</td>
+                        <td>2:9.1.1775-1.fc42</td>
+                        <td>No</td>
+                        <td>updates</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-5">
+            <h2>bitrot (bitrot.underwares.org)</h2>
+            <div class="host-description">Ghost DNS</div>
+            
+            <p>
+                <strong>OS:</strong> openbsd 7.7<br>
+                <strong>Package Manager:</strong> pkg_add<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:47 -0400
+            </p>
+            <p><em>No updates available.</em></p>
+        </div>
+        <div class="host-section" id="host-6">
+            <h2>fenrir (fenrir.underwares.org)</h2>
+            <div class="host-description">Public DNS</div>
+            
+            <p>
+                <strong>OS:</strong> linux rhel 9.6<br>
+                <strong>Package Manager:</strong> dnf<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:55 -0400
+            </p>
+            <h3>Available Updates (21)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>kernel.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-core.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-modules.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-modules-core.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-tools.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kernel-tools-libs.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libmongocrypt.x86_64</strong></td>
+                        <td>1.15.1-1.el9</td>
+                        <td>1.15.2-1.el9</td>
+                        <td>No</td>
+                        <td>epel</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-ebpf-legacy-code.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>python3-perf.x86_64</strong></td>
+                        <td>5.14.0-570.44.1.el9_6</td>
+                        <td>5.14.0-570.46.1.el9_6</td>
+                        <td>No</td>
+                        <td>appstream</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-7">
+            <h2>hakuzousu (hakuzousu.lab.underwares.org)</h2>
+            <div class="host-description">Database Server</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 12<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:44 -0400
+            </p>
+            <h3>Available Updates (26)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-nfacct</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libgc1</strong></td>
+                        <td>(NEW)</td>
+                        <td>1:8.2.2-3</td>
+                        <td>No</td>
+                        <td>Debian:12.12/oldstable</td>
+                    </tr>
+                    <tr>
+                        <td><strong>guile-3.0-libs</strong></td>
+                        <td>(NEW)</td>
+                        <td>3.0.8-2</td>
+                        <td>No</td>
+                        <td>Debian:12.12/oldstable</td>
+                    </tr>
+                    <tr>
+                        <td><strong>make-guile</strong></td>
+                        <td>(NEW)</td>
+                        <td>4.3-4.1</td>
+                        <td>No</td>
+                        <td>Debian:12.12/oldstable</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-client-common</strong></td>
+                        <td>281.pgdg120+1</td>
+                        <td>283.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-common</strong></td>
+                        <td>281.pgdg120+1</td>
+                        <td>283.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-common-dev</strong></td>
+                        <td>281.pgdg120+1</td>
+                        <td>283.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libpq5</strong></td>
+                        <td>17.6-1.pgdg12+1</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-client-18</strong></td>
+                        <td>(NEW)</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-18</strong></td>
+                        <td>(NEW)</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql</strong></td>
+                        <td>17+281.pgdg120+1</td>
+                        <td>18+283.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-client-17</strong></td>
+                        <td>17.6-1.pgdg12+1</td>
+                        <td>17.6-2.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-17</strong></td>
+                        <td>17.6-1.pgdg12+1</td>
+                        <td>17.6-2.pgdg12+1</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                    <tr>
+                        <td><strong>postgresql-18-jit</strong></td>
+                        <td>(NEW)</td>
+                        <td>18.0-1.pgdg12+3</td>
+                        <td>No</td>
+                        <td>PostgreSQL for Debian/Ubuntu repository:bookworm-pgdg</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-8">
+            <h2>hugin (hugin.underwares.org)</h2>
+            <div class="host-description">Public DNS</div>
+            
+            <p>
+                <strong>OS:</strong> linux rhel 9.6<br>
+                <strong>Package Manager:</strong> dnf<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:06:40 -0400
+            </p>
+            <h3>Available Updates (41)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>kernel.x86_64</strong></td>
+                        <td>5.14.0-570.39.1.el9_6</td>
+                        <td>5.14.0-570.42.2.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NetworkManager.x86_64</strong></td>
+                        <td>1:1.52.0-5.el9_6</td>
+                        <td>1:1.52.0-7.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NetworkManager-libnm.x86_64</strong></td>
+                        <td>1:1.52.0-5.el9_6</td>
+                        <td>1:1.52.0-7.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NetworkManager-team.x86_64</strong></td>
+                        <td>1:1.52.0-5.el9_6</td>
+                        <td>1:1.52.0-7.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NetworkManager-tui.x86_64</strong></td>
+                        <td>1:1.52.0-5.el9_6</td>
+                        <td>1:1.52.0-7.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>iwl105-firmware.noarch</strong></td>
+                        <td>18.168.6.1-151.3.el9_6</td>
+                        <td>18.168.6.1-151.4.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>iwl135-firmware.noarch</strong></td>
+                        <td>18.168.6.1-151.3.el9_6</td>
+                        <td>18.168.6.1-151.4.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>iwl2000-firmware.noarch</strong></td>
+                        <td>18.168.6.1-151.3.el9_6</td>
+                        <td>18.168.6.1-151.4.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>iwl2030-firmware.noarch</strong></td>
+                        <td>18.168.6.1-151.3.el9_6</td>
+                        <td>18.168.6.1-151.4.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>iwl3160-firmware.noarch</strong></td>
+                        <td>1:25.30.13.0-151.3.el9_6</td>
+                        <td>1:25.30.13.0-151.4.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>iwl7260-firmware.noarch</strong></td>
+                        <td>1:25.30.13.0-151.3.el9_6</td>
+                        <td>1:25.30.13.0-151.4.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libldb.x86_64</strong></td>
+                        <td>4.21.3-7.el9_6</td>
+                        <td>4.21.3-14.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libmongocrypt.x86_64</strong></td>
+                        <td>1.15.1-1.el9</td>
+                        <td>1.15.2-1.el9</td>
+                        <td>No</td>
+                        <td>epel</td>
+                    </tr>
+                    <tr>
+                        <td><strong>linux-firmware.noarch</strong></td>
+                        <td>20250716-151.3.el9_6</td>
+                        <td>20250812-151.4.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>linux-firmware-whence.noarch</strong></td>
+                        <td>20250716-151.3.el9_6</td>
+                        <td>20250812-151.4.el9_6</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-ebpf-legacy-code.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal.x86_64</strong></td>
+                        <td>2.6.3-1.el9</td>
+                        <td>2.7.0-1.el9</td>
+                        <td>No</td>
+                        <td>netdata_netdata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>nspr.x86_64</strong></td>
+                        <td>4.35.0-17.el9_5</td>
+                        <td>4.36.0-4.el9_4</td>
+                        <td>No</td>
+                        <td>appstream</td>
+                    </tr>
+                    <tr>
+                        <td><strong>nss.x86_64</strong></td>
+                        <td>3.101.0-10.el9_5</td>
+                        <td>3.112.0-4.el9_4</td>
+                        <td>No</td>
+                        <td>appstream</td>
+                    </tr>
+                    <tr>
+                        <td><strong>nss-softokn.x86_64</strong></td>
+                        <td>3.101.0-10.el9_5</td>
+                        <td>3.112.0-4.el9_4</td>
+                        <td>No</td>
+                        <td>appstream</td>
+                    </tr>
+                    <tr>
+                        <td><strong>nss-softokn-freebl.x86_64</strong></td>
+                        <td>3.101.0-10.el9_5</td>
+                        <td>3.112.0-4.el9_4</td>
+                        <td>No</td>
+                        <td>appstream</td>
+                    </tr>
+                    <tr>
+                        <td><strong>nss-sysinit.x86_64</strong></td>
+                        <td>3.101.0-10.el9_5</td>
+                        <td>3.112.0-4.el9_4</td>
+                        <td>No</td>
+                        <td>appstream</td>
+                    </tr>
+                    <tr>
+                        <td><strong>nss-util.x86_64</strong></td>
+                        <td>3.101.0-10.el9_5</td>
+                        <td>3.112.0-4.el9_4</td>
+                        <td>No</td>
+                        <td>appstream</td>
+                    </tr>
+                    <tr>
+                        <td><strong>qemu-guest-agent.x86_64</strong></td>
+                        <td>17:9.1.0-15.el9_6.7</td>
+                        <td>17:9.1.0-15.el9_6.9</td>
+                        <td>No</td>
+                        <td>appstream</td>
+                    </tr>
+                    <tr>
+                        <td><strong>sudo.x86_64</strong></td>
+                        <td>1.9.5p2-10.el9_6.1</td>
+                        <td>1.9.5p2-10.el9_6.2</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>systemd.x86_64</strong></td>
+                        <td>252-51.el9_6.1</td>
+                        <td>252-51.el9_6.2</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>systemd-libs.x86_64</strong></td>
+                        <td>252-51.el9_6.1</td>
+                        <td>252-51.el9_6.2</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>systemd-pam.x86_64</strong></td>
+                        <td>252-51.el9_6.1</td>
+                        <td>252-51.el9_6.2</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>systemd-rpm-macros.noarch</strong></td>
+                        <td>252-51.el9_6.1</td>
+                        <td>252-51.el9_6.2</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>systemd-udev.x86_64</strong></td>
+                        <td>252-51.el9_6.1</td>
+                        <td>252-51.el9_6.2</td>
+                        <td>No</td>
+                        <td>baseos</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-9">
+            <h2>lamia (lamia.lab.underwares.org)</h2>
+            <div class="host-description">Micro Compute Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 12<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:50 -0400
+            </p>
+            <h3>Available Updates (13)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-nfacct</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-10">
+            <h2>lostsoul (lostsoul.lab.underwares.org)</h2>
+            <div class="host-description">Admin Container</div>
+            
+            <p>
+                <strong>OS:</strong> linux ubuntu 24.04<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:45 -0400
+            </p>
+            <h3>Available Updates (1)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>lftp</strong></td>
+                        <td>4.9.2-2ubuntu1</td>
+                        <td>4.9.2-2ubuntu1.1</td>
+                        <td>No</td>
+                        <td>Ubuntu:24.04/noble-updates</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-11">
+            <h2>okami (okami.lab.underwares.org)</h2>
+            <div class="host-description">Network Attached Storage</div>
+            
+            <p>
+                <strong>OS:</strong> freebsd 14.3-RELEASE-p3<br>
+                <strong>Package Manager:</strong> pkg<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:43 -0400
+            </p>
+            <h3>Available Updates (5)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>cmake-core</strong></td>
+                        <td>3.31.7</td>
+                        <td>3.31.7_1</td>
+                        <td>No</td>
+                        <td>FreeBSD</td>
+                    </tr>
+                    <tr>
+                        <td><strong>en-freebsd-doc</strong></td>
+                        <td>20250814,1</td>
+                        <td>20250920,1</td>
+                        <td>No</td>
+                        <td>FreeBSD</td>
+                    </tr>
+                    <tr>
+                        <td><strong>jpeg-turbo</strong></td>
+                        <td>3.1.1</td>
+                        <td>3.1.2</td>
+                        <td>No</td>
+                        <td>FreeBSD</td>
+                    </tr>
+                    <tr>
+                        <td><strong>p11-kit</strong></td>
+                        <td>0.25.7</td>
+                        <td>0.25.9</td>
+                        <td>No</td>
+                        <td>FreeBSD</td>
+                    </tr>
+                    <tr>
+                        <td><strong>png</strong></td>
+                        <td>1.6.49</td>
+                        <td>1.6.50</td>
+                        <td>No</td>
+                        <td>FreeBSD</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-12">
+            <h2>shinigami (shinigami.lab.underwares.org)</h2>
+            <div class="host-description">Perf Compute Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux ubuntu 20.04<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:44 -0400
+            </p>
+            <p><em>No updates available.</em></p>
+        </div>
+        <div class="host-section" id="host-13">
+            <h2>tabris (tabris.underwares.org)</h2>
+            <div class="host-description">Edge Firewall</div>
+            
+            <p>
+                <strong>OS:</strong> freebsd 14.3-RELEASE-p2<br>
+                <strong>Package Manager:</strong> pkg<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:43 -0400
+            </p>
+            <p><em>No updates available.</em></p>
+        </div>
+        <div class="host-section" id="host-14">
+            <h2>taisha (taisha.lab.underwares.org)</h2>
+            <div class="host-description">Witness and Monitoring</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 12<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:54 -0400
+            </p>
+            <h3>Available Updates (14)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-nfacct</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>raspi-firmware</strong></td>
+                        <td>1:1.20250430-4~bookworm</td>
+                        <td>1:1.20250915-1~bookworm</td>
+                        <td>No</td>
+                        <td>Raspberry Pi Foundation:stable</td>
+                    </tr>
+                    <tr>
+                        <td><strong>linux-libc-dev</strong></td>
+                        <td>1:6.12.34-1+rpt1~bookworm</td>
+                        <td>1:6.12.47-1+rpt1~bookworm</td>
+                        <td>No</td>
+                        <td>Raspberry Pi Foundation:stable</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-15">
+            <h2>yako (yako.lab.underwares.org)</h2>
+            <div class="host-description">Hypervisor Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 13<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:45 -0400
+            </p>
+            <h3>Available Updates (2)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>libxslt1.1</strong></td>
+                        <td>1.1.35-1.2+deb13u1</td>
+                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>Debian-Security:13/stable-security</td>
+                    </tr>
+                    <tr>
+                        <td><strong>xsltproc</strong></td>
+                        <td>1.1.35-1.2+deb13u1</td>
+                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>Debian-Security:13/stable-security</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-16">
+            <h2>yokai (yokai.lab.underwares.org)</h2>
+            <div class="host-description">Standard Compute Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 12<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:45 -0400
+            </p>
+            <h3>Available Updates (13)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>netdata-plugin-systemd-journal</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-slabinfo</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-pythond</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-perf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-nfacct</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-network-viewer</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-go</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-ebpf</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-debugfs</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-chartsd</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-plugin-apps</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>netdata-dashboard</strong></td>
+                        <td>2.6.3</td>
+                        <td>2.7.0</td>
+                        <td>No</td>
+                        <td>Netdata:repo.netdata.cloud</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-17">
+            <h2>zenko (zenko.lab.underwares.org)</h2>
+            <div class="host-description">Hypervisor Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 13<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:46 -0400
+            </p>
+            <h3>Available Updates (2)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>libxslt1.1</strong></td>
+                        <td>1.1.35-1.2+deb13u1</td>
+                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>Debian-Security:13/stable-security</td>
+                    </tr>
+                    <tr>
+                        <td><strong>xsltproc</strong></td>
+                        <td>1.1.35-1.2+deb13u1</td>
+                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>Debian-Security:13/stable-security</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <footer>
+            Generated with <a href="https://github.com/mrdaemon/exosphere">Exosphere</a> version 1.5.0.dev0
+        </footer>
+    </div>
+</body>
+</html>
