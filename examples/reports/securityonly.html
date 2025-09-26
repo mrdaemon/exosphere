@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Exosphere 1.5.0.dev0">
+    <title>System Updates Report - 2025-09-26 00:08:39 -0400</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-top: 0;}
+        h2 { color: #34495e; border-bottom: 1px solid #ecf0f1; padding-bottom: 5px; margin-top: 0; }
+        .summary {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .summary h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .host-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .security {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .stale {
+            color: #e67e22;
+            font-style: italic;
+            font-weight: normal;
+        }
+        .meta {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: -10px;
+        }
+        .host-description {
+            color: #7f8c8d;
+            font-size: 1em;
+            font-weight: normal;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        .toc {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+        .toc h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        .toc-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .toc-link {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s ease;
+        }
+        .toc-link:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            text-decoration: none;
+        }
+        .update-count {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>System Updates Report</h1>
+
+        <div class="meta">Generated on 2025-09-26 00:08:39 -0400</div>
+
+        <div class="summary">
+            <h3>Summary</h3>
+            <ul>
+                <li><strong>Hosts with security updates:</strong> 2</li>
+                <li><strong>Total security updates:</strong> 4</li>
+            </ul>
+        </div>
+
+        <div class="toc">
+            <h3>Quick Navigation</h3>
+            <div class="toc-links">
+                <a href="#host-0" class="toc-link">
+                    <strong>yako</strong>
+                    <span class="update-count">(2)</span>
+                </a>
+                <a href="#host-1" class="toc-link">
+                    <strong>zenko</strong>
+                    <span class="update-count">(2)</span>
+                </a>
+            </div>
+        </div>
+
+        
+        <div class="host-section" id="host-0">
+            <h2>yako (yako.lab.underwares.org)</h2>
+            <div class="host-description">Hypervisor Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 13<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:45 -0400
+            </p>
+            <h3>Available Updates (2)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>libxslt1.1</strong></td>
+                        <td>1.1.35-1.2+deb13u1</td>
+                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>Debian-Security:13/stable-security</td>
+                    </tr>
+                    <tr>
+                        <td><strong>xsltproc</strong></td>
+                        <td>1.1.35-1.2+deb13u1</td>
+                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>Debian-Security:13/stable-security</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="host-section" id="host-1">
+            <h2>zenko (zenko.lab.underwares.org)</h2>
+            <div class="host-description">Hypervisor Host</div>
+            
+            <p>
+                <strong>OS:</strong> linux debian 13<br>
+                <strong>Package Manager:</strong> apt<br>
+                <strong>Last Refresh:</strong> 2025-09-25 22:05:46 -0400
+            </p>
+            <h3>Available Updates (2)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Current Version</th>
+                        <th>New Version</th>
+                        <th>Security</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>libxslt1.1</strong></td>
+                        <td>1.1.35-1.2+deb13u1</td>
+                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>Debian-Security:13/stable-security</td>
+                    </tr>
+                    <tr>
+                        <td><strong>xsltproc</strong></td>
+                        <td>1.1.35-1.2+deb13u1</td>
+                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>Debian-Security:13/stable-security</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <footer>
+            Generated with <a href="https://github.com/mrdaemon/exosphere">Exosphere</a> version 1.5.0.dev0
+        </footer>
+    </div>
+</body>
+</html>

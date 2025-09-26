@@ -1,0 +1,47 @@
+
+=====================
+SYSTEM UPDATES REPORT
+=====================
+
+Generated: 2025-09-26 00:09:42 -0400
+
+Summary:
+
+  Hosts with security updates: 2
+  Total security updates: 4
+
+yako (yako.lab.underwares.org)
+------------------------------
+Hypervisor Host
+
+  System: linux debian 13
+  Package Manager: apt
+  Last Refresh: 2025-09-25 22:05:45 -0400
+
+  Security Updates (2):
+
+    - libxslt1.1: 1.1.35-1.2+deb13u1 -> 1.1.35-1.2+deb13u2
+      Source: Debian-Security:13/stable-security
+    - xsltproc: 1.1.35-1.2+deb13u1 -> 1.1.35-1.2+deb13u2
+      Source: Debian-Security:13/stable-security
+
+
+zenko (zenko.lab.underwares.org)
+--------------------------------
+Hypervisor Host
+
+  System: linux debian 13
+  Package Manager: apt
+  Last Refresh: 2025-09-25 22:05:46 -0400
+
+  Security Updates (2):
+
+    - libxslt1.1: 1.1.35-1.2+deb13u1 -> 1.1.35-1.2+deb13u2
+      Source: Debian-Security:13/stable-security
+    - xsltproc: 1.1.35-1.2+deb13u1 -> 1.1.35-1.2+deb13u2
+      Source: Debian-Security:13/stable-security
+
+
+-------------------------------------------
+Generated with Exosphere version 1.5.0.dev0
+https://github.com/mrdaemon/exosphere
