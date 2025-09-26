@@ -251,9 +251,9 @@ class TestReportRenderer:
         assert "<strong>Total updates:</strong> 0" in html_result
 
     def test_render_html_with_navigation(self, renderer, sample_host, empty_host):
-        """Test HTML rendering with navigation enabled."""
+        """Test HTML rendering with navigation enabled (default)"""
         hosts = [sample_host, empty_host]
-        result = renderer.render_html(hosts, navigation=True)
+        result = renderer.render_html(hosts)
 
         # Should contain table of contents
         assert '<div class="toc">' in result
@@ -272,9 +272,9 @@ class TestReportRenderer:
         assert 'id="host-1"' in result
 
     def test_render_html_without_navigation(self, renderer, sample_host):
-        """Test HTML rendering with navigation disabled (default)."""
+        """Test HTML rendering with navigation disabled"""
         hosts = [sample_host]
-        result = renderer.render_html(hosts)
+        result = renderer.render_html(hosts, navigation=False)
 
         # Should NOT contain table of contents HTML elements
         assert '<div class="toc">' not in result

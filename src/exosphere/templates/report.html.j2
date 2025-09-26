@@ -133,10 +133,15 @@
         <div class="summary">
             <h3>Summary</h3>
             <ul>
+                {% if security_only -%}
+                <li><strong>Hosts with security updates:</strong> {{ hosts|selectattr('security_updates')|list|length }}</li>
+                {%- else -%}
                 <li><strong>Total hosts:</strong> {{ hosts|length }}</li>
                 <li><strong>Hosts with updates:</strong> {{ hosts|selectattr('updates')|list|length }}</li>
                 <li><strong>Total updates:</strong> {{ hosts|map(attribute='updates')|map('length')|sum }}</li>
-                <li><strong>Security updates:</strong> {{ hosts|map(attribute='security_updates')|map('length')|sum }}</li>
+                {%- endif %}
+                {%- set security_label = "Total security updates:" if security_only else "Security updates:" %}
+                <li><strong>{{ security_label }}</strong> {{ hosts|map(attribute='security_updates')|map('length')|sum }}</li>
             </ul>
         </div>
         {%- if navigation %}
@@ -145,10 +150,11 @@
             <h3>Quick Navigation</h3>
             <div class="toc-links">
                 {%- for host in hosts %}
+                {%- set updates_list = host.security_updates if security_only else host.updates %}
                 <a href="#host-{{ loop.index0 }}" class="toc-link">
-                    {%- if host.updates %}
+                    {%- if updates_list %}
                     <strong>{{ host.name }}</strong>
-                    <span class="update-count">({{ host.updates|length }})</span>
+                    <span class="update-count">({{ updates_list|length }})</span>
                     {%- else %}
                     {{ host.name }}
                     <span class="update-count">(0)</span>
@@ -172,8 +178,9 @@
                 <strong>Last Refresh:</strong> {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} <span class="stale">(stale, needs refresh)</span>{% endif %}
             </p>
 
-            {% if host.updates -%}
-            <h3>Available Updates ({{ host.updates|length }})</h3>
+            {%- set updates_list = host.security_updates if security_only else host.updates %}
+            {%- if updates_list %}
+            <h3>Available Updates ({{ updates_list|length }})</h3>
             <table>
                 <thead>
                     <tr>
@@ -185,7 +192,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {%- for update in host.updates %}
+                    {%- for update in updates_list %}
                     <tr>
                         <td><strong>{{ update.name }}</strong></td>
                         <td>{{ update.current_version or '(NEW)' }}</td>

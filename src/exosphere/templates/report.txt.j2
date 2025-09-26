@@ -18,10 +18,15 @@ Generated: {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
 
 Summary:
 
+{% if security_only %}
+  Hosts with security updates: {{ hosts|selectattr('security_updates')|list|length }}
+{% else %}
   Total hosts: {{ hosts|length }}
   Hosts with updates: {{ hosts|selectattr('updates')|list|length }}
   Total updates: {{ hosts|map(attribute='updates')|map('length')|sum }}
-  Security updates: {{ hosts|map(attribute='security_updates')|map('length')|sum }}
+{% endif %}
+{% set security_label = "Total security updates:" if security_only else "Security updates:" %}
+  {{ security_label }} {{ hosts|map(attribute='security_updates')|map('length')|sum }}
 {% for host in hosts %}
 
 {{ host.name }} ({{ host.ip }})
@@ -33,13 +38,18 @@ Summary:
   System: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif +%}
   Package Manager: {{ host.package_manager or 'None' }}
   Last Refresh: {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} (Stale, needs refresh){% endif %}
-    {% if host.updates +%}
+    {% set updates_list = host.security_updates if security_only else host.updates %}
+    {% if updates_list +%}
+        {% set main_title = "Security Updates" if security_only else "Updates" %}
 
-  Updates ({{ host.updates|length }}):
-        {% set security_updates = host.updates|selectattr('security', 'equalto', true)|list %}
-        {% set regular_updates = host.updates|selectattr('security', 'equalto', false)|list %}
-        {% if security_updates %}
+  {{ main_title }} ({{ updates_list|length }}):
+
+        {% set security_updates = updates_list|selectattr('security', 'equalto', true)|list %}
+        {% set regular_updates = updates_list|selectattr('security', 'equalto', false)|list %}
+        {% if security_updates and not security_only %}
     Security Updates ({{ security_updates|length }}):
+{{ render_update_list(security_updates) }}
+        {% elif security_updates and security_only %}
 {{ render_update_list(security_updates) }}
         {% endif %}
         {% if regular_updates %}
