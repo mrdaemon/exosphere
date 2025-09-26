@@ -79,9 +79,13 @@ class ReportRenderer:
         :return: Rendered Markdown template string
         """
 
-        logger.debug("Rendering hosts data as Markdown with kwargs: %s", kwargs)
+        logger.debug(
+            "Rendering hosts data as Markdown with security_only=%s, kwargs: %s",
+            security_only,
+            kwargs,
+        )
         template = self.text_env.get_template("report.md.j2")
-        return template.render(hosts=hosts, **kwargs)
+        return template.render(hosts=hosts, security_only=security_only, **kwargs)
 
     def render_text(
         self, hosts: list[Host], security_only: bool = False, **kwargs: Any
@@ -95,9 +99,13 @@ class ReportRenderer:
         :return: Rendered plain text template string
         """
 
-        logger.debug("Rendering hosts data as plain text with kwargs: %s", kwargs)
+        logger.debug(
+            "Rendering hosts data as plain text with security_only=%s, kwargs: %s",
+            security_only,
+            kwargs,
+        )
         template = self.text_env.get_template("report.txt.j2")
-        return template.render(hosts=hosts, **kwargs)
+        return template.render(hosts=hosts, security_only=security_only, **kwargs)
 
     def render_html(
         self,
@@ -117,12 +125,15 @@ class ReportRenderer:
         """
 
         logger.debug(
-            "Rendering hosts data as HTML with navigation=%s, kwargs: %s",
+            "Rendering hosts data as HTML with navigation=%s, security_only=%s, kwargs: %s",
             navigation,
+            security_only,
             kwargs,
         )
         template = self.env.get_template("report.html.j2")
-        return template.render(hosts=hosts, navigation=navigation, **kwargs)
+        return template.render(
+            hosts=hosts, navigation=navigation, security_only=security_only, **kwargs
+        )
 
     def render_json(
         self, hosts: list[Host], security_only: bool = False, **kwargs: Any
