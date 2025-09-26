@@ -141,6 +141,7 @@ class TestReportRenderer:
         assert "Test server for unit tests" in result
         assert "linux ubuntu 22.04" in result
         assert "apt" in result
+        assert "Updates (2):" in result
         assert "Security Updates (1):" in result
         assert "curl:" in result
         assert "vim:" in result
@@ -306,3 +307,63 @@ class TestReportRenderer:
         version = renderer.text_env.globals["exosphere_version"]
         assert isinstance(version, str)
         assert len(version) > 0
+
+    def test_render_json_security_only(self, renderer, sample_host, empty_host):
+        """Test JSON rendering with security_only flag."""
+        hosts = [sample_host, empty_host]
+
+        # Test security_only=True
+        result = renderer.render_json(hosts, security_only=True)
+        parsed = json.loads(result)
+
+        # Should be valid JSON with same structure
+        assert isinstance(parsed, list)
+        assert len(parsed) == 2
+
+        # First host should have only security updates in updates field
+        host_data = parsed[0]
+        assert host_data["name"] == "test-host"
+        assert "updates" in host_data
+        assert len(host_data["updates"]) == 1  # Only security updates
+        assert host_data["updates"][0]["name"] == "curl"
+        assert host_data["updates"][0]["security"] is True
+
+        # Second host should still have empty updates
+        # It generally gets filtered out by the CLI but this is still
+        # the expected behavior otherwise.
+        assert len(parsed[1]["updates"]) == 0
+
+    @pytest.mark.parametrize("format_name", ["text", "markdown", "html"])
+    def test_render_security_only_templates(self, renderer, sample_host, format_name):
+        """Test security_only flag across template-based formats."""
+        hosts = [sample_host]
+
+        # Get the appropriate render method
+        render_method = getattr(renderer, f"render_{format_name}")
+        result = render_method(hosts, security_only=True)
+
+        # All formats should show security-only summary statistics
+        if format_name == "text":
+            assert "Hosts with security updates: 1" in result
+            assert "Total security updates: 1" in result
+            assert "Security Updates (1):" in result
+
+            assert "Total hosts:" not in result
+            assert "Total updates:" not in result
+        elif format_name == "markdown":
+            assert "**Hosts with security updates:** 1" in result
+            assert "**Total security updates:** 1" in result
+
+            assert "**Total hosts:**" not in result
+            assert "**Total updates:**" not in result
+        elif format_name == "html":
+            assert "<strong>Hosts with security updates:</strong> 1" in result
+            assert "<strong>Total security updates:</strong> 1" in result
+
+            assert "<strong>Total hosts:</strong>" not in result
+            assert "<strong>Total updates:</strong>" not in result
+            assert "<h3>Available Updates (1)</h3>" in result
+
+        # Only security updates
+        assert "curl" in result
+        assert "vim" not in result
