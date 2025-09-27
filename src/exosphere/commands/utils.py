@@ -79,22 +79,30 @@ def get_host_or_error(name: str) -> Host | None:
     return host
 
 
-def get_hosts_or_error(names: list[str] | None = None) -> list[Host] | None:
+def get_hosts_or_error(
+    names: list[str] | None = None, supported_only: bool = False
+) -> list[Host] | None:
     """
     Get hosts from the inventory, filtering by names if provided.
     Will print an error message and return None if hosts are not found.
 
+    This convenience wrapper around inventory.hosts will generally handle
+    emitting any sort of warning or error messages, so commands making use
+    of it do not need to duplicate that logic.
+
     Args:
         names: Optional list of host names to filter by. If None, returns all hosts.
+        supported_only: If True, only return hosts that are marked as supported.
 
     Returns:
         list[Host] | None: List of matching hosts, or None if no hosts found/matched
     """
     inventory = get_inventory()
 
+    # Start with all hosts or filter by names
     if names:
-        hosts_match = [h for h in inventory.hosts if h.name in names]
-        unmatched = set(names) - {h.name for h in hosts_match}
+        selected_hosts = [h for h in inventory.hosts if h.name in names]
+        unmatched = set(names) - {h.name for h in selected_hosts}
 
         if unmatched:
             err_console.print(
@@ -104,20 +112,53 @@ def get_hosts_or_error(names: list[str] | None = None) -> list[Host] | None:
                 )
             )
             return None
+    else:
+        selected_hosts = list(inventory.hosts)
 
-        return hosts_match
-
-    # No names provided, return all hosts
-    if not inventory.hosts:
+    # Handle empty inventory
+    if not selected_hosts:
         err_console.print(
             Panel.fit(
-                "No hosts found in inventory. Ensure your configuration is correct.",
+                "No hosts found in inventory.",
                 title="Error",
             )
         )
         return None
 
-    return inventory.hosts
+    # Apply supported_only filter if requested
+    if supported_only:
+        supported_hosts = [
+            h for h in selected_hosts if h.supported and h.package_manager
+        ]
+        unsupported_hosts = set(selected_hosts) - set(supported_hosts)
+
+        # Error if no supported hosts remain
+        if not supported_hosts:
+            context_msg = "specified list" if names else "inventory"
+            err_console.print(
+                Panel.fit(
+                    f"No supported hosts found in {context_msg}. Ensure 'discover' has been run.",
+                    title="Error",
+                )
+            )
+            return None
+
+        # Print warning if not returning all hosts
+        # We don't consider "unsupported hosts existing in whole inventory"
+        # to be a warning condition, unless the user asked for specific hosts.
+        if unsupported_hosts and names:
+            unsupported_names = [h.name for h in unsupported_hosts]
+            err_console.print(
+                Panel.fit(
+                    f"Unsupported hosts will be skipped: {', '.join(unsupported_names)}",
+                    title="Warning",
+                    style="yellow",
+                )
+            )
+
+        return supported_hosts
+
+    return selected_hosts
 
 
 def run_task_with_progress(
