@@ -1,15 +1,19 @@
 # System Updates Report
 
-Generated on {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
+{{ report_type.value }}, {{ report_scope.value }}, generated on {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
 
-{% if security_only %}
+{% if report_scope == report_scope.complete %}
+- **Total hosts:** {{ hosts_count }}
+{% elif report_scope == report_scope.filtered %}
+- **Selected hosts:** {{ hosts_count }}
+{% endif %}
+{% if report_type == report_type.security_only %}
 - **Hosts with security updates:** {{ hosts|selectattr('security_updates')|list|length }}
 {% else %}
-- **Selected hosts:** {{ hosts|length }}
 - **Hosts with updates:** {{ hosts|selectattr('updates')|list|length }}
 - **Total updates:** {{ hosts|map(attribute='updates')|map('length')|sum }}
 {% endif %}
-{% set security_label = "Total security updates:" if security_only else "Security updates:" %}
+{% set security_label = "Total security updates:" if report_type == report_type.security_only else "Security updates:" %}
 - **{{ security_label }}** {{ hosts|map(attribute='security_updates')|map('length')|sum }}
 
 {% for host in hosts %}
@@ -23,7 +27,7 @@ Generated on {{ now().strftime('%Y-%m-%d %H:%M:%S %z') }}
 - **OS**: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif +%}
 - **Package Manager**: {{ host.package_manager or 'N/A' }}
 - **Last Refresh**: {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} *(Stale, needs refresh)*{% endif +%}
-    {% set updates_list = host.security_updates if security_only else host.updates %}
+    {% set updates_list = host.security_updates if report_type == report_type.security_only else host.updates %}
     {% if updates_list %}
 
 **Available Updates ({{ updates_list|length }}):**

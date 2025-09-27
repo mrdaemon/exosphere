@@ -1,8 +1,8 @@
 # System Updates Report
 
-Generated on 2025-09-26 10:14:36 -0400
+Full Report, complete, generated on 2025-09-27 12:46:53 -0400
 
-- **Selected hosts:** 18
+- **Total hosts:** 18
 - **Hosts with updates:** 15
 - **Total updates:** 232
 - **Security updates:** 4

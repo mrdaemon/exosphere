@@ -3,11 +3,11 @@
 SYSTEM UPDATES REPORT
 =====================
 
-Generated: 2025-09-26 10:14:54 -0400
+Updates Only Report, complete, generated: 2025-09-27 12:47:35 -0400
 
 Summary:
 
-  Selected hosts: 15
+  Total hosts: 18
   Hosts with updates: 15
   Total updates: 232
   Security updates: 4
