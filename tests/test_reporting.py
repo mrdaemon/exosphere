@@ -10,7 +10,7 @@ import pytest
 
 from exosphere.data import Update
 from exosphere.objects import Host
-from exosphere.reporting import ReportRenderer
+from exosphere.reporting import ReportRenderer, ReportScope, ReportType
 
 
 class TestReportRenderer:
@@ -111,7 +111,7 @@ class TestReportRenderer:
     def test_render_json(self, renderer, sample_host, empty_host):
         """Test JSON rendering."""
         hosts = [sample_host, empty_host]
-        result = renderer.render_json(hosts)
+        result = renderer.render_json(hosts, ReportType.full)
 
         # Should be valid JSON
         parsed = json.loads(result)
@@ -133,7 +133,12 @@ class TestReportRenderer:
     def test_render_text(self, renderer, sample_host):
         """Test text rendering."""
         hosts = [sample_host]
-        result = renderer.render_text(hosts)
+        result = renderer.render_text(
+            hosts,
+            hosts_count=1,
+            report_type=ReportType.full,
+            report_scope=ReportScope.filtered,
+        )
 
         # Should contain expected content
         assert "SYSTEM UPDATES REPORT" in result
@@ -149,7 +154,12 @@ class TestReportRenderer:
     def test_render_markdown(self, renderer, sample_host):
         """Test Markdown rendering."""
         hosts = [sample_host]
-        result = renderer.render_markdown(hosts)
+        result = renderer.render_markdown(
+            hosts,
+            hosts_count=1,
+            report_type=ReportType.full,
+            report_scope=ReportScope.filtered,
+        )
 
         assert "# System Updates Report" in result
         assert "## test-host (192.168.1.100)" in result
@@ -163,7 +173,12 @@ class TestReportRenderer:
     def test_render_html(self, renderer, sample_host):
         """Test HTML rendering."""
         hosts = [sample_host]
-        result = renderer.render_html(hosts)
+        result = renderer.render_html(
+            hosts,
+            hosts_count=1,
+            report_type=ReportType.full,
+            report_scope=ReportScope.filtered,
+        )
 
         # Should be valid HTML5 document
         assert "<!DOCTYPE html>" in result
@@ -215,46 +230,68 @@ class TestReportRenderer:
             in result
         )
 
-    def test_render_empty_hosts(self, renderer):
-        """Test rendering with empty host list."""
-        hosts = []
+    @pytest.mark.parametrize(
+        "hosts_fixture,hosts_count,expected_checks",
+        [
+            (
+                "empty_list",
+                0,
+                {
+                    "json": lambda result: json.loads(result) == [],
+                    "text": lambda result: "Selected hosts: 0" in result,
+                    "markdown": lambda result: "**Selected hosts:** 0" in result,
+                    "html": lambda result: "<html" in result,
+                },
+            ),
+            (
+                "empty_host",
+                1,
+                {
+                    "json": lambda result: json.loads(result)[0]["updates"] == [],
+                    "text": lambda result: "No updates available." in result,
+                    "markdown": lambda result: "**No updates available.**" in result,
+                    "html": lambda result: "<em>No updates available.</em>" in result
+                    and "<strong>Total updates:</strong> 0" in result,
+                },
+            ),
+        ],
+        ids=["empty_hosts_list", "host_without_updates"],
+    )
+    def test_render_edge_cases(
+        self, renderer, empty_host, hosts_fixture, hosts_count, expected_checks
+    ):
+        """
+        Test rendering edge cases: empty list and host without updates.
 
-        # All formats should handle empty host list gracefully
-        json_result = renderer.render_json(hosts)
-        assert json.loads(json_result) == []
+        Those should be handled by calling code, but the renderer itself should
+        still handle them reasonably gracefully.
+        """
+        hosts = [] if hosts_fixture == "empty_list" else [empty_host]
 
-        text_result = renderer.render_text(hosts)
-        assert "Selected hosts: 0" in text_result
+        # Test JSON, because as always, it's a special boy
+        json_result = renderer.render_json(hosts, ReportType.full)
+        assert expected_checks["json"](json_result)
 
-        markdown_result = renderer.render_markdown(hosts)
-        assert "**Selected hosts:** 0" in markdown_result
-
-        html_result = renderer.render_html(hosts)
-        assert "<html" in html_result  # Should still be valid HTML
-
-    def test_render_host_without_updates(self, renderer, empty_host):
-        """Test rendering host without updates."""
-        hosts = [empty_host]
-
-        json_result = renderer.render_json(hosts)
-        parsed = json.loads(json_result)
-        host_data = parsed[0]
-        assert host_data["updates"] == []  #
-
-        text_result = renderer.render_text(hosts)
-        assert "No updates available." in text_result
-
-        markdown_result = renderer.render_markdown(hosts)
-        assert "**No updates available.**" in markdown_result
-
-        html_result = renderer.render_html(hosts)
-        assert "<em>No updates available.</em>" in html_result
-        assert "<strong>Total updates:</strong> 0" in html_result
+        # Test template-based formats
+        for format_name in ["text", "markdown", "html"]:
+            render_method = getattr(renderer, f"render_{format_name}")
+            result = render_method(
+                hosts,
+                hosts_count=hosts_count,
+                report_type=ReportType.full,
+                report_scope=ReportScope.filtered,
+            )
+            assert expected_checks[format_name](result)
 
     def test_render_html_with_navigation(self, renderer, sample_host, empty_host):
         """Test HTML rendering with navigation enabled (default)"""
         hosts = [sample_host, empty_host]
-        result = renderer.render_html(hosts)
+        result = renderer.render_html(
+            hosts,
+            hosts_count=2,
+            report_type=ReportType.full,
+            report_scope=ReportScope.filtered,
+        )
 
         # Should contain table of contents
         assert '<div class="toc">' in result
@@ -275,7 +312,13 @@ class TestReportRenderer:
     def test_render_html_without_navigation(self, renderer, sample_host):
         """Test HTML rendering with navigation disabled"""
         hosts = [sample_host]
-        result = renderer.render_html(hosts, navigation=False)
+        result = renderer.render_html(
+            hosts,
+            hosts_count=1,
+            report_type=ReportType.full,
+            report_scope=ReportScope.filtered,
+            navigation=False,
+        )
 
         # Should NOT contain table of contents HTML elements
         assert '<div class="toc">' not in result
@@ -313,7 +356,7 @@ class TestReportRenderer:
         hosts = [sample_host, empty_host]
 
         # Test security_only=True
-        result = renderer.render_json(hosts, security_only=True)
+        result = renderer.render_json(hosts, ReportType.security_only)
         parsed = json.loads(result)
 
         # Should be valid JSON with same structure
@@ -340,7 +383,12 @@ class TestReportRenderer:
 
         # Get the appropriate render method
         render_method = getattr(renderer, f"render_{format_name}")
-        result = render_method(hosts, security_only=True)
+        result = render_method(
+            hosts,
+            hosts_count=1,
+            report_type=ReportType.security_only,
+            report_scope=ReportScope.filtered,
+        )
 
         # All formats should show security-only summary statistics
         if format_name == "text":
