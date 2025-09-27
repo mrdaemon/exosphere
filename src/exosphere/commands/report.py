@@ -2,7 +2,6 @@
 Reporting command module
 """
 
-from enum import Enum
 from pathlib import Path
 
 import typer
@@ -14,17 +13,7 @@ from exosphere.commands.utils import (
     err_console,
     get_hosts_or_error,
 )
-from exosphere.reporting import ReportRenderer
-
-
-class OutputFormat(str, Enum):
-    """Available output formats for reports"""
-
-    text = "text"
-    html = "html"
-    markdown = "markdown"
-    json = "json"
-
+from exosphere.reporting import OutputFormat, ReportRenderer, ReportScope, ReportType
 
 ROOT_HELP = """
 Reporting Commands
@@ -119,22 +108,22 @@ def generate(
     Note: Undiscovered or unsupported hosts are excluded from the report.
     """
 
-    selected_hosts = get_hosts_or_error(hosts)
+    # Default state is a full report of all hosts
+    report_type = ReportType.full
+    report_scope = ReportScope.complete
+
+    selected_hosts = get_hosts_or_error(hosts, supported_only=True)
     if selected_hosts is None:
         raise typer.Exit(code=1)
 
-    # Filter out hosts that are unsupported or without a package manager
-    # This excludes both undiscovered and unsupported hosts
-    selected_hosts = [
-        host for host in selected_hosts if host.supported and host.package_manager
-    ]
+    # Record count of hosts involved in the report before
+    # any kind of filtering. This is used by the report to
+    # display Total/Selected hosts even when filtering by
+    # updates or security updates.
+    total_hosts = len(selected_hosts)
 
-    if not selected_hosts:
-        err_console.print("[yellow]Host(s) found but none can be used![/yellow]")
-        err_console.print(
-            "Selected hosts must be supported and 'discover' must have been run."
-        )
-        raise typer.Exit(code=1)
+    if hosts:
+        report_scope = ReportScope.filtered
 
     if updates_only:
         selected_hosts = [host for host in selected_hosts if host.updates]
@@ -144,6 +133,8 @@ def generate(
             )
             raise typer.Exit(code=0)
 
+        report_type = ReportType.updates_only
+
     if security_only:
         selected_hosts = [host for host in selected_hosts if host.security_updates]
         if not selected_hosts and not quiet:
@@ -151,6 +142,8 @@ def generate(
                 "No hosts with security updates found, nothing to report."
             )
             raise typer.Exit(code=0)
+
+        report_type = ReportType.security_only
 
     # Initialize the report renderer
     renderer = ReportRenderer()
@@ -168,10 +161,15 @@ def generate(
     if render_method is None:
         # This should never happen due to early validation
         err_console.print(f"[red]Internal Error: Unsupported format: {format}[/red]")
+        err_console.print("This is a bug and should be reported.")
         raise typer.Exit(code=1)
 
     content = render_method(
-        selected_hosts, navigation=navigation, security_only=security_only
+        selected_hosts,
+        hosts_count=total_hosts,
+        report_type=report_type,
+        report_scope=report_scope,
+        navigation=navigation,
     )
 
     # Write file if necessary
@@ -184,7 +182,8 @@ def generate(
 
         if not tee and not quiet:
             err_console.print(
-                f"Report saved to [green]{output}[/green] in [green]{format.value}[/green] format."
+                f"Report of type [green]{report_type.value}, {report_scope.value}[/green] "
+                f"saved to [green]{output}[/green] in [green]{format.value}[/green] format."
             )
 
     # Print to console if no output OR if tee is specified
