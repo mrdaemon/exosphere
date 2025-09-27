@@ -8,6 +8,7 @@ using Jinja2 templates.
 import json
 import logging
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any
 
 import jinja2
@@ -16,6 +17,30 @@ from exosphere import __version__
 from exosphere.objects import Host
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+
+class ReportType(str, Enum):
+    """Available report types"""
+
+    full = "Full Report"
+    updates_only = "Updates Only Report"
+    security_only = "Security Only Report"
+
+
+class ReportScope(str, Enum):
+    """Scope of the report"""
+
+    complete = "complete"  # All hosts in inventory
+    filtered = "filtered"  # Subset of hosts
+
+
+class OutputFormat(str, Enum):
+    """Available output formats for reports"""
+
+    text = "text"
+    html = "html"
+    markdown = "markdown"
+    json = "json"
 
 
 class ReportRenderer:
@@ -68,75 +93,116 @@ class ReportRenderer:
         return env
 
     def render_markdown(
-        self, hosts: list[Host], security_only: bool = False, **kwargs: Any
+        self,
+        hosts: list[Host],
+        hosts_count: int,
+        report_type: ReportType,
+        report_scope: ReportScope,
+        **kwargs: Any,
     ) -> str:
         """
         Render hosts data report as Markdown.
 
         :param hosts: List of Host objects to include in the report
-        :param security_only: Apply formatting for a security-only update report
+        :param hosts_count: Total number of hosts selected for the report
+        :param report_scope: Scope of the report (complete or filtered)
+        :param report_type: Type of report (full, updates only, security only)
         :param kwargs: Additional context variables for the template
         :return: Rendered Markdown template string
         """
 
         logger.debug(
-            "Rendering hosts data as Markdown with security_only=%s, kwargs: %s",
-            security_only,
+            "Rendering hosts data as Markdown with report_scope=%s, report_type=%s, kwargs: %s",
+            report_scope,
+            report_type,
             kwargs,
         )
         template = self.text_env.get_template("report.md.j2")
-        return template.render(hosts=hosts, security_only=security_only, **kwargs)
+        return template.render(
+            hosts=hosts,
+            hosts_count=hosts_count,
+            report_type=report_type,
+            report_scope=report_scope,
+            **kwargs,
+        )
 
     def render_text(
-        self, hosts: list[Host], security_only: bool = False, **kwargs: Any
+        self,
+        hosts: list[Host],
+        hosts_count: int,
+        report_type: ReportType,
+        report_scope: ReportScope,
+        **kwargs: Any,
     ) -> str:
         """
         Render hosts data report as plain text.
 
         :param hosts: List of Host objects to include in the report
-        :param security_only: Apply formatting for a security-only update report
+        :param hosts_count: Total number of hosts selected for the report
+        :param report_scope: Scope of the report (complete or filtered)
+        :param report_type: Type of report (full, updates only, security only)
         :param kwargs: Additional context variables for the template
         :return: Rendered plain text template string
         """
 
         logger.debug(
-            "Rendering hosts data as plain text with security_only=%s, kwargs: %s",
-            security_only,
+            "Rendering hosts data as plain text with report_scope=%s, report_type=%s, kwargs: %s",
+            report_scope,
+            report_type,
             kwargs,
         )
         template = self.text_env.get_template("report.txt.j2")
-        return template.render(hosts=hosts, security_only=security_only, **kwargs)
+        return template.render(
+            hosts=hosts,
+            hosts_count=hosts_count,
+            report_type=report_type,
+            report_scope=report_scope,
+            **kwargs,
+        )
 
     def render_html(
         self,
         hosts: list[Host],
+        hosts_count: int,
+        report_type: ReportType,
+        report_scope: ReportScope,
         navigation: bool = True,
-        security_only: bool = False,
         **kwargs: Any,
     ) -> str:
         """
         Render hosts data report as HTML.
 
         :param hosts: List of Host objects to include in the report
+        :param hosts_count: Total number of hosts selected for the report
         :param navigation: Whether to include the quick navigation section
-        :param security_only: Apply formatting for a security-only update report
+        :param report_type: Type of report (full, updates only, security only)
+        :param report_scope: Scope of the report (complete or filtered)
         :param kwargs: Additional context variables for the template
         :return: Rendered HTML template string
         """
 
         logger.debug(
-            "Rendering hosts data as HTML with navigation=%s, security_only=%s, kwargs: %s",
+            "Rendering hosts data as HTML with navigation=%s, report_type=%s, report_scope=%s, kwargs: %s",
             navigation,
-            security_only,
+            report_type,
+            report_scope,
             kwargs,
         )
         template = self.env.get_template("report.html.j2")
         return template.render(
-            hosts=hosts, navigation=navigation, security_only=security_only, **kwargs
+            hosts=hosts,
+            hosts_count=hosts_count,
+            report_type=report_type,
+            navigation=navigation,
+            report_scope=report_scope,
+            **kwargs,
         )
 
     def render_json(
-        self, hosts: list[Host], security_only: bool = False, **kwargs: Any
+        self,
+        hosts: list[Host],
+        report_type: ReportType,
+        **kwargs: Any,
     ) -> str:
         """
         Render hosts data report as JSON.
@@ -147,20 +213,20 @@ class ReportRenderer:
         kwargs are accepted for interface consistency but ignored.
 
         :param hosts: List of Host objects to include in the report
-        :param security_only: If True, replace 'updates' with 'security_updates' in output
+        :param report_type: Type of report (full, updates only, security only)
         :param kwargs: Additional context variables (not used in JSON rendering)
         :return: JSON string representation of the hosts data
         """
 
         logger.debug(
-            "Rendering hosts data as JSON with security_only=%s, kwargs: %s",
-            security_only,
+            "Rendering hosts data as JSON with report_type=%s, kwargs: %s",
+            report_type,
             kwargs,
         )
         report_data = []
         for host in hosts:
             host_dict = host.to_dict()
-            if security_only:
+            if report_type == ReportType.security_only:
                 # Replace 'updates' with security updates only
                 host_dict["updates"] = [
                     update.__dict__ for update in host.security_updates
