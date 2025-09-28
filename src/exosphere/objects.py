@@ -219,16 +219,16 @@ class Host:
         :return: Dictionary representation of the Host object
         """
         return {
-            "name": str(self.name),
-            "description": str(self.description),
-            "ip": str(self.ip),
-            "port": int(self.port),
-            "os": str(self.os),
-            "flavor": str(self.flavor),
-            "version": str(self.version),
+            "name": self.name,
+            "description": self.description,
+            "ip": self.ip,
+            "port": self.port,
+            "os": self.os,
+            "flavor": self.flavor,
+            "version": self.version,
             "supported": self.supported,
             "online": self.online,
-            "package_manager": str(self.package_manager),
+            "package_manager": self.package_manager,
             "updates": [update.__dict__ for update in self.updates],
             "last_refresh": self.last_refresh.isoformat(
                 timespec="milliseconds"
