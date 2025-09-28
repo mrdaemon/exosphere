@@ -1,71 +1,47 @@
 # System Updates Report
 
-Full Report, filtered, generated on 2025-09-27 12:47:01 -0400
+Full Report, filtered, generated on 2025-09-29 22:59:04 -0400
 
-- **Selected hosts:** 3
-- **Hosts with updates:** 3
-- **Total updates:** 18
+- **Selected hosts:** 5
+- **Hosts with updates:** 2
+- **Total updates:** 8
 - **Security updates:** 4
 
-## taisha (taisha.lab.underwares.org)
+## web-prod-01 (10.0.1.10)
 
 **System Information:**
 
-- **Description**: Witness and Monitoring
+- **Description**: Web Server
+- **OS**: linux ubuntu 22.04
+- **Package Manager**: apt
+- **Last Refresh**: 2025-09-29 20:59:03 -0400
+
+**Available Updates (4):**
+
+| Package | Current Version | New Version | Sec | Source |
+|---------|-----------------|-------------|-----|--------|
+| **apache2** | 2.4.52-1ubuntu4.6 | 2.4.52-1ubuntu4.7 | **Yes** | security |
+| **php8.1** | 8.1.2-1ubuntu2.13 | 8.1.2-1ubuntu2.14 | **Yes** | security |
+| **curl** | 7.81.0-1ubuntu1.10 | 7.81.0-1ubuntu1.13 | No | updates |
+| **vim** | 2:8.2.3458-2ubuntu2.2 | 2:8.2.3458-2ubuntu2.4 | No | updates |
+
+## db-01 (10.0.2.20)
+
+**System Information:**
+
+- **Description**: PostgreSQL database server
 - **OS**: linux debian 12
 - **Package Manager**: apt
-- **Last Refresh**: 2025-09-25 22:05:54 -0400
+- **Last Refresh**: 2025-09-29 21:59:03 -0400
 
-**Available Updates (14):**
-
-| Package | Current Version | New Version | Sec | Source |
-|---------|-----------------|-------------|-----|--------|
-| **netdata-plugin-systemd-journal** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-slabinfo** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-pythond** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-perf** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-nfacct** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-network-viewer** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-go** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-debugfs** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-chartsd** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-plugin-apps** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **netdata-dashboard** | 2.6.3 | 2.7.0 | No | Netdata:repo.netdata.cloud |
-| **raspi-firmware** | 1:1.20250430-4~bookworm | 1:1.20250915-1~bookworm | No | Raspberry Pi Foundation:stable |
-| **linux-libc-dev** | 1:6.12.34-1+rpt1~bookworm | 1:6.12.47-1+rpt1~bookworm | No | Raspberry Pi Foundation:stable |
-
-## yako (yako.lab.underwares.org)
-
-**System Information:**
-
-- **Description**: Hypervisor Host
-- **OS**: linux debian 13
-- **Package Manager**: apt
-- **Last Refresh**: 2025-09-25 22:05:45 -0400
-
-**Available Updates (2):**
+**Available Updates (4):**
 
 | Package | Current Version | New Version | Sec | Source |
 |---------|-----------------|-------------|-----|--------|
-| **libxslt1.1** | 1.1.35-1.2+deb13u1 | 1.1.35-1.2+deb13u2 | **Yes** | Debian-Security:13/stable-security |
-| **xsltproc** | 1.1.35-1.2+deb13u1 | 1.1.35-1.2+deb13u2 | **Yes** | Debian-Security:13/stable-security |
-
-## zenko (zenko.lab.underwares.org)
-
-**System Information:**
-
-- **Description**: Hypervisor Host
-- **OS**: linux debian 13
-- **Package Manager**: apt
-- **Last Refresh**: 2025-09-25 22:05:46 -0400
-
-**Available Updates (2):**
-
-| Package | Current Version | New Version | Sec | Source |
-|---------|-----------------|-------------|-----|--------|
-| **libxslt1.1** | 1.1.35-1.2+deb13u1 | 1.1.35-1.2+deb13u2 | **Yes** | Debian-Security:13/stable-security |
-| **xsltproc** | 1.1.35-1.2+deb13u1 | 1.1.35-1.2+deb13u2 | **Yes** | Debian-Security:13/stable-security |
+| **postgresql-14** | 14.9-0+deb12u1 | 14.10-0+deb12u1 | **Yes** | security |
+| **openssl** | 3.0.9-1+deb12u3 | 3.0.11-1+deb12u2 | **Yes** | security |
+| **rsync** | 3.2.7-1 | 3.2.7-1+deb12u1 | No | main |
+| **libextra3** | (NEW) | 3.2.2-2 | No | main |
 
 ---
 

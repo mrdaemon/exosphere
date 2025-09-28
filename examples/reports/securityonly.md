@@ -1,42 +1,75 @@
 # System Updates Report
 
-Security Only Report, complete, generated on 2025-09-27 12:47:12 -0400
+Security Only Report, complete, generated on 2025-09-29 22:59:04 -0400
 
-- **Total hosts:** 18
+- **Total hosts:** 5
 - **Hosts with security updates:** 2
 - **Total security updates:** 4
 
-## yako (yako.lab.underwares.org)
+## web-prod-01 (10.0.1.10)
 
 **System Information:**
 
-- **Description**: Hypervisor Host
-- **OS**: linux debian 13
+- **Description**: Web Server
+- **OS**: linux ubuntu 22.04
 - **Package Manager**: apt
-- **Last Refresh**: 2025-09-25 22:05:45 -0400
+- **Last Refresh**: 2025-09-29 20:59:03 -0400
 
 **Available Updates (2):**
 
 | Package | Current Version | New Version | Sec | Source |
 |---------|-----------------|-------------|-----|--------|
-| **libxslt1.1** | 1.1.35-1.2+deb13u1 | 1.1.35-1.2+deb13u2 | **Yes** | Debian-Security:13/stable-security |
-| **xsltproc** | 1.1.35-1.2+deb13u1 | 1.1.35-1.2+deb13u2 | **Yes** | Debian-Security:13/stable-security |
+| **apache2** | 2.4.52-1ubuntu4.6 | 2.4.52-1ubuntu4.7 | **Yes** | security |
+| **php8.1** | 8.1.2-1ubuntu2.13 | 8.1.2-1ubuntu2.14 | **Yes** | security |
 
-## zenko (zenko.lab.underwares.org)
+## db-01 (10.0.2.20)
 
 **System Information:**
 
-- **Description**: Hypervisor Host
-- **OS**: linux debian 13
+- **Description**: PostgreSQL database server
+- **OS**: linux debian 12
 - **Package Manager**: apt
-- **Last Refresh**: 2025-09-25 22:05:46 -0400
+- **Last Refresh**: 2025-09-29 21:59:03 -0400
 
 **Available Updates (2):**
 
 | Package | Current Version | New Version | Sec | Source |
 |---------|-----------------|-------------|-----|--------|
-| **libxslt1.1** | 1.1.35-1.2+deb13u1 | 1.1.35-1.2+deb13u2 | **Yes** | Debian-Security:13/stable-security |
-| **xsltproc** | 1.1.35-1.2+deb13u1 | 1.1.35-1.2+deb13u2 | **Yes** | Debian-Security:13/stable-security |
+| **postgresql-14** | 14.9-0+deb12u1 | 14.10-0+deb12u1 | **Yes** | security |
+| **openssl** | 3.0.9-1+deb12u3 | 3.0.11-1+deb12u2 | **Yes** | security |
+
+## admin-01 (10.0.2.30)
+
+**System Information:**
+
+- **Description**: Admin Server
+- **OS**: freebsd 14.3-RELEASE-p3
+- **Package Manager**: pkg
+- **Last Refresh**: 2025-09-29 19:59:03 -0400
+
+**No updates available.**
+
+## lb-01 (10.0.1.5)
+
+**System Information:**
+
+- **Description**: HAProxy load balancer
+- **OS**: linux rhel 9
+- **Package Manager**: dnf
+- **Last Refresh**: 2025-09-29 22:29:03 -0400
+
+**No updates available.**
+
+## dev-staging (10.0.3.100)
+
+**System Information:**
+
+- **Description**: Development and staging environment
+- **OS**: linux ubuntu 20.04
+- **Package Manager**: apt
+- **Last Refresh**: 2025-09-26 22:59:03 -0400 *(Stale, needs refresh)*
+
+**No updates available.**
 
 ---
 

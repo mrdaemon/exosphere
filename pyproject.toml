@@ -38,6 +38,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "fabric[pytest]>=3.2.2",
+    "jsonschema>=4.25.1",
     "poethepoet>=0.33.1",
     "pyright>=1.1.400",
     "pytest>=8.3.5",
@@ -78,12 +79,12 @@ module-name = "exosphere"
 testpaths = ["tests"]
 
 [tool.poe.tasks]
-lint = "ruff check src tests"
-isort = "ruff check --select I --fix src tests"
-isort-check = "ruff check --select I src tests --diff"
-typecheck = "pyright src tests"
-ruff-format = "ruff format src tests"
-ruff-format-check = "ruff format --check src tests --diff"
+lint = "ruff check src tests scripts"
+isort = "ruff check --select I --fix src tests scripts"
+isort-check = "ruff check --select I src tests scripts --diff"
+typecheck = "pyright src tests scripts"
+ruff-format = "ruff format src tests scripts"
+ruff-format-check = "ruff format --check src tests scripts --diff"
 format = ['ruff-format', 'isort']
 format-check = ['ruff-format-check', 'isort-check']
 check = ['format-check', 'lint', 'typecheck']
@@ -92,3 +93,4 @@ coverage = "pytest --cov-report term-missing --cov-report html --cov=src tests/"
 docs = "sphinx-build -b html docs/source docs/build/html" 
 docs-spellcheck = "sphinx-build -b spelling docs/source docs/build"
 docs-serve = "sphinx-autobuild -b html docs/source docs/build/html --port 8000 --open-browser"
+docs-mkreports = "python scripts/generate_example_reports.py"

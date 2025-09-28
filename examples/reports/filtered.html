@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="Exosphere 1.5.0.dev0">
-    <title>System Updates Report - ReportType.full - 2025-09-27 12:46:32 -0400</title>
+    <title>System Updates Report - ReportType.full - 2025-09-29 22:59:04 -0400</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -127,13 +127,13 @@
     <div class="container">
         <h1>System Updates Report</h1>
 
-        <div class="meta">Full Report, filtered, generated on 2025-09-27 12:46:32 -0400</div>
+        <div class="meta">Full Report, filtered, generated on 2025-09-29 22:59:04 -0400</div>
 
         <div class="summary">
             <h3>Summary</h3>
             <ul>
-                <li><strong>Selected hosts:</strong> 3</li><li><strong>Hosts with updates:</strong> 3</li>
-                <li><strong>Total updates:</strong> 18</li>
+                <li><strong>Selected hosts:</strong> 5</li><li><strong>Hosts with updates:</strong> 2</li>
+                <li><strong>Total updates:</strong> 8</li>
                 <li><strong>Security updates:</strong> 4</li>
             </ul>
         </div>
@@ -142,31 +142,27 @@
             <h3>Quick Navigation</h3>
             <div class="toc-links">
                 <a href="#host-0" class="toc-link">
-                    <strong>taisha</strong>
-                    <span class="update-count">(14)</span>
+                    <strong>web-prod-01</strong>
+                    <span class="update-count">(4)</span>
                 </a>
                 <a href="#host-1" class="toc-link">
-                    <strong>yako</strong>
-                    <span class="update-count">(2)</span>
-                </a>
-                <a href="#host-2" class="toc-link">
-                    <strong>zenko</strong>
-                    <span class="update-count">(2)</span>
+                    <strong>db-01</strong>
+                    <span class="update-count">(4)</span>
                 </a>
             </div>
         </div>
 
         
         <div class="host-section" id="host-0">
-            <h2>taisha (taisha.lab.underwares.org)</h2>
-            <div class="host-description">Witness and Monitoring</div>
+            <h2>web-prod-01 (10.0.1.10)</h2>
+            <div class="host-description">Web Server</div>
             
             <p>
-                <strong>OS:</strong> linux debian 12<br>
+                <strong>OS:</strong> linux ubuntu 22.04<br>
                 <strong>Package Manager:</strong> apt<br>
-                <strong>Last Refresh:</strong> 2025-09-25 22:05:54 -0400
+                <strong>Last Refresh:</strong> 2025-09-29 20:59:03 -0400
             </p>
-            <h3>Available Updates (14)</h3>
+            <h3>Available Updates (4)</h3>
             <table>
                 <thead>
                     <tr>
@@ -179,116 +175,46 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><strong>netdata-plugin-systemd-journal</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
+                        <td><strong>apache2</strong></td>
+                        <td>2.4.52-1ubuntu4.6</td>
+                        <td>2.4.52-1ubuntu4.7</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>security</td>
                     </tr>
                     <tr>
-                        <td><strong>netdata-plugin-slabinfo</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
+                        <td><strong>php8.1</strong></td>
+                        <td>8.1.2-1ubuntu2.13</td>
+                        <td>8.1.2-1ubuntu2.14</td>
+                        <td><span class="security">Yes</span></td>
+                        <td>security</td>
                     </tr>
                     <tr>
-                        <td><strong>netdata-plugin-pythond</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
+                        <td><strong>curl</strong></td>
+                        <td>7.81.0-1ubuntu1.10</td>
+                        <td>7.81.0-1ubuntu1.13</td>
                         <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
+                        <td>updates</td>
                     </tr>
                     <tr>
-                        <td><strong>netdata-plugin-perf</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
+                        <td><strong>vim</strong></td>
+                        <td>2:8.2.3458-2ubuntu2.2</td>
+                        <td>2:8.2.3458-2ubuntu2.4</td>
                         <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>netdata-plugin-nfacct</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>netdata-plugin-network-viewer</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>netdata-plugin-go</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>netdata-plugin-debugfs</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>netdata-plugin-chartsd</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>netdata-plugin-apps</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>netdata</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>netdata-dashboard</strong></td>
-                        <td>2.6.3</td>
-                        <td>2.7.0</td>
-                        <td>No</td>
-                        <td>Netdata:repo.netdata.cloud</td>
-                    </tr>
-                    <tr>
-                        <td><strong>raspi-firmware</strong></td>
-                        <td>1:1.20250430-4~bookworm</td>
-                        <td>1:1.20250915-1~bookworm</td>
-                        <td>No</td>
-                        <td>Raspberry Pi Foundation:stable</td>
-                    </tr>
-                    <tr>
-                        <td><strong>linux-libc-dev</strong></td>
-                        <td>1:6.12.34-1+rpt1~bookworm</td>
-                        <td>1:6.12.47-1+rpt1~bookworm</td>
-                        <td>No</td>
-                        <td>Raspberry Pi Foundation:stable</td>
+                        <td>updates</td>
                     </tr>
                 </tbody>
             </table>
         </div>
         <div class="host-section" id="host-1">
-            <h2>yako (yako.lab.underwares.org)</h2>
-            <div class="host-description">Hypervisor Host</div>
+            <h2>db-01 (10.0.2.20)</h2>
+            <div class="host-description">PostgreSQL database server</div>
             
             <p>
-                <strong>OS:</strong> linux debian 13<br>
+                <strong>OS:</strong> linux debian 12<br>
                 <strong>Package Manager:</strong> apt<br>
-                <strong>Last Refresh:</strong> 2025-09-25 22:05:45 -0400
+                <strong>Last Refresh:</strong> 2025-09-29 21:59:03 -0400
             </p>
-            <h3>Available Updates (2)</h3>
+            <h3>Available Updates (4)</h3>
             <table>
                 <thead>
                     <tr>
@@ -301,56 +227,32 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><strong>libxslt1.1</strong></td>
-                        <td>1.1.35-1.2+deb13u1</td>
-                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><strong>postgresql-14</strong></td>
+                        <td>14.9-0+deb12u1</td>
+                        <td>14.10-0+deb12u1</td>
                         <td><span class="security">Yes</span></td>
-                        <td>Debian-Security:13/stable-security</td>
+                        <td>security</td>
                     </tr>
                     <tr>
-                        <td><strong>xsltproc</strong></td>
-                        <td>1.1.35-1.2+deb13u1</td>
-                        <td>1.1.35-1.2+deb13u2</td>
+                        <td><strong>openssl</strong></td>
+                        <td>3.0.9-1+deb12u3</td>
+                        <td>3.0.11-1+deb12u2</td>
                         <td><span class="security">Yes</span></td>
-                        <td>Debian-Security:13/stable-security</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="host-section" id="host-2">
-            <h2>zenko (zenko.lab.underwares.org)</h2>
-            <div class="host-description">Hypervisor Host</div>
-            
-            <p>
-                <strong>OS:</strong> linux debian 13<br>
-                <strong>Package Manager:</strong> apt<br>
-                <strong>Last Refresh:</strong> 2025-09-25 22:05:46 -0400
-            </p>
-            <h3>Available Updates (2)</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Package</th>
-                        <th>Current Version</th>
-                        <th>New Version</th>
-                        <th>Security</th>
-                        <th>Source</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>libxslt1.1</strong></td>
-                        <td>1.1.35-1.2+deb13u1</td>
-                        <td>1.1.35-1.2+deb13u2</td>
-                        <td><span class="security">Yes</span></td>
-                        <td>Debian-Security:13/stable-security</td>
+                        <td>security</td>
                     </tr>
                     <tr>
-                        <td><strong>xsltproc</strong></td>
-                        <td>1.1.35-1.2+deb13u1</td>
-                        <td>1.1.35-1.2+deb13u2</td>
-                        <td><span class="security">Yes</span></td>
-                        <td>Debian-Security:13/stable-security</td>
+                        <td><strong>rsync</strong></td>
+                        <td>3.2.7-1</td>
+                        <td>3.2.7-1+deb12u1</td>
+                        <td>No</td>
+                        <td>main</td>
+                    </tr>
+                    <tr>
+                        <td><strong>libextra3</strong></td>
+                        <td>(NEW)</td>
+                        <td>3.2.2-2</td>
+                        <td>No</td>
+                        <td>main</td>
                     </tr>
                 </tbody>
             </table>

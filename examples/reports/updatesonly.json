@@ -1,0 +1,139 @@
+[
+  {
+    "name": "web-prod-01",
+    "description": "Web Server",
+    "ip": "10.0.1.10",
+    "port": 22,
+    "os": "linux",
+    "flavor": "ubuntu",
+    "version": "22.04",
+    "supported": true,
+    "online": true,
+    "package_manager": "apt",
+    "updates": [
+      {
+        "name": "apache2",
+        "current_version": "2.4.52-1ubuntu4.6",
+        "new_version": "2.4.52-1ubuntu4.7",
+        "security": true,
+        "source": "security"
+      },
+      {
+        "name": "php8.1",
+        "current_version": "8.1.2-1ubuntu2.13",
+        "new_version": "8.1.2-1ubuntu2.14",
+        "security": true,
+        "source": "security"
+      },
+      {
+        "name": "curl",
+        "current_version": "7.81.0-1ubuntu1.10",
+        "new_version": "7.81.0-1ubuntu1.13",
+        "security": false,
+        "source": "updates"
+      },
+      {
+        "name": "vim",
+        "current_version": "2:8.2.3458-2ubuntu2.2",
+        "new_version": "2:8.2.3458-2ubuntu2.4",
+        "security": false,
+        "source": "updates"
+      }
+    ],
+    "last_refresh": "2025-09-30T00:59:03.989Z"
+  },
+  {
+    "name": "db-01",
+    "description": "PostgreSQL database server",
+    "ip": "10.0.2.20",
+    "port": 22,
+    "os": "linux",
+    "flavor": "debian",
+    "version": "12",
+    "supported": true,
+    "online": true,
+    "package_manager": "apt",
+    "updates": [
+      {
+        "name": "postgresql-14",
+        "current_version": "14.9-0+deb12u1",
+        "new_version": "14.10-0+deb12u1",
+        "security": true,
+        "source": "security"
+      },
+      {
+        "name": "openssl",
+        "current_version": "3.0.9-1+deb12u3",
+        "new_version": "3.0.11-1+deb12u2",
+        "security": true,
+        "source": "security"
+      },
+      {
+        "name": "rsync",
+        "current_version": "3.2.7-1",
+        "new_version": "3.2.7-1+deb12u1",
+        "security": false,
+        "source": "main"
+      },
+      {
+        "name": "libextra3",
+        "current_version": null,
+        "new_version": "3.2.2-2",
+        "security": false,
+        "source": "main"
+      }
+    ],
+    "last_refresh": "2025-09-30T01:59:03.990Z"
+  },
+  {
+    "name": "admin-01",
+    "description": "Admin Server",
+    "ip": "10.0.2.30",
+    "port": 22,
+    "os": "freebsd",
+    "flavor": "freebsd",
+    "version": "14.3-RELEASE-p3",
+    "supported": true,
+    "online": true,
+    "package_manager": "pkg",
+    "updates": [
+      {
+        "name": "en-freebsd-doc",
+        "current_version": "20250814,1",
+        "new_version": "20250920,1",
+        "security": false,
+        "source": "FreeBSD"
+      },
+      {
+        "name": "expat",
+        "current_version": "2.7.1",
+        "new_version": "2.7.2",
+        "security": false,
+        "source": "FreeBSD"
+      }
+    ],
+    "last_refresh": "2025-09-29T23:59:03.990Z"
+  },
+  {
+    "name": "dev-staging",
+    "description": "Development and staging environment",
+    "ip": "10.0.3.100",
+    "port": 22,
+    "os": "linux",
+    "flavor": "ubuntu",
+    "version": "20.04",
+    "supported": true,
+    "online": false,
+    "package_manager": "apt",
+    "updates": [
+      {
+        "name": "git",
+        "current_version": "1:2.34.1-1ubuntu1.9",
+        "new_version": "1:2.34.1-1ubuntu1.10",
+        "security": false,
+        "source": "updates"
+      }
+    ],
+    "last_refresh": "2025-09-27T02:59:03.990Z"
+  }
+]

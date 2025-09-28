@@ -32,7 +32,8 @@ extensions = [
     'sphinx_tabs.tabs',
     'sphinxcontrib.spelling',
     'sphinxcontrib.typer',
-    'exosphere_lexer'  # Custom Exosphere CLI lexer
+    'exosphere_lexer',  # Custom Exosphere CLI lexer
+    'exosphere_artifacts',  # Custom extension to copy artifacts to _static
 ]
 
 templates_path = ['_templates']

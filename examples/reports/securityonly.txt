@@ -3,44 +3,77 @@
 SYSTEM UPDATES REPORT
 =====================
 
-Security Only Report, complete, generated: 2025-09-27 12:47:39 -0400
+Security Only Report, complete, generated: 2025-09-29 22:59:04 -0400
 
 Summary:
 
-  Total hosts: 18
+  Total hosts: 5
   Hosts with security updates: 2
   Total security updates: 4
 
-yako (yako.lab.underwares.org)
-------------------------------
-Hypervisor Host
+web-prod-01 (10.0.1.10)
+-----------------------
+Web Server
 
-  System: linux debian 13
+  System: linux ubuntu 22.04
   Package Manager: apt
-  Last Refresh: 2025-09-25 22:05:45 -0400
+  Last Refresh: 2025-09-29 20:59:03 -0400
 
   Security Updates (2):
 
-    - libxslt1.1: 1.1.35-1.2+deb13u1 -> 1.1.35-1.2+deb13u2
-      Source: Debian-Security:13/stable-security
-    - xsltproc: 1.1.35-1.2+deb13u1 -> 1.1.35-1.2+deb13u2
-      Source: Debian-Security:13/stable-security
+    - apache2: 2.4.52-1ubuntu4.6 -> 2.4.52-1ubuntu4.7
+      Source: security
+    - php8.1: 8.1.2-1ubuntu2.13 -> 8.1.2-1ubuntu2.14
+      Source: security
 
 
-zenko (zenko.lab.underwares.org)
---------------------------------
-Hypervisor Host
+db-01 (10.0.2.20)
+-----------------
+PostgreSQL database server
 
-  System: linux debian 13
+  System: linux debian 12
   Package Manager: apt
-  Last Refresh: 2025-09-25 22:05:46 -0400
+  Last Refresh: 2025-09-29 21:59:03 -0400
 
   Security Updates (2):
 
-    - libxslt1.1: 1.1.35-1.2+deb13u1 -> 1.1.35-1.2+deb13u2
-      Source: Debian-Security:13/stable-security
-    - xsltproc: 1.1.35-1.2+deb13u1 -> 1.1.35-1.2+deb13u2
-      Source: Debian-Security:13/stable-security
+    - postgresql-14: 14.9-0+deb12u1 -> 14.10-0+deb12u1
+      Source: security
+    - openssl: 3.0.9-1+deb12u3 -> 3.0.11-1+deb12u2
+      Source: security
+
+
+admin-01 (10.0.2.30)
+--------------------
+Admin Server
+
+  System: freebsd 14.3-RELEASE-p3
+  Package Manager: pkg
+  Last Refresh: 2025-09-29 19:59:03 -0400
+
+  No updates available.
+
+
+lb-01 (10.0.1.5)
+----------------
+HAProxy load balancer
+
+  System: linux rhel 9
+  Package Manager: dnf
+  Last Refresh: 2025-09-29 22:29:03 -0400
+
+  No updates available.
+
+
+dev-staging (10.0.3.100)
+------------------------
+Development and staging environment
+
+  System: linux ubuntu 20.04
+  Package Manager: apt
+  Last Refresh: 2025-09-26 22:59:03 -0400 (Stale, needs refresh)
+
+  No updates available.
 
 
 -------------------------------------------

@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://untrusted.website/schema/host-report.json",
+  "title": "Exosphere Host Report",
+  "description": "JSON schema for Exosphere host reporting data",
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/host"
+  },
+  "definitions": {
+    "host": {
+      "type": "object",
+      "description": "A single host entry in the report",
+      "required": [
+        "name",
+        "ip", 
+        "port",
+        "os",
+        "flavor",
+        "version",
+        "supported",
+        "online",
+        "package_manager",
+        "updates",
+        "last_refresh"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Host identifier/name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional user-provided description of the host. Omitted if not provided."
+        },
+        "ip": {
+          "type": "string",
+          "description": "IP address or FQDN of the host"
+        },
+        "port": {
+          "type": "integer",
+          "description": "SSH port number",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "os": {
+          "type": ["string", "null"],
+          "description": "Operating system family. null if not yet discovered."
+        },
+        "flavor": {
+          "type": ["string", "null"],
+          "description": "OS distribution/flavor. null if not yet discovered."
+        },
+        "version": {
+          "type": ["string", "null"],
+          "description": "OS version. null if not yet discovered."
+        },
+        "supported": {
+          "type": "boolean",
+          "description": "Whether this host type is supported by Exosphere"
+        },
+        "online": {
+          "type": "boolean",
+          "description": "Whether the host was last reachable"
+        },
+        "package_manager": {
+          "type": ["string", "null"],
+          "description": "Package manager in use. null if not yet discovered or unsupported."
+        },
+        "updates": {
+          "type": "array",
+          "description": "List of available updates",
+          "items": {
+            "$ref": "#/definitions/update"
+          }
+        },
+        "last_refresh": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of last data refresh. null if never refreshed."
+        }
+      },
+      "additionalProperties": false
+    },
+    "update": {
+      "type": "object",
+      "description": "A package update entry",
+      "required": [
+        "name",
+        "current_version",
+        "new_version", 
+        "security",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Package name"
+        },
+        "current_version": {
+          "type": ["string", "null"],
+          "description": "Currently installed version. null for NEW packages or dependencies"
+        },
+        "new_version": {
+          "type": "string", 
+          "description": "Available version"
+        },
+        "security": {
+          "type": "boolean",
+          "description": "Whether this is a security update"
+        },
+        "source": {
+          "type": "string",
+          "description": "Update source/repository"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

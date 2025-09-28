@@ -1,0 +1,102 @@
+[
+  {
+    "name": "web-prod-01",
+    "description": "Web Server",
+    "ip": "10.0.1.10",
+    "port": 22,
+    "os": "linux",
+    "flavor": "ubuntu",
+    "version": "22.04",
+    "supported": true,
+    "online": true,
+    "package_manager": "apt",
+    "updates": [
+      {
+        "name": "apache2",
+        "current_version": "2.4.52-1ubuntu4.6",
+        "new_version": "2.4.52-1ubuntu4.7",
+        "security": true,
+        "source": "security"
+      },
+      {
+        "name": "php8.1",
+        "current_version": "8.1.2-1ubuntu2.13",
+        "new_version": "8.1.2-1ubuntu2.14",
+        "security": true,
+        "source": "security"
+      }
+    ],
+    "last_refresh": "2025-09-30T00:59:03.989Z"
+  },
+  {
+    "name": "db-01",
+    "description": "PostgreSQL database server",
+    "ip": "10.0.2.20",
+    "port": 22,
+    "os": "linux",
+    "flavor": "debian",
+    "version": "12",
+    "supported": true,
+    "online": true,
+    "package_manager": "apt",
+    "updates": [
+      {
+        "name": "postgresql-14",
+        "current_version": "14.9-0+deb12u1",
+        "new_version": "14.10-0+deb12u1",
+        "security": true,
+        "source": "security"
+      },
+      {
+        "name": "openssl",
+        "current_version": "3.0.9-1+deb12u3",
+        "new_version": "3.0.11-1+deb12u2",
+        "security": true,
+        "source": "security"
+      }
+    ],
+    "last_refresh": "2025-09-30T01:59:03.990Z"
+  },
+  {
+    "name": "admin-01",
+    "description": "Admin Server",
+    "ip": "10.0.2.30",
+    "port": 22,
+    "os": "freebsd",
+    "flavor": "freebsd",
+    "version": "14.3-RELEASE-p3",
+    "supported": true,
+    "online": true,
+    "package_manager": "pkg",
+    "updates": [],
+    "last_refresh": "2025-09-29T23:59:03.990Z"
+  },
+  {
+    "name": "lb-01",
+    "description": "HAProxy load balancer",
+    "ip": "10.0.1.5",
+    "port": 22,
+    "os": "linux",
+    "flavor": "rhel",
+    "version": "9",
+    "supported": true,
+    "online": true,
+    "package_manager": "dnf",
+    "updates": [],
+    "last_refresh": "2025-09-30T02:29:03.990Z"
+  },
+  {
+    "name": "dev-staging",
+    "description": "Development and staging environment",
+    "ip": "10.0.3.100",
+    "port": 22,
+    "os": "linux",
+    "flavor": "ubuntu",
+    "version": "20.04",
+    "supported": true,
+    "online": false,
+    "package_manager": "apt",
+    "updates": [],
+    "last_refresh": "2025-09-27T02:59:03.990Z"
+  }
+]

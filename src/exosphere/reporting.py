@@ -210,6 +210,9 @@ class ReportRenderer:
         Does not involve any template, simply uses json.dumps
         on Host.to_dict() under the hood for the informational properties
 
+        Elides optional fields (like description) when empty/None for cleaner JSON.
+        Discovery fields (os, flavor, etc.) are always present, null if undiscovered.
+
         kwargs are accepted for interface consistency but ignored.
 
         :param hosts: List of Host objects to include in the report
@@ -231,6 +234,25 @@ class ReportRenderer:
                 host_dict["updates"] = [
                     update.__dict__.copy() for update in host.security_updates
                 ]
+
+            # Elide optional user-provided fields when empty
+            self._clean_optional_fields(host_dict)
             report_data.append(host_dict)
 
         return json.dumps(report_data, indent=2)
+
+    def _clean_optional_fields(self, host_dict: dict) -> None:
+        """
+        Remove truly optional fields when they have no meaningful value.
+
+        Keeps discovery fields (os, flavor, etc.) as null when undiscovered
+        to maintain schema consistency, but removes user-optional fields
+        like description when empty.
+
+        Modifies the dictionary in-place.
+
+        :param host_dict: Host dictionary to clean
+        """
+        # Remove optional user-provided fields when empty/None
+        if not host_dict.get("description"):
+            host_dict.pop("description", None)

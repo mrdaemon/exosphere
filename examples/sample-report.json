@@ -1,0 +1,44 @@
+[
+  {
+    "name": "web-server-01",
+    "description": "Production web server",
+    "ip": "192.168.1.10",
+    "port": 22,
+    "os": "linux",
+    "flavor": "ubuntu", 
+    "version": "22.04",
+    "supported": true,
+    "online": true,
+    "package_manager": "apt",
+    "updates": [
+      {
+        "name": "curl",
+        "current_version": "7.81.0-1ubuntu1.4",
+        "new_version": "7.81.0-1ubuntu1.6", 
+        "security": true,
+        "source": "security"
+      },
+      {
+        "name": "new-dependency",
+        "current_version": null,
+        "new_version": "1.0.0",
+        "security": false,
+        "source": "main"
+      }
+    ],
+    "last_refresh": "2024-03-15T14:30:00.000Z"
+  },
+  {
+    "name": "database-server",
+    "ip": "192.168.1.20",
+    "port": 22,
+    "os": "freebsd",
+    "flavor": "freebsd",
+    "version": "13.1-RELEASE",
+    "supported": true,
+    "online": true,
+    "package_manager": "pkg",
+    "updates": [],
+    "last_refresh": null
+  }
+]

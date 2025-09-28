@@ -6,11 +6,13 @@ import json
 from datetime import datetime, timezone
 
 import jinja2
+import jsonschema
 import pytest
 
 from exosphere.data import Update
 from exosphere.objects import Host
 from exosphere.reporting import ReportRenderer, ReportScope, ReportType
+from exosphere.schema import get_host_report_schema
 
 
 class TestReportRenderer:
@@ -415,3 +417,110 @@ class TestReportRenderer:
         # Only security updates
         assert "curl" in result
         assert "vim" not in result
+
+
+class TestJSONSchemaValidation:
+    """Tests for JSON schema validation of report output."""
+
+    @pytest.fixture
+    def renderer(self):
+        return ReportRenderer()
+
+    @pytest.fixture
+    def sample_hosts(self):
+        # Host with full data
+        host1 = Host(
+            name="complete-host",
+            ip="127.1.1.10",
+            description="Host with complete data",
+        )
+        host1.os = "linux"
+        host1.flavor = "ubuntu"
+        host1.version = "22.04"
+        host1.package_manager = "apt"
+        host1.last_refresh = datetime.now(tz=timezone.utc)
+        host1.supported = True
+        host1.online = True
+        host1.updates = [
+            Update(
+                name="curl",
+                current_version="7.81.0-1ubuntu1.4",
+                new_version="7.81.0-1ubuntu1.6",
+                security=True,
+                source="security",
+            ),
+            Update(
+                name="new-package",
+                current_version=None,  # New install - no current version
+                new_version="1.0.0",
+                security=False,
+                source="main",
+            ),
+        ]
+
+        # Host with minimal/undiscovered data
+        # Description field is expected to be elided
+        host2 = Host(name="minimal-host", ip="127.1.1.20")
+        host2.os = None
+        host2.flavor = None
+        host2.version = None
+        host2.package_manager = None
+        host2.last_refresh = None
+        host2.supported = True
+        host2.online = False
+        host2.updates = []
+
+        return [host1, host2]
+
+    @pytest.mark.parametrize(
+        "report_type",
+        [ReportType.full, ReportType.updates_only, ReportType.security_only],
+    )
+    def test_json_output_validates_against_schema(
+        self, renderer, sample_hosts, report_type
+    ):
+        """Test that JSON output validates against our JSON schema."""
+        json_output = renderer.render_json(sample_hosts, report_type)
+
+        # Parse JSON and validate against schema
+        data = json.loads(json_output)
+        schema = get_host_report_schema()
+
+        # This should not raise any exceptions
+        jsonschema.validate(data, schema)
+
+    def test_json_schema_empty_report(self, renderer):
+        """Test that an empty report validates against the schema."""
+        empty_json = renderer.render_json([], ReportType.full)
+        data = json.loads(empty_json)
+        schema = get_host_report_schema()
+
+        # This should not raise any exceptions
+        jsonschema.validate(data, schema)
+
+        # Should be an empty array
+        assert data == []
+
+    def test_json_schema_optional_fields(self, renderer):
+        """
+        Test schema validation with optional fields
+
+        Optional fields should be elided when empty/None
+        and present when populated.
+        """
+        schema = get_host_report_schema()
+
+        host_with_desc = Host("test1", "1.1.1.1", description="Test host")
+        host_with_desc.last_refresh = datetime.now(tz=timezone.utc)
+
+        host_without_desc = Host("test2", "2.2.2.2")  # No description
+        host_without_desc.last_refresh = datetime.now(tz=timezone.utc)
+
+        json_output = renderer.render_json(
+            [host_with_desc, host_without_desc], ReportType.full
+        )
+        data = json.loads(json_output)
+        jsonschema.validate(data, schema)
+
+        assert "description" in data[0]
+        assert "description" not in data[1]
