@@ -229,7 +229,7 @@ class Host:
             "supported": self.supported,
             "online": self.online,
             "package_manager": self.package_manager,
-            "updates": [update.__dict__ for update in self.updates],
+            "updates": [update.__dict__.copy() for update in self.updates],
             "last_refresh": self.last_refresh.isoformat(
                 timespec="milliseconds"
             ).replace("+00:00", "Z")
