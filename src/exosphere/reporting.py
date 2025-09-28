@@ -229,7 +229,7 @@ class ReportRenderer:
             if report_type == ReportType.security_only:
                 # Replace 'updates' with security updates only
                 host_dict["updates"] = [
-                    update.__dict__ for update in host.security_updates
+                    update.__dict__.copy() for update in host.security_updates
                 ]
             report_data.append(host_dict)
 
