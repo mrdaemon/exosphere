@@ -4,14 +4,12 @@ Reporting and JSON Export
 Exosphere includes a comprehensive reporting system that allows you to generate
 detailed reports of your inventory status and system updates in multiple formats.
 
-A highlight of the reporting system is that **it does not require any connectivity
-or live access to hosts** and operates entirely from the Cache.
+This functionality **does not require any connectivity or live access to hosts** 
+and operates entirely from the Cache, allowing reports or json to be exported on
+a schedule or from a different context where your ssh agent is not available.
 
-This means you can absolutely schedule reports or json to be exported on a schedule
-from a different context where your ssh agent is not available.
-
-All that is required is read access to the exosphere cache database.
-For more details on that file, see :doc:`cachefile`.
+The only requirement is read access to the exosphere cache database.
+(See :doc:`cachefile` for more details.)
 
 
 Available Formats
