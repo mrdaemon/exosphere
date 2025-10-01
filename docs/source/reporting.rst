@@ -4,11 +4,8 @@ Reporting and JSON Export
 Exosphere includes a comprehensive reporting system that allows you to generate
 detailed reports of your inventory status and system updates in multiple formats.
 
-It additionally supports exposing the state of the inventory as JSON data for easy
-integration with other tools, through the same mechanisms.
-
-The most interesting part about the reporting system is that **it does not require
-any connectivity or live access to hosts** and operates entirely from the Cache.
+A highlight of the reporting system is that **it does not require any connectivity
+or live access to hosts** and operates entirely from the Cache.
 
 This means you can absolutely schedule reports or json to be exported on a schedule
 from a different context where your ssh agent is not available.
@@ -22,13 +19,17 @@ Available Formats
 
 Below are examples of each output format to help you choose the right one for your needs.
 
+.. _report-samples:
+
 .. tabs::
 
     .. tab:: HTML Report
 
-        Styled with a clean design, making them ideal for sharing or simply 
-        for a more visually appealing overview. Usually suitable for printing.
-        Offers an optional quick navigation box to jump between hosts.
+        Styled with a visually appealing design, entirely self-contained in a
+        single file. Suitable for reading or printing. Offers an optional quick
+        navigation box to jump between hosts.
+
+        Recommended for most uses.
 
         .. figure:: _static/reporting_sample.png
             :alt: Sample HTML Report
@@ -51,8 +52,8 @@ Below are examples of each output format to help you choose the right one for yo
 
         .. literalinclude:: ../../examples/reports/full.txt
             :language: text
-            :lines: 1-25
-            :caption: Plain Text Report Sample (header and summary)
+            :lines: 1-30
+            :caption: Plain Text Report Sample (partial)
 
         📁 **Sample Reports:**
         
@@ -64,8 +65,8 @@ Below are examples of each output format to help you choose the right one for yo
     .. tab:: Markdown
 
         Made available mostly as a lightweight intermediate format, since they can be 
-        rendered to a variety of other formats. They can also be fed directly into 
-        any other tool that supports markdown.
+        rendered to a variety of other formats while providing support for tables.
+        They can also be fed directly into any other tool that supports markdown.
 
         .. literalinclude:: ../../examples/reports/full.md
             :language: markdown
@@ -80,7 +81,7 @@ Below are examples of each output format to help you choose the right one for yo
         - :download:`Security Updates Only <_static/reports/securityonly.md>` - Security updates only 
 
     .. tab:: JSON Export
-
+        
         Available for integration with other tools, implementation of which is left 
         as an exercise for the reader. It is also useful for displaying the raw internal
         state of the inventory and hosts.
@@ -114,32 +115,43 @@ The ``--format/-f`` option controls the output format, and accepts any of ``text
 
 **Save to File**
 
+You can save the report to a file with ``--output/-o``:
+
 .. code-block:: shell
 
-    $ exosphere report generate --format html --output system-report.html
+    $ exosphere report generate --format html --output systems-report.html
 
 **Displaying Specific Hosts**
+
+Which hosts are included in the report can be controlled by specifying them as
+arguments. For example, to generate a JSON report for just three hosts:
 
 .. code-block:: shell
 
     $ exosphere report generate --format json web1 web2 database
 
-**Security Updates Only**
-
-.. code-block:: shell
-
-    $ exosphere report generate --security-updates-only --format html
-
 **Updates Available Only**
 
+The report can filtered to only show hosts with updates available using
+``--updates-only``:
+
 .. code-block:: shell
 
-    $ exosphere report generate --updates-only --output updates.txt
+    $ exosphere report generate --updates-only --format html --output updates.html
+
+**Security Updates Only**
+
+To exclusively select security updates, use ``--security-updates-only``:
+
+.. code-block:: shell
+
+    $ exosphere report generate --security-updates-only
 
 Advanced Options
 ----------------
 
 **File Output with Preview**
+
     Use ``--tee`` to show the report in the terminal while also saving it
     to a file:
 
@@ -148,6 +160,7 @@ Advanced Options
         $ exosphere report generate --format html --output report.html --tee
 
 **Quiet Mode**
+
     Suppress informational messages with ``--quiet``. Can be helpful in
     the context of scripts or cron jobs.
 
@@ -156,6 +169,7 @@ Advanced Options
         $ exosphere report generate --format json --quiet --output daily-report.json
 
 **HTML Navigation**
+
     You can opt out of the quick navigation menu in HTML reports with
     ``--no-navigation``:
 
@@ -173,7 +187,7 @@ All reports include:
 - **Update Details**: Package names, versions, and security status
 - **Metadata**: Report generation time and scope information
 
-The level of detail and presentation varies by format, but the core information
+The presentation and formatting varies by format, but the core information
 remains consistent across all output types.
 
 .. tip::
@@ -206,14 +220,16 @@ for:
 Structure Overview
 ^^^^^^^^^^^^^^^^^^
 
-The report consists of an array of host objects.
+The report consists of an array of host objects. When generated via the CLI, the hosts
+will be pre-filtered to only include hosts that have been discovered, are supported,
+and have a valid :doc:`package manager provider <providers>` assigned to them.
 
 .. tip::
 
     Unless you are directly using the Python API (see :doc:`api/reporting`)
     to generate reports, you **can** safely assume that all the hosts in the
-    report have been discovered, are supported, and will not have `null` values
-    anywhere other than ``last_refresh`` if they have never been refreshed. 
+    report have been discovered, and **will not** have `null` values anywhere
+    other than ``last_refresh`` (if the host has never been refreshed).
 
 
 .. jsonschema-doc:: src/exosphere/schema/host-report.schema.json
@@ -241,11 +257,13 @@ Each host's ``updates`` array contains update objects with the following structu
    :language: json
    :caption: Example JSON report structure
 
+More examples are available in the :ref:`Sample Reports <report-samples>`
+section above.
 
 Integration Examples
 --------------------
 
-Here are some concrete but not very creative examples of how the reporting
+Here are some concrete but deeply uncreative examples of how the reporting
 feature can be used in practice.
 
 If you make a cool thing, please `let us know`_ via a github issue!
