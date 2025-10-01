@@ -262,5 +262,7 @@ Every command offers exhaustive built in documentation. Feel free to explore
 the available commands and options with the ``--help`` flag, or by running
 ``help`` in the interactive shell.
 
+For advanced, file based reporting, see the :doc:`reporting` page.
+
 A complete :doc:`command_reference` is also available, which provides
 a comprehensive list of all the commands and their options.
