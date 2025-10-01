@@ -16,6 +16,7 @@ htmlcov/
 # Sphinx documentation
 docs/build/
 docs/source/_static/host-report.schema.json
+docs/source/_static/reports/
 
 # linters etc
 .ruff_cache/

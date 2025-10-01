@@ -34,6 +34,7 @@ extensions = [
     'sphinxcontrib.typer',
     'exosphere_lexer',  # Custom Exosphere CLI lexer
     'exosphere_artifacts',  # Custom extension to copy artifacts to _static
+    'jsonschema_doc',  # Custom extension for JSON Schema documentation
 ]
 
 templates_path = ['_templates']
