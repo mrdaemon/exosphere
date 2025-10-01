@@ -22,6 +22,8 @@ If you have SSH access to the hosts with an `agent`_, you are good to go!
 - Consistent view across different platforms and package managers
 - See everything in one spot, at a glance, without complex automation
   or enterprise solutions.
+- Document based reporting in HTML, text or markdown format
+- JSON output available for integration with other tools
 
 
 **Compatibility**
@@ -55,6 +57,7 @@ with the :doc:`quickstart` to get an overview of how to use Exosphere.
    cli
    ui
    webui
+   reporting
    cachefile
    providers
    faq
