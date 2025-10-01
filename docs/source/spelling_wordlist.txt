@@ -8,6 +8,7 @@ cronjob
 cx
 dataclass
 dataclasses
+de
 debian
 dev
 dicts
@@ -55,6 +56,7 @@ toJSON
 toml
 tomllib
 ubuntu
+uncreative
 unicity
 unix
 webserver
