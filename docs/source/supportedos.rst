@@ -46,7 +46,7 @@ Compatibility List
 **BSD Systems**
   - FreeBSD (all supported versions and minor variants)
   - OpenBSD (all supported versions)
-  - *Package Manager*: ``pkg`` (FreeBSD), ``pkg_add`` (OpenBSD)
+  - *Package Managers*: ``pkg`` (FreeBSD), ``pkg_add`` (OpenBSD)
 
 .. admonition:: note
 
