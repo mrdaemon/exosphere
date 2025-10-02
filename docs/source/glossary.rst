@@ -44,6 +44,15 @@ Discovery
     This usually only needs to be done once per host, but can be repeated if any details
     change, such as a new OS version or package manager change.
 
+Refresh
+    A Refresh is the process of querying the host for its current available updates.
+    This is generally done by querying the package manager. The process is universally
+    read-only, and does not perform any system changes, aside from affecting some
+    metadata timestamps and caches on certain platforms and operating systems.
+
+    This is usually separate from a Repository Sync, but often can be combined
+    into a single operation depending on context.
+
 Repositories
     The Repositories are the generic term for the authoritative list of packages on the
     host platform. This generally consists of repositories. For instance, on Debian
@@ -51,6 +60,15 @@ Repositories
     `/etc/apt/sources.list` and friends. On RedHat-likes, it refers to the
     repositories configured in `/etc/yum.repos.d/` and so on.
 
+Repository Sync
     Synchronizing the repositories is the process of updating the local host cache
     from these remote servers, so that the next update check will have the latest
     information.
+
+    This is equivalent to running `apt-get update` on Debian-based systems,
+    or `dnf makecache` on RedHat-based systems.
+
+    This process is generally safe and read-only, but on systems where
+    sudo is required, it may update repository metadata system wide.
+    This is generally not an issue, but if it is problematic, rest assured
+    that the behavior is entirely opt-in, in these cases.
