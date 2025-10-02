@@ -59,7 +59,7 @@ Once started, you should see output similar to:
 
 .. code-block:: shell
 
-    $ uv run exosphere ui webstart
+    $ exosphere ui webstart
     ___ ____ _  _ ___ _  _ ____ _       ____ ____ ____ _  _ ____
      |  |___  \/   |  |  | |__| |    __ [__  |___ |__/ |  | |___
      |  |___ _/\_  |  |__| |  | |___    ___] |___ |  \  \/  |___ v1.1.2
