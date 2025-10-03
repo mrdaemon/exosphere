@@ -230,7 +230,7 @@ and examples of how to set them in the configuration file.
     you must configure your sudoers file to allow the user Exosphere connects as
     to run those commands with ``NOPASSWD:`` in the sudoers file.
 
-    More details on how to configure this can be found in the :doc:`connections` 
+    More details on how to configure this can be found in the :doc:`connections`
     documentation.
 
     .. admonition:: Note
@@ -410,7 +410,7 @@ and examples of how to set them in the configuration file.
     unless you have a very specific reason to do so.
 
     If this is disabled, you will need to manually save the state
-    with ``inventory save`` from the interactive mode for changes 
+    with ``inventory save`` from the interactive mode for changes
     to systems state to persist across executions.
 
     See :doc:`cachefile` for more details on the cache file
@@ -460,7 +460,7 @@ and examples of how to set them in the configuration file.
 
     .. admonition:: Note
 
-        If **all** of the hosts are removed from the configuration file, 
+        If **all** of the hosts are removed from the configuration file,
         Exosphere will err on the side of caution and leave the cache file alone,
         regardless of this setting.
 
@@ -755,7 +755,7 @@ has a custom connection timeout value set, overriding :option:`default_timeout`.
                 ip: myhost.example.com
               - name: anotherhost
                 ip: 127.0.1.8
-                connect_timeout: 30 
+                connect_timeout: 30
 
     .. group-tab:: TOML
 
@@ -1095,7 +1095,7 @@ Below is the detailed list of all available host options and their defaults.
 .. option:: sudo_policy
 
     The sudo policy to use when running commands on the host.
-    
+
     .. admonition:: Note
 
         This option has precedence over the global option,

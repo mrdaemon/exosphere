@@ -179,7 +179,7 @@ by running:
 This will attempt to SSH into each host and check if it is online. If a host
 is not reachable, it will be marked as offline and an error will be printed.
 
-This is **not** an ICMP ping, but rather a full SSH connectivity check. 
+This is **not** an ICMP ping, but rather a full SSH connectivity check.
 It will only return "Online" if the host can be connected to successfully,
 and a trivial test command can be executed.
 

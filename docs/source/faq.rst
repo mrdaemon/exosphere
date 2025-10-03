@@ -35,7 +35,7 @@ Why does ping report Offline when the system is reachable?
 
 The ``ping`` checks in exosphere aren't ICMP ping, but SSH pings.
 They will only return an Online status if the remote system can be
-connected to successfully, over SSH, and a simple POSIX test command 
+connected to successfully, over SSH, and a simple POSIX test command
 can be executed. (``/bin/true`` or shell built-in equivalent)
 
 As such, scenarios that can cause an Offline status include:
@@ -76,7 +76,7 @@ Verify that:
 - Your SSH agent is running and has the correct key loaded
 - The right user name is being used to connect
 
-The unhelpful error message is unfortunately `Known Issue`_ in the `paramiko` 
+The unhelpful error message is unfortunately `Known Issue`_ in the `paramiko`
 library, which is used internally to handle SSH connections. Whenever
 authentication fails when a SSH agent is used, this is the exception
 that will be raised, regardless of the actual issue.
@@ -181,11 +181,11 @@ The usual checklist for files in sudoers.d applies here:
 - Must not contain syntax errors (check with `visudo -c -f /etc/sudoers.d/yourfile`)
 
 If you are still having issues, a common problem is another rule matching last.
-Sudo reads rules in lexicographic order (i.e not strictly alphabetical), but does not 
+Sudo reads rules in lexicographic order (i.e not strictly alphabetical), but does not
 merge them, and the last matching rule wins.
 
 You can verify ordering with `visudo -c` and find out which rule is matching
-last with: 
+last with:
 
 .. code-block:: bash
 
@@ -233,7 +233,7 @@ For completely selfish reasons such as:
 
 Exosphere was written mostly to scratch the author's own itch.
 While it is made public in the hopes that it will be useful to others,
-and great care and effort has been spent on documentation and ease of use, 
+and great care and effort has been spent on documentation and ease of use,
 the focus at this time remains to keep the author happy.
 
 Compatibility test matrices are unfortunately not a source of happiness.

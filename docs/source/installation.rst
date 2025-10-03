@@ -102,7 +102,7 @@ You will require the following tools installed:
 
 First, Clone the repository into a directory of your choice.
 
-.. tabs:: 
+.. tabs::
 
     .. group-tab:: HTTPS
 
@@ -154,7 +154,7 @@ If you want the stable version, you can switch to the latest tag.
 
             git checkout main
 
-    
+
 Once that is done, you can simply setup Exosphere using `uv`_:
 
 .. code-block:: text
@@ -259,7 +259,7 @@ pulling the latest changes and then syncing with `uv`_:
 
             git pull --rebase
             uv sync --no-dev
-            
+
 
 That's it! Your installation of Exosphere is now up to date.
 

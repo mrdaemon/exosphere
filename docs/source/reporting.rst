@@ -4,7 +4,7 @@ Reporting and JSON Export
 Exosphere includes a comprehensive reporting system that allows you to generate
 detailed reports of your inventory status and system updates in multiple formats.
 
-This functionality **does not require any connectivity or live access to hosts** 
+This functionality **does not require any connectivity or live access to hosts**
 and operates entirely from the Cache, allowing reports or json to be exported on
 a schedule or from a different context where your ssh agent is not available.
 
@@ -36,7 +36,7 @@ Below are examples of each output format to help you choose the right one for yo
             Partial screenshot of the html report, without navigation
 
         📁 **Sample Reports:**
-      
+
         - :download:`Full Report <_static/reports/full.html>` - Complete inventory with all hosts
         - :download:`No Navigation <_static/reports/full-no-navigation.html>` - Without quick navigation menu
         - :download:`Filtered Report <_static/reports/filtered.html>` - Specific hosts selection
@@ -45,7 +45,7 @@ Below are examples of each output format to help you choose the right one for yo
 
     .. tab:: Plain Text
 
-        Useful for quick overviews or for environments where rich text is not 
+        Useful for quick overviews or for environments where rich text is not
         supported. If you want a cron job that sends an email, don't worry, we got you.
 
         .. literalinclude:: ../../examples/reports/full.txt
@@ -54,7 +54,7 @@ Below are examples of each output format to help you choose the right one for yo
             :caption: Plain Text Report Sample (partial)
 
         📁 **Sample Reports:**
-        
+
         - :download:`Full Report <_static/reports/full.txt>` - Complete inventory, text format
         - :download:`Filtered Report <_static/reports/filtered.txt>` - Selected hosts only
         - :download:`Updates Only <_static/reports/updatesonly.txt>` - Hosts with updates available
@@ -62,7 +62,7 @@ Below are examples of each output format to help you choose the right one for yo
 
     .. tab:: Markdown
 
-        Made available mostly as a lightweight intermediate format, since they can be 
+        Made available mostly as a lightweight intermediate format, since they can be
         rendered to a variety of other formats while providing support for tables.
         They can also be fed directly into any other tool that supports markdown.
 
@@ -72,15 +72,15 @@ Below are examples of each output format to help you choose the right one for yo
             :caption: Markdown Report Sample (header and first host info)
 
         📁 **Sample Reports:**
-        
+
         - :download:`Full Report <_static/reports/full.md>` - Complete inventory, markdown format
         - :download:`Filtered Report <_static/reports/filtered.md>` - Selected hosts only
         - :download:`Updates Only <_static/reports/updatesonly.md>` - Hosts with updates available
-        - :download:`Security Updates Only <_static/reports/securityonly.md>` - Security updates only 
+        - :download:`Security Updates Only <_static/reports/securityonly.md>` - Security updates only
 
     .. tab:: JSON Export
-        
-        Available for integration with other tools, implementation of which is left 
+
+        Available for integration with other tools, implementation of which is left
         as an exercise for the reader. It is also useful for displaying the raw internal
         state of the inventory and hosts.
 
@@ -89,7 +89,7 @@ Below are examples of each output format to help you choose the right one for yo
         For more details on the JSON schema, see the :ref:`json-schema` section below.
 
         📁 **Sample Reports:**
-        
+
         - :download:`Full Report <_static/reports/full.json>` - Complete JSON inventory
         - :download:`Security Updates Only <_static/reports/securityonly.json>` - Security updates in JSON
         - :download:`Updates Only <_static/reports/updatesonly.json>` - Available updates only
@@ -109,7 +109,7 @@ This will output a plain text report to your terminal showing all hosts and thei
 update status.
 
 The ``--format/-f`` option controls the output format, and accepts any of ``text``,
-``html``, ``markdown``, or ``json``. 
+``html``, ``markdown``, or ``json``.
 
 **Save to File**
 
@@ -190,7 +190,7 @@ remains consistent across all output types.
 
 .. tip::
 
-    For detailed information about all available options and flags, 
+    For detailed information about all available options and flags,
     see :doc:`command_reference` or run ``exosphere report generate --help``.
 
 .. _json-schema:
@@ -213,7 +213,7 @@ The schema is available in the source tree as ``exosphere/schema/host-report.sch
 but is also made available here, corresponding to the version this documentation is built
 for:
 
-:download:`host-report.schema.json <_static/host-report.schema.json>` as of |CurrentVersionTag| 
+:download:`host-report.schema.json <_static/host-report.schema.json>` as of |CurrentVersionTag|
 
 Structure Overview
 ^^^^^^^^^^^^^^^^^^
@@ -281,10 +281,10 @@ We'll happily showcase it here.
 
     # Count hosts with security updates
     exosphere report generate --format json --security-updates-only | jq 'length'
-    
+
     # Extract just host names and update counts
     exosphere report generate --format json | jq '.[] | {name, updates: .updates | length}'
-    
+
     # The same but only hosts that have updates
     exosphere report generate --format json \
     | jq '.[] | select(.updates | length > 0) | {name, updates: .updates | length}'

@@ -12,7 +12,7 @@ There are two tiers of effective support in Exosphere.
 
 2. **Limited Support**: For unsupported platforms that are still Unix-like,
    Exosphere is limited to basic SSH connectivity checks and presence in
-   the dashboard. 
+   the dashboard.
 
 Platform support for Patches and Updates are implemented via an extensible
 provider system, which allows for new platforms to be added in the future.
@@ -70,7 +70,7 @@ to via SSH and returns something useful via ``uname -s``, it will work here.
 - Other non-Unix-like operating systems that support SSH
 
 .. tip::
-   If your preferred platform is not supported, contributions to add new providers 
+   If your preferred platform is not supported, contributions to add new providers
    are welcome! See the developer documentation for details on implementing new providers.
 
 Common Prerequisites

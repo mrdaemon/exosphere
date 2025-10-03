@@ -94,7 +94,7 @@ To go further, you can explore the various commands in the :doc:`cli` or start t
     $ exosphere ui start
 
 .. tip::
-   
+
    For more advanced configuration options, authentication details, and troubleshooting,
    see the full :doc:`configuration` and :doc:`connections` documentation.
 

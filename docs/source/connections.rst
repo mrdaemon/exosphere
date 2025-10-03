@@ -104,7 +104,7 @@ pinpoint the exact issue with authentication or connectivity.
 Sudo Policies and Privileges
 ============================
 
-Exosphere and its provider modules try, as much as possible, to avoid requiring elevated 
+Exosphere and its provider modules try, as much as possible, to avoid requiring elevated
 privileges at all. Unfortunately, on some platforms, some operations that we rely on
 do require them.
 
@@ -143,7 +143,7 @@ to sync repositories, but does not require any privileges to refresh updates.
 
 .. note::
    The table above shows the privilege requirements for each operation type:
-   
+
    * **Sync Repositories**: Updating package repository metadata (e.g., ``apt-get update``)
    * **Refresh Updates**: Checking for available package updates
 
@@ -235,7 +235,7 @@ repository contents should always be reasonably up to date.
 
 On Debian/Ubuntu systems, consider these options:
 
-* The `unattended-upgrades`_ package, which can be configured to automatically 
+* The `unattended-upgrades`_ package, which can be configured to automatically
   run ``apt-get update`` and optionally ``apt-get upgrade`` on a schedule
 * The ``apt-config-auto-update`` package for simpler automatic update configuration
 * Custom cron jobs with ``apt-get update`` if you prefer manual control

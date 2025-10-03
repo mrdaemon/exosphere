@@ -153,4 +153,4 @@ The window can be scrolled left and right, and will color certain elements.
 .. tip::
 
     The logs are always written to file. You can access them at the
-    path returned by the ``exosphere config paths`` command. 
+    path returned by the ``exosphere config paths`` command.

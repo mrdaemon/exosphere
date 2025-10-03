@@ -20,14 +20,14 @@ By default, given the stock :ref:`Sudo Policy <default_sudo_policy_option>`,
 in Exosphere, Repo sync will **not** run for Debian-like hosts, and you will need
 to configure sudoers appropriately before changing the Sudo Policy.
 
-Updates retrieval is done using ``apt-get dist-upgrade`` in simulation mode, 
+Updates retrieval is done using ``apt-get dist-upgrade`` in simulation mode,
 and **does not** require elevated privileges.
 
 .. admonition:: Note
 
     If you want repo sync without sudo privileges, you can also just
     install the ``apt-config-auto-update`` package, or configure
-    `Unattended Upgrades`_ to achieve this on a schedule. 
+    `Unattended Upgrades`_ to achieve this on a schedule.
 
 
 Exact Commands ran on remote hosts
@@ -85,7 +85,7 @@ Usage Notes and Issues
 In some scenarios, the `yum` or `dnf` commands may hang when running due to
 unexpectedly prompting for user input interactively, which Exosphere cannot handle.
 
-The provider is written to avoid this, but if you do encounter this, simply run 
+The provider is written to avoid this, but if you do encounter this, simply run
 ``dnf makecache --refresh`` or ``yum makecache --refresh`` manually on the remote system
 and answer any prompts that may appear.
 
