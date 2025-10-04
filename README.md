@@ -113,10 +113,17 @@ This will start a local server at `http://localhost:8000` where you can view the
 documentation. You can edit the files in the `docs/source` directory, and the changes
 will be reflected in real-time.
 
-You can also run the spellchecker with:
+To check the documentation for spelling errors, you can run:
 
 ```bash
 uv run poe docs-spellcheck
+```
+
+Linting is performed as part of the `poe docs` task, which also builds the
+documentation, but can also be invoked separately:
+
+```bash
+uv run poe docs-lint
 ```
 
 ## License
