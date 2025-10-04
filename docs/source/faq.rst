@@ -150,15 +150,12 @@ For the time being, cron reports and mailing lists for `syspatch` and
 Does FreeBSD support extends to things like OPNSense?
 -----------------------------------------------------
 
-Up to a point. Exosphere can (and will) successfully invoke `pkg` commands
-and parse their output, but OPNSense often calls its own `pkg-ng` binary for some
-operations.
+Since **1.3.4**, the ``pkg`` provider performs repository synchronization in a
+manner that is compatible with OPNSense, and the platform is supported
+as FreeBSD.
 
-You're likely to get, at worst, partial results with the repo sync feature.
-However, updates retrieval should work fine, if you use the 'check for updates'
-feature in the OPNSense web interface first.
-
-So essentially, "mostly, yes, a lot of the time, but not always".
+As long as you configure sudo and sudoers correctly, and that the system
+uses ``pkg`` underneath, it should work just fine.
 
 Updates refresh fails on my OpenBSD system with an exotic architecture!
 -----------------------------------------------------------------------
