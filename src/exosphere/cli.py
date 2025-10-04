@@ -11,12 +11,12 @@ and acts as the CLI entrypoint for the application.
 import logging
 from typing import Annotated
 
-from rich import print
 from rich.console import Console
 from typer import Context, Exit, Option, Typer
 
 from exosphere import __version__
-from exosphere.commands import config, host, inventory, report, sudo, ui
+from exosphere.commands import config, host, inventory, report, sudo, ui, version
+from exosphere.commands.utils import print_version
 from exosphere.repl import start_repl
 
 banner = f"""[turquoise4]
@@ -41,12 +41,13 @@ app.add_typer(ui.app, name="ui")
 app.add_typer(config.app, name="config")
 app.add_typer(report.app, name="report")
 app.add_typer(sudo.app, name="sudo")
+app.add_typer(version.app, name="version")
 
 
 @app.callback(invoke_without_command=True)
 def cli(
     ctx: Context,
-    version: Annotated[
+    show_version: Annotated[
         bool, Option("--version", "-V", help="Show version and exit")
     ] = False,
 ) -> None:
@@ -60,8 +61,8 @@ def cli(
     Run without arguments to start the interactive mode.
     """
 
-    if version:
-        print(f"Exosphere version {__version__}")
+    if show_version:
+        print_version()
         raise Exit(0)
 
     if ctx.invoked_subcommand is None:

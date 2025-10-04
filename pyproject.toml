@@ -33,6 +33,7 @@ dependencies = [
     "platformdirs>=4.3.8",
     "prompt-toolkit>=3.0.51",
     "jinja2>=3.1.6",
+    "packaging>=24.0",
 ]
 
 [dependency-groups]

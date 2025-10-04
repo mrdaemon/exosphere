@@ -14,7 +14,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress
 
-from exosphere import context
+from exosphere import __version__, context
 from exosphere.inventory import Inventory
 from exosphere.objects import Host
 
@@ -26,6 +26,17 @@ STATUS_FORMATS = {
 
 console = Console()
 err_console = Console(stderr=True)
+
+
+def print_version() -> None:
+    """
+    Print the current version of Exosphere to stdout.
+    Used by the 'version' command and '--version' option, for
+    consistent output formatting.
+    """
+    console.print(
+        f"[bold cyan]Exosphere[/bold cyan] version [bold green]{__version__}[/bold green]"
+    )
 
 
 def get_inventory() -> Inventory:

@@ -441,6 +441,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fabric" },
     { name = "jinja2" },
+    { name = "packaging" },
     { name = "platformdirs" },
     { name = "prompt-toolkit" },
     { name = "pyyaml" },
@@ -478,6 +479,7 @@ dev = [
 requires-dist = [
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "packaging", specifier = ">=24.0" },
     { name = "platformdirs", specifier = ">=4.3.8" },
     { name = "prompt-toolkit", specifier = ">=3.0.51" },
     { name = "pyyaml", specifier = ">=6.0.2" },

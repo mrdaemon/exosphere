@@ -55,6 +55,7 @@ class Configuration(dict):
             "default_username": None,  # Default global username to use for SSH
             "default_sudo_policy": "skip",  # Global sudo policy for package manager ops
             "max_threads": 15,  # Maximum number of threads to use for parallel ops
+            "update_checks": True,  # Set to false if you want to disable PyPI checks
         },
         "hosts": [],
     }
