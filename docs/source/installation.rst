@@ -202,8 +202,33 @@ Exosphere directly:
 Updating Exosphere
 ===================
 
+Exosphere often receives bug fix releases and new features.
+You can easily check if you have the latest available version of Exosphere by running:
+
+.. code-block:: exosphere
+
+    exosphere> version check
+
+or, from your operating system's shell:
+
+.. code-block:: bash
+
+    $ exosphere version check
+
+The output will tell you what version you are on, and what new version is
+available, if any.
+
 Updating Exosphere is generally as simple as installing it, depending on the installation
 method you used.
+
+Release Notes
+-------------
+
+You can (and should) consult the release notes on the `GitHub releases page`_
+to see what has changed in each release, and if there are any special instructions
+or considerations for updating.
+
+Generally, you should be able to update without any issues, however.
 
 From PyPI
 ---------

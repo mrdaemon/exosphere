@@ -198,6 +198,21 @@ that ensures it is loaded and matched last, for instance:
 
 ``/etc/sudoers.d/zz-exosphere``
 
+Is there any way to disable the update check?
+---------------------------------------------
+
+Yes, you can disable the update check by setting the ``update_checks``
+:ref:`config option <update_checks_option>` to ``false`` in the
+configuration file.
+
+This should be helpful in environments where you do not want to talk to
+PyPI at all.
+
+If you are a prospective package maintainer wishing to package Exosphere
+for your favorite platform's repositories, it is recommended that you patch
+out the default value of this option to ``False`` in ``exosphere/config.py``,
+or override via :ref:`environment variables <config_env_vars>`, if feasible.
+
 Is Windows support planned or even possible?
 ------------------------------------------------
 

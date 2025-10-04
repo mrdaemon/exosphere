@@ -63,6 +63,8 @@ Any option left out will use the default values, which are documented below.
 
         .. literalinclude:: ../../examples/config.json
 
+.. _config_env_vars:
+
 Environment Variables
 ---------------------
 
@@ -162,6 +164,7 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`default_timeout`
 - :option:`default_username`
 - :option:`max_threads`
+- :option:`update_checks`
 
 Below is a detailed list of all available options, their defaults,
 and examples of how to set them in the configuration file.
@@ -730,6 +733,58 @@ and examples of how to set them in the configuration file.
                 {
                     "options": {
                         "max_threads": 5
+                    }
+                }
+
+.. _update_checks_option:
+
+.. option:: update_checks
+
+    Whether or not Exosphere is allowed to check for updates on PyPI.
+
+    Exosphere currently doesn't perform any automatic update checks, only
+    when explicitly asked to via the ``version check`` command.
+
+    This option allows you to disable that functionality entirely.
+
+    This is intended for:
+
+    - Environments that have stringent policies about external connectivity
+    - Environments where Exosphere is installed by other means than PyPI
+    - Brave souls who would package Exosphere in the context of an OS distribution.
+
+    In all of these contexts, the ``version check`` command will be disabled
+    and print a clear message instead.
+
+    If in doubt, leave this at the default value.
+
+    **Default**: ``true``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  update_checks: false
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                update_checks = false
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "update_checks": false
                     }
                 }
 
