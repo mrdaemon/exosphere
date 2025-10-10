@@ -97,29 +97,15 @@ class TestStatusCommand:
 
     def test_no_hosts(self, mocker, mock_inventory):
         """
-        Test the status command to ensure it handles the case with no hosts gracefully.
+        Test the status command when get_hosts_or_error returns None.
+        Should exit with code 1 and display error message.
         """
-        mock_inventory.hosts = []
-
-        # mock get_hosts_or_error to return None
         mocker.patch.object(utils_module, "get_hosts_or_error", return_value=None)
 
         result = runner.invoke(inventory_module.app, ["status"])
 
         assert "No hosts found in inventory." in result.output
-        assert result.exit_code == 0
-
-    def test_no_hosts_fallback(self, mocker, mock_inventory):
-        """
-        Test the status command to ensure it handles get_hosts_or_error returning None.
-        """
-        # mock get_hosts_or_error to return None
-        mocker.patch.object(utils_module, "get_hosts_or_error", return_value=None)
-
-        result = runner.invoke(inventory_module.app, ["status"])
-
-        assert "No hosts found in inventory." in result.output
-        assert result.exit_code == 0
+        assert result.exit_code == 1
 
     def test_with_specific_hosts(self, create_host, mock_inventory):
         """
@@ -298,6 +284,131 @@ class TestStatusCommand:
         assert "2 *" in result.output  # Stale updates for server2
         assert result.output.count("—") == 2  # Unsupported update counts
 
+    @pytest.mark.parametrize(
+        "flag",
+        ["--updates-only", "-u"],
+        ids=["long", "short"],
+    )
+    def test_updates_only_filter(self, create_host, mock_inventory, flag):
+        """
+        Test status command with --updates-only flag filters out hosts without updates.
+        """
+        host_with_updates = create_host(
+            name="host1", updates=[1, 2, 3], security_updates=[1]
+        )
+        host_without_updates = create_host(
+            name="host2", updates=[], security_updates=[]
+        )
+
+        mock_inventory.hosts = [host_with_updates, host_without_updates]
+
+        result = runner.invoke(inventory_module.app, ["status", flag])
+
+        assert result.exit_code == 0
+        assert "host1" in result.output
+        assert "host2" not in result.output
+        assert "Host Status (updates only)" in result.output
+
+    @pytest.mark.parametrize(
+        "flag",
+        ["--security-only", "-s"],
+        ids=["long", "short"],
+    )
+    def test_security_only_filter(self, create_host, mock_inventory, flag):
+        """
+        Test status command with --security-only flag filters to only hosts with security updates.
+        """
+        host_with_security = create_host(
+            name="host1", updates=[1, 2, 3], security_updates=[1, 2]
+        )
+        host_without_security = create_host(
+            name="host2", updates=[1, 2], security_updates=[]
+        )
+        host_no_updates = create_host(name="host3", updates=[], security_updates=[])
+
+        mock_inventory.hosts = [
+            host_with_security,
+            host_without_security,
+            host_no_updates,
+        ]
+
+        result = runner.invoke(inventory_module.app, ["status", flag])
+
+        assert result.exit_code == 0
+        assert "host1" in result.output
+        assert "host2" not in result.output
+        assert "host3" not in result.output
+        assert "Host Status (security updates only)" in result.output
+
+    def test_both_filters_combined(self, create_host, mock_inventory):
+        """
+        Test status command with both --updates-only and --security-only flags.
+        Since --security-only takes precedence, it should behave exactly like --security-only alone.
+        """
+        host_with_both = create_host(
+            name="host1", updates=[1, 2, 3], security_updates=[1]
+        )
+        host_updates_only = create_host(
+            name="host2", updates=[1, 2], security_updates=[]
+        )
+        host_no_updates = create_host(name="host3", updates=[], security_updates=[])
+
+        mock_inventory.hosts = [host_with_both, host_updates_only, host_no_updates]
+
+        result = runner.invoke(
+            inventory_module.app, ["status", "--updates-only", "--security-only"]
+        )
+
+        assert result.exit_code == 0
+        assert "host1" in result.output
+        assert "host2" not in result.output
+        assert "host3" not in result.output
+        # Verify that security-only takes precedence in the title
+        assert "(security updates only)" in result.output
+        assert "(updates only)" not in result.output
+
+    def test_no_hosts_matching_criteria(self, create_host, mock_inventory):
+        """
+        Test status command when filters result in no matching hosts.
+        Should show a message and exit with code 2.
+        """
+        host_no_updates = create_host(name="host1", updates=[], security_updates=[])
+
+        mock_inventory.hosts = [host_no_updates]
+
+        result = runner.invoke(inventory_module.app, ["status", "--updates-only"])
+
+        assert result.exit_code == 2
+        assert "No hosts matching requested criteria" in result.output
+        assert "host1" not in result.output
+
+    def test_filters_with_specific_host_names(self, create_host, mock_inventory):
+        """
+        Test status command with filters combined with specific host names.
+        """
+        host1_with_updates = create_host(
+            name="host1", updates=[1, 2, 3], security_updates=[1]
+        )
+        host2_without_updates = create_host(
+            name="host2", updates=[], security_updates=[]
+        )
+        host3_with_updates = create_host(name="host3", updates=[1], security_updates=[])
+
+        mock_inventory.hosts = [
+            host1_with_updates,
+            host2_without_updates,
+            host3_with_updates,
+        ]
+
+        result = runner.invoke(
+            inventory_module.app, ["status", "--updates-only", "host1", "host2"]
+        )
+
+        assert result.exit_code == 0
+        assert "host1" in result.output
+        assert "host2" not in result.output
+        assert "host3" not in result.output
+
 
 class TestSaveCommand:
     """Tests for the save command"""
@@ -474,7 +585,7 @@ class TestDiscoverCommand:
 
         result = runner.invoke(inventory_module.app, ["discover"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert "No hosts found in inventory." in result.output
 
     @pytest.mark.parametrize(
@@ -618,7 +729,7 @@ class TestPingCommand:
 
         result = runner.invoke(inventory_module.app, ["ping"])
 
-        assert result.exit_code == 0  # Command completes successfully but does nothing
+        assert result.exit_code == 1
         mock_get_hosts_or_error.assert_called_once_with(None)
         mock_inventory.run_task.assert_not_called()
 
@@ -861,7 +972,7 @@ class TestRefreshCommand:
 
         result = runner.invoke(inventory_module.app, ["refresh"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         mock_get_hosts_or_error.assert_called_once_with(None)
         mock_run_task_with_progress.assert_not_called()
 

@@ -83,7 +83,7 @@ def discover(
     hosts = get_hosts_or_error(names)
 
     if hosts is None:
-        return
+        raise typer.Exit(1)
 
     errors = run_task_with_progress(
         inventory=inventory,
@@ -167,7 +167,7 @@ def refresh(
     hosts = get_hosts_or_error(names)
 
     if hosts is None:
-        return
+        raise typer.Exit(1)
 
     # Start with discovery, if requested.
     # Displays a simple spinner with no ETA, and no progress bar.
@@ -267,7 +267,7 @@ def ping(
 
     if hosts is None:
         logger.error("No host(s) found, aborting")
-        return
+        raise typer.Exit(1)
 
     with Progress(
         transient=True,
@@ -301,6 +301,22 @@ def ping(
 
 @app.command()
 def status(
+    updates_only: Annotated[
+        bool,
+        typer.Option(
+            "-u",
+            "--updates-only",
+            help="Show only hosts with pending updates",
+        ),
+    ] = False,
+    security_only: Annotated[
+        bool,
+        typer.Option(
+            "-s",
+            "--security-only",
+            help="Show only hosts with pending security updates (implies --updates-only)",
+        ),
+    ] = False,
     names: Annotated[
         list[str] | None,
         typer.Argument(
@@ -315,6 +331,12 @@ def status(
     in the inventory, including their package update counts, their
     online status and whether or not the data is stale.
 
+    Output can be filtered to only show hosts with pending
+    updates or security updates. Filtering for security updates
+    implies filtering for updates as well.
+
+    No matches for filtering will exit with code 2.
+
     This is the main CLI UI for the inventory.
     """
     logger = logging.getLogger(__name__)
@@ -322,7 +344,24 @@ def status(
 
     hosts = get_hosts_or_error(names)
     if hosts is None:
-        return
+        raise typer.Exit(1)
+
+    # Apply filters and set table title based on active flags
+    # Note: security_only implies updates_only as they're a subset,
+    # so it effectively takes precedence here.
+    match (updates_only, security_only):
+        case (_, True):
+            table_suffix = "(security updates only)"
+            hosts = [host for host in hosts if host.security_updates]
+        case (True, False):
+            table_suffix = "(updates only)"
+            hosts = [host for host in hosts if host.updates]
+        case _:
+            table_suffix = "Overview"
+
+    if not hosts:
+        console.print(Panel.fit("No hosts matching requested criteria."))
+        raise typer.Exit(2)
 
     # Iterates through all hosts in the inventory and render a nice
     # Rich table with their properties and status
@@ -334,7 +373,7 @@ def status(
         "Updates",
         "Security",
         "Status",
-        title="Host Status Overview",
+        title=f"Host Status {table_suffix}",
         caption="* indicates stale data",
         caption_justify="right",
     )

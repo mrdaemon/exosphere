@@ -137,6 +137,17 @@ You can also select one or more specific hosts by providing their names as argum
 This will show the status for only those hosts, allowing you to focus on
 specific systems.
 
+You can also filter the output to only show hosts with available updates by
+using the ``--updates-only`` or ``--security-only`` flags:
+
+.. code-block:: exosphere
+
+   exosphere> inventory status --updates-only
+   exosphere> inventory status --security-only
+
+If this results in no hosts matching the criteria, Exosphere will print
+a message and exit with **code 2**.
+
 Viewing Host Details and Updates
 --------------------------------
 
