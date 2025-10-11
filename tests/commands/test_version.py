@@ -93,6 +93,24 @@ class TestVersionDefault:
         assert "check" in result.output
 
 
+class TestVersionDetails:
+    """Tests for the 'version details' command."""
+
+    def test_details_command_displays_environment_table(self):
+        """
+        Test that 'details' command displays environment information table.
+
+        Verifies that the command exits successfully and displays the expected
+        categories in the output.
+        """
+        result = runner.invoke(version.app, ["details"])
+
+        assert result.exit_code == 0
+        assert "Python" in result.output
+        assert "System" in result.output
+        assert "Exosphere" in result.output
+
+
 class TestVersionCheck:
     """Tests for the 'version check' command."""
 

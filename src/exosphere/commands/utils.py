@@ -8,11 +8,16 @@ Contains mostly wrappers around inventory and host retrieval,
 as well as display bits around task execution, errors and status.
 """
 
+import platform
+import sys
+
 import typer
+from rich import box
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress
+from rich.table import Table
 
 from exosphere import __version__, context
 from exosphere.inventory import Inventory
@@ -37,6 +42,72 @@ def print_version() -> None:
     console.print(
         f"[bold cyan]Exosphere[/bold cyan] version [bold green]{__version__}[/bold green]"
     )
+
+
+def print_environment() -> None:
+    """
+    Print the current environment (python version, venv, OS, etc) to stdout.
+    Used by the 'version' command with verbose switch for consistent output
+    formatting.
+    """
+    # Check if running in virtual environment
+    in_venv = hasattr(sys, "real_prefix") or (
+        hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+    )
+
+    venv_status = (
+        "[bold green]Yes[/bold green]" if in_venv else "[bold red]No[/bold red]"
+    )
+
+    venv_path = f"[dim]{sys.prefix}[/dim]" if in_venv else "[dim]N/A[/dim]"
+
+    # Create environment information table
+    # We don't really show any edges, but use SIMPLE_HEAD
+    # to delineate section ends for a cleaner look
+    table = Table(
+        show_header=False,
+        show_edge=False,
+        padding=(0, 1),
+        box=box.SIMPLE_HEAD,
+    )
+
+    # Add columns -- the headers are not shown
+    table.add_column("Category", style="bold blue")
+    table.add_column("Property", style="cyan")
+    table.add_column("Value", style="green")
+
+    # Exosphere information
+    table.add_row(
+        "Exosphere", "Version", f"[bold]{__version__}[/bold]", end_section=True
+    )
+
+    # Python information
+    table.add_row(
+        "Python",
+        "Version",
+        f"[bold]{platform.python_version()} ({platform.python_implementation()})[/bold]",
+    )
+    table.add_row("", "Bin", sys.executable)
+
+    if in_venv:
+        table.add_row("", "Venv", venv_status)
+        table.add_row("", "Venv Path", venv_path, end_section=True)
+    else:
+        table.add_row("", "Venv", venv_status, end_section=True)
+
+    # System information
+    table.add_row("System", "OS", f"{platform.system()} {platform.release()}")
+    table.add_row("", "Version", platform.version())
+    table.add_row("", "Machine", platform.machine())
+
+    processor = platform.processor()
+    if processor:
+        table.add_row("", "CPU", processor)
+
+    # Surround table with blank lines for implicit spacing
+    console.print()
+    console.print(table)
+    console.print()
 
 
 def get_inventory() -> Inventory:

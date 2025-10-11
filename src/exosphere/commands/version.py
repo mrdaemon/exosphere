@@ -14,7 +14,7 @@ from packaging.version import parse
 
 from exosphere import __version__, app_config
 
-from .utils import console, err_console, print_version
+from .utils import console, err_console, print_environment, print_version
 
 ROOT_HELP = """
 Version and Update Check Commands
@@ -46,6 +46,18 @@ def version_default(ctx: typer.Context) -> None:
     if ctx.invoked_subcommand is None:
         print_version()
         raise typer.Exit(0)
+
+
+@app.command()
+def details() -> None:
+    """
+    Show detailed version and environment information
+
+    Displays the currently installed version along with Python version,
+    virtual environment status, and operating system details.
+    """
+    print_environment()
+    raise typer.Exit(0)
 
 
 @app.command()
