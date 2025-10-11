@@ -105,7 +105,7 @@ class TestStatusCommand:
         result = runner.invoke(inventory_module.app, ["status"])
 
         assert "No hosts found in inventory." in result.output
-        assert result.exit_code == 1
+        assert result.exit_code == 2
 
     def test_with_specific_hosts(self, create_host, mock_inventory):
         """
@@ -370,7 +370,7 @@ class TestStatusCommand:
     def test_no_hosts_matching_criteria(self, create_host, mock_inventory):
         """
         Test status command when filters result in no matching hosts.
-        Should show a message and exit with code 2.
+        Should show a message and exit with code 3.
         """
         host_no_updates = create_host(name="host1", updates=[], security_updates=[])
 
@@ -378,7 +378,7 @@ class TestStatusCommand:
 
         result = runner.invoke(inventory_module.app, ["status", "--updates-only"])
 
-        assert result.exit_code == 2
+        assert result.exit_code == 3
         assert "No hosts matching requested criteria" in result.output
         assert "host1" not in result.output
 
@@ -585,7 +585,7 @@ class TestDiscoverCommand:
 
         result = runner.invoke(inventory_module.app, ["discover"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "No hosts found in inventory." in result.output
 
     @pytest.mark.parametrize(
@@ -729,7 +729,7 @@ class TestPingCommand:
 
         result = runner.invoke(inventory_module.app, ["ping"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         mock_get_hosts_or_error.assert_called_once_with(None)
         mock_inventory.run_task.assert_not_called()
 
@@ -972,7 +972,7 @@ class TestRefreshCommand:
 
         result = runner.invoke(inventory_module.app, ["refresh"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         mock_get_hosts_or_error.assert_called_once_with(None)
         mock_run_task_with_progress.assert_not_called()
 

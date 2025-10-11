@@ -68,7 +68,7 @@ def show(
             err_console.print(
                 f"[red]Option '{option}' not found in configuration.[/red]"
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1)  # Execution error
 
         return
 

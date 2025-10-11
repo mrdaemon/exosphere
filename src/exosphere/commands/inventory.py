@@ -83,7 +83,7 @@ def discover(
     hosts = get_hosts_or_error(names)
 
     if hosts is None:
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     errors = run_task_with_progress(
         inventory=inventory,
@@ -108,7 +108,7 @@ def discover(
             errors_table.add_row(host, f"[bold red]{error}[/bold red]")
 
         console.print(errors_table)
-        exit_code = 1
+        exit_code = 1  # Execution error
 
     if app_config["options"]["cache_autosave"]:
         save()
@@ -167,7 +167,7 @@ def refresh(
     hosts = get_hosts_or_error(names)
 
     if hosts is None:
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     # Start with discovery, if requested.
     # Displays a simple spinner with no ETA, and no progress bar.
@@ -233,7 +233,7 @@ def refresh(
 
         console.print(errors_table)
 
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1)  # Execution error
 
 
 @app.command()
@@ -267,7 +267,7 @@ def ping(
 
     if hosts is None:
         logger.error("No host(s) found, aborting")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     with Progress(
         transient=True,
@@ -296,7 +296,7 @@ def ping(
         save()
 
     if error_count > 0:
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1)  # Execution error
 
 
 @app.command()
@@ -335,16 +335,14 @@ def status(
     updates or security updates. Filtering for security updates
     implies filtering for updates as well.
 
-    No matches for filtering will exit with code 2.
-
-    This is the main CLI UI for the inventory.
+    No matches when filtering will exit with code 3.
     """
     logger = logging.getLogger(__name__)
     logger.info("Showing status of all hosts")
 
     hosts = get_hosts_or_error(names)
     if hosts is None:
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     # Apply filters and set table title based on active flags
     # Note: security_only implies updates_only as they're a subset,
@@ -361,7 +359,7 @@ def status(
 
     if not hosts:
         console.print(Panel.fit("No hosts matching requested criteria."))
-        raise typer.Exit(2)
+        raise typer.Exit(3)  # No matches for filtering
 
     # Iterates through all hosts in the inventory and render a nice
     # Rich table with their properties and status
@@ -465,7 +463,7 @@ def save() -> None:
                     style="bold red",
                 ),
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1)  # Execution error
 
     logger.debug("Inventory save operation completed")
 
@@ -498,7 +496,7 @@ def clear(
     inventory: Inventory = get_inventory()
     if not confirm:
         console.print("Inventory state has [bold]not[/bold] been cleared.")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     try:
         inventory.clear_state()
@@ -509,7 +507,7 @@ def clear(
                 style="bold red",
             )
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1)  # Execution error
     else:
         console.print(
             Panel.fit(

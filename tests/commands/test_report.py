@@ -227,8 +227,8 @@ class TestGenerateCommand:
     @pytest.mark.parametrize(
         "hosts,expected_exit_code",
         [
-            ("unsupported_hosts", 1),
-            (None, 1),
+            ("unsupported_hosts", 2),
+            (None, 2),
         ],
         ids=["no_supported_hosts", "host_lookup_failure"],
     )

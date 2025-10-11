@@ -143,7 +143,7 @@ class TestShowCommand:
         """
         result = runner.invoke(host_module.app, ["show", "not_test_host"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert not hasattr(mock_host, "discovered")
 
     def test_with_last_refresh_date(self, mock_host, patch_context_inventory):
@@ -174,7 +174,7 @@ class TestShowCommand:
             host_module.app, ["show", mock_host.name, "--no-updates", "--security-only"]
         )
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2  # Argument error
         assert (
             "Error: --security-only option is only valid with --updates"
             in result.output
@@ -245,7 +245,7 @@ class TestDiscoverCommand:
         """
         result = runner.invoke(host_module.app, ["discover", "not_test_host"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2  # Expect argument error
         assert not hasattr(mock_host, "discovered")
 
     def test_with_exception(self, mock_host, patch_context_inventory):
@@ -349,7 +349,7 @@ class TestRefreshCommand:
         """
         result = runner.invoke(host_module.app, ["refresh", "not_test_host"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
 
 
 class TestPingCommand:
@@ -360,7 +360,7 @@ class TestPingCommand:
         [
             (True, True, 0),
             (True, False, 0),
-            (False, None, 1),
+            (False, None, 2),
         ],
         ids=["exists_online", "exists_offline", "not_exists"],
     )

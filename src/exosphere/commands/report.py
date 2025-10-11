@@ -114,7 +114,7 @@ def generate(
 
     selected_hosts = get_hosts_or_error(hosts, supported_only=True)
     if selected_hosts is None:
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)  # Argument error
 
     # Record count of hosts involved in the report before
     # any kind of filtering. This is used by the report to
@@ -162,7 +162,7 @@ def generate(
         # This should never happen due to early validation
         err_console.print(f"[red]Internal Error: Unsupported format: {format}[/red]")
         err_console.print("This is a bug and should be reported.")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1)  # Execution error, technically
 
     content = render_method(
         selected_hosts,
@@ -178,7 +178,7 @@ def generate(
             output.write_text(content, encoding="utf-8")
         except Exception as e:
             err_console.print(f"[red]Failed to write to {output}: {e}[/red]")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1)  # Execution error
 
         if not tee and not quiet:
             err_console.print(

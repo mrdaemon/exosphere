@@ -154,7 +154,7 @@ class TestCheckCommand:
         Test that help is displayed when no host is specified.
         """
         result = runner.invoke(sudo.app, ["check", "testhost"])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Host 'testhost' not found in inventory!" in result.output
 
     def test_basic_check(self, mock_inventory, dummy_host):
@@ -231,7 +231,7 @@ class TestCheckCommand:
 
         result = runner.invoke(sudo.app, ["check", "dummy_host"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Host 'dummy_host' is not running a supported OS." in result.output
 
 
@@ -267,7 +267,7 @@ class TestProvidersCommand:
         """
         result = runner.invoke(sudo.app, ["providers", "unknown_provider"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "No such provider: unknown_provider" in result.output
 
     @pytest.mark.parametrize(
@@ -315,7 +315,7 @@ class TestGenerateCommand:
         """
         result = runner.invoke(sudo.app, ["generate"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "You must specify either --host or --provider" in result.output
 
     def test_host_and_provider_mutually_exclusive(
@@ -332,7 +332,7 @@ class TestGenerateCommand:
             sudo.app, ["generate", "--host", "dummy_host", "--provider", "apt"]
         )
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "--host and --provider are mutually exclusive" in result.output
 
     def test_with_host(self, mock_inventory, dummy_host, mock_pkgmanager_factory):
@@ -357,7 +357,7 @@ class TestGenerateCommand:
 
         result = runner.invoke(sudo.app, ["generate", "--host", "invalid_host"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Host 'invalid_host' not found in inventory!" in result.output
 
     def test_with_host_undiscovered(
@@ -372,7 +372,7 @@ class TestGenerateCommand:
 
         result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Host 'dummy_host' does not have a package manager" in result.output
 
     def test_with_host_unsupported(
@@ -387,7 +387,7 @@ class TestGenerateCommand:
 
         result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Host 'dummy_host' is not running a supported OS." in result.output
 
     def test_with_host_no_username_fallback(
@@ -464,7 +464,7 @@ class TestGenerateCommand:
 
         result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "No username could be selected" in result.output
 
     def test_with_username_provided_but_invalid(
@@ -481,7 +481,7 @@ class TestGenerateCommand:
             sudo.app, ["generate", "--host", "dummy_host", "--user", "invalid\\;;user!"]
         )
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Invalid username 'invalid\\;;user!'" in result.output
 
     @pytest.mark.parametrize(
@@ -517,7 +517,7 @@ class TestGenerateCommand:
         """
         result = runner.invoke(sudo.app, ["generate", "--provider", "unknown_provider"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "No such provider: unknown_provider" in result.output
 
     def test_with_provider_and_username(self, app_config, mock_pkgmanager_factory):
@@ -542,7 +542,7 @@ class TestGenerateCommand:
         """
         result = runner.invoke(sudo.app, ["generate", "--provider", "dnf"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 2
         assert "Provider 'dnf' does not require any sudo commands" in result.output
 
     def test_with_provider_no_sudo_commands_defined(self, mock_pkgmanager_factory):

@@ -146,7 +146,7 @@ using the ``--updates-only`` or ``--security-only`` flags:
    exosphere> inventory status --security-only
 
 If this results in no hosts matching the criteria, Exosphere will print
-a message and exit with **code 2**.
+a message and exit with **code 3**.
 
 Viewing Host Details and Updates
 --------------------------------
@@ -265,6 +265,28 @@ allowing you to run more targeted or specialized commands.
    logs, and includes a nice built-in scrollable viewer.
 
 For more details on the TUI, continue on to the :doc:`ui` page.
+
+Return Codes
+------------
+
+Exosphere uses specific return codes to indicate the outcome of commands.
+Key return codes are typically:
+
+- **0**: Success - The command completed successfully without any issues.
+- **1**: Execution Error - An error occurred during the execution of the command.
+- **2**: Argument Error - There was an issue with the provided arguments or options.
+- **3**: Special - A condition was met, not necessarily an error
+
+The special return code (3) is used very deliberately and is intended to
+assist with scripting and automation, where you need to differentiate between
+errors and specific conditions.
+
+For instance, ``exosphere version check`` will return 3 if updates are available,
+and the various ``--updates-only`` filters on ``inventory status`` will also
+return 3 if no hosts matched what you requested.
+
+Commands returning 3 will typically inform you of the meaning in their
+help text.
 
 Beyond the Basics
 -----------------

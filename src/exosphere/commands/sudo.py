@@ -40,7 +40,7 @@ def _get_inventory():
         err_console.print(
             "[red]Inventory is not initialized! Are you running this module directly?[/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1)  # Execution error
 
     return context.inventory
 
@@ -132,7 +132,7 @@ def _get_username(user: str | None, host: Host | None = None) -> str:
             "[red]No username could be selected. "
             "Please provide --user or ensure host configuration is correct.[/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     # Validate username
     if not result.replace("-", "").replace("_", "").isalnum():
@@ -140,7 +140,7 @@ def _get_username(user: str | None, host: Host | None = None) -> str:
             f"[red]Invalid username '{result}'. "
             "Username must contain only alphanumeric characters, hyphens, and underscores.[/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     return result
 
@@ -175,12 +175,12 @@ def check(
 
     if not target_host:
         err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     # We cannot check unsupported hosts, as they don't have providers.
     if not target_host.supported:
         err_console.print(f"[red]Host '{host}' is not running a supported OS.[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     # Collect sudo policies
     host_policy: SudoPolicy = target_host.sudo_policy
@@ -193,7 +193,7 @@ def check(
             f"Host '{host}' does not have a package manager defined in the inventory."
             " Ensure discovery has been run on the host at least once!"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1)  # Execution error
 
     # Get the package manager class from the factory registry
     # We get the raw class to inspect, and do not need/want an instance
@@ -203,7 +203,7 @@ def check(
             f"[red]Host '{host}' has an unknown package manager: {host_pkg_manager_name}[/red]"
             " This is likely a bug and should be reported."
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1)  # Execution error
 
     # Gather sudo policy checks
     can_reposync = check_sudo_policy(host_pkg_manager.reposync, host_policy)
@@ -284,7 +284,7 @@ def providers(
 
     if name and name not in provider_infos:
         err_console.print(f"[red]No such provider: {name}")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     target_providers = [provider_infos[name]] if name else list(provider_infos.values())
 
@@ -347,11 +347,11 @@ def generate(
             "[red]You must specify either --host or --provider.[/red]\n"
             "Use --help for more information."
         )
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     if host and provider:
         err_console.print("[red]--host and --provider are mutually exclusive.[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     inventory = _get_inventory()
     provider_infos = _get_provider_infos()
@@ -364,14 +364,14 @@ def generate(
         target_host = inventory.get_host(host)
         if not target_host:
             err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(2)  # Argument error
 
         # We can't generate anything for unsupported hosts.
         if not target_host.supported:
             err_console.print(
                 f"[red]Host '{host}' is not running a supported OS.[/red]"
             )
-            raise typer.Exit(1)
+            raise typer.Exit(2)  # Argument error
 
         target_provider_name = target_host.package_manager
         if not target_provider_name:
@@ -381,7 +381,7 @@ def generate(
                 "Ensure discovery has been run on the host at least once, "
                 "or specify [cyan]--provider[/cyan]."
             )
-            raise typer.Exit(1)
+            raise typer.Exit(2)  # Argument error
 
         target_provider_info = provider_infos.get(target_provider_name)
         target_user = _get_username(
@@ -397,7 +397,7 @@ def generate(
 
     if not target_provider_info:
         err_console.print(f"[red]No such provider: {target_provider_name}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Argument error
 
     something_requires_sudo = (
         target_provider_info.reposync_requires_sudo
@@ -410,7 +410,7 @@ def generate(
             f"Provider '{target_provider_name}' does not require any sudo commands.\n"
             "No additional configuration needed - all operations can run as-is."
         )
-        raise typer.Exit(0)
+        raise typer.Exit(2)  # Argument error
 
     # Abort with failure if provider does not define any sudo commands
     if not target_provider_info.sudo_commands:
@@ -418,7 +418,7 @@ def generate(
             f"[red]Provider '{target_provider_name}' does not define any sudo commands![/red]\n"
             "Can't generate: This is a bug in the provider and should be reported."
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1)  # Execution error, technically
 
     # generate the sudoers config snippet with the commands from provider.SUDOERS_COMMANDS
     # and the target username

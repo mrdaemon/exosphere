@@ -92,7 +92,7 @@ def test_ui_webstart_without_extras(mocker, caplog, monkeypatch) -> None:
 
     result = runner.invoke(sub_ui_cli, ["webstart"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     mock_console.assert_called_with(stderr=True)
     assert (
         "not installed" in result.output.lower()

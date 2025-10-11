@@ -126,7 +126,7 @@ def get_inventory() -> Inventory:
             "Inventory is not initialized, are you running this module directly?",
             err=True,
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1)  # Execution error
 
     return context.inventory
 

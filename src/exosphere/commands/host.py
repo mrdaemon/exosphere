@@ -169,14 +169,14 @@ def show(
     """
     host = get_host_or_error(name)
     if host is None:
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)  # Argument error
 
     # Validate options
     if not include_updates and security_only:
         err_console.print(
             "[red]Error: --security-only option is only valid with --updates.[/red]"
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)  # Argument error
 
     # Display main host information panel
     panel_content = _make_host_panel_content(host)
@@ -216,7 +216,7 @@ def discover(
     host = get_host_or_error(name)
 
     if host is None:
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)  # Argument error
 
     with Progress(*SPINNER_PROGRESS_ARGS) as progress:
         progress.add_task(f"Discovering platform for '{host.name}'", total=None)
@@ -231,7 +231,7 @@ def discover(
                     title_align="left",
                 )
             )
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1)  # Execution error
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()
@@ -256,7 +256,7 @@ def refresh(
     host = get_host_or_error(name)
 
     if host is None:
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)  # Argument error
 
     with Progress(transient=True, *SPINNER_PROGRESS_ARGS) as progress:
         if discover:
@@ -275,7 +275,7 @@ def refresh(
                     )
                 )
                 progress.stop_task(task)
-                raise typer.Exit(code=1)
+                raise typer.Exit(code=1)  # Execution error
 
             progress.stop_task(task)
 
@@ -295,7 +295,7 @@ def refresh(
                     )
                 )
                 progress.stop_task(task)
-                raise typer.Exit(code=1)
+                raise typer.Exit(code=1)  # Execution error
 
             progress.stop_task(task)
 
@@ -312,7 +312,7 @@ def refresh(
                 )
             )
             progress.stop_task(task)
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1)  # Execution error
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()
@@ -333,7 +333,7 @@ def ping(
     host = get_host_or_error(name)
 
     if host is None:
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)  # Argument error
 
     if host.ping():
         console.print(

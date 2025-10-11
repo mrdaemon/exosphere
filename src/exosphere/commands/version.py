@@ -132,12 +132,12 @@ def check(
     except URLError as e:
         err_console.print(f"[red]Error:[/red] Failed to check for updates: {e}")
         err_console.print("[yellow]Please check internet connectivity.[/yellow]")
-        raise typer.Exit(1)
+        raise typer.Exit(1)  # Execution error
     except KeyError as e:
         err_console.print(
             f"[red]Error:[/red] Unexpected response from PyPI API (missing key: {e})"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1)  # Execution error
     except Exception as e:
         err_console.print(f"[red]Error:[/red] Failed to check for updates: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1)  # Execution error

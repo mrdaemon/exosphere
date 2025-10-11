@@ -45,7 +45,7 @@ def webstart() -> None:
             "The Exosphere Web UI component is not installed. "
             r"Please install 'exosphere-cli\[web]' to use this feature."
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=2)  # Argument error
     else:
         logger.info("Starting Exosphere Web UI Server")
         server = Server(command="exosphere ui start")
