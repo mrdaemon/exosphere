@@ -81,7 +81,7 @@ def check(
             "[yellow]Update checks are disabled via configuration.[/yellow]\n"
             "Updates may be managed by your package manager or system administrator."
         )
-        raise typer.Exit(0)
+        raise typer.Exit(1)
 
     if verbose:
         console.print(f"Current version: [cyan]{current_version}[/cyan]")

@@ -220,7 +220,7 @@ class TestVersionCheck:
 
         mock_urlopen.assert_not_called()
         assert "disabled" in result.output.lower()
-        assert result.exit_code == 0
+        assert result.exit_code == 1
 
     def test_check_timeout(
         self, mock_urlopen, mock_version, app_config, create_pypi_response
