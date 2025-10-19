@@ -208,7 +208,7 @@ class InventoryScreen(Screen):
 
     BINDINGS = [
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
-        ("ctrl+x", "sync_repos_all", "Sync Repos"),
+        ("ctrl+x", "sync_and_refresh_all", "Sync & Refresh"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -332,15 +332,19 @@ class InventoryScreen(Screen):
             save_state=True,
         )
 
-    def action_sync_repos_all(self) -> None:
-        """Action to sync repositories for all hosts."""
+    def action_sync_and_refresh_all(self) -> None:
+        """Action to sync repositories and refresh updates for all hosts."""
+
+        def sync_callback(_):
+            """Callback to refresh updates after sync is complete"""
+            self.action_refresh_updates_all()
 
         self._run_task(
             taskname="sync_repos",
             message="Syncing repositories for all hosts.\nThis may take a long time!",
             no_hosts_message="No hosts available to sync repositories.",
             save_state=False,  # Syncing repos does not affect state
-            callback=lambda _: None,  # No need to flag screens dirty
+            callback=sync_callback,
         )
 
     def _populate_table(self, table: DataTable, hosts: list[Host]):
