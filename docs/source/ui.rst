@@ -119,7 +119,13 @@ The Inventory screen provides a detailed view of all the hosts in your inventory
 The following operations can be performed from the Inventory screen:
 
 - **Refresh Updates**: Press `ctrl+r` to refresh the updates for all hosts.
-- **Sync Repos**: Press ``ctrl+x`` to sync the package repositories on all hosts.
+- **Sync & Refresh**: Press `ctrl+x` to sync the repositories and refresh updates
+  for all hosts.
+
+.. admonition:: Note
+
+   Syncing repositories may take a long time depending on inventory size and
+   host specifications.
 
 It functions almost identically to the ``inventory status`` command in the CLI,
 but it allows you to navigate the rows with the Arrow Keys.
