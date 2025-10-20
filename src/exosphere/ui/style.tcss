@@ -33,6 +33,12 @@ ErrorScreen {
     background: black 60%;
 }
 
+FilterScreen {
+    layout: vertical;
+    align: center middle;
+    background: black 60%;
+}
+
 # Dashboard Components
 #hosts-scroll {
     padding: 0;
@@ -213,6 +219,48 @@ ErrorScreen {
     height: auto;
     min-width: 40;
     max-width: 80;
+}
+
+# Filter message box
+.filter-message {
+    background: gray 30%;
+    padding: 2;
+    border: hkey $primary-darken-1;
+    width: 50;
+    height: auto;
+    layout: vertical;
+}
+
+# Filter center container
+#filter-center {
+    width: auto;
+    height: auto;
+}
+
+# Filter container
+#filter-container {
+    width: auto;
+}
+
+# Filter screen title
+#filter-title {
+    text-align: center;
+    text-style: bold;
+    width: 100%;
+    margin-bottom: 2;
+}
+
+# Filter list view
+#filter-list {
+    width: auto;
+    height: auto;
+    margin-bottom: 1;
+}
+
+# Filter help text
+#filter-help {
+    text-align: center;
+    margin-top: 2;
 }
 
 .error-message Center {

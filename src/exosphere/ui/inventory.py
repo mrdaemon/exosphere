@@ -14,7 +14,7 @@ from textual.widgets import DataTable, Footer, Header, Label
 from exosphere import context
 from exosphere.objects import Host, Update
 from exosphere.ui.context import screenflags
-from exosphere.ui.elements import ErrorScreen, ProgressScreen
+from exosphere.ui.elements import ErrorScreen, FilterMode, FilterScreen, ProgressScreen
 from exosphere.ui.messages import HostStatusChanged
 
 logger = logging.getLogger("exosphere.ui.inventory")
@@ -209,7 +209,13 @@ class InventoryScreen(Screen):
     BINDINGS = [
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
         ("ctrl+x", "sync_and_refresh_all", "Sync & Refresh"),
+        ("ctrl+f", "filter_view", "Filter View"),
     ]
+
+    def __init__(self) -> None:
+        """Initialize the inventory screen."""
+        super().__init__()
+        self.current_filter: FilterMode = FilterMode.NONE
 
     def compose(self) -> ComposeResult:
         """Compose the inventory layout."""
@@ -231,7 +237,8 @@ class InventoryScreen(Screen):
         self.title = "Exosphere"
         self.sub_title = "Inventory Management"
 
-        hosts = context.inventory.hosts if context.inventory else []
+        # On mount, the filter should be All Hosts
+        hosts = self._get_filtered_hosts()
 
         if not hosts:
             logger.warning("Inventory is empty.")
@@ -300,11 +307,22 @@ class InventoryScreen(Screen):
             )
             return
 
-        hosts = context.inventory.hosts if context.inventory else []
+        # Get filtered hosts based on current filter mode
+        hosts = self._get_filtered_hosts()
 
         if not hosts:
-            logger.warning("No hosts available to update rows.")
-            self.app.push_screen(ErrorScreen("No hosts available to update rows."))
+            logger.warning("No hosts match the current filter.")
+            # Still show empty table rather than error
+            table = self.query_one(DataTable)
+            table.clear(columns=False)
+
+            filter_msg = ""
+            if self.current_filter != FilterMode.NONE:
+                filter_msg = f" (filter: {self.current_filter.value})"
+
+            self.app.notify(
+                f"No hosts match current filter{filter_msg}.", title="No Results"
+            )
             return
 
         table = self.query_one(DataTable)
@@ -312,7 +330,7 @@ class InventoryScreen(Screen):
         # Clear table but keep columns
         table.clear(columns=False)
 
-        # Repopulate
+        # Repopulate with filtered hosts
         self._populate_table(table, hosts)
 
         if task:
@@ -320,7 +338,16 @@ class InventoryScreen(Screen):
         else:
             logger.debug("Updated data table.")
 
-        self.app.notify("Table data refreshed successfully.", title="Refresh Complete")
+        # Customize notification based on filter
+        if self.current_filter == FilterMode.NONE:
+            self.app.notify(
+                "Table data refreshed successfully.", title="Refresh Complete"
+            )
+        else:
+            self.app.notify(
+                f"Table refreshed. Showing {len(hosts)} host(s) with filter: {self.current_filter.value}",
+                title="Refresh Complete",
+            )
 
     def action_refresh_updates_all(self) -> None:
         """Action to refresh updates for all hosts."""
@@ -346,6 +373,58 @@ class InventoryScreen(Screen):
             save_state=False,  # Syncing repos does not affect state
             callback=sync_callback,
         )
+
+    def action_filter_view(self) -> None:
+        """Action to filter the inventory view."""
+
+        if not getattr(context.inventory, "hosts", []):
+            self.app.push_screen(ErrorScreen("No hosts available to filter."))
+            return
+
+        def handle_filter_selection(filter_mode: FilterMode | None) -> None:
+            """Callback to handle filter selection"""
+            if filter_mode is not None:
+                self.current_filter = filter_mode
+                self.refresh_rows("filter")
+                logger.info(f"Applied filter: {filter_mode.value}")
+
+        self.app.push_screen(FilterScreen(), handle_filter_selection)
+
+    def _get_filtered_hosts(self) -> list[Host]:
+        """
+        Get the list of hosts based on the current filter.
+
+        Returns:
+            Filtered list of hosts according to current_filter setting.
+        """
+        inventory = context.inventory
+        if not inventory:
+            return []
+
+        all_hosts = inventory.hosts
+
+        match self.current_filter:
+            case FilterMode.NONE:
+                return all_hosts
+            case FilterMode.UPDATES_ONLY:
+                return [
+                    host
+                    for host in all_hosts
+                    if host.supported and host.updates and len(host.updates) > 0
+                ]
+            case FilterMode.SECURITY_ONLY:
+                return [
+                    host
+                    for host in all_hosts
+                    if host.supported
+                    and host.security_updates
+                    and len(host.security_updates) > 0
+                ]
+            case _:
+                logger.warning(
+                    f"Unknown filter mode: {self.current_filter}, returning all hosts."
+                )
+                return all_hosts
 
     def _populate_table(self, table: DataTable, hosts: list[Host]):
         """Populate given table with host data"""
