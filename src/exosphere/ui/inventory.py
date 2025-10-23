@@ -241,7 +241,7 @@ class InventoryScreen(Screen):
         self.sub_title = "Inventory Management"
 
         # On mount, the filter should be All Hosts
-        hosts = self._get_filtered_hosts()
+        hosts = self.get_filtered_hosts()
 
         if not hosts:
             logger.warning("Inventory is empty.")
@@ -312,7 +312,7 @@ class InventoryScreen(Screen):
             return
 
         # Get filtered hosts based on current filter mode
-        hosts = self._get_filtered_hosts()
+        hosts = self.get_filtered_hosts()
 
         if not hosts:
             logger.warning("No hosts match the current filter.")
@@ -428,12 +428,9 @@ class InventoryScreen(Screen):
         # Separator is double space for now
         label.update("  ".join(parts))
 
-    def _get_filtered_hosts(self) -> list[Host]:
+    def get_filtered_hosts(self) -> list[Host]:
         """
-        Get the list of hosts based on the current filter.
-
-        Returns:
-            Filtered list of hosts according to current_filter setting.
+        Get hosts from inventory matching the current filter.
         """
         inventory = context.inventory
         if not inventory:
