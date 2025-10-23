@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 
 from textual.app import ComposeResult
-from textual.containers import Container, Vertical
+from textual.containers import Container, Grid, Vertical
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Label
 
@@ -231,7 +231,11 @@ class InventoryScreen(Screen):
         else:
             with Vertical(id="inventory-container"):
                 yield DataTable(id="inventory-table")
-                yield Label("", id="inventory-info", classes="inventory-info")
+                with Grid(id="inventory-info-bar", classes="inventory-info"):
+                    yield Label("", id="inventory-spacer")
+                    yield Label("", id="inventory-filter-label")
+                    yield Label("│", id="inventory-separator")
+                    yield Label("* indicates stale data", id="inventory-stale-label")
 
         yield Footer()
 
@@ -264,7 +268,7 @@ class InventoryScreen(Screen):
         table.add_columns(*COLUMNS)
 
         self._populate_table(table, hosts)
-        self._update_info_label()
+        self._update_status_bar()
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the data table."""
@@ -392,41 +396,35 @@ class InventoryScreen(Screen):
             if filter_mode is not None:
                 self.current_filter = filter_mode
                 self.refresh_rows("filter")
-                self._update_info_label()
+                self._update_status_bar()
                 logger.info(f"Applied filter: {filter_mode.value}")
 
         self.app.push_screen(FilterScreen(), handle_filter_selection)
 
-    def _update_info_label(self) -> None:
+    def _update_status_bar(self) -> None:
         """
         Update the inventory info status bar below.
 
-        Normally will contain the stale data helper, but will also
+        Normally will contain the stale data helper text, but will also
         display any applied filters to inform the user that they are
         viewing a partial table.
+
+        Future status elements (if relevant) can also be updated here.
         """
         try:
-            label = self.query_one("#inventory-info", Label)
+            filter_label = self.query_one("#inventory-filter-label", Label)
         except Exception:
-            logger.error("Info label not found, this is unexpected and likely a bug.")
+            logger.error("Filter label not found, this is unexpected and likely a bug.")
             return
 
-        parts = []
-
-        # Stale indicator helper is always shown
-        parts.append("[dim]* indicates stale data[/dim]")
-
-        # Add filter info if active (using $warning design token)
-        # Doing individual labels would be better for TCSS styling, but
-        # ultimately we're just joining a string here, for simplicity.
+        # Update filter label based on current filter
         match self.current_filter:
+            case FilterMode.NONE:
+                filter_label.update("")
             case FilterMode.UPDATES_ONLY:
-                parts.append("[$text-warning]Filtered: Updates Only[/]")
+                filter_label.update("Filtered: Updates Only")
             case FilterMode.SECURITY_ONLY:
-                parts.append("[$text-warning]Filtered: Security Updates Only[/]")
-
-        # Separator is double space for now
-        label.update("  ".join(parts))
+                filter_label.update("Filtered: Security Updates Only")
 
     def get_filtered_hosts(self) -> list[Host]:
         """
