@@ -36,7 +36,7 @@ class HostDetailsPanel(Screen):
             len(self.host.security_updates) if self.host.security_updates else 0
         )
         security_updates: str = (
-            f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
+            f"[$text-warning]{sec_count}[/]" if sec_count > 0 else str(sec_count)
         )
 
         platform: str
@@ -77,7 +77,7 @@ class HostDetailsPanel(Screen):
                     id="host-last-updated",
                 ),
                 Label(
-                    f"[i]Stale:[/i]\n  {'[red]Yes[/red] - Consider refreshing' if self.host.is_stale else 'No'}",
+                    f"[i]Stale:[/i]\n  {'[$text-warning]Yes[/] - Consider refreshing' if self.host.is_stale else 'No'}",
                     id="host-stale",
                 ),
                 Label(
@@ -118,6 +118,7 @@ class HostDetailsPanel(Screen):
 
         # Populate the updates table with available updates
         for update in update_list:
+            # Inline TCSS does not seem to work here, so we hardcode red.
             updates_table.add_row(
                 f"[red]{update.name}[/red]" if update.security else update.name
             )
@@ -177,14 +178,14 @@ class UpdateDetailsPanel(Screen):
             Label(f"[i]Package:[/i] {self.update.name}", id="update-name"),
             Label("[i]Version Change:[/i]", id="update-version-change"),
             Label(
-                f"  [yellow]{self.update.current_version or '(NEW)'}[/yellow] → [green]{self.update.new_version}[/green]",
+                f"  [$text-warning]{self.update.current_version or '(NEW)'}[/] → [$text-success]{self.update.new_version}[/]",
                 id="update-version",
             ),
             Label(
                 f"[i]Source[/i]: {self.update.source or '(N/A)'}", id="update-source"
             ),
             Label(
-                f"[i]Security update[/i]: {'[red]Yes[/red]' if self.update.security else 'No'}",
+                f"[i]Security update[/i]: {'[$text-error]Yes[/]' if self.update.security else 'No'}",
                 id="update-security",
             ),
             Label("Press ESC to close", id="close-instruction"),
@@ -209,7 +210,7 @@ class InventoryScreen(Screen):
     BINDINGS = [
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
         ("ctrl+x", "sync_and_refresh_all", "Sync & Refresh"),
-        ("ctrl+f", "filter_view", "Filter View"),
+        ("ctrl+f", "filter_view", "Filter"),
     ]
 
     def __init__(self) -> None:
@@ -228,7 +229,9 @@ class InventoryScreen(Screen):
                 with Container(id="empty-container"):
                     yield Label("No hosts in inventory.", classes="empty-message")
         else:
-            yield DataTable(id="inventory-table")
+            with Vertical(id="inventory-container"):
+                yield DataTable(id="inventory-table")
+                yield Label("", id="inventory-info", classes="inventory-info")
 
         yield Footer()
 
@@ -261,6 +264,7 @@ class InventoryScreen(Screen):
         table.add_columns(*COLUMNS)
 
         self._populate_table(table, hosts)
+        self._update_info_label()
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the data table."""
@@ -321,7 +325,9 @@ class InventoryScreen(Screen):
                 filter_msg = f" (filter: {self.current_filter.value})"
 
             self.app.notify(
-                f"No hosts match current filter{filter_msg}.", title="No Results"
+                f"No hosts match current filter{filter_msg}.",
+                title="No Results",
+                severity="error",
             )
             return
 
@@ -345,7 +351,7 @@ class InventoryScreen(Screen):
             )
         else:
             self.app.notify(
-                f"Table refreshed. Showing {len(hosts)} host(s) with filter: {self.current_filter.value}",
+                f"Showing {len(hosts)} host(s) with filter: {self.current_filter.value}",
                 title="Refresh Complete",
             )
 
@@ -386,9 +392,41 @@ class InventoryScreen(Screen):
             if filter_mode is not None:
                 self.current_filter = filter_mode
                 self.refresh_rows("filter")
+                self._update_info_label()
                 logger.info(f"Applied filter: {filter_mode.value}")
 
         self.app.push_screen(FilterScreen(), handle_filter_selection)
+
+    def _update_info_label(self) -> None:
+        """
+        Update the inventory info status bar below.
+
+        Normally will contain the stale data helper, but will also
+        display any applied filters to inform the user that they are
+        viewing a partial table.
+        """
+        try:
+            label = self.query_one("#inventory-info", Label)
+        except Exception:
+            logger.error("Info label not found, this is unexpected and likely a bug.")
+            return
+
+        parts = []
+
+        # Stale indicator helper is always shown
+        parts.append("[dim]* indicates stale data[/dim]")
+
+        # Add filter info if active (using $warning design token)
+        # Doing individual labels would be better for TCSS styling, but
+        # ultimately we're just joining a string here, for simplicity.
+        match self.current_filter:
+            case FilterMode.UPDATES_ONLY:
+                parts.append("[$text-warning]Filtered: Updates Only[/]")
+            case FilterMode.SECURITY_ONLY:
+                parts.append("[$text-warning]Filtered: Security Updates Only[/]")
+
+        # Separator is double space for now
+        label.update("  ".join(parts))
 
     def _get_filtered_hosts(self) -> list[Host]:
         """

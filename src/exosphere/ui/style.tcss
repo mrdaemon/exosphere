@@ -175,9 +175,24 @@ FilterScreen {
 }
 
 # Inventory Components
-#inventory-table {
+#inventory-container {
     width: 100%;
     height: 100%;
+}
+
+#inventory-table {
+    width: 100%;
+    height: 1fr;
+}
+
+.inventory-info {
+    width: 100%;
+    height: auto;
+    text-align: right;
+    text-style: italic;
+    padding: 0 1;
+    background: $panel;
+    dock: bottom;
 }
 
 # Message Boxes

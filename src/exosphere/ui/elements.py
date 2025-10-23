@@ -4,8 +4,8 @@ Common UI Elements Module
 This module defines common UI elements used across the Exosphere TUI
 application, such as error screens and progress screens.
 
-These elements are responsible for display errors and initiating tasks
-while presenting their progress to the user.
+These elements are responsible for displaying errors, initiating tasks
+while presenting progress or asking input from the user.
 
 The Task Dispatch logic for UI Screens is implemented here.
 """
@@ -43,7 +43,13 @@ class FilterScreen(Screen):
     Screen for filtering hosts
 
     Presents a UI for filtering hosts in the inventory view based on
-    various criteria. (To be implemented)
+    various criteria.
+
+    Returns the selected FilterMode enum value on selection or None
+    on dismissal.
+
+    Currently only used by the Inventory Screen, but intended to be
+    reusable elsewhere in the TUI.
     """
 
     CSS_PATH = "style.tcss"
