@@ -223,7 +223,7 @@ class HostDetailsPanel(Screen):
         update_display_name = str(row_data[0])  # First column
         update_name = re.sub(r"\[/?[^\]]*\]", "", update_display_name)
 
-        logger.debug(f"Selected update name: {update_name}")
+        logger.debug("Selected update name: %s", update_name)
 
         if not self.host:
             logger.error("Host is not initialized, cannot select update.")
@@ -235,13 +235,13 @@ class HostDetailsPanel(Screen):
         )
 
         if update is None:
-            logger.error(f"Update not found for host '{self.host.name}'.")
+            logger.error("Update not found for host '%s'.", self.host.name)
             self.app.push_screen(
                 ErrorScreen(f"Update not found for host '{self.host.name}'.")
             )
             return
 
-        logger.debug(f"Selected update: {update.name}")
+        logger.debug("Selected update: %s", update.name)
         self.app.push_screen(
             UpdateDetailsPanel(update),
         )
@@ -371,13 +371,13 @@ class InventoryScreen(Screen):
         host = context.inventory.get_host(host_name)
 
         if host is None:
-            logger.error(f"Host '{host_name}' not found in inventory.")
+            logger.error("Host '%s' not found in inventory.", host_name)
             self.app.push_screen(
                 ErrorScreen(f"Host '{host_name}' not found in inventory.")
             )
             return
 
-        logger.debug(f"Selected host: {host}")
+        logger.debug("Selected host: %s", host)
         self.app.push_screen(
             HostDetailsPanel(host),
         )
@@ -481,7 +481,7 @@ class InventoryScreen(Screen):
                 self.current_filter = filter_mode
                 self.refresh_rows("filter")
                 self._update_status_bar()
-                logger.info(f"Applied filter: {filter_mode.value}")
+                logger.info("Applied filter: %s", filter_mode)
 
         self.app.push_screen(FilterScreen(), handle_filter_selection)
 

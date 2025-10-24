@@ -47,9 +47,9 @@ class ScreenFlagsRegistry:
         for screen in screen_name:
             if screen not in self.registered_screens:
                 self.registered_screens.append(screen)
-                self.logger.debug(f"Registered screen: {screen}")
+                self.logger.debug("Registered screen: %s", screen)
             else:
-                self.logger.warning(f"Screen '{screen}' is already registered.")
+                self.logger.warning("Screen '%s' is already registered.", screen)
 
     def flag_screen_dirty(self, *screen_name: str) -> None:
         """
@@ -63,7 +63,7 @@ class ScreenFlagsRegistry:
                 )
                 continue
 
-            self.logger.debug(f"Flagging screen '{screen}' as dirty.")
+            self.logger.debug("Flagging screen '%s' as dirty.", screen)
             self.dirty_screens[screen] = True
 
     def flag_screen_clean(self, *screen_name: str) -> None:
@@ -72,7 +72,7 @@ class ScreenFlagsRegistry:
         """
         for screen in screen_name:
             if screen in self.dirty_screens:
-                self.logger.debug(f"Flagging screen '{screen}' as clean.")
+                self.logger.debug("Flagging screen '%s' as clean.", screen)
                 del self.dirty_screens[screen]
 
     def flag_screen_dirty_except(self, current_screen: str) -> None:

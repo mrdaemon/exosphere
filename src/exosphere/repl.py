@@ -176,7 +176,7 @@ class ExosphereREPL:
             return FileHistory(str(history_file))
         except Exception as e:
             # Fallback to in-memory history if file operations fail
-            logger.warning(f"Could not setup persistent history: {e}")
+            logger.warning("Could not setup persistent history: %s", e)
             logger.warning("REPL is falling back to in-memory history")
 
             from prompt_toolkit.history import InMemoryHistory

@@ -170,7 +170,7 @@ class DashboardScreen(Screen):
     def refresh_hosts(self, task: str | None = None) -> None:
         """Refresh the host widgets."""
         if task:
-            logger.debug(f"Refreshing host widgets after task: {task}")
+            logger.debug("Refreshing host widgets after task: %s", task)
         else:
             logger.debug("Refreshing host widgets")
 

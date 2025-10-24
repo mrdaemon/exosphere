@@ -157,7 +157,7 @@ class ProgressScreen(Screen):
                 logger.warning("Task was cancelled, stopping progress update.")
                 break
 
-        logger.info(f"Finished running {self.taskname} on all hosts.")
+        logger.info("Finished running %s on all hosts.", self.taskname)
 
         # Attempt to serialize state to database if autosave is enabled
         # Unless whatever pushed the screen requested otherwise.
