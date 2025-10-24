@@ -15,8 +15,7 @@ from textual.widgets import DataTable
 from exosphere import context
 from exosphere.data import Update
 from exosphere.objects import Host
-from exosphere.ui.elements import FilterMode, FilterScreen
-from exosphere.ui.inventory import InventoryScreen
+from exosphere.ui.inventory import FilterMode, FilterScreen, InventoryScreen
 
 
 @pytest.fixture

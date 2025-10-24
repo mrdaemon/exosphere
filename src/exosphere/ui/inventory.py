@@ -5,19 +5,103 @@ Inventory Screen Module
 import logging
 import re
 from collections.abc import Callable
+from enum import StrEnum
 
 from textual.app import ComposeResult
-from textual.containers import Container, Grid, Vertical
+from textual.containers import Center, Container, Grid, Vertical
+from textual.events import Key
 from textual.screen import Screen
-from textual.widgets import DataTable, Footer, Header, Label
+from textual.widgets import DataTable, Footer, Header, Label, ListItem, ListView
 
 from exosphere import context
 from exosphere.objects import Host, Update
 from exosphere.ui.context import screenflags
-from exosphere.ui.elements import ErrorScreen, FilterMode, FilterScreen, ProgressScreen
+from exosphere.ui.elements import ErrorScreen, ProgressScreen
 from exosphere.ui.messages import HostStatusChanged
 
 logger = logging.getLogger("exosphere.ui.inventory")
+
+
+class FilterMode(StrEnum):
+    """
+    Filter modes for inventory FilterScreen
+    """
+
+    NONE = "All Hosts"
+    UPDATES_ONLY = "Updates"
+    SECURITY_ONLY = "Security Updates"
+
+
+class FilterScreen(Screen):
+    """
+    Screen for filtering hosts in the inventory view
+
+    Presents a UI for filtering hosts in the inventory view based on
+    various criteria.
+
+    Returns the selected FilterMode enum value on selection or None
+    on dismissal.
+    """
+
+    CSS_PATH = "style.tcss"
+
+    def compose(self) -> ComposeResult:
+        yield Center(
+            Container(
+                Label("Filter Inventory View", id="filter-title"),
+                ListView(
+                    ListItem(Label("Show [u]A[/u]ll"), id="filter-none"),
+                    ListItem(Label("[u]U[/u]pdates Only"), id="filter-updates"),
+                    ListItem(
+                        Label("[u]S[/u]ecurity Updates Only"), id="filter-security"
+                    ),
+                    id="filter-list",
+                    initial_index=0,
+                ),
+                Label(
+                    "[dim]↑/↓, Enter to select, ESC to cancel[/dim]",
+                    id="filter-help",
+                ),
+                classes="filter-message",
+            ),
+            id="filter-center",
+        )
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        """
+        Handle list item selection
+        Map to FilterMode enum and dismiss screen with value
+        """
+        item_id = event.item.id
+
+        # If something went terribly wrong, abort early.
+        if not item_id:
+            logger.warning("Selected item has no ID, cannot process filter selection!")
+            return
+
+        filter_map = {
+            "filter-none": FilterMode.NONE,
+            "filter-updates": FilterMode.UPDATES_ONLY,
+            "filter-security": FilterMode.SECURITY_ONLY,
+        }
+
+        selected_filter = filter_map.get(item_id)
+        self.dismiss(selected_filter)
+        event.stop()
+
+    def on_key(self, event: Key) -> None:
+        """
+        Handle window key events for quick select and exit
+        """
+        match event.key:
+            case "escape":
+                self.dismiss(None)
+            case "a" | "A":
+                self.dismiss(FilterMode.NONE)
+            case "u" | "U":
+                self.dismiss(FilterMode.UPDATES_ONLY)
+            case "s" | "S":
+                self.dismiss(FilterMode.SECURITY_ONLY)
 
 
 class HostDetailsPanel(Screen):
