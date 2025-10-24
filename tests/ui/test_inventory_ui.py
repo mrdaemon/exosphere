@@ -296,7 +296,7 @@ class TestActionFilterView:
         # Verify filter label was updated with correct text
         mock_filter_label.update.assert_called_once()
         label_text = mock_filter_label.update.call_args[0][0]
-        assert "Filtered: Updates Only" in label_text
+        assert f"Filtered: {FilterMode.UPDATES_ONLY}" in label_text
 
     def test_filter_selection_security_updates_label(
         self, inventory_screen, setup_inventory_mock, mocker
@@ -326,7 +326,7 @@ class TestActionFilterView:
 
         # Verify filter label shows security filter text
         label_text = mock_filter_label.update.call_args[0][0]
-        assert "Filtered: Security Updates Only" in label_text
+        assert f"Filtered: {FilterMode.SECURITY_ONLY}" in label_text
 
     def test_filter_selection_none_shows_base_label(
         self, inventory_screen, setup_inventory_mock, mocker

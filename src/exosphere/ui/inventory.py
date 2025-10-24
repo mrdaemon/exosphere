@@ -326,7 +326,7 @@ class InventoryScreen(Screen):
 
             filter_msg = ""
             if self.current_filter != FilterMode.NONE:
-                filter_msg = f" (filter: {self.current_filter.value})"
+                filter_msg = f" (filter: {self.current_filter})"
 
             self.app.notify(
                 f"No hosts match current filter{filter_msg}.",
@@ -355,7 +355,7 @@ class InventoryScreen(Screen):
             )
         else:
             self.app.notify(
-                f"Showing {len(hosts)} host(s) with filter: {self.current_filter.value}",
+                f"Showing {len(hosts)} host(s) with filter: {self.current_filter}",
                 title="Refresh Complete",
             )
 
@@ -422,9 +422,9 @@ class InventoryScreen(Screen):
             case FilterMode.NONE:
                 filter_label.update("")
             case FilterMode.UPDATES_ONLY:
-                filter_label.update("Filtered: Updates Only")
+                filter_label.update(f"Filtered: {FilterMode.UPDATES_ONLY}")
             case FilterMode.SECURITY_ONLY:
-                filter_label.update("Filtered: Security Updates Only")
+                filter_label.update(f"Filtered: {FilterMode.SECURITY_ONLY}")
 
     def get_filtered_hosts(self) -> list[Host]:
         """

@@ -11,7 +11,7 @@ The Task Dispatch logic for UI Screens is implemented here.
 """
 
 import logging
-from enum import Enum
+from enum import StrEnum
 
 from textual import work
 from textual.app import ComposeResult
@@ -28,7 +28,7 @@ from exosphere.objects import Host
 logger = logging.getLogger("exosphere.ui.elements")
 
 
-class FilterMode(Enum):
+class FilterMode(StrEnum):
     """
     Filter modes for inventory FilterScreen
     """
