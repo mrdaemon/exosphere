@@ -145,6 +145,23 @@ Details about the currently selected update will be displayed in a new panel.
 This includes the package name, source, version change and whether or not it is
 a security update.
 
+**Filtering Hosts**
+
+It is also possible to filter hosts with `ctrl+f`, which will open a prompt
+with the available filters.
+
+.. image:: /_static/filter_sample.png
+   :alt: Example of Exosphere TUI Filter Prompt
+
+After selecting a filter, only hosts matching the criteria will be displayed.
+The active filter will be shown in the status bar at the bottom of the screen:
+
+.. image:: /_static/ui_inventory_statusbar.png
+   :alt: Exosphere TUI Inventory Status Bar with Security Updates filter active
+
+You can clear the filter by pressing `ctrl+f` again and selecting the
+"Show All" option.
+
 Logs Screen
 -----------
 
