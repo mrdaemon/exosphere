@@ -542,6 +542,58 @@ class TestExosphereREPL:
             for call in print_spy.call_args_list
         )
 
+    def test_execute_command_help_general_with_commands(self, mocker):
+        """
+        Test that 'help' with no arguments lists available commands on root
+        """
+        ctx = mocker.Mock(spec=Context)
+
+        # Mock commands with help text
+        mock_cmd1 = mocker.Mock()
+        mock_cmd1.help = "Manage host configurations"
+        mock_cmd1.hidden = False
+
+        mock_cmd2 = mocker.Mock()
+        mock_cmd2.help = "Display inventory information"
+        mock_cmd2.hidden = False
+
+        mock_cmd3 = mocker.Mock()
+        mock_cmd3.help = "Hidden command"
+        mock_cmd3.hidden = True
+
+        ctx.command = mocker.Mock()
+        ctx.command.commands = {
+            "host": mock_cmd1,
+            "inventory": mock_cmd2,
+            "hidden": mock_cmd3,
+        }
+
+        repl = ExosphereREPL(ctx)
+        print_spy = mocker.spy(repl.console, "print")
+
+        repl.execute_command("help")
+
+        # Should print available modules header
+        assert any(
+            call.args and "available modules" in str(call.args[0]).lower()
+            for call in print_spy.call_args_list
+        )
+
+        # Should show usage instructions
+        assert any(
+            call.args and "use '<command> --help'" in str(call.args[0]).lower()
+            for call in print_spy.call_args_list
+        )
+
+        # Verify that a Panel was printed (contains the commands)
+        from rich.panel import Panel
+
+        assert any(
+            isinstance(call.args[0], Panel)
+            for call in print_spy.call_args_list
+            if call.args
+        )
+
     @pytest.mark.parametrize(
         "cmd,expected_help",
         [
@@ -629,7 +681,7 @@ class TestExosphereREPL:
         Test that unknown commands are handled gracefully
         """
         mock_command = mocker.Mock()
-        mock_command.commands = {"known": mocker.Mock()}
+        mock_command.commands = {"known": mocker.Mock(), "another": mocker.Mock()}
 
         ctx = mocker.Mock(spec=Context)
         ctx.command = mock_command
@@ -642,6 +694,12 @@ class TestExosphereREPL:
 
         assert any(
             "Unknown command" in str(call.args[0]) for call in print_spy.call_args_list
+        )
+
+        # Should also list available commands
+        assert any(
+            "available commands" in str(call.args[0]).lower()
+            for call in print_spy.call_args_list
         )
 
     def test_execute_command_no_root(self, mocker):
@@ -659,6 +717,25 @@ class TestExosphereREPL:
 
         assert any(
             "No root command" in str(call.args[0]) for call in print_spy.call_args_list
+        )
+
+    def test_execute_command_no_args_with_root(self, mocker):
+        """
+        Test that calling _execute_typer_command with empty args prints an error.
+        """
+        ctx = mocker.Mock(spec=Context)
+        ctx.command = mocker.Mock()
+        ctx.command.commands = {"foo": mocker.Mock()}
+
+        repl = ExosphereREPL(ctx)
+        print_spy = mocker.spy(repl.console, "print")
+
+        # Call _execute_typer_command directly with empty list
+        repl._execute_typer_command([])
+
+        assert any(
+            "no command specified" in str(call.args[0]).lower()
+            for call in print_spy.call_args_list
         )
 
     def test_execute_command_known(self, mocker):
@@ -788,6 +865,37 @@ class TestExosphereREPL:
         assert any(
             "error parsing command" in str(call.args[0]).lower()
             and "megafailure event" in str(call.args[0]).lower()
+            for call in print_spy.call_args_list
+        )
+
+    def test_execute_command_general_exception(self, mocker):
+        """
+        Test that general exceptions during command execution are handled gracefully.
+        """
+        ctx = mocker.Mock(spec=Context)
+        mock_sub = mocker.Mock()
+        ctx.command = mocker.Mock()
+        ctx.command.commands = {"failing_cmd": mock_sub}
+
+        repl = ExosphereREPL(ctx)
+
+        # Mock make_context to raise a general exception
+        mock_sub.make_context.side_effect = RuntimeError(
+            "Something went horribly wrong"
+        )
+
+        print_spy = mocker.spy(repl.console, "print")
+
+        # Should not raise, should handle gracefully
+        try:
+            repl.execute_command("failing_cmd")
+        except Exception:
+            pytest.fail("execute_command raised an exception unexpectedly")
+
+        # Should print error message
+        assert any(
+            "error executing failing_cmd" in str(call.args[0]).lower()
+            and "something went horribly wrong" in str(call.args[0]).lower()
             for call in print_spy.call_args_list
         )
 
