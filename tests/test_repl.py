@@ -15,10 +15,10 @@ class TestExosphereCompleter:
         "input_text,expected",
         [
             ("", {"help", "exit", "quit", "clear"}),
-            ("he", {"help"}),
-            ("ex", {"exit"}),
-            ("qu", {"quit"}),
-            ("cle", {"clear"}),
+            ("he", {"help "}),
+            ("ex", {"exit "}),
+            ("qu", {"quit "}),
+            ("cle", {"clear "}),
         ],
         ids=["all", "help", "exit", "quit", "clear"],
     )
@@ -72,8 +72,9 @@ class TestExosphereCompleter:
             c.text for c in completer.get_completions(Document("f"), CompleteEvent())
         )
 
-        assert "foo" in completions
+        assert "foo " in completions
         assert "bar" not in completions
+        assert "bar " not in completions
 
     def test_get_completions_help_subcommands(self, mocker):
         """
@@ -91,8 +92,9 @@ class TestExosphereCompleter:
             c.text for c in completer.get_completions(doc, CompleteEvent())
         )
 
-        assert "foo" in completions
+        assert "foo " in completions
         assert "bar" not in completions
+        assert "bar " not in completions
 
     def test_get_completions_subcommand_options(self, mocker):
         """
@@ -151,6 +153,109 @@ class TestExosphereCompleter:
         assert "--opt1" not in completions
         assert "--opt2" in completions
         assert "--help" in completions
+
+    @pytest.mark.parametrize(
+        "completion_type,input_text,expected_single,expected_multiple",
+        [
+            (
+                "command",
+                "inv",
+                {"inventory "},
+                None,
+            ),
+            (
+                "command",
+                "h",
+                None,  # Multiple matches
+                {"help", "host"},
+            ),
+            (
+                "option",
+                "foo baz --uni",
+                {"--unique "},
+                None,
+            ),
+            (
+                "option",
+                "foo baz --opt",
+                None,
+                {"--opt1", "--opt2"},
+            ),
+            (
+                "host",
+                "host show dbs",
+                {"dbserver "},
+                None,
+            ),
+            (
+                "host",
+                "host show web",
+                None,
+                {"webserver", "web-staging"},
+            ),
+        ],
+        ids=[
+            "command-single",
+            "command-multiple",
+            "option-single",
+            "option-multiple",
+            "host-single",
+            "host-multiple",
+        ],
+    )
+    def test_completion_space_behavior(
+        self, mocker, completion_type, input_text, expected_single, expected_multiple
+    ):
+        """
+        Test that completions add space for single match, no space for multiple.
+        This unified test covers the behavior across all completion types.
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Setup for host completions
+        if completion_type == "host":
+            mock_host1 = mocker.Mock()
+            mock_host1.name = "webserver"
+            mock_host2 = mocker.Mock()
+            mock_host2.name = "web-staging"
+            mock_host3 = mocker.Mock()
+            mock_host3.name = "dbserver"
+            mock_inventory = mocker.Mock()
+            mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
+            mocker.patch("exosphere.repl.app_context")
+            from exosphere import repl
+
+            repl.app_context.inventory = mock_inventory
+
+        # Setup command structure
+        param = mocker.Mock()
+        param.opts = ["--unique", "--opt1", "--opt2", "--help"]
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"baz": subsub}
+        if completion_type == "host":
+            sub.commands["show"] = subsub
+        root = mocker.Mock()
+        root.commands = {"foo": sub, "host": sub, "inventory": sub}
+
+        completer = ExosphereCompleter(root)
+
+        doc = Document(input_text)
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        if expected_single:
+            # Single match should have space appended
+            assert completions == expected_single
+        else:
+            # Multiple matches should NOT have space appended
+            assert completions == expected_multiple
+            # Verify none have trailing space
+            for completion in completions:
+                assert not completion.endswith(" ")
 
     def test_get_completions_simple_command_help(self, mocker):
         """
@@ -436,8 +541,11 @@ class TestExosphereCompleter:
         repl.app_context.inventory = mock_inventory
 
         # Mock command structure for 'report generate' with --format option
+        # that takes a value (not a flag)
         param = mocker.Mock()
         param.opts = ["--format", "-f", "--help"]
+        param.is_flag = False  # Explicitly not a flag
+        param.count = False
         subsub = mocker.Mock()
         subsub.params = [param]
         sub = mocker.Mock()
@@ -458,6 +566,80 @@ class TestExosphereCompleter:
         completion_texts = [c.text for c in completions]
         assert "server1" not in completion_texts
         assert "server2" not in completion_texts
+
+    @pytest.mark.parametrize(
+        "flag_type,is_flag_value,count_value,type_name",
+        [
+            ("is_flag", True, False, None),
+            ("count", False, True, None),
+            ("bool_type", False, False, "BOOL"),
+        ],
+        ids=["is_flag", "count", "bool_type"],
+    )
+    def test_get_completions_host_completion_after_flag_option(
+        self, mocker, flag_type, is_flag_value, count_value, type_name
+    ):
+        """
+        Test that host names ARE completed after boolean flag options.
+        For example, 'host show --updates-only <TAB>' should suggest hosts
+        because --updates-only is a flag that doesn't take a value.
+
+        Tests all three ways Click/Typer defines flags:
+        1. is_flag=True
+        2. count=True
+        3. type.name="BOOL"
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock the inventory context with some hosts
+        mock_host1 = mocker.Mock()
+        mock_host1.name = "webserver"
+        mock_host2 = mocker.Mock()
+        mock_host2.name = "dbserver"
+
+        mock_inventory = mocker.Mock()
+        mock_inventory.hosts = [mock_host1, mock_host2]
+
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = mock_inventory
+
+        # Mock command structure for 'host show' with flag option
+        flag_param = mocker.Mock()
+        flag_param.opts = ["--updates-only", "-u"]
+        flag_param.is_flag = is_flag_value
+        flag_param.count = count_value
+
+        # For bool_type test, add a type with name="BOOL"
+        if type_name:
+            mock_type = mocker.Mock()
+            mock_type.name = type_name
+            flag_param.type = mock_type
+        else:
+            # Ensure type doesn't exist or doesn't have BOOL name
+            flag_param.type = mocker.Mock()
+            flag_param.type.name = "STRING"
+
+        subsub = mocker.Mock()
+        subsub.params = [flag_param]
+        sub = mocker.Mock()
+        sub.commands = {"show": subsub}
+        root = mocker.Mock()
+        root.commands = {"host": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Test that after "--updates-only " we DO get host completions
+        doc = Document("host show --updates-only ")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        # Should suggest hosts because --updates-only is a flag
+        assert "webserver" in completions
+        assert "dbserver" in completions
 
 
 class TestExosphereREPL:

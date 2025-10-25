@@ -91,6 +91,20 @@ class ExosphereCompleter(Completer):
 
         return [host.name for host in app_context.inventory.hosts]
 
+    def _yield_completions(self, matches: list[str], start_position: int):
+        """
+        Yield Completion objects for the given matches.
+
+        We append a space on full match for rapid tab-through completion,
+        an ancestral behavior from Quality Things like bash that I, for one,
+        absolutely expect.
+        """
+        if len(matches) == 1:
+            yield Completion(matches[0] + " ", start_position=start_position)
+        else:
+            for match in matches:
+                yield Completion(match, start_position=start_position)
+
     def _complete_main_commands(self, words: list[str], text: str):
         """Complete top-level commands (host, inventory, sudo, etc.)."""
         prefix = words[0].lower() if words else ""
@@ -101,9 +115,8 @@ class ExosphereCompleter(Completer):
         if prefix and len(matches) > 8:
             return
 
-        for match in matches:
-            sp = -len(words[0]) if words and prefix else 0
-            yield Completion(match, start_position=sp)
+        sp = -len(words[0]) if words and prefix else 0
+        yield from self._yield_completions(matches, sp)
 
     def _complete_help_command(self, words: list[str]):
         """Complete the 'help' builtin command with available commands."""
@@ -112,9 +125,9 @@ class ExosphereCompleter(Completer):
 
         main_commands = getattr(self.root_command, "commands", {})
         current = words[1] if len(words) > 1 else ""
-        for name in main_commands:
-            if name.startswith(current):
-                yield Completion(name, start_position=-len(current))
+        matching = [name for name in main_commands if name.startswith(current)]
+
+        yield from self._yield_completions(matching, -len(current))
 
     def _should_complete_host_option_value(
         self, command: str, words: list[str], text: str
@@ -151,9 +164,8 @@ class ExosphereCompleter(Completer):
     def _complete_host_names(self, current: str, sp: int):
         """Yield host name completions."""
         host_names = self._get_host_names()
-        for host_name in host_names:
-            if host_name.startswith(current):
-                yield Completion(host_name, start_position=sp)
+        matching = [h for h in host_names if h.startswith(current)]
+        yield from self._yield_completions(matching, sp)
 
     def _complete_host_positional_arg(
         self, command: str, words: list[str], text: str, current: str, sp: int
@@ -175,6 +187,32 @@ class ExosphereCompleter(Completer):
         positions = subcmd_config[words[1]]
         if arg_position in positions or positions == [0]:  # [0] means all positions
             yield from self._complete_host_names(current, sp)
+
+    def _is_flag_option(self, subsub, option_name: str) -> bool:
+        """
+        Check if an option is a flag (doesn't take a value).
+
+        This is used to determine whether or not to halt completion after
+        an option is completed.
+        """
+        if not hasattr(subsub, "params"):
+            return False
+
+        # We check for Click/Typer is_flag, count, and BOOL type
+        # All of them imply the option value is themselves (a flag)
+        for param in subsub.params:
+            if hasattr(param, "opts") and option_name in param.opts:
+                if getattr(param, "is_flag", False):
+                    return True
+                if getattr(param, "count", False):
+                    return True
+                if (
+                    hasattr(param, "type")
+                    and getattr(param.type, "name", None) == "BOOL"
+                ):
+                    return True
+
+        return False
 
     def _complete_subsubcommand(
         self, command: str, subcommand, words: list[str], text: str, used_opts: set
@@ -201,9 +239,12 @@ class ExosphereCompleter(Completer):
                 if hasattr(param, "opts"):
                     opts.update(o for o in param.opts if o.startswith("--"))
 
-            for opt in opts:
-                if opt not in used_opts and opt.startswith(current):
-                    yield Completion(opt, start_position=sp)
+            # Filter matching options
+            matching_opts = [
+                opt for opt in opts if opt not in used_opts and opt.startswith(current)
+            ]
+
+            yield from self._yield_completions(matching_opts, sp)
             return
 
         # If previous word was an option that takes host names, complete host names
@@ -211,12 +252,11 @@ class ExosphereCompleter(Completer):
             yield from self._complete_host_names(current, sp)
             return
 
-        # Stop completion if we are following an option flag
-        # We don't complete unknown option values at this point.
+        # Stop completion if we are following an option flag that expects a value
         prev_word = (
             words[-1] if text.endswith(" ") else (words[-2] if len(words) >= 2 else "")
         )
-        if prev_word.startswith("-"):
+        if prev_word.startswith("-") and not self._is_flag_option(subsub, prev_word):
             return
 
         # Complete host names for positional arguments
@@ -268,9 +308,11 @@ class ExosphereCompleter(Completer):
         # Complete subcommands if available
         if hasattr(subcommand, "commands") and subcommand.commands:
             if len(words) == 1 or (len(words) == 2 and not text.endswith(" ")):
-                for name in subcommand.commands:
-                    if name.startswith(current):
-                        yield Completion(name, start_position=sp)
+                matching = [
+                    name for name in subcommand.commands if name.startswith(current)
+                ]
+
+                yield from self._yield_completions(matching, sp)
             elif len(words) >= 2:
                 yield from self._complete_subsubcommand(
                     command, subcommand, words, text, used_opts
@@ -361,13 +403,14 @@ class ExosphereREPL:
         while True:
             try:
                 # Prompt for user input with colored prompt
+                # We use readline style completion for familiarity
                 user_input = prompt(
                     prompt_html,
                     history=self.history,
                     completer=self.completer,
                     complete_while_typing=False,
                     enable_history_search=True,
-                    complete_style=CompleteStyle.READLINE_LIKE,  # Use readline-style completion
+                    complete_style=CompleteStyle.READLINE_LIKE,
                 )
 
                 if not user_input.strip():
