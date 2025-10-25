@@ -7,6 +7,7 @@ import threading
 from typing import cast
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Footer, Header, RichLog
 
@@ -113,6 +114,10 @@ class LogsScreen(Screen):
     """Screen for the logs."""
 
     CSS_PATH = "style.tcss"
+
+    BINDINGS = [
+        Binding("l", "app.none", show=False),
+    ]
 
     def compose(self) -> ComposeResult:
         """Compose the logs layout."""
