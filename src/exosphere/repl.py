@@ -62,6 +62,9 @@ class ExosphereCompleter(Completer):
             "refresh": [0],  # inventory refresh [names...]
             "status": [0],  # inventory status [names...]
         },
+        "report": {
+            "generate": [0],  # report generate [names...]
+        },
         "sudo": {
             "check": [0],  # sudo check <name>
         },
@@ -193,6 +196,16 @@ class ExosphereCompleter(Completer):
         elif self._should_complete_host_option_value(command, words, text):
             yield from self._complete_host_names(current, sp)
         else:
+            # Don't complete host names if following an option flag that
+            # does not explicitly expect a host name argument.
+            prev_word = (
+                words[-1]
+                if text.endswith(" ")
+                else (words[-2] if len(words) >= 2 else "")
+            )
+            if prev_word.startswith("-"):
+                return
+
             # Complete host names for positional arguments
             yield from self._complete_host_positional_arg(
                 command, words, text, current, sp

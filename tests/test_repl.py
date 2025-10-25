@@ -412,6 +412,53 @@ class TestExosphereCompleter:
 
         assert completions == []
 
+    def test_get_completions_no_host_completion_for_unknown_options(self, mocker):
+        """
+        Ensure we do not complete hosts for options that don't expect them.
+        For example, 'report generate --format <TAB>' should not suggest hosts,
+        even though it takes them as positionals later.
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock the inventory context with some hosts
+        mock_host1 = mocker.Mock()
+        mock_host1.name = "server1"
+        mock_host2 = mocker.Mock()
+        mock_host2.name = "server2"
+
+        mock_inventory = mocker.Mock()
+        mock_inventory.hosts = [mock_host1, mock_host2]
+
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = mock_inventory
+
+        # Mock command structure for 'report generate' with --format option
+        param = mocker.Mock()
+        param.opts = ["--format", "-f", "--help"]
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"generate": subsub}
+        root = mocker.Mock()
+        root.commands = {"report": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Test that after "--format " we don't get host completions
+        doc = Document("report generate --format ")
+        completions = list(completer.get_completions(doc, CompleteEvent()))
+
+        # Should return no completions (we don't know what --format expects)
+        assert completions == []
+
+        # Verify we're not accidentally suggesting hosts
+        completion_texts = [c.text for c in completions]
+        assert "server1" not in completion_texts
+        assert "server2" not in completion_texts
+
 
 class TestExosphereREPL:
     def test_repl_init_defaults(self, mocker):
