@@ -8,6 +8,7 @@ from collections.abc import Callable
 from enum import StrEnum
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Center, Container, Grid, Vertical
 from textual.events import Key
 from textual.screen import Screen
@@ -292,6 +293,7 @@ class InventoryScreen(Screen):
     CSS_PATH = "style.tcss"
 
     BINDINGS = [
+        Binding("i", "app.none", show=False),
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
         ("ctrl+x", "sync_and_refresh_all", "Sync & Refresh"),
         ("ctrl+f", "filter_view", "Filter"),

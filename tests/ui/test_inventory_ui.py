@@ -136,7 +136,15 @@ class TestInventoryScreenInitialization:
         Test that screen has expected key bindings.
         (Somewhat. We don't know if they work.)
         """
-        bindings = [b[0] for b in inventory_screen.BINDINGS]
+        from textual.binding import Binding
+
+        bindings = []
+        for b in inventory_screen.BINDINGS:
+            if isinstance(b, Binding):
+                bindings.append(b.key)
+            else:
+                bindings.append(b[0])
+
         assert "ctrl+r" in bindings
         assert "ctrl+x" in bindings
         assert "ctrl+f" in bindings

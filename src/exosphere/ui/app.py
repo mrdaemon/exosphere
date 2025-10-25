@@ -94,3 +94,17 @@ class ExosphereUi(App):
             self.ui_log_handler = None
 
         logging.debug("UI log handler cleaned up on unmount.")
+
+    def action_none(self) -> None:
+        """
+        No-op action for disabled bindings.
+
+        This exists solely to provide something to link to for key
+        bindings that are overridden in local modal screens, usually
+        with the express intent to hide them.
+
+        I genuinely do not understand the reactive part of bindings
+        across modal screens in Textual, so this is the least
+        horrifying solution I could think of.
+        """
+        pass

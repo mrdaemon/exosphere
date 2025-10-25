@@ -5,6 +5,7 @@ Dashboard Screen module
 import logging
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Container, VerticalScroll
 from textual.screen import Screen
 from textual.widget import Widget
@@ -100,6 +101,7 @@ class DashboardScreen(Screen):
     CSS_PATH = "style.tcss"
 
     BINDINGS = [
+        Binding("d", "app.none", show=False),
         ("P", "ping_all_hosts", "Ping All"),
         ("ctrl+d", "discover_hosts", "Discover All"),
     ]
