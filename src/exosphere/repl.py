@@ -91,21 +91,22 @@ class ExosphereCompleter(Completer):
 
         return [host.name for host in app_context.inventory.hosts]
 
-    def _yield_completions(self, matches: list[str], start_position: int):
+    def _make_completions(
+        self, matches: list[str], start_position: int
+    ) -> list[Completion]:
         """
-        Yield Completion objects for the given matches.
+        Return Completion objects for the given matches.
 
         We append a space on full match for rapid tab-through completion,
         an ancestral behavior from Quality Things like bash that I, for one,
         absolutely expect.
         """
         if len(matches) == 1:
-            yield Completion(matches[0] + " ", start_position=start_position)
-        else:
-            for match in matches:
-                yield Completion(match, start_position=start_position)
+            return [Completion(matches[0] + " ", start_position=start_position)]
 
-    def _complete_main_commands(self, words: list[str], text: str):
+        return [Completion(match, start_position=start_position) for match in matches]
+
+    def _complete_main_commands(self, words: list[str], text: str) -> list[Completion]:
         """Complete top-level commands (host, inventory, sudo, etc.)."""
         prefix = words[0].lower() if words else ""
         matches = [c for c in self.commands if c.lower().startswith(prefix)]
@@ -113,21 +114,21 @@ class ExosphereCompleter(Completer):
         # We arbitrarily limit the number of matches to 8
         # and just kind of silently bail if exceeded.
         if prefix and len(matches) > 8:
-            return
+            return []
 
         sp = -len(words[0]) if words and prefix else 0
-        yield from self._yield_completions(matches, sp)
+        return self._make_completions(matches, sp)
 
-    def _complete_help_command(self, words: list[str]):
+    def _complete_help_command(self, words: list[str]) -> list[Completion]:
         """Complete the 'help' builtin command with available commands."""
         if not self.root_command:
-            return
+            return []
 
         main_commands = getattr(self.root_command, "commands", {})
         current = words[1] if len(words) > 1 else ""
         matching = [name for name in main_commands if name.startswith(current)]
 
-        yield from self._yield_completions(matching, -len(current))
+        return self._make_completions(matching, -len(current))
 
     def _should_complete_host_option_value(
         self, command: str, words: list[str], text: str
@@ -161,11 +162,11 @@ class ExosphereCompleter(Completer):
         host_options = subcmd_config[words[1]]
         return prev_option in host_options
 
-    def _complete_host_names(self, current: str, sp: int):
-        """Yield host name completions."""
+    def _complete_host_names(self, current: str, sp: int) -> list[Completion]:
+        """Return host name completions."""
         host_names = self._get_host_names()
         matching = [h for h in host_names if h.startswith(current)]
-        yield from self._yield_completions(matching, sp)
+        return self._make_completions(matching, sp)
 
     def _complete_host_positional_arg(
         self, command: str, words: list[str], text: str, current: str, sp: int
@@ -244,7 +245,7 @@ class ExosphereCompleter(Completer):
                 opt for opt in opts if opt not in used_opts and opt.startswith(current)
             ]
 
-            yield from self._yield_completions(matching_opts, sp)
+            yield from self._make_completions(matching_opts, sp)
             return
 
         # If previous word was an option that takes host names, complete host names
@@ -312,7 +313,7 @@ class ExosphereCompleter(Completer):
                     name for name in subcommand.commands if name.startswith(current)
                 ]
 
-                yield from self._yield_completions(matching, sp)
+                yield from self._make_completions(matching, sp)
             elif len(words) >= 2:
                 yield from self._complete_subsubcommand(
                     command, subcommand, words, text, used_opts
