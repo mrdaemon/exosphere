@@ -203,6 +203,215 @@ class TestExosphereCompleter:
         assert "test" in completer.commands
         assert "example" in completer.commands
 
+    def test_get_completions_host_positional_arg(self, mocker):
+        """
+        Test completion of host names for positional arguments
+        (e.g., 'host show <TAB>')
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock the inventory context
+        mock_host1 = mocker.Mock()
+        mock_host1.name = "webserver"
+        mock_host2 = mocker.Mock()
+        mock_host2.name = "dbserver"
+        mock_host3 = mocker.Mock()
+        mock_host3.name = "appserver"
+
+        mock_inventory = mocker.Mock()
+        mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
+
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = mock_inventory
+
+        # Mock command structure
+        param = mocker.Mock()
+        param.opts = ["--help"]
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"show": subsub}
+        root = mocker.Mock()
+        root.commands = {"host": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Test completing host names after "host show "
+        doc = Document("host show ")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        assert "webserver" in completions
+        assert "dbserver" in completions
+        assert "appserver" in completions
+
+    def test_get_completions_host_positional_arg_prefix(self, mocker):
+        """
+        Test completion of host names with prefix matching
+        (e.g., 'host show web<TAB>')
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock the inventory context
+        mock_host1 = mocker.Mock()
+        mock_host1.name = "webserver"
+        mock_host2 = mocker.Mock()
+        mock_host2.name = "web-staging"
+        mock_host3 = mocker.Mock()
+        mock_host3.name = "dbserver"
+
+        mock_inventory = mocker.Mock()
+        mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
+
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = mock_inventory
+
+        # Mock command structure
+        param = mocker.Mock()
+        param.opts = ["--help"]
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"show": subsub}
+        root = mocker.Mock()
+        root.commands = {"host": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Test completing host names with "web" prefix
+        doc = Document("host show web")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        assert "webserver" in completions
+        assert "web-staging" in completions
+        assert "dbserver" not in completions
+
+    @pytest.mark.parametrize(
+        "option_flag,expected_hosts",
+        [
+            ("--host", {"server1", "server2"}),
+            ("-h", {"server1", "server2"}),
+        ],
+        ids=["long-form", "short-form"],
+    )
+    def test_get_completions_host_option_value(
+        self, mocker, option_flag, expected_hosts
+    ):
+        """
+        Test completion of host names for option values
+        (e.g., 'sudo generate --host <TAB>' or 'sudo generate -h <TAB>')
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock the inventory context
+        mock_host1 = mocker.Mock()
+        mock_host1.name = "server1"
+        mock_host2 = mocker.Mock()
+        mock_host2.name = "server2"
+
+        mock_inventory = mocker.Mock()
+        mock_inventory.hosts = [mock_host1, mock_host2]
+
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = mock_inventory
+
+        # Mock command structure
+        param = mocker.Mock()
+        param.opts = ["--host", "-h", "--help"]
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"generate": subsub}
+        root = mocker.Mock()
+        root.commands = {"sudo": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Test completing host names after option flag
+        doc = Document(f"sudo generate {option_flag} ")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        assert completions == expected_hosts
+
+    def test_get_completions_no_hosts_in_inventory(self, mocker):
+        """
+        Test that completion works gracefully when inventory is empty
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock empty inventory
+        mock_inventory = mocker.Mock()
+        mock_inventory.hosts = []
+
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = mock_inventory
+
+        # Mock command structure
+        param = mocker.Mock()
+        param.opts = ["--help"]
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"show": subsub}
+        root = mocker.Mock()
+        root.commands = {"host": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Should return no completions but not crash
+        doc = Document("host show ")
+        completions = list(completer.get_completions(doc, CompleteEvent()))
+
+        assert completions == []
+
+    def test_get_completions_no_inventory_context(self, mocker):
+        """
+        Test that completion works gracefully when inventory context is None
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock None inventory
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = None
+
+        # Mock command structure
+        param = mocker.Mock()
+        param.opts = ["--help"]
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"show": subsub}
+        root = mocker.Mock()
+        root.commands = {"host": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Should return no completions but not crash
+        doc = Document("host show ")
+        completions = list(completer.get_completions(doc, CompleteEvent()))
+
+        assert completions == []
+
 
 class TestExosphereREPL:
     def test_repl_init_defaults(self, mocker):
