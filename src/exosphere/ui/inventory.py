@@ -321,7 +321,7 @@ class InventoryScreen(Screen):
                     yield Label("│", id="inventory-separator")
                     yield Label("* indicates stale data", id="inventory-stale-label")
 
-        yield Footer()
+        yield Footer(compact=True)
 
     def on_mount(self) -> None:
         """Populate the data table on mount"""
