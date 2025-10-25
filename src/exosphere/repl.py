@@ -119,7 +119,12 @@ class ExosphereCompleter(Completer):
     def _should_complete_host_option_value(
         self, command: str, words: list[str], text: str
     ) -> bool:
-        """Check if we're in a position to complete a host name for an option value."""
+        """
+        Check if we can and should complete host names for an option value.
+
+        Has some extra sanity checks, for current state, but mainly just
+        checks if the option is in the HOST_OPTION_COMMANDS mapping.
+        """
 
         if len(words) < 2:
             return False
@@ -174,7 +179,13 @@ class ExosphereCompleter(Completer):
     def _complete_subsubcommand(
         self, command: str, subcommand, words: list[str], text: str, used_opts: set
     ):
-        """Complete options and arguments for a subsubcommand (e.g., 'host show')."""
+        """
+        Complete options and arguments for a subsubcommand
+        (e.g., 'host show').
+
+        This is where most of the hot complete action happens within
+        the context of Exosphere.
+        """
         subsub = subcommand.commands.get(words[1])
         if not subsub or not hasattr(subsub, "params"):
             return
@@ -182,7 +193,8 @@ class ExosphereCompleter(Completer):
         current = words[-1] if not text.endswith(" ") else ""
         sp = -len(current) if current else 0
 
-        # Complete options if current word starts with - (e.g., typing "--ho" to get "--host")
+        # Complete options if current word starts with -
+        # (e.g., typing "--ho" to get "--host")
         if current.startswith("-"):
             opts = {"--help"}
             for param in subsub.params:
@@ -192,24 +204,23 @@ class ExosphereCompleter(Completer):
             for opt in opts:
                 if opt not in used_opts and opt.startswith(current):
                     yield Completion(opt, start_position=sp)
-        # If previous word was an option that takes host names, complete host names
-        elif self._should_complete_host_option_value(command, words, text):
-            yield from self._complete_host_names(current, sp)
-        else:
-            # Don't complete host names if following an option flag that
-            # does not explicitly expect a host name argument.
-            prev_word = (
-                words[-1]
-                if text.endswith(" ")
-                else (words[-2] if len(words) >= 2 else "")
-            )
-            if prev_word.startswith("-"):
-                return
+            return
 
-            # Complete host names for positional arguments
-            yield from self._complete_host_positional_arg(
-                command, words, text, current, sp
-            )
+        # If previous word was an option that takes host names, complete host names
+        if self._should_complete_host_option_value(command, words, text):
+            yield from self._complete_host_names(current, sp)
+            return
+
+        # Stop completion if we are following an option flag
+        # We don't complete unknown option values at this point.
+        prev_word = (
+            words[-1] if text.endswith(" ") else (words[-2] if len(words) >= 2 else "")
+        )
+        if prev_word.startswith("-"):
+            return
+
+        # Complete host names for positional arguments
+        yield from self._complete_host_positional_arg(command, words, text, current, sp)
 
     def get_completions(self, document: Document, complete_event):
         """
