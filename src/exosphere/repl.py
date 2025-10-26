@@ -8,6 +8,7 @@ maintaining Rich output formatting.
 
 import logging
 import shlex
+from enum import Enum
 
 import click
 from prompt_toolkit import prompt
@@ -24,6 +25,18 @@ from exosphere import app_config
 from exosphere import context as app_context
 
 logger = logging.getLogger(__name__)
+
+
+class HostMatchMode(Enum):
+    """
+    Defines how host name completion behaves for a command.
+
+    SINGLE: Command accepts exactly one host at position 0
+    MULTIPLE: Command accepts multiple hosts at any position
+    """
+
+    SINGLE = "single"
+    MULTIPLE = "multiple"
 
 
 class ExosphereCompleter(Completer):
@@ -47,26 +60,26 @@ class ExosphereCompleter(Completer):
     # (including documentation generation). I'm just tired, boss.
 
     # Commands that take host names as positional arguments
-    # Maps command paths to which argument positions accept host names
-    # Keys can be nested for subcommands
+    # Maps command paths to their host completion mode
+    # Keys are nested for subcommands
     HOST_ARG_COMMANDS = {
         "host": {
-            "show": [0],  # host show <name>
-            "ping": [0],  # host ping <name>
-            "discover": [0],  # host discover <name>
-            "refresh": [0],  # host refresh <name>
+            "show": HostMatchMode.SINGLE,  # host show <name>
+            "ping": HostMatchMode.SINGLE,  # host ping <name>
+            "discover": HostMatchMode.SINGLE,  # host discover <name>
+            "refresh": HostMatchMode.SINGLE,  # host refresh <name>
         },
         "inventory": {
-            "ping": [0],  # inventory ping [names...]
-            "discover": [0],  # inventory discover [names...]
-            "refresh": [0],  # inventory refresh [names...]
-            "status": [0],  # inventory status [names...]
+            "ping": HostMatchMode.MULTIPLE,  # inventory ping [names...]
+            "discover": HostMatchMode.MULTIPLE,  # inventory discover [names...]
+            "refresh": HostMatchMode.MULTIPLE,  # inventory refresh [names...]
+            "status": HostMatchMode.MULTIPLE,  # inventory status [names...]
         },
         "report": {
-            "generate": [0],  # report generate [names...]
+            "generate": HostMatchMode.MULTIPLE,  # report generate [names...]
         },
         "sudo": {
-            "check": [0],  # sudo check <name>
+            "check": HostMatchMode.SINGLE,  # sudo check <name>
         },
     }
 
@@ -162,10 +175,18 @@ class ExosphereCompleter(Completer):
         host_options = subcmd_config[words[1]]
         return prev_option in host_options
 
-    def _complete_host_names(self, current: str, sp: int) -> list[Completion]:
-        """Return host name completions."""
+    def _complete_host_names(
+        self, current: str, sp: int, exclude: set[str] | None = None
+    ) -> list[Completion]:
+        """
+        Return host name completions
+
+        Optionally exclude already-used host names during completion.
+        """
         host_names = self._get_host_names()
-        matching = [h for h in host_names if h.startswith(current)]
+        exclude = exclude or set()
+        matching = [h for h in host_names if h.startswith(current) and h not in exclude]
+
         return self._make_completions(matching, sp)
 
     def _complete_host_positional_arg(
@@ -185,9 +206,28 @@ class ExosphereCompleter(Completer):
             len(non_opt_args) if text.endswith(" ") else len(non_opt_args) - 1
         )
 
-        positions = subcmd_config[words[1]]
-        if arg_position in positions or positions == [0]:  # [0] means all positions
-            yield from self._complete_host_names(current, sp)
+        mode = subcmd_config[words[1]]
+
+        # Determine if this position accepts host names based on completion mode
+        match mode:
+            case HostMatchMode.SINGLE:
+                # Only position 0
+                accepts_hosts = arg_position == 0
+            case HostMatchMode.MULTIPLE:
+                # Any position
+                accepts_hosts = True
+
+        if accepts_hosts:
+            # For single-host commands, no exclusion needed
+            exclude = set()
+            if mode == HostMatchMode.MULTIPLE:
+                # Multi-host command: exclude hosts already specified
+                exclude = set(non_opt_args)
+                if not text.endswith(" ") and non_opt_args:
+                    # Remove the current partial word from exclusions
+                    exclude.discard(non_opt_args[-1])
+
+            yield from self._complete_host_names(current, sp, exclude=exclude)
 
     def _is_flag_option(self, subsub, option_name: str) -> bool:
         """

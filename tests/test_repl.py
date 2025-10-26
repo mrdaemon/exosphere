@@ -641,6 +641,150 @@ class TestExosphereCompleter:
         assert "webserver" in completions
         assert "dbserver" in completions
 
+    def test_get_completions_excludes_used_hosts(self, mocker):
+        """
+        Test that host completions exclude already-specified hosts.
+        Hosts already part of the command line should not be suggested again.
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock the inventory with three hosts
+        mock_host1 = mocker.Mock()
+        mock_host1.name = "webserver"
+        mock_host2 = mocker.Mock()
+        mock_host2.name = "dbserver"
+        mock_host3 = mocker.Mock()
+        mock_host3.name = "mailserver"
+
+        mock_inventory = mocker.Mock()
+        mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
+
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = mock_inventory
+
+        # Mock command structure
+        param = mocker.Mock()
+        param.opts = ["--help"]
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"ping": subsub}
+        root = mocker.Mock()
+        root.commands = {"inventory": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Test: After specifying one host, it should not appear in next completion
+        doc = Document("inventory ping webserver ")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        # Should NOT suggest webserver again (with or without space)
+        assert not any(
+            "webserver" == c or c.startswith("webserver ")
+            for c in completions
+            if c.strip() == "webserver"
+        )
+        # But should suggest the others
+        assert any("dbserver" in c for c in completions)
+        assert any("mailserver" in c for c in completions)
+
+        # Test: After specifying two hosts, both should be excluded
+        doc = Document("inventory ping webserver dbserver ")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        # Should NOT suggest webserver or dbserver
+        assert not any(c.strip() == "webserver" for c in completions)
+        assert not any(c.strip() == "dbserver" for c in completions)
+        # But should still suggest mailserver
+        assert any("mailserver" in c for c in completions)
+
+        # Test: While typing a partial match, should exclude already-used hosts
+        doc = Document("inventory ping webserver d")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        # Should only suggest dbserver (matches prefix "d" and not already used)
+        assert any("dbserver" in c for c in completions)
+        # Should NOT suggest webserver (already used)
+        assert not any(c.strip() == "webserver" for c in completions)
+        # Should NOT suggest mailserver (doesn't match prefix "d")
+        assert not any(c.strip() == "mailserver" for c in completions)
+
+    def test_single_host_command_stops_after_one(self, mocker):
+        """
+        Test that commands accepting only a single host do NOT continue
+        completing after the first host is specified.
+        For example, 'host show webserver <TAB>' should not suggest more hosts.
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        # Mock the inventory with three hosts
+        mock_host1 = mocker.Mock()
+        mock_host1.name = "webserver"
+        mock_host2 = mocker.Mock()
+        mock_host2.name = "dbserver"
+        mock_host3 = mocker.Mock()
+        mock_host3.name = "mailserver"
+
+        mock_inventory = mocker.Mock()
+        mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
+
+        mocker.patch("exosphere.repl.app_context")
+        from exosphere import repl
+
+        repl.app_context.inventory = mock_inventory
+
+        # Mock command structure for 'host show' (single host command)
+        param = mocker.Mock()
+        param.opts = ["--help", "--updates", "--no-updates", "--security-only"]
+        param.is_flag = False
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"show": subsub}
+        root = mocker.Mock()
+        root.commands = {"host": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # Test: After specifying one host, should NOT suggest more hosts
+        doc = Document("host show webserver ")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+
+        # Should NOT suggest any hosts (single host command, position filled)
+        assert not any("webserver" in c for c in completions)
+        assert not any("dbserver" in c for c in completions)
+        assert not any("mailserver" in c for c in completions)
+
+        # Test same for other single-host commands like 'sudo check'
+        sub2 = mocker.Mock()
+        sub2.commands = {"check": subsub}
+        root2 = mocker.Mock()
+        root2.commands = {"sudo": sub2}
+
+        completer2 = ExosphereCompleter(root2)
+
+        doc2 = Document("sudo check webserver ")
+        completions2 = set(
+            c.text for c in completer2.get_completions(doc2, CompleteEvent())
+        )
+
+        # Should NOT suggest hosts
+        assert not any("webserver" in c for c in completions2)
+        assert not any("dbserver" in c for c in completions2)
+        assert not any("mailserver" in c for c in completions2)
+
 
 class TestExosphereREPL:
     def test_repl_init_defaults(self, mocker):
