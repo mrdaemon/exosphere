@@ -132,13 +132,13 @@ class ExosphereCompleter(Completer):
         sp = -len(words[0]) if words and prefix else 0
         return self._make_completions(matches, sp)
 
-    def _complete_help_command(self, words: list[str]) -> list[Completion]:
+    def _complete_help_command(self, words: list[str], text: str) -> list[Completion]:
         """Complete the 'help' builtin command with available commands."""
         if not self.root_command:
             return []
 
         main_commands = getattr(self.root_command, "commands", {})
-        current = words[1] if len(words) > 1 else ""
+        current = "" if text.endswith(" ") else (words[1] if len(words) > 1 else "")
         matching = [name for name in main_commands if name.startswith(current)]
 
         return self._make_completions(matching, -len(current))
@@ -324,7 +324,7 @@ class ExosphereCompleter(Completer):
         command = words[0]
         if command in ("help", "exit", "quit"):
             if command == "help" and len(words) <= 2:
-                yield from self._complete_help_command(words)
+                yield from self._complete_help_command(words, text)
             return
 
         # Handle exosphere commands from the root command

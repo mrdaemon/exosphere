@@ -96,6 +96,33 @@ class TestExosphereCompleter:
         assert "bar" not in completions
         assert "bar " not in completions
 
+    def test_get_completions_help_correct_start_position_after_space(self, mocker):
+        """
+        Test that help completion has correct start_position when text ends with space.
+
+        Regression test: 'help config ' followed by Tab should not produce
+        'help cconfig ' by trying to replace 'config' again. The completions
+        should have start_position=0 (insert at cursor) not negative (replace).
+        """
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        mock_root = mocker.Mock()
+        mock_root.commands = {"config": mocker.Mock(), "host": mocker.Mock()}
+        completer = ExosphereCompleter(mock_root)
+
+        # Simulate completed state: 'help config ' (note trailing space)
+        doc = Document("help config ")
+        completions = list(completer.get_completions(doc, CompleteEvent()))
+
+        # Completions can be returned, but they should not have negative
+        # start_position which would replace existing text
+        for completion in completions:
+            assert completion.start_position == 0, (
+                f"Completion '{completion.text}' has start_position="
+                f"{completion.start_position}, should be 0 to avoid replacing text"
+            )
+
     def test_get_completions_subcommand_options(self, mocker):
         """
         Test completion of options for sub-subcommands
