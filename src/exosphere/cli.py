@@ -19,15 +19,14 @@ from exosphere.commands import config, host, inventory, report, sudo, ui, versio
 from exosphere.commands.utils import print_version
 from exosphere.repl import start_repl
 
-banner = f"""[turquoise4]
-                         ▗▖
-                         ▐▌
- ▟█▙ ▝█ █▘ ▟█▙ ▗▟██▖▐▙█▙ ▐▙██▖ ▟█▙  █▟█▌ ▟█▙
-▐▙▄▟▌ ▐█▌ ▐▛ ▜▌▐▙▄▖▘▐▛ ▜▌▐▛ ▐▌▐▙▄▟▌ █▘  ▐▙▄▟▌
-▐▛▀▀▘ ▗█▖ ▐▌ ▐▌ ▀▀█▖▐▌ ▐▌▐▌ ▐▌▐▛▀▀▘ █   ▐▛▀▀▘
-▝█▄▄▌ ▟▀▙ ▝█▄█▘▐▄▄▟▌▐█▄█▘▐▌ ▐▌▝█▄▄▌ █   ▝█▄▄▌
- ▝▀▀ ▝▀ ▀▘ ▝▀▘  ▀▀▀ ▐▌▀▘ ▝▘ ▝▘ ▝▀▀  ▀    ▝▀▀
-                    ▐▌ [green]v{__version__}[/green][/turquoise4]
+banner = f"""[turquoise4]                         ▗▖[/turquoise4]
+[dark_turquoise]                         ▐▌[/dark_turquoise]
+[dark_turquoise] ▟█▙ ▝█ █▘ ▟█▙ ▗▟██▖▐▙█▙ ▐▙██▖ ▟█▙  █▟█▌ ▟█▙[/dark_turquoise]
+[medium_turquoise]▐▙▄▟▌ ▐█▌ ▐▛ ▜▌▐▙▄▖▘▐▛ ▜▌▐▛ ▐▌▐▙▄▟▌ █▘  ▐▙▄▟▌[/medium_turquoise]
+[dark_turquoise]▐▛▀▀▘ ▗█▖ ▐▌ ▐▌ ▀▀█▖▐▌ ▐▌▐▌ ▐▌▐▛▀▀▘ █   ▐▛▀▀▘[/dark_turquoise]
+[dark_turquoise]▝█▄▄▌ ▟▀▙ ▝█▄█▘▐▄▄▟▌▐█▄█▘▐▌ ▐▌▝█▄▄▌ █   ▝█▄▄▌[/dark_turquoise]
+[turquoise4] ▝▀▀ ▝▀ ▀▘ ▝▀▘  ▀▀▀ ▐▌▀▘ ▝▘ ▝▘ ▝▀▀  ▀    ▝▀▀[/turquoise4]
+[dark_turquoise]                    ▐▌ [bold orange3]v{__version__}[/bold orange3][/dark_turquoise]
 """
 
 app = Typer(
