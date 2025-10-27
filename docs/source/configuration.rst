@@ -331,7 +331,8 @@ and examples of how to set them in the configuration file.
 .. option:: log_file
 
     A filesystem path to a file where Exosphere will write logs.
-    If not set, Exosphere will use the platform default location for logs.
+    If not set, Exosphere will use the platform default location for
+    application logs.
 
     You can set this to any valid path on your filesystem where you have
     write permissions.
