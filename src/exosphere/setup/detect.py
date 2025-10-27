@@ -101,7 +101,7 @@ def flavor_detect(cx: Connection, platform_name: str) -> str:
     Detect the flavor of the remote system.
 
     :param cx: Fabric Connection object
-    :return: Flavor string
+    :return: Flavor name
     """
 
     # Check if platform is one of the supported types
@@ -181,7 +181,9 @@ def flavor_detect(cx: Connection, platform_name: str) -> str:
 def version_detect(cx: Connection, flavor_name: str) -> str:
     """
     Detect the version of the remote system.
+
     :param cx: Fabric Connection object
+    :param flavor_name: Flavor name
     :return: Version string
     """
 

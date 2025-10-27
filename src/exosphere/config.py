@@ -95,7 +95,7 @@ class Configuration(dict):
         as long as it operates on strings.
 
         :param prefix: The prefix to look for in environment variables
-        :param loader: A callable that takes a string and returns a parsed value
+        :param parser: A callable that takes a string and returns a parsed value
         :return: True if the configuration was successfully updated
         """
         prefix = prefix.upper() + "_"
@@ -211,7 +211,7 @@ class Configuration(dict):
         :param filepath: Path to the file to load
         :param loader: A callable that takes a file handle and returns a dict
         :param silent: If True, suppress IOError exceptions for missing files
-        :return: True if the configuration was successfully updated,
+        :return: True if the configuration was successfully updated
         """
         try:
             with open(filepath, "rb") as f:
