@@ -328,7 +328,7 @@ def ping(
     This command will also update a host's online status
     based on the ping result.
 
-    The ping is is based on ssh connectivity.
+    The ping status is based on ssh connectivity.
     """
     host = get_host_or_error(name)
 
