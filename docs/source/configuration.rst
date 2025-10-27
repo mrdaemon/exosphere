@@ -258,14 +258,14 @@ and examples of how to set them in the configuration file.
             .. code-block:: yaml
 
                 options:
-                  sudo_policy: nopasswd
+                  default_sudo_policy: nopasswd
 
         .. group-tab:: TOML
 
             .. code-block:: toml
 
                 [options]
-                sudo_policy = "nopasswd"
+                default_sudo_policy = "nopasswd"
 
         .. group-tab:: JSON
 
@@ -273,7 +273,7 @@ and examples of how to set them in the configuration file.
 
                 {
                     "options": {
-                        "sudo_policy": "nopasswd"
+                        "default_sudo_policy": "nopasswd"
                     }
                 }
 
