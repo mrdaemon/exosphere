@@ -115,11 +115,8 @@ def get_inventory() -> Inventory:
     Get the inventory from context.
     A convenience wrapper that bails if the inventory is not initialized.
 
-    Raises:
-        typer.Exit: If inventory is not initialized
-
-    Returns:
-        Inventory: The active inventory instance
+    :raises typer.Exit: If inventory is not initialized
+    :return: The active inventory instance
     """
     if context.inventory is None:
         typer.echo(
@@ -138,11 +135,8 @@ def get_host_or_error(name: str) -> Host | None:
 
     If the host is not found, pretty prints an error message on console.
 
-    Args:
-        name (str): The name of the host to retrieve
-
-    Returns:
-        Host | None: The host object if found, or None if not found
+    :param name: The name of the host to retrieve
+    :return: The host object if found, or None if not found
     """
     inventory = get_inventory()
 
@@ -172,12 +166,11 @@ def get_hosts_or_error(
     emitting any sort of warning or error messages, so commands making use
     of it do not need to duplicate that logic.
 
-    Args:
-        names: Optional list of host names to filter by. If None, returns all hosts.
-        supported_only: If True, only return hosts that are marked as supported.
-
-    Returns:
-        list[Host] | None: List of matching hosts, or None if no hosts found/matched
+    :param names: Optional list of host names to filter by. If None,
+        returns all hosts.
+    :param supported_only: If True, only return hosts that are marked as
+        supported.
+    :return: List of matching hosts, or None if no hosts found/matched
     """
     inventory = get_inventory()
 
@@ -271,19 +264,20 @@ def run_task_with_progress(
     additional renderables in `progress_args` as a tuple, which this
     will unpack and pass to the Progress constructor.
 
-    Args:
-        inventory: The inventory instance
-        hosts: List of Hosts to run the task on
-        task_name: Name of the method to call on each host
-        task_description: Description shown in progress bar
-        display_hosts: Whether to show host status columns while running
-        collect_errors: Whether to collect and return errors
-        immediate_error_display: Whether to show errors immediately in progress context
-        transient: Whether progress bar disappears after completion
-        progress_args: List of renderables to compose the Progress layout
-
-    Returns:
-        List of (hostname, exception objects) tuples for any failed hosts
+    :param inventory: The inventory instance
+    :param hosts: List of Hosts to run the task on
+    :param task_name: Name of the method to call on each host
+    :param task_description: Description shown in progress bar
+    :param display_hosts: Whether to show host status columns while
+        running
+    :param collect_errors: Whether to collect and return errors
+    :param immediate_error_display: Whether to show errors immediately in
+        progress context
+    :param transient: Whether progress bar disappears after completion
+    :param progress_args: List of renderables to compose the Progress
+        layout
+    :return: List of (hostname, exception objects) tuples for any failed
+        hosts
     """
     errors: list[tuple[str, Exception]] = []
     short_name = task_name.replace("_", " ").capitalize()

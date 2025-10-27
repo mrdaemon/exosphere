@@ -67,8 +67,7 @@ def _extract_typer_commands():
     1. Main commands from app.add_typer() calls in cli.py
     2. Subcommands from @app.command() decorated functions in command modules
 
-    Returns:
-        tuple: (main_commands_set, sub_commands_set)
+    :return: Tuple of (main_commands_set, sub_commands_set)
     """
     main_commands = set()
     sub_commands = set()

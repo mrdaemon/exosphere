@@ -406,7 +406,9 @@ class Yum(Dnf):
         """
         Initialize the Yum package manager.
 
-        :param sudo: Whether to use sudo for package refresh operations (default is True).
-        :param password: Optional password for sudo operations, if not using NOPASSWD.
+        :param sudo: Whether to use sudo for package refresh operations
+            (default is True).
+        :param password: Optional password for sudo operations, if not
+            using NOPASSWD.
         """
         super().__init__(use_yum=True)
