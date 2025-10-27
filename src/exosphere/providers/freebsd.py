@@ -15,9 +15,6 @@ class Pkg(PkgManager):
     """
     Package manager for FreeBSD using pkg
 
-    On FreeBSD, the reposync operation is not needed as the package
-    manager automatically syncs the repositories.
-
     Limitations:
         - Does not include packages changed as a result of a direct dependency
           update, only the top-level packages.
