@@ -1023,7 +1023,7 @@ class TestExosphereREPL:
     def test_execute_command_help_typer_command(self, mocker):
         """
         Test help for Typer Commands
-        The repl is expected to just wrap the the command with '--help' and
+        The repl is expected to just wrap the command with '--help' and
         its very specific context to delegate this to the Typer help system.
         """
         ctx = mocker.Mock(spec=Context)
