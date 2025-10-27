@@ -14,7 +14,7 @@ from typing import Annotated
 from rich.console import Console
 from typer import Context, Exit, Option, Typer
 
-from exosphere import __version__
+from exosphere import __version__, app_config
 from exosphere.commands import config, host, inventory, report, sudo, ui, version
 from exosphere.commands.utils import print_version
 from exosphere.repl import start_repl
@@ -70,7 +70,9 @@ def cli(
 
         # Print the banner using Console for better Unicode support
         console = Console()
-        console.print(banner)
+
+        if not app_config["options"]["no_banner"]:
+            console.print(banner)
 
         # Start interactive REPL
         start_repl(ctx, prompt_text="exosphere> ")

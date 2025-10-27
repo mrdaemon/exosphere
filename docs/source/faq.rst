@@ -128,6 +128,12 @@ that host specifically by setting the ``connect_timeout``
 :ref:`host option <connect_timeout_host_option>` to a higher value, without
 having to change the global option.
 
+I don't like ascii art banner in interactive mode
+-------------------------------------------------
+
+You can disable it entirely with the ``no_banner``
+:ref:`config option <no_banner_option>`.
+
 When managing Ubuntu systems, will this handle snaps?
 -----------------------------------------------------
 

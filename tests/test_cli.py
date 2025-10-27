@@ -3,10 +3,14 @@ import types
 
 from typer.testing import CliRunner
 
+from exosphere import __version__
+from exosphere.config import Configuration
+
 runner = CliRunner()
 
 
 def test_repl_root(mocker, caplog) -> None:
+    """Test that the root command starts the REPL"""
     import logging
 
     from exosphere.cli import app as repl_cli
@@ -20,6 +24,30 @@ def test_repl_root(mocker, caplog) -> None:
     assert result.exit_code == 0
     mock_repl.assert_called_once()
     assert "Starting Exosphere REPL" in caplog.text
+    assert f"v{__version__}" in result.output
+
+
+def test_repl_root_no_banner(mocker, caplog) -> None:
+    """Test the root command with banner disabled"""
+    import logging
+
+    # Prepare configuration with no_banner set to True
+    config = Configuration()
+    config.update_from_mapping({"options": {"no_banner": True}})
+    mocker.patch("exosphere.cli.app_config", config)
+
+    from exosphere.cli import app as repl_cli
+
+    logging.getLogger("exosphere.cli").setLevel(logging.INFO)
+    logging.getLogger("exopshere.cli").addHandler(caplog.handler)
+
+    mock_repl = mocker.patch("exosphere.cli.start_repl")
+    result = runner.invoke(repl_cli, [])
+
+    assert result.exit_code == 0
+    mock_repl.assert_called_once()
+    assert "Starting Exosphere REPL" in caplog.text
+    assert f"v{__version__}" not in result.output
 
 
 def test_repl_version(mocker) -> None:

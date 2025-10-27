@@ -56,6 +56,7 @@ class Configuration(dict):
             "default_sudo_policy": "skip",  # Global sudo policy for package manager ops
             "max_threads": 15,  # Maximum number of threads to use for parallel ops
             "update_checks": True,  # Set to false if you want to disable PyPI checks
+            "no_banner": False,  # Disable the REPL banner on startup
         },
         "hosts": [],
     }

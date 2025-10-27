@@ -165,6 +165,7 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`default_username`
 - :option:`max_threads`
 - :option:`update_checks`
+- :option:`no_banner`
 
 Below is a detailed list of all available options, their defaults,
 and examples of how to set them in the configuration file.
@@ -785,6 +786,50 @@ and examples of how to set them in the configuration file.
                 {
                     "options": {
                         "update_checks": false
+                    }
+                }
+
+.. _no_banner_option:
+
+.. option:: no_banner
+
+    Do not show the ascii banner when starting Exosphere in interactive mode.
+    Setting this to ``true`` will suppress the banner entirely, showing only
+    the welcome text and the prompt.
+
+    .. tip::
+
+        This can be be set contextually with the environment variable
+        ``EXOSPHERE_OPTIONS_NO_BANNER`` set to ``true``.
+        For more details see :ref:`config_env_vars`.
+
+    **Default**: ``false``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  no_banner: true
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                no_banner = true
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "no_banner": true
                     }
                 }
 
