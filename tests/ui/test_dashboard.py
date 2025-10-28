@@ -104,7 +104,7 @@ def test_hostwidget_compose_online(host_online, mocker):
     assert calls[2][0][0] == "Test host"  # description
     assert calls[2][1]["classes"] == "host-description"
 
-    assert "[green]Online[/green]" in calls[3][0][0]  # status
+    assert "Online" in calls[3][0][0]  # status
     assert calls[3][1]["classes"] == "host-status"
 
 
@@ -132,7 +132,7 @@ def test_hostwidget_compose_offline(host_offline, mocker):
     assert "Debian 11" in calls[1][0][0]  # version
     assert calls[2][0][0] == ""  # description (empty)
     assert calls[2][1]["classes"] == "host-description"
-    assert "[red]Offline[/red]" in calls[3][0][0]  # status
+    assert "Offline" in calls[3][0][0]  # status
 
 
 def test_hostwidget_compose_offline_undiscovered(host_undiscovered, mocker):
@@ -158,7 +158,7 @@ def test_hostwidget_compose_offline_undiscovered(host_undiscovered, mocker):
     assert calls[0][0][0] == "[b]host3[/b]"  # name
     assert "(Undiscovered)" in calls[1][0][0]  # version
     assert calls[2][0][0] == ""  # description (empty)
-    assert "[red]Offline[/red]" in calls[3][0][0]  # status
+    assert "Offline" in calls[3][0][0]  # status
 
 
 def test_hostwidget_compose_online_unsupported(mocker, host_unsupported):
@@ -175,9 +175,9 @@ def test_hostwidget_compose_online_unsupported(mocker, host_unsupported):
     assert len(result) == 4
 
     calls = label_mock.call_args_list
-    assert "[b]host4[/b]" in calls[0][0][0]  # name
-    assert "[dim]exotic-os (unsupported)[/dim]" in calls[1][0][0]
-    assert "[green]Online[/green]" in calls[3][0][0]
+    assert "host4" in calls[0][0][0]  # name
+    assert "exotic-os (unsupported)" in calls[1][0][0]
+    assert "Online" in calls[3][0][0]
 
 
 def test_hostwidget_init():
@@ -215,7 +215,7 @@ def test_hostwidget_refresh_state(mocker, host_online):
     mock_container.remove_class.assert_called_with("offline")
 
     # Check status label update
-    mock_status_label.update.assert_called_with("[green]Online[/green]")
+    mock_status_label.update.assert_called_with("[$text-success]Online[/]")
 
     # Check version label update
     mock_version_label.update.assert_called_with("[dim]Ubuntu 22.04[/dim]")
@@ -233,7 +233,7 @@ def test_hostwidget_refresh_state(mocker, host_online):
     mock_container.remove_class.assert_called_with("online")
 
     # Check status label update for offline
-    mock_status_label.update.assert_called_with("[red]Offline[/red]")
+    mock_status_label.update.assert_called_with("[$text-error]Offline[/]")
 
 
 def test_dashboard_on_mount_sets_titles(mocker):

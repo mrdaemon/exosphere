@@ -59,10 +59,7 @@ class HostWidget(Widget):
             yield Label(description_text, classes="host-description")
 
             # Online Status
-            status_text = (
-                "[green]Online[/green]" if self.host.online else "[red]Offline[/red]"
-            )
-            yield Label(status_text, classes="host-status")
+            yield Label(self.make_status_text(self.host.online), classes="host-status")
 
     def refresh_state(self) -> None:
         """Refresh the state of the host widget."""
@@ -78,10 +75,7 @@ class HostWidget(Widget):
 
         # Update status label
         status_label = self.query_one(".host-status", Label)
-        status_text = (
-            "[green]Online[/green]" if self.host.online else "[red]Offline[/red]"
-        )
-        status_label.update(status_text)
+        status_label.update(self.make_status_text(self.host.online))
 
         # Update version info, with unsupported/undiscovered status
         version_label = self.query_one(".host-version", Label)
@@ -93,6 +87,10 @@ class HostWidget(Widget):
         else:
             version_text = f"[dim]{self.host.flavor} {self.host.version}[/dim]"
         version_label.update(version_text)
+
+    def make_status_text(self, online: bool) -> str:
+        """Generate status text based on online status."""
+        return "[$text-success]Online[/]" if online else "[$text-error]Offline[/]"
 
 
 class DashboardScreen(Screen):

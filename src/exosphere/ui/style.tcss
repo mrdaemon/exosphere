@@ -70,13 +70,13 @@ FilterScreen {
 }
 
 .host-box.online {
-    border: solid green;
-    tint: green 10%;
+    border: solid $success;
+    tint: $success 10%;
 }
 
 .host-box.offline {
-    border: solid red;
-    tint: red 10%;
+    border: solid $error;
+    tint: $error 10%;
 }
 
 .host-name {
@@ -113,7 +113,7 @@ FilterScreen {
 .host-box.online .host-version,
 .host-box.online .host-description,
 .host-box.online .host-status {
-    tint: green 10%;
+    tint: $success 10%;
 }
 
 # Host box offline state - apply tint to children
@@ -121,7 +121,7 @@ FilterScreen {
 .host-box.offline .host-version,
 .host-box.offline .host-description,
 .host-box.offline .host-status {
-    tint: red 10%;
+    tint: $error 10%;
 }
 
 # === Detail Panels ===
@@ -173,7 +173,7 @@ FilterScreen {
     dock: bottom;
     align: center bottom;
     text-align: center;
-    color: dimgray;
+    color: $foreground-darken-3;
     text-style: italic;
 }
 
@@ -224,7 +224,7 @@ FilterScreen {
 # Empty message box
 .empty-message {
     text-align: center;
-    border: hkey gray;
+    border: hkey $primary-darken-1;
     layer: above;
     padding: 2 2;
 }
@@ -245,7 +245,7 @@ FilterScreen {
 # Abort line in progress bar box
 #abort-message {
     text-align: center;
-    color: dimgray;
+    color: $foreground-darken-3;
     text-style: italic;
     margin-top: 1;
 }
@@ -253,7 +253,7 @@ FilterScreen {
 # Error message box
 .error-message {
     background: gray 30%;
-    border: hkey red;
+    border: hkey $error;
     width: auto;
     height: auto;
     min-width: 40;
