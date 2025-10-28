@@ -13,31 +13,31 @@ InventoryScreen {
 HostDetailsPanel {
     layout: vertical;
     align: center middle;
-    background: $surface 60%;
+    background: $background 60%;
 }
 
 UpdateDetailsPanel {
     layout: vertical;
     align: center middle;
-    background: $surface 60%;
+    background: $background 60%;
 }
 
 ProgressScreen {
     layout: vertical;
     align: center middle;
-    background: $surface 60%;
+    background: $background 60%;
 }
 
 ErrorScreen {
     layout: vertical;
     align: center middle;
-    background: $surface 60%;
+    background: $background 60%;
 }
 
 FilterScreen {
     layout: vertical;
     align: center middle;
-    background: $surface 60%;
+    background: $background 60%;
 }
 
 # === Dashboard Components ===
