@@ -105,7 +105,9 @@ class ProgressScreen(Screen):
         """Handle key events, specifically ESC to abort the task."""
         if event.key == "escape":
             logger.warning("Aborting task on user request!")
-            self.query_one("#abort-message", Label).update("[red]Aborting...[/red]")
+            self.query_one("#abort-message", Label).update(
+                "[$text-error]Aborting...[/]"
+            )
             self.app.workers.cancel_node(self)
 
         # Do not bubble the event up in the UI
