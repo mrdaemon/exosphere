@@ -13,31 +13,31 @@ InventoryScreen {
 HostDetailsPanel {
     layout: vertical;
     align: center middle;
-    background: black 60%;
+    background: $surface 60%;
 }
 
 UpdateDetailsPanel {
     layout: vertical;
     align: center middle;
-    background: black 60%;
+    background: $surface 60%;
 }
 
 ProgressScreen {
     layout: vertical;
     align: center middle;
-    background: black 60%;
+    background: $surface 60%;
 }
 
 ErrorScreen {
     layout: vertical;
     align: center middle;
-    background: black 60%;
+    background: $surface 60%;
 }
 
 FilterScreen {
     layout: vertical;
     align: center middle;
-    background: black 60%;
+    background: $surface 60%;
 }
 
 # === Dashboard Components ===
@@ -231,7 +231,7 @@ FilterScreen {
 
 # Progress bar box
 .progress-message {
-    background: gray 30%;
+    background: $panel;
     padding: 2;
     border: hkey $primary-darken-1;
     width: auto;
@@ -252,7 +252,7 @@ FilterScreen {
 
 # Error message box
 .error-message {
-    background: gray 30%;
+    background: $panel;
     border: hkey $error;
     width: auto;
     height: auto;
@@ -262,7 +262,7 @@ FilterScreen {
 
 # Filter message box
 .filter-message {
-    background: gray 30%;
+    background: $panel;
     padding: 2;
     border: hkey $primary-darken-1;
     width: 50;
