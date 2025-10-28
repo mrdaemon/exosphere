@@ -127,7 +127,7 @@ class HostDetailsPanel(Screen):
         platform: str
 
         if not self.host.supported:
-            platform = f"{self.host.os} [yellow](Unsupported)[/yellow]"
+            platform = f"{self.host.os} [$text-warning](Unsupported)[/]"
         elif not self.host.flavor or not self.host.version:
             platform = "(Undiscovered)"
         elif self.host.os == self.host.flavor:
@@ -149,7 +149,7 @@ class HostDetailsPanel(Screen):
                 id="host-description",
             ),
             Label(
-                f"[i]Status:[/i]\n  {'[green]Online[/green]' if self.host.online else '[red]Offline[/red]'}",
+                f"[i]Status:[/i]\n  {'[$text-success]Online[/]' if self.host.online else '[$text-error]Offline[/]'}",
                 id="host-online",
             ),
         ]
@@ -203,7 +203,6 @@ class HostDetailsPanel(Screen):
 
         # Populate the updates table with available updates
         for update in update_list:
-            # Inline TCSS does not seem to work here, so we hardcode red.
             updates_table.add_row(
                 f"[red]{update.name}[/red]" if update.security else update.name
             )
