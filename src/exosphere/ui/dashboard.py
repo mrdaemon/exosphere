@@ -150,7 +150,15 @@ class DashboardScreen(Screen):
 
         terminal_width = self.size.width
         min_tile_width = MIN_WIDGET_WIDTH
-        max_columns = max(1, terminal_width // min_tile_width)
+
+        columns_exact = terminal_width / min_tile_width
+        max_columns = int(columns_exact)
+
+        # If we're within 3 characters of fitting another column, allow it
+        if columns_exact - max_columns >= 0.88:  # ~22 of 25 chars
+            max_columns += 1
+
+        max_columns = max(1, max_columns)
 
         # Cap grid columns between minimum and maximum
         columns = min(max(MIN_GRID_COLUMNS, max_columns), MAX_GRID_COLUMNS)
