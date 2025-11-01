@@ -4,7 +4,7 @@
   <a href="https://github.com/mrdaemon/exosphere/releases"><img src="https://img.shields.io/github/v/release/mrdaemon/exosphere" alt="GitHub release"></a>
   <a href="https://pypi.org/project/exosphere-cli/"><img src="https://img.shields.io/pypi/v/exosphere-cli" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.13+-purple.svg" alt="Python Version"></a>
-  <a href="https://github.com/mrdaemon/exosphere/actions/workflows/exosphere-test.yml"><img src="https://img.shields.io/github/actions/workflow/status/mrdaemon/exosphere/exosphere-test.yml" alt="Test Suite"></a>
+  <a href="https://github.com/mrdaemon/exosphere/actions/workflows/test-suite.yml"><img src="https://img.shields.io/github/actions/workflow/status/mrdaemon/exosphere/test-suite.yml" alt="Test Suite"></a>
   <a href="https://github.com/mrdaemon/exosphere/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mrdaemon/exosphere" alt="License"></a>
 </p>
 
