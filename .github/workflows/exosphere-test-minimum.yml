@@ -1,0 +1,42 @@
+# This workflow is intended to test against the minimum specified versions in
+# pyproject.toml to ensure constraints are adequate.
+
+name: Exosphere Minimum Dependencies
+
+on:
+  push:
+    branches: [ "main", "feature/*", "bugfix/*", "maintenance/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.13", "3.14"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install lowest version of dependencies
+      run: |
+        python -m pip install uv
+        uv sync --resolution lowest-direct
+    - name: Run test suite against minimum versions
+      env:
+        UV_RESOLUTION: lowest-direct
+      run: |
+        uv run poe test
+    - name: Publish test suite summary
+      uses: ctrf-io/github-test-reporter@v1
+      with:
+        report-path: './.tests_report.json'
+      if: always()
