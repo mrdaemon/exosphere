@@ -6,6 +6,8 @@ name: Minimum Dependencies
 on:
   push:
     branches: [ "main", "feature/*", "bugfix/*", "maintenance/*" ]
+    tags-ignore:
+      - "v*.*.*"
   pull_request:
     branches: [ "main" ]
 

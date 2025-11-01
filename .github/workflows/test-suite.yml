@@ -6,7 +6,8 @@ name: Test Suite
 on:
   push:
     branches: [ "main", "feature/*", "bugfix/*", "maintenance/*" ]
-    tags: [ "v*.*.*" ]
+    tags-ignore:
+      - "v*.*.*"
   pull_request:
     branches: [ "main" ]
 
