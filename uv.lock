@@ -527,7 +527,7 @@ requires-dist = [
     { name = "packaging", specifier = ">=24.0" },
     { name = "platformdirs", specifier = ">=4.3.8" },
     { name = "prompt-toolkit", specifier = ">=3.0.51" },
-    { name = "pyyaml", specifier = ">=6.0.2" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "textual", specifier = ">=6.2.0" },
     { name = "textual-serve", marker = "extra == 'web'", specifier = ">=1.1.2" },
     { name = "typer", specifier = ">=0.20.0" },
