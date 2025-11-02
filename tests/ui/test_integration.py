@@ -108,3 +108,21 @@ async def test_navigate_between_all_screens():
         await pilot.press("i")
         await pilot.pause()
         assert isinstance(app.screen, InventoryScreen)
+
+
+@pytest.mark.asyncio
+async def test_app_quit():
+    """
+    Test that the app can quit successfully (key: Ctrl+Q).
+
+    This test ensures that the application can handle the quit
+    command without errors.
+    """
+    app = ExosphereUi()
+    async with app.run_test() as pilot:
+        # Quit the app
+        await pilot.press("ctrl+q")
+        await pilot.pause()
+
+        # The app should be in the process of shutting down
+        assert app.is_running is False
