@@ -35,6 +35,13 @@ def progress_screen(mock_host):
     return ProgressScreen("Running...", [mock_host], "test_task")
 
 
+def test_error_screen_initialization():
+    """Test that ErrorScreen initializes with correct message."""
+    message = "Something went wrong"
+    screen = ErrorScreen(message)
+    assert screen.message == message
+
+
 def test_progress_screen_on_mount_triggers_do_run(mocker, progress_screen):
     """Ensure that the task is ran once the screen is mounted."""
     mock_do_run = mocker.patch.object(progress_screen, "do_run")

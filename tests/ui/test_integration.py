@@ -16,6 +16,7 @@ import pytest
 
 from exosphere.ui.app import ExosphereUi
 from exosphere.ui.dashboard import DashboardScreen
+from exosphere.ui.elements import ErrorScreen
 from exosphere.ui.inventory import InventoryScreen
 from exosphere.ui.logs import LogsScreen
 
@@ -126,3 +127,32 @@ async def test_app_quit():
 
         # The app should be in the process of shutting down
         assert app.is_running is False
+
+
+@pytest.mark.asyncio
+async def test_error_screen_display_and_dismiss():
+    """
+    Test that ErrorScreen can be displayed and dismissed.
+
+    This test verifies that an ErrorScreen can be pushed onto the stack,
+    displays correctly, and can be dismissed by pressing the OK button.
+    """
+    app = ExosphereUi()
+    async with app.run_test() as pilot:
+        # Push an error screen
+        error_message = "Test error message"
+        error_screen = ErrorScreen(error_message)
+        app.push_screen(error_screen)
+        await pilot.pause()
+
+        # Verify we're on the error screen
+        assert isinstance(app.screen, ErrorScreen)
+        assert app.screen.message == error_message
+
+        # Press Enter to activate the OK button (or click it)
+        # The OK button should be focused by default in most cases
+        await pilot.press("enter")
+        await pilot.pause()
+
+        # Should be back on dashboard after dismissing error
+        assert isinstance(app.screen, DashboardScreen)
