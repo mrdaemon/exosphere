@@ -196,6 +196,157 @@ class TestGetHostsOrError:
         with pytest.raises(typer.Exit):
             utils_module.get_hosts_or_error(["host1"])
 
+    @pytest.mark.parametrize(
+        "supported_hosts_count,unsupported_hosts_count,expected_count",
+        [
+            (2, 0, 2),  # All supported
+            (2, 1, 2),  # Mix of supported/unsupported
+        ],
+        ids=["supported only", "mixed"],
+    )
+    def test_get_hosts_supported_only_success(
+        self,
+        mock_context,
+        mock_inventory,
+        mock_console,
+        mocker,
+        supported_hosts_count,
+        unsupported_hosts_count,
+        expected_count,
+    ):
+        """Test that supported_only returns only supported hosts."""
+        mock_context.inventory = mock_inventory
+        console_mock, err_console_mock = mock_console
+
+        # Generate crappy host mocks
+        hosts = []
+        for i in range(supported_hosts_count):
+            host = mocker.Mock()
+            host.name = f"supported{i + 1}"
+            host.supported = True
+            host.package_manager = "apt"
+            hosts.append(host)
+
+        for i in range(unsupported_hosts_count):
+            host = mocker.Mock()
+            host.name = f"unsupported{i + 1}"
+            host.supported = False
+            host.package_manager = None
+            hosts.append(host)
+
+        mock_inventory.hosts = hosts
+
+        result = utils_module.get_hosts_or_error(supported_only=True)
+
+        assert result is not None
+        assert len(result) == expected_count
+        err_console_mock.print.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "has_supported,has_package_manager",
+        [
+            (False, False),  # Not supported, no package manager
+            (True, False),  # Supported but no package manager
+            (False, True),  # Not supported but has package manager (?!)
+        ],
+        ids=[
+            "unsupported",
+            "supported+undiscovered",
+            "unsupported+pkgmgr",
+        ],
+    )
+    def test_get_hosts_supported_only_none_available(
+        self,
+        mock_context,
+        mock_inventory,
+        mock_console,
+        mocker,
+        has_supported,
+        has_package_manager,
+    ):
+        """Test supported_only with no valid supported hosts."""
+        mock_context.inventory = mock_inventory
+        console_mock, err_console_mock = mock_console
+
+        host1 = mocker.Mock()
+        host1.name = "host1"
+        host1.supported = has_supported
+        host1.package_manager = "apt" if has_package_manager else None
+
+        host2 = mocker.Mock()
+        host2.name = "host2"
+        host2.supported = False
+        host2.package_manager = None
+
+        mock_inventory.hosts = [host1, host2]
+
+        result = utils_module.get_hosts_or_error(supported_only=True)
+
+        assert result is None
+        err_console_mock.print.assert_called_once()
+        call_args = err_console_mock.print.call_args[0][0]
+        assert isinstance(call_args, Panel)
+        assert "No supported hosts found in inventory" in str(call_args.renderable)
+
+    def test_get_hosts_supported_only_with_names_warning(
+        self, mock_context, mock_inventory, mock_console, mocker
+    ):
+        """Test supported_only with specific names shows warning for unsupported."""
+        mock_context.inventory = mock_inventory
+        console_mock, err_console_mock = mock_console
+
+        host1 = mocker.Mock()
+        host1.name = "host1"
+        host1.supported = True
+        host1.package_manager = "apt"
+
+        host2 = mocker.Mock()
+        host2.name = "host2"
+        host2.supported = False
+        host2.package_manager = None
+
+        mock_inventory.hosts = [host1, host2]
+
+        result = utils_module.get_hosts_or_error(
+            names=["host1", "host2"], supported_only=True
+        )
+
+        assert result is not None
+        assert len(result) == 1
+        err_console_mock.print.assert_called_once()
+        call_args = err_console_mock.print.call_args[0][0]
+        assert isinstance(call_args, Panel)
+        assert "Unsupported hosts will be skipped" in str(call_args.renderable)
+
+    def test_get_hosts_supported_only_with_names_none_supported(
+        self, mock_context, mock_inventory, mock_console, mocker
+    ):
+        """Test supported_only with specific names when none are supported."""
+        mock_context.inventory = mock_inventory
+        console_mock, err_console_mock = mock_console
+
+        host1 = mocker.Mock()
+        host1.name = "host1"
+        host1.supported = False
+        host1.package_manager = None
+
+        host2 = mocker.Mock()
+        host2.name = "host2"
+        host2.supported = False
+        host2.package_manager = None
+
+        mock_inventory.hosts = [host1, host2]
+
+        result = utils_module.get_hosts_or_error(
+            names=["host1", "host2"], supported_only=True
+        )
+
+        assert result is None
+        err_console_mock.print.assert_called_once()
+        call_args = err_console_mock.print.call_args[0][0]
+        assert isinstance(call_args, Panel)
+        assert "No supported hosts found in specified list" in str(call_args.renderable)
+
 
 class TestRunTaskWithProgress:
     """Test the run_task_with_progress function."""
