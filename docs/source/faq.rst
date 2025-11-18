@@ -113,6 +113,31 @@ user you use within Exosphere, and manually run the following commands:
 And answer all the prompts that may appear. The provider should no longer hang
 past this point.
 
+After an update, my system using `dnf` fails to refresh!
+--------------------------------------------------------
+
+After certain types of updates, you may get the following error message when
+trying to refresh a `dnf` based system:
+
+.. code-block:: text
+
+    Failed to get current versions: Error: SQLite error on "/var/lib/dnf/history.sqlite":
+    Executing an SQL statement failed: attempt to write a readonly database
+
+This is a known issue where `dnf` apparently needs to perform some database
+updates before it can perform its queries. This requires root privileges, which
+Exosphere does not have access to during normal operations.
+
+To resolve this, you can connect to the remote system and run a simple query
+with root privileges to fix the database:
+
+.. code-block:: bash
+
+    $ sudo dnf --quiet -y list installed kernel.x86_64
+
+This should resolve the issue, and you should be able to refresh the system
+without write access errors afterwards.
+
 I've tuned the timeout but this one host keeps getting flagged offline
 ----------------------------------------------------------------------
 
@@ -128,8 +153,8 @@ that host specifically by setting the ``connect_timeout``
 :ref:`host option <connect_timeout_host_option>` to a higher value, without
 having to change the global option.
 
-I don't like ascii art banner in interactive mode
--------------------------------------------------
+I don't like the ascii art banner in interactive mode
+-----------------------------------------------------
 
 You can disable it entirely with the ``no_banner``
 :ref:`config option <no_banner_option>`.
