@@ -501,6 +501,7 @@ web = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "babel" },
     { name = "fabric", extra = ["pytest"] },
     { name = "jsonschema" },
     { name = "poethepoet" },
@@ -538,6 +539,7 @@ provides-extras = ["web"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "babel", specifier = ">=2.17.0" },
     { name = "fabric", extras = ["pytest"], specifier = ">=3.2.2" },
     { name = "jsonschema", specifier = ">=4.25.1" },
     { name = "poethepoet", specifier = ">=0.33.1" },
