@@ -1590,15 +1590,15 @@ wheels = [
 
 [[package]]
 name = "sphinx-lint"
-version = "1.0.1"
+version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "polib" },
     { name = "regex" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/51/b9/8f9bba27fd9c957570c4d4cb15e1bb99c97b69ffda2e15da8281afdf2a14/sphinx_lint-1.0.1.tar.gz", hash = "sha256:2b054ff3270fce56a8a18737665dd8ab04f45d8bfdf3a57a2313970b527ad612", size = 210115, upload-time = "2025-10-28T17:59:52.388Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/19/9258497fee6e2a0bdb93e8ecea6ef6864afb5d83e996a1606a853f96c658/sphinx_lint-1.0.2.tar.gz", hash = "sha256:4e7fc12f44f750b0006eaad237d7db9b1d8aba92adda9c838af891654b371d35", size = 36870, upload-time = "2025-11-19T08:28:12.269Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/57/3fd77fc7db35e5b0187c3ef7c1f94fe92c647338189f9e038f9a42236f14/sphinx_lint-1.0.1-py3-none-any.whl", hash = "sha256:914648e4cc6e677df3a09a8d72a33c8dfa0c2618c857e415ec3ebdc219ff0af1", size = 28287, upload-time = "2025-10-28T17:59:50.974Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/62/f29a2988ff706ac01d3c63d0b4cc4ed62d2c83b447916e0317790ca156cf/sphinx_lint-1.0.2-py3-none-any.whl", hash = "sha256:edcd0fa4d916386c5a3ef7ef0f5136f0bb4a15feefc83c1068ba15bc16eec652", size = 20670, upload-time = "2025-11-19T08:28:10.656Z" },
 ]
 
 [[package]]
