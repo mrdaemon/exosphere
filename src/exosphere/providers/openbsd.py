@@ -61,14 +61,8 @@ class PkgAdd(PkgManager):
         updates: list[Update] = []
         is_current = False  # Whether or not the system is tracking -current or -beta
 
-        # Run queries within the same connection
-        with cx as c:
-            version_query = c.run("/usr/sbin/syspatch -l", hide=True, warn=True)
-            packages_query = c.run(
-                "/usr/sbin/pkg_add -u -v -x -n | grep -e '^Update candidate'",
-                hide=True,
-                warn=True,
-            )
+        # First, perform version query
+        version_query = cx.run("/usr/sbin/syspatch -l", hide=True, warn=True)
 
         # Syspatch returns non-zero exit code if the release is unsupported,
         # and we use this to determine if we can track security status.
@@ -84,6 +78,13 @@ class PkgAdd(PkgManager):
                 raise DataRefreshError(
                     f"Failed to query OpenBSD version: {version_query.stderr}"
                 )
+
+        # Query for available package updates
+        packages_query = cx.run(
+            "/usr/sbin/pkg_add -u -v -x -n | grep -e '^Update candidate'",
+            hide=True,
+            warn=True,
+        )
 
         # grep will exit with 1 if there are no candidates at all
         # This is expected if packages are up to date AND if there are

@@ -41,8 +41,7 @@ class Apt(PkgManager):
         """
         self.logger.debug("Synchronizing apt repositories")
 
-        with cx as c:
-            update = c.sudo("/usr/bin/apt-get update", hide=True, warn=True)
+        update = cx.sudo("/usr/bin/apt-get update", hide=True, warn=True)
 
         if update.failed:
             self.logger.error(
@@ -64,10 +63,9 @@ class Apt(PkgManager):
 
         updates: list[Update] = []
 
-        with cx as c:
-            raw_query = c.run(
-                "apt-get dist-upgrade -s | grep -e '^Inst'", hide=True, warn=True
-            )
+        raw_query = cx.run(
+            "apt-get dist-upgrade -s | grep -e '^Inst'", hide=True, warn=True
+        )
 
         if raw_query.failed:
             # Nonzero exit can mean grep found no matches.
