@@ -12,6 +12,7 @@ This module is responsible for:
 
 """
 
+import atexit
 import json
 import logging
 import os
@@ -143,6 +144,25 @@ def load_first_config(config: Configuration) -> bool:
             sys.exit(1)
 
     return False
+
+
+@atexit.register
+def cleanup_connections() -> None:
+    """
+    Exit Handler to clean up SSH connections.
+
+    Registered via atexit to ensure all SSH connections are properly
+    cleaned up on program exit.
+
+    In the event of abrupt horrors or early termination, this should
+    do nothing harmful or unexpected.
+    """
+
+    logger.debug("Running exit handler for connections cleanup")
+
+    if context.inventory:
+        logger.debug("Closing all SSH connections on exit")
+        context.inventory.close_all(clear=True)
 
 
 def main() -> None:
