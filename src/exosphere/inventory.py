@@ -54,6 +54,23 @@ class Inventory:
             for host in self.hosts:
                 cache[host.name] = host
 
+    def close_all(self, clear: bool = False) -> None:
+        """
+        Close all SSH connections for all hosts in the inventory.
+
+        Invokes the `close` method on each Host object, closing the ssh
+        connection if one exists.
+
+        It will be re-established on next request.
+
+        :param clear: If True, clears the connection object on each host
+                      after closing it by setting it to None.
+
+        """
+        self.logger.debug("Closing all SSH connections for %d hosts", len(self.hosts))
+        for host in self.hosts:
+            host.close(clear=clear)
+
     def clear_state(self) -> None:
         """
         Clear the current state of the inventory

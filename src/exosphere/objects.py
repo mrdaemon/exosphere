@@ -528,6 +528,39 @@ class Host:
         # Update the last refresh timestamp
         self.last_refresh = datetime.now(timezone.utc)
 
+    def close(self, clear: bool = False) -> None:
+        """
+        Close the SSH connection if one exists.
+
+        Explicitly close the Connection object.
+        Subsequent calls to `connection` property will recreate it if
+        necessary.
+
+        This should be called when done with batch operations on the
+        host or when cleaning up on exit.
+
+        :param clear: If True, sets the internal connection object
+                      to None after closing.
+        """
+        if self._connection is not None:
+            try:
+                self._connection.close()
+                self.logger.debug(
+                    "Closed SSH connection to %s (%s:%s)",
+                    self.name,
+                    self.ip,
+                    self.port,
+                )
+            except Exception as e:
+                # Errors here are non-fatal, just log them
+                self.logger.warning("Error closing connection to %s: %s", self.name, e)
+            finally:
+                if clear:
+                    self.logger.debug(
+                        "Clearing connection object for host %s", self.name
+                    )
+                    self._connection = None
+
     def ping(self, raise_on_error: bool = False) -> bool:
         """
         Check if the host is reachable by executing a simple command.
@@ -543,12 +576,8 @@ class Host:
         :return: True if the host is reachable, False otherwise
         """
         try:
-            with self.connection as conn:
-                self.logger.debug(
-                    "Pinging host %s at %s:%s", self.name, self.ip, self.port
-                )
-                conn.run("true", hide=True)
-
+            self.logger.debug("Pinging host %s at %s:%s", self.name, self.ip, self.port)
+            self.connection.run("true", hide=True)
             self.online = True
         except PasswordRequiredException as e:
             # Paramiko sucks at raising exceptions, and will essentially
