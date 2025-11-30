@@ -87,8 +87,7 @@ def os_detect(cx: Connection) -> str:
     :param cx: Fabric Connection object
     :return: OS name as string
     """
-    with cx as c:
-        result_system = c.run("uname -s", hide=True, warn=True)
+    result_system = cx.run("uname -s", hide=True, warn=True)
 
     if result_system.failed:
         raise DataRefreshError(f"Failed to query OS info: {result_system.stderr}")
@@ -117,14 +116,12 @@ def flavor_detect(cx: Connection, platform_name: str) -> str:
     if platform_name == "linux":
         # We're just going to query /etc/os-release directly.
         # Using lsb_release would be better, but it's less available
-        #
-        with cx as c:
-            result_id = c.run("grep ^ID= /etc/os-release", hide=True, warn=True)
-            result_like_id = c.run(
-                "grep ^ID_LIKE= /etc/os-release",
-                hide=True,
-                warn=True,
-            )
+        result_id = cx.run("grep ^ID= /etc/os-release", hide=True, warn=True)
+        result_like_id = cx.run(
+            "grep ^ID_LIKE= /etc/os-release",
+            hide=True,
+            warn=True,
+        )
 
         if result_id.failed:
             raise DataRefreshError(
@@ -192,8 +189,7 @@ def version_detect(cx: Connection, flavor_name: str) -> str:
 
     # Debian/Ubuntu
     if flavor_name in ["ubuntu", "debian"]:
-        with cx as c:
-            result_version = c.run("lsb_release -s -r", hide=True, warn=True)
+        result_version = cx.run("lsb_release -s -r", hide=True, warn=True)
 
         if result_version.failed:
             raise DataRefreshError(
@@ -206,10 +202,9 @@ def version_detect(cx: Connection, flavor_name: str) -> str:
 
     # Redhat-likes
     if flavor_name in ["rhel", "fedora"]:
-        with cx as c:
-            result_version = c.run(
-                "grep ^VERSION_ID= /etc/os-release", hide=True, warn=True
-            )
+        result_version = cx.run(
+            "grep ^VERSION_ID= /etc/os-release", hide=True, warn=True
+        )
 
         if result_version.failed:
             raise DataRefreshError(
@@ -225,8 +220,7 @@ def version_detect(cx: Connection, flavor_name: str) -> str:
 
     # FreeBSD
     if flavor_name == "freebsd":
-        with cx as c:
-            result_version = c.run("/bin/freebsd-version -u", hide=True, warn=True)
+        result_version = cx.run("/bin/freebsd-version -u", hide=True, warn=True)
 
         if result_version.failed:
             raise DataRefreshError(
@@ -239,8 +233,7 @@ def version_detect(cx: Connection, flavor_name: str) -> str:
 
     # OpenBSD
     if flavor_name == "openbsd":
-        with cx as c:
-            result_version = c.run("uname -r", hide=True, warn=True)
+        result_version = cx.run("uname -r", hide=True, warn=True)
 
         if result_version.failed:
             raise DataRefreshError(
@@ -273,9 +266,8 @@ def package_manager_detect(cx: Connection, flavor_name: str) -> str:
 
     # Redhat-likes
     if flavor_name in ["rhel", "fedora"]:
-        with cx as c:
-            result_dnf = c.run("command -v dnf", hide=True, warn=True)
-            result_yum = c.run("command -v yum", hide=True, warn=True)
+        result_dnf = cx.run("command -v dnf", hide=True, warn=True)
+        result_yum = cx.run("command -v yum", hide=True, warn=True)
 
         if result_dnf.failed and result_yum.failed:
             raise UnsupportedOSError(

@@ -41,10 +41,9 @@ class Dnf(PkgManager):
         """
         self.logger.debug("Synchronizing dnf repositories")
 
-        with cx as c:
-            update = c.run(
-                f"{self.pkgbin} --quiet -y makecache --refresh", hide=True, warn=True
-            )
+        update = cx.run(
+            f"{self.pkgbin} --quiet -y makecache --refresh", hide=True, warn=True
+        )
 
         if update.failed:
             self.logger.error(
@@ -75,10 +74,9 @@ class Dnf(PkgManager):
             updates.append(kernel_update)
 
         # Get all other updates
-        with cx as c:
-            raw_query = c.run(
-                f"{self.pkgbin} --quiet -y check-update", hide=True, warn=True
-            )
+        raw_query = cx.run(
+            f"{self.pkgbin} --quiet -y check-update", hide=True, warn=True
+        )
 
         if raw_query.return_code == 0:
             self.logger.debug("No updates available")
@@ -175,12 +173,11 @@ class Dnf(PkgManager):
         # Format the output to match 'check-update'
         queryformat = "%{name}.%{arch}  %{version}-%{release}  %{repoid}\n"
 
-        with cx as c:
-            raw_query = c.run(
-                f"{self.pkgbin} --quiet -y repoquery kernel --latest-limit=1 --queryformat='{queryformat}'",
-                hide=True,
-                warn=True,
-            )
+        raw_query = cx.run(
+            f"{self.pkgbin} --quiet -y repoquery kernel --latest-limit=1 --queryformat='{queryformat}'",
+            hide=True,
+            warn=True,
+        )
 
         if raw_query.failed:
             raise DataRefreshError(
@@ -253,12 +250,11 @@ class Dnf(PkgManager):
 
         updates: list[str] = []
 
-        with cx as c:
-            raw_query = c.run(
-                f"{self.pkgbin} --quiet -y check-update --security",
-                hide=True,
-                warn=True,
-            )
+        raw_query = cx.run(
+            f"{self.pkgbin} --quiet -y check-update --security",
+            hide=True,
+            warn=True,
+        )
 
         if raw_query.return_code == 0:
             self.logger.debug("No security updates available")
@@ -331,12 +327,11 @@ class Dnf(PkgManager):
                  list of installed versions if kernel package.
         """
 
-        with cx as c:
-            result = c.run(
-                f"{self.pkgbin} --quiet -y list installed {' '.join(package_names)}",
-                hide=True,
-                warn=True,
-            )
+        result = cx.run(
+            f"{self.pkgbin} --quiet -y list installed {' '.join(package_names)}",
+            hide=True,
+            warn=True,
+        )
 
         if result.failed:
             raise DataRefreshError(f"Failed to get current versions: {result.stderr}")

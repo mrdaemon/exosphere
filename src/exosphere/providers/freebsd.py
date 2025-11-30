@@ -48,8 +48,7 @@ class Pkg(PkgManager):
         """
         self.logger.debug("Synchronizing FreeBSD pkg repositories")
 
-        with cx as c:
-            result = c.sudo("/usr/sbin/pkg update -q", hide=True, warn=True)
+        result = cx.sudo("/usr/sbin/pkg update -q", hide=True, warn=True)
 
         if result.failed:
             self.logger.error(
@@ -75,12 +74,8 @@ class Pkg(PkgManager):
         vulnerable: list[str] = []
 
         # Collect required data for audit and updates
-        # We batch this to reuse the same connection
-        with cx as c:
-            audit_result = c.run("pkg audit -q", hide=True, warn=True)
-            query_result = c.run(
-                "pkg upgrade -qn | grep -e '^\\s'", hide=True, warn=True
-            )
+        audit_result = cx.run("pkg audit -q", hide=True, warn=True)
+        query_result = cx.run("pkg upgrade -qn | grep -e '^\\s'", hide=True, warn=True)
 
         if audit_result.failed:
             # We check for stderr here, as pkg audit will return
