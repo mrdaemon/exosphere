@@ -1697,16 +1697,16 @@ wheels = [
 
 [[package]]
 name = "sphinxcontrib-spelling"
-version = "8.0.1"
+version = "8.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyenchant" },
     { name = "requests" },
     { name = "sphinx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/71/04/099b55abd934cacccaedab9680c8238042eb3c722bdd420bc752d0eddb78/sphinxcontrib_spelling-8.0.1.tar.gz", hash = "sha256:f0447b6413c78b613b916c7891e36be85a105d1919c99784c53dfea2d8f8040f", size = 36005, upload-time = "2024-12-19T17:07:54.062Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4b/cd/fa8039cedce6295644ff5f03367742d21e7922da426e8c666b7f5a213682/sphinxcontrib_spelling-8.0.2.tar.gz", hash = "sha256:afbc7b8e93721ab88f12bdd39d848b92017b3763b9ed6226b4b0e54b06664fea", size = 30955, upload-time = "2025-11-28T15:31:50.235Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/30/05efe7261eac789cf3ba28ef5dfb76d719df30baae6881cb54a6801c0e8f/sphinxcontrib_spelling-8.0.1-py3-none-any.whl", hash = "sha256:21704857c1b5e26e06bb07d15927df41c9d7ecfc1843169ecd22cb59f24069ac", size = 14617, upload-time = "2024-12-19T17:07:52.799Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/c5/bcd32aa919c9e1652cca5bed6478202656a320c407793b547f8c16c179e3/sphinxcontrib_spelling-8.0.2-py3-none-any.whl", hash = "sha256:db8b3b2945683d49e87a8a5133d2b8ed4206cb593038b986ca8686a485f9980d", size = 14587, upload-time = "2025-11-28T15:31:48.957Z" },
 ]
 
 [[package]]
