@@ -244,9 +244,13 @@ class Host:
         This method sets up the connection object for further operations.
 
         Connection objects are recycled if already created.
-        As a general rule, the connection should be closed, but this should
-        be handled by the callee this gets passed on, as code is decoupled
-        from the Host object for most operations.
+
+        If you work with Host objects directly, make sure to call
+        `host.close()` when done with operations (such as discover,
+        refresh_updates, etc) to avoid leaving ssh connections open.
+
+        If you don't, all connections will be closed automatically on
+        program exit.
 
         :return: Fabric Connection object
         """
@@ -538,6 +542,10 @@ class Host:
 
         This should be called when done with batch operations on the
         host or when cleaning up on exit.
+
+        You can use the `clear` parameter to also clear the internal
+        connection object after closing it, if you want to ensure
+        it is not reused.
 
         :param clear: If True, sets the internal connection object
                       to None after closing.
