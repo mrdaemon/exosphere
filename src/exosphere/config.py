@@ -55,6 +55,8 @@ class Configuration(dict):
             "default_username": None,  # Default global username to use for SSH
             "default_sudo_policy": "skip",  # Global sudo policy for package manager ops
             "max_threads": 15,  # Maximum number of threads to use for parallel ops
+            "ssh_pipelining": False,  # Enable SSH pipelining for SSH connections
+            "ssh_pipelining_lifetime": 600,  # Max lifetime (secs) of SSH connections
             "update_checks": True,  # Set to false if you want to disable PyPI checks
             "no_banner": False,  # Disable the REPL banner on startup
         },
