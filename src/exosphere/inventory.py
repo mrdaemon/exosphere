@@ -413,3 +413,11 @@ class Inventory:
                         "Failed to run %s on %s: %s", host_method, host.name, e
                     )
                     yield (host, None, e)
+                finally:
+                    # Close connection after task if SSH pipelining is disabled
+                    if not self.configuration["options"]["ssh_pipelining"]:
+                        self.logger.debug(
+                            "SSH pipelining disabled, closing connection for %s",
+                            host.name,
+                        )
+                        host.close(clear=False)
