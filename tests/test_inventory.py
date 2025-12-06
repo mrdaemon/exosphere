@@ -54,6 +54,7 @@ class TestInventory:
             m.description = kwargs.get("description", None)
             m.username = kwargs.get("username", None)
             m.sudo_policy = kwargs.get("sudo_policy", SudoPolicy.SKIP)
+            m.close = mocker.Mock()
             return m
 
         patcher = mocker.patch("exosphere.inventory.Host", side_effect=make_mock_host)
@@ -785,3 +786,81 @@ class TestInventory:
 
         # Verify ThreadPoolExecutor was called with correct max_workers
         mock_executor.assert_called_once_with(max_workers=5)
+
+    def test_run_task_closes_connections_when_pipelining_disabled(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that connections are closed when ssh_pipelining is disabled.
+        """
+        # Ensure ssh_pipelining is disabled (default)
+        mock_config["options"]["ssh_pipelining"] = False
+
+        inventory = Inventory(mock_config)
+        mock_host1 = mock_host_class(name="host1", ip="127.0.0.1")
+        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
+        inventory.hosts = [mock_host1, mock_host2]
+
+        mocker.patch.object(mock_host1, "ping", return_value=True)
+        mocker.patch.object(mock_host2, "ping", return_value=True)
+
+        # Run the task
+        list(inventory.run_task("ping"))
+
+        # Verify that close was called on both hosts
+        mock_host1.close.assert_called_once_with(clear=False)
+        mock_host2.close.assert_called_once_with(clear=False)
+
+    def test_run_task_keeps_connections_when_pipelining_enabled(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that connections are NOT closed when ssh_pipelining is enabled.
+        """
+        # Enable ssh_pipelining
+        mock_config["options"]["ssh_pipelining"] = True
+
+        inventory = Inventory(mock_config)
+        mock_host1 = mock_host_class(name="host1", ip="127.0.0.1")
+        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
+        inventory.hosts = [mock_host1, mock_host2]
+
+        mocker.patch.object(mock_host1, "ping", return_value=True)
+        mocker.patch.object(mock_host2, "ping", return_value=True)
+
+        # Run the task
+        list(inventory.run_task("ping"))
+
+        # Verify that close was NOT called on either host
+        mock_host1.close.assert_not_called()
+        mock_host2.close.assert_not_called()
+
+    def test_run_task_closes_connections_even_on_exception(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that connections are closed even when a task raises an exception
+        (when ssh_pipelining is disabled).
+        """
+        # Ensure ssh_pipelining is disabled
+        mock_config["options"]["ssh_pipelining"] = False
+
+        inventory = Inventory(mock_config)
+        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
+        inventory.hosts = [mock_host]
+
+        # Ensure task raises an exception
+        mocker.patch.object(mock_host, "ping", side_effect=RuntimeError("Test error"))
+
+        # Run the task, exception will be in tuple
+        results = list(inventory.run_task("ping"))
+
+        # Sanity check, we should have an exception
+        assert len(results) == 1
+        host, result, exc = results[0]
+        assert host == mock_host
+        assert result is None
+        assert isinstance(exc, RuntimeError)
+
+        # Ensure connection was closed explicitly
+        mock_host.close.assert_called_once_with(clear=False)
