@@ -109,7 +109,6 @@ class ConnectionReaper:
         """
 
         while not self._stop_event.is_set():
-            self.logger.debug("Waking up connection reaper thread")
             try:
                 self.close_idle_connections()
             except Exception as e:
@@ -118,7 +117,6 @@ class ConnectionReaper:
                     "Error while reaping idle connections: %s", e, exc_info=True
                 )
 
-            self.logger.debug("Connection reaper thread going to sleep")
             self._stop_event.wait(timeout=self.check_interval)
 
         self.logger.debug("Connection reaper thread received stop signal")
