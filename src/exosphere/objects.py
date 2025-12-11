@@ -310,6 +310,19 @@ class Host:
         return self._connection
 
     @property
+    def connection_last_used(self) -> float | None:
+        """
+        Get the timestamp of the last use of the connection.
+
+        "last used" here is defined as the last time anything requested
+        the `Connection` object through the property for this host.
+
+        :return: Timestamp of last use in seconds since epoch, or None
+                 if connection has never been used.
+        """
+        return self._connection_last_used
+
+    @property
     def security_updates(self) -> list[Update]:
         """
         Get a list of security updates available on the host.
