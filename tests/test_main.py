@@ -52,6 +52,22 @@ class TestMain:
             "exosphere.fspaths.CONFIG_DIR", Path.home() / ".config" / "exosphere"
         )
 
+    @pytest.fixture()
+    def mock_reaper(self, mocker):
+        """
+        Fixture to create a mock ConnectionReaper.
+        """
+        mock = mocker.MagicMock()
+        mock.is_running = True
+        return mock
+
+    @pytest.fixture()
+    def mock_inventory(self, mocker):
+        """
+        Fixture to create a mock Inventory.
+        """
+        return mocker.MagicMock()
+
     def test_main(self, mocker, caplog):
         """
         Test the main function of the Exosphere application.
@@ -421,3 +437,72 @@ class TestMain:
             "FATAL: Startup Error setting up logging: Logging setup failed"
             in captured.err
         )
+
+    def test_main_starts_reaper_thread(self, mocker):
+        """
+        Test that the connection reaper is started in main.
+        """
+
+        mock_reaper_start = mocker.patch("exosphere.main.ConnectionReaper.start")
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+        mocker.patch("exosphere.main.setup_logging")
+        mocker.patch("exosphere.cli.app")
+        mocker.patch("exosphere.main.Inventory")
+
+        from exosphere.main import main
+
+        main()
+
+        mock_reaper_start.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "reaper_state,inventory_present,expected_reaper_stop,expected_inventory_close",
+        [
+            (True, True, True, True),
+            (False, True, False, True),
+            (None, True, False, True),
+            (True, False, True, False),
+        ], ids=[
+            "reaper_running_inventory_present",
+            "reaper_stopped_inventory_present",
+            "no_reaper_inventory_present",
+            "reaper_running_no_inventory",
+        ]
+    )
+    def test_cleanup_connections(
+        self,
+        mock_reaper,
+        mock_inventory,
+        reaper_state,
+        inventory_present,
+        expected_reaper_stop,
+        expected_inventory_close,
+    ):
+        """
+        Test cleanup_connections with various reaper and inventory states.
+        This is the atexit handler that runs on program exit.
+        """
+        from exosphere import context
+        from exosphere.main import cleanup_connections
+
+        # Setup context based on parameters
+        if reaper_state is None:
+            context.reaper = None
+        else:
+            mock_reaper.is_running = reaper_state
+            context.reaper = mock_reaper
+
+        context.inventory = mock_inventory if inventory_present else None
+
+        cleanup_connections()
+
+        if expected_reaper_stop:
+            mock_reaper.stop.assert_called_once()
+        else:
+            mock_reaper.stop.assert_not_called()
+
+        if expected_inventory_close:
+            mock_inventory.close_all.assert_called_once_with(clear=True)
+        else:
+            mock_inventory.close_all.assert_not_called()
+
