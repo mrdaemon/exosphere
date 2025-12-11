@@ -462,12 +462,13 @@ class TestMain:
             (False, True, False, True),
             (None, True, False, True),
             (True, False, True, False),
-        ], ids=[
+        ],
+        ids=[
             "reaper_running_inventory_present",
             "reaper_stopped_inventory_present",
             "no_reaper_inventory_present",
             "reaper_running_no_inventory",
-        ]
+        ],
     )
     def test_cleanup_connections(
         self,
@@ -505,4 +506,3 @@ class TestMain:
             mock_inventory.close_all.assert_called_once_with(clear=True)
         else:
             mock_inventory.close_all.assert_not_called()
-
