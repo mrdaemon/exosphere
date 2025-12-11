@@ -26,6 +26,7 @@ import yaml
 from exosphere import app_config, cli, context, fspaths
 from exosphere.config import Configuration
 from exosphere.inventory import Inventory
+from exosphere.pipelining import ConnectionReaper
 
 logger = logging.getLogger(__name__)
 
@@ -154,12 +155,21 @@ def cleanup_connections() -> None:
     Registered via atexit to ensure all SSH connections are properly
     cleaned up on program exit.
 
+    Also handles shutting down the connection reaper thread used when
+    SSH pipelining is enabled.
+
     In the event of abrupt horrors or early termination, this should
     do nothing harmful or unexpected.
     """
 
     logger.debug("Running exit handler for connections cleanup")
 
+    # Stop the connection reaper thread first
+    if context.reaper and context.reaper.is_running:
+        logger.debug("Stopping connection reaper thread on exit")
+        context.reaper.stop()
+
+    # Close all remaining SSH connections and clear objects
     if context.inventory:
         logger.debug("Closing all SSH connections on exit")
         context.inventory.close_all(clear=True)
@@ -206,6 +216,10 @@ def main() -> None:
         logger.error("Startup Error loading inventory: %s", e)
         print(f"FATAL: Startup Error loading inventory: {e}", file=sys.stderr)
         sys.exit(1)
+
+    # Initialize and start the connection reaper
+    context.reaper = ConnectionReaper()
+    context.reaper.start()
 
     # Launch CLI application
     cli.app()
