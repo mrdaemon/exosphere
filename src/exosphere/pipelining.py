@@ -33,12 +33,21 @@ class ConnectionReaper:
         """
         self.logger = logging.getLogger(__name__)
 
-        self._inventory: Inventory | None = None
+        self._inventory: Inventory | None = context.inventory
         self._thread: Thread | None = None
         self._stop_event = Event()
 
         self.max_lifetime: int = app_config["options"]["ssh_pipelining_lifetime"]
         self.check_interval = app_config["options"]["ssh_pipelining_reap_interval"]
+
+    @property
+    def is_running(self) -> bool:
+        """
+        Check if the reaper thread is currently running.
+
+        :return: True if the reaper thread is active, False otherwise.
+        """
+        return self._thread is not None and self._thread.is_alive()
 
     def start(self) -> None:
         """
@@ -48,7 +57,7 @@ class ConnectionReaper:
         Silently returns if ssh pipelining is disabled.
         """
 
-        if not context.inventory:
+        if not self._inventory:
             self.logger.error(
                 "Cannot start connection reaper: inventory not initialized!"
             )
@@ -63,8 +72,6 @@ class ConnectionReaper:
                 "Not starting connection reaper thread: already running!"
             )
             return
-
-        self._inventory = context.inventory
 
         # Sanity check on lifetime, as very low values may cause issues
         if self.max_lifetime < 300:
@@ -104,7 +111,7 @@ class ConnectionReaper:
         while not self._stop_event.is_set():
             self.logger.debug("Waking up connection reaper thread")
             try:
-                self._close_idle_connections()
+                self.close_idle_connections()
             except Exception as e:
                 # Log but don't crash the reaper thread
                 self.logger.error(
@@ -116,7 +123,7 @@ class ConnectionReaper:
 
         self.logger.debug("Connection reaper thread received stop signal")
 
-    def _close_idle_connections(self) -> None:
+    def close_idle_connections(self) -> None:
         """
         Check all hosts and close connections that have been idle too long.
 
@@ -135,22 +142,27 @@ class ConnectionReaper:
         reaped_count = 0
 
         for host in self._inventory.hosts:
-            if host._connection_last_used is None:
-                self.logger.debug(
-                    "No active connection for host %s, skipping", host.name
-                )
+            if host.connection_last_used is None:
                 continue
 
             # Check idle/age time
-            idle_time = now - host._connection_last_used
+            idle_time = now - host.connection_last_used
             if idle_time > self.max_lifetime:
                 self.logger.debug(
                     "Closing idle connection to %s (idle for %.1f seconds)",
                     host.name,
                     idle_time,
                 )
-                host.close(clear=False)
-                reaped_count += 1
+                try:
+                    host.close(clear=False)
+                    reaped_count += 1
+                except Exception as e:
+                    self.logger.error(
+                        "Error closing connection to %s: %s",
+                        host.name,
+                        e,
+                        exc_info=True,
+                    )
 
         if reaped_count > 0:
             self.logger.info("Closed %d idle connection(s)", reaped_count)
