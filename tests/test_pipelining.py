@@ -215,9 +215,8 @@ class TestConnectionReaper:
         mock_host.close.side_effect = Exception("Test error")
 
         reaper = ConnectionReaper()
-
-        # Should not raise - exception will be caught in _run() loop
         reaper.close_idle_connections()
+
         assert "Error closing connection to test-host" in caplog.text
 
     def test_reaper_with_empty_inventory(self, mock_config, mock_inventory, caplog):
