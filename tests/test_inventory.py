@@ -864,3 +864,56 @@ class TestInventory:
 
         # Ensure connection was closed explicitly
         mock_host.close.assert_called_once_with(clear=False)
+
+    def test_close_all_closes_all_hosts(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that close_all() calls close() on all hosts.
+        """
+        inventory = Inventory(mock_config)
+        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
+        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
+        mock_host3 = mock_host_class(name="host3", ip="127.0.0.3")
+        inventory.hosts = [mock_host, mock_host2, mock_host3]
+
+        mocker.patch.object(mock_host, "close")
+        mocker.patch.object(mock_host2, "close")
+        mocker.patch.object(mock_host3, "close")
+
+        inventory.close_all()
+
+        mock_host.close.assert_called_once_with(clear=False)
+        mock_host2.close.assert_called_once_with(clear=False)
+        mock_host3.close.assert_called_once_with(clear=False)
+
+    def test_close_all_with_clear(
+        self, mocker, mock_config, mock_diskcache, mock_host_class
+    ):
+        """
+        Test that close_all(clear=True) passes clear flag to hosts.
+        """
+        inventory = Inventory(mock_config)
+        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
+        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
+        inventory.hosts = [mock_host, mock_host2]
+
+        mocker.patch.object(mock_host, "close")
+        mocker.patch.object(mock_host2, "close")
+
+        inventory.close_all(clear=True)
+
+        mock_host.close.assert_called_once_with(clear=True)
+        mock_host2.close.assert_called_once_with(clear=True)
+
+    def test_close_all_with_empty_inventory(self, mocker, mock_diskcache):
+        """
+        Test that close_all() handles empty inventory gracefully.
+        """
+        config = Configuration()
+        config.update_from_mapping({"hosts": []})
+        inventory = Inventory(config)
+
+        # Should not raise
+        inventory.close_all()
+        inventory.close_all(clear=True)
