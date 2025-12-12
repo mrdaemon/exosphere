@@ -2,6 +2,7 @@ import inspect
 import logging
 import time
 from datetime import datetime, timezone
+from threading import RLock
 from typing import TypeAlias
 
 from fabric import Connection
@@ -94,6 +95,9 @@ class Host:
         # Last use of shared connection
         self._connection_last_used: float | None = None
 
+        # Lock for thread-safe access to Connection object
+        self._connection_lock = RLock()
+
         # Connection timeout - if not set per-host, will use the
         # default timeout from the configuration.
         self.connect_timeout: int = (
@@ -137,6 +141,7 @@ class Host:
         """
         state = self.__dict__.copy()
         state["_connection"] = None  # Do not serialize the connection
+        state["_connection_lock"] = None  # Do not serialize the lock
         state["_connection_last_used"] = None  # Do not serialize last used timestamp
         state["_pkginst"] = None  # Do not serialize the package manager instance
         state["logger"] = None  # Do not serialize the logger
@@ -162,6 +167,7 @@ class Host:
         self.logger = logging.getLogger(__name__)
         self._connection = None
         self._connection_last_used = None
+        self._connection_lock = RLock()
         if "package_manager" in state and state.get("supported", False):
             self._pkginst = PkgManagerFactory.create(state["package_manager"])
 
@@ -260,54 +266,55 @@ class Host:
 
         :return: Fabric Connection object
         """
-        if self._connection is None:
-            conn_args = {
-                "host": self.ip,
-                "port": self.port,
-                "connect_timeout": self.connect_timeout,
-            }
+        with self._connection_lock:
+            if self._connection is None:
+                conn_args = {
+                    "host": self.ip,
+                    "port": self.port,
+                    "connect_timeout": self.connect_timeout,
+                }
 
-            # Determine which username to use for the connection.
-            # In the absence of either a provided or global default username,
-            # Fabric will use the current system user, as you would expect.
-            user_param: str | None = None
-            if self.username:
-                user_param = self.username
-                self.logger.debug(
-                    "Using provided username '%s' for connection to %s",
-                    self.username,
-                    self.name,
+                # Determine which username to use for the connection.
+                # In the absence of either a provided or global default username,
+                # Fabric will use the current system user, as you would expect.
+                user_param: str | None = None
+                if self.username:
+                    user_param = self.username
+                    self.logger.debug(
+                        "Using provided username '%s' for connection to %s",
+                        self.username,
+                        self.name,
+                    )
+                elif app_config["options"]["default_username"]:
+                    # Use the default global username if set
+                    user_param = app_config["options"]["default_username"]
+                    self.logger.debug(
+                        "Using default global username '%s' for connection to %s",
+                        app_config["options"]["default_username"],
+                        self.name,
+                    )
+
+                if user_param:
+                    conn_args["user"] = user_param
+
+                conn_string = (
+                    f"{user_param}@{self.ip}:{self.port}"
+                    if user_param
+                    else f"{self.ip}:{self.port}"
                 )
-            elif app_config["options"]["default_username"]:
-                # Use the default global username if set
-                user_param = app_config["options"]["default_username"]
+
                 self.logger.debug(
-                    "Using default global username '%s' for connection to %s",
-                    app_config["options"]["default_username"],
+                    "Creating new connection to %s using %s, (timeout: %s)",
                     self.name,
+                    conn_string,
+                    self.connect_timeout,
                 )
+                self._connection = Connection(**conn_args)
 
-            if user_param:
-                conn_args["user"] = user_param
+            # Update last used timestamp on each access
+            self._connection_last_used = time.time()
 
-            conn_string = (
-                f"{user_param}@{self.ip}:{self.port}"
-                if user_param
-                else f"{self.ip}:{self.port}"
-            )
-
-            self.logger.debug(
-                "Creating new connection to %s using %s, (timeout: %s)",
-                self.name,
-                conn_string,
-                self.connect_timeout,
-            )
-            self._connection = Connection(**conn_args)
-
-        # Update last used timestamp on each access
-        self._connection_last_used = time.time()
-
-        return self._connection
+            return self._connection
 
     @property
     def connection_last_used(self) -> float | None:
@@ -572,26 +579,29 @@ class Host:
         :param clear: If True, sets the internal connection object
                       to None after closing.
         """
-        if self._connection is not None:
-            try:
-                self._connection.close()
-                self.logger.debug(
-                    "Closed SSH connection to %s (%s:%s)",
-                    self.name,
-                    self.ip,
-                    self.port,
-                )
-            except Exception as e:
-                # Errors here are non-fatal, just log them
-                self.logger.warning("Error closing connection to %s: %s", self.name, e)
-            finally:
-                self._connection_last_used = None
-
-                if clear:
+        with self._connection_lock:
+            if self._connection is not None:
+                try:
+                    self._connection.close()
                     self.logger.debug(
-                        "Clearing connection object for host %s", self.name
+                        "Closed SSH connection to %s (%s:%s)",
+                        self.name,
+                        self.ip,
+                        self.port,
                     )
-                    self._connection = None
+                except Exception as e:
+                    # Errors here are non-fatal, just log them
+                    self.logger.warning(
+                        "Error closing connection to %s: %s", self.name, e
+                    )
+                finally:
+                    self._connection_last_used = None
+
+                    if clear:
+                        self.logger.debug(
+                            "Clearing connection object for host %s", self.name
+                        )
+                        self._connection = None
 
     def ping(self, raise_on_error: bool = False) -> bool:
         """
