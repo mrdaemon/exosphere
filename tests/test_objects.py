@@ -1100,3 +1100,139 @@ class TestHostObject:
         """
         host = Host(name="test_host", ip="127.0.0.1")
         assert host.supported is True
+
+    def test_host_close_without_connection(self, mocker):
+        """
+        Test close() when no connection exists.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        # There should not be any exceptions here.
+        host.close()
+        host.close(clear=True)
+
+    def test_host_close_with_connection(self, mocker, mock_connection):
+        """
+        Test close() when a connection exists.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        _ = host.connection
+
+        # Verify connection was created
+        assert host.connection_last_used is not None
+
+        host.close()
+
+        mock_connection.return_value.close.assert_called_once()
+        assert host.connection_last_used is None
+
+        # Connection object should still exist (clear=False by default)
+        # Accessing connection again should work without creating a new one
+        _ = host.connection
+        assert mock_connection.call_count == 1
+
+    def test_host_close_with_clear(self, mocker, mock_connection):
+        """
+        Test that close(clear=True) removes the connection object.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        _ = host.connection
+
+        host.close(clear=True)
+
+        mock_connection.return_value.close.assert_called_once()
+        assert host.connection_last_used is None
+
+        # Accessing connection again should create a new one
+        _ = host.connection
+        assert mock_connection.call_count == 2
+
+    def test_host_close_handles_exception(self, mocker, mock_connection, caplog):
+        """
+        Test that close() handles exceptions gracefully.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        _ = host.connection
+        mock_connection.return_value.close.side_effect = Exception("Test error")
+
+        host.close()
+
+        assert "Error closing connection" in caplog.text
+        assert host.connection_last_used is None
+
+    def test_host_connection_thread_safety(self, mocker, mock_connection):
+        """
+        Test that connection property is protected by lock.
+        """
+        import threading
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        connections = []
+
+        def get_connection():
+            connections.append(host.connection)
+
+        # Create multiple threads accessing connection simultaneously
+        threads = [threading.Thread(target=get_connection) for _ in range(10)]
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # All threads should get the same connection object
+        assert len(set(id(c) for c in connections)) == 1
+
+        # Connection should only be created once
+        assert mock_connection.call_count == 1
+
+    def test_host_close_thread_safety(self, mocker, mock_connection):
+        """
+        Test that close() is protected by lock and handles concurrent calls.
+        """
+        import threading
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        # Create connection
+        _ = host.connection
+
+        # Close from multiple threads simultaneously
+        threads = [threading.Thread(target=lambda: host.close()) for _ in range(10)]
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # The lock ensures that close operations don't conflict
+        # Multiple calls may occur but the connection should be closed
+        assert mock_connection.return_value.close.called
+        assert host.connection_last_used is None
+
+    def test_host_connection_updates_last_used(self, mocker, mock_connection):
+        """
+        Test that accessing connection updates the last_used timestamp.
+        """
+        import time
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        before = time.time()
+
+        _ = host.connection
+
+        after = time.time()
+
+        assert host.connection_last_used is not None
+        assert before <= host.connection_last_used <= after
+
+        time.sleep(0.01)
+        first_timestamp = host.connection_last_used
+
+        _ = host.connection
+
+        assert host.connection_last_used > first_timestamp
