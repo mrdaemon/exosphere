@@ -906,7 +906,7 @@ class TestHostObject:
         host = Host(name="test_host", ip="127.0.0.1")
 
         # Mock ping to set online status to True and return True
-        def mock_ping(raise_on_error=False):
+        def mock_ping(raise_on_error=False, close_connection=True):
             host.online = True
             return True
 
@@ -945,7 +945,7 @@ class TestHostObject:
         host = Host(name="test_host", ip="127.0.0.1")
 
         # Mock ping to set online status to True and return True
-        def mock_ping(raise_on_error=False):
+        def mock_ping(raise_on_error=False, close_connection=True):
             host.online = True
             return True
 
@@ -1236,3 +1236,160 @@ class TestHostObject:
         _ = host.connection
 
         assert host.connection_last_used > first_timestamp
+
+
+class TestHostTaskMethodsConnectionCleanup:
+    """Tests that Host task methods properly close connections based on config."""
+
+    @pytest.mark.parametrize("ssh_pipelining", [True, False])
+    def test_discover_connection_cleanup(self, mocker, ssh_pipelining):
+        """Test discover() closes connection when pipelining disabled."""
+        # Mock everything needed for discover to run
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = ssh_pipelining
+        mocker.patch("exosphere.objects.app_config", config)
+
+        host = Host(name="test", ip="127.0.0.1")
+        host.online = True
+
+        # Mock close method to track calls
+        mock_close = mocker.patch.object(host, "close")
+
+        # Mock platform_detect to return supported platform
+        mock_platform = HostInfo(
+            os="linux",
+            version="22.04",
+            flavor="ubuntu",
+            package_manager="apt",
+            is_supported=True,
+        )
+        mocker.patch(
+            "exosphere.setup.detect.platform_detect", return_value=mock_platform
+        )
+
+        # Mock PkgManagerFactory
+        mocker.patch("exosphere.objects.PkgManagerFactory")
+
+        # Mock the connection
+        mock_conn = mocker.Mock()
+        mocker.patch.object(
+            type(host),
+            "connection",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_conn,
+        )
+
+        host.discover()
+
+        if ssh_pipelining:
+            mock_close.assert_not_called()
+        else:
+            mock_close.assert_called_once()
+
+    @pytest.mark.parametrize("ssh_pipelining", [True, False])
+    def test_ping_connection_cleanup(self, mocker, ssh_pipelining):
+        """Test ping() respects close_connection parameter."""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = ssh_pipelining
+        mocker.patch("exosphere.objects.app_config", config)
+
+        host = Host(name="test", ip="127.0.0.1")
+
+        # Mock close method
+        mock_close = mocker.patch.object(host, "close")
+
+        # Mock the connection
+        mock_conn = mocker.Mock()
+        mock_conn.run = mocker.Mock()
+        mocker.patch.object(
+            type(host),
+            "connection",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_conn,
+        )
+
+        # ping() now checks ssh_pipelining internally
+        host.ping()
+
+        if ssh_pipelining:
+            mock_close.assert_not_called()
+        else:
+            mock_close.assert_called_once()
+
+    @pytest.mark.parametrize("ssh_pipelining", [True, False])
+    def test_sync_repos_connection_cleanup(self, mocker, ssh_pipelining):
+        """Test sync_repos() closes connection when pipelining disabled."""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = ssh_pipelining
+        mocker.patch("exosphere.objects.app_config", config)
+
+        host = Host(name="test", ip="127.0.0.1")
+        host.online = True
+        host.supported = True
+
+        # Mock close method
+        mock_close = mocker.patch.object(host, "close")
+
+        # Mock package manager
+        mock_pkg = mocker.Mock()
+        mock_pkg.reposync = mocker.Mock(return_value=True)
+        host._pkginst = mock_pkg
+        host.sudo_policy = SudoPolicy.NOPASSWD
+
+        # Mock connection
+        mock_conn = mocker.Mock()
+        mocker.patch.object(
+            type(host),
+            "connection",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_conn,
+        )
+
+        # Mock check_sudo_policy to return True
+        mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
+
+        host.sync_repos()
+
+        if ssh_pipelining:
+            mock_close.assert_not_called()
+        else:
+            mock_close.assert_called_once()
+
+    @pytest.mark.parametrize("ssh_pipelining", [True, False])
+    def test_refresh_updates_connection_cleanup(self, mocker, ssh_pipelining):
+        """Test refresh_updates() closes connection when pipelining disabled."""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = ssh_pipelining
+        mocker.patch("exosphere.objects.app_config", config)
+
+        host = Host(name="test", ip="127.0.0.1")
+        host.online = True
+        host.supported = True
+
+        # Mock close method
+        mock_close = mocker.patch.object(host, "close")
+
+        # Mock package manager
+        mock_pkg = mocker.Mock()
+        mock_pkg.get_updates = mocker.Mock(return_value=[])
+        host._pkginst = mock_pkg
+        host.sudo_policy = SudoPolicy.NOPASSWD
+
+        # Mock connection
+        mock_conn = mocker.Mock()
+        mocker.patch.object(
+            type(host),
+            "connection",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_conn,
+        )
+
+        # Mock check_sudo_policy
+        mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
+
+        host.refresh_updates()
+
+        if ssh_pipelining:
+            mock_close.assert_not_called()
+        else:
+            mock_close.assert_called_once()

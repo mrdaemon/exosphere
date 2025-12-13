@@ -232,9 +232,6 @@ def discover(
                 )
             )
             raise typer.Exit(code=1)  # Execution error
-        finally:
-            if not app_config["options"]["ssh_pipelining"]:
-                host.close()
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()
@@ -279,9 +276,6 @@ def refresh(
                 )
                 progress.stop_task(task)
                 raise typer.Exit(code=1)  # Execution error
-            finally:
-                if not app_config["options"]["ssh_pipelining"]:
-                    host.close()
 
             progress.stop_task(task)
 
@@ -302,9 +296,6 @@ def refresh(
                 )
                 progress.stop_task(task)
                 raise typer.Exit(code=1)  # Execution error
-            finally:
-                if not app_config["options"]["ssh_pipelining"]:
-                    host.close()
 
             progress.stop_task(task)
 
@@ -322,9 +313,6 @@ def refresh(
             )
             progress.stop_task(task)
             raise typer.Exit(code=1)  # Execution error
-        finally:
-            if not app_config["options"]["ssh_pipelining"]:
-                host.close()
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()
@@ -353,9 +341,6 @@ def ping(
         )
     else:
         console.print(f"Host [bold]{host.name}[/bold] is [red]Offline[/red].")
-
-    if not app_config["options"]["ssh_pipelining"]:
-        host.close()
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()

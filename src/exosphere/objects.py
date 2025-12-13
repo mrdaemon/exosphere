@@ -374,7 +374,7 @@ class Host:
         ping_failed = False
         ping_exception = None
         try:
-            self.ping(raise_on_error=True)
+            self.ping(raise_on_error=True, close_connection=False)
         except OfflineHostError as e:
             ping_failed = True
             ping_exception = e
@@ -464,6 +464,10 @@ class Host:
             )
             self._pkginst = None
 
+        # Close connection if pipelining is disabled
+        if not app_config["options"]["ssh_pipelining"]:
+            self.close()
+
     def sync_repos(self) -> None:
         """
         Sync the package repositories on the host.
@@ -510,6 +514,10 @@ class Host:
             raise DataRefreshError(
                 f"Failed to sync package repositories on {self.name}"
             )
+
+        # Close connection if pipelining is disabled
+        if not app_config["options"]["ssh_pipelining"]:
+            self.close()
 
     def refresh_updates(self) -> None:
         """
@@ -561,6 +569,10 @@ class Host:
         # Update the last refresh timestamp
         self.last_refresh = datetime.now(timezone.utc)
 
+        # Close connection if pipelining is disabled
+        if not app_config["options"]["ssh_pipelining"]:
+            self.close()
+
     def close(self, clear: bool = False) -> None:
         """
         Close the SSH connection if one exists.
@@ -603,7 +615,7 @@ class Host:
                         )
                         self._connection = None
 
-    def ping(self, raise_on_error: bool = False) -> bool:
+    def ping(self, raise_on_error: bool = False, close_connection: bool = True) -> bool:
         """
         Check if the host is reachable by executing a simple command.
 
@@ -614,6 +626,9 @@ class Host:
         to verify authentication and connectivity in general.
 
         :param raise_on_error: Whether to raise an exception on failure
+        :param close_connection: Whether to close the connection after pinging.
+            This has no effect if SSH pipelining is enabled, as the connection
+            will be managed by the Reaper Thread.
 
         :return: True if the host is reachable, False otherwise
         """
@@ -644,6 +659,9 @@ class Host:
 
             if raise_on_error:
                 raise OfflineHostError(f"{type(e).__name__}: {e}") from e
+        finally:
+            if close_connection and not app_config["options"]["ssh_pipelining"]:
+                self.close()
 
         return self.online
 
