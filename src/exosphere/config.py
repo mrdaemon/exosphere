@@ -56,8 +56,8 @@ class Configuration(dict):
             "default_sudo_policy": "skip",  # Global sudo policy for package manager ops
             "max_threads": 15,  # Maximum number of threads to use for parallel ops
             "ssh_pipelining": False,  # Enable SSH pipelining for SSH connections
-            "ssh_pipelining_lifetime": 600,  # Max lifetime (secs) of SSH connections
-            "ssh_pipelining_reap_interval": 60,  # Interval (secs) between reaper checks
+            "ssh_pipelining_lifetime": 300,  # Max lifetime (secs) of SSH connections
+            "ssh_pipelining_reap_interval": 30,  # Interval (secs) between reaper checks
             "update_checks": True,  # Set to false if you want to disable PyPI checks
             "no_banner": False,  # Disable the REPL banner on startup
         },
