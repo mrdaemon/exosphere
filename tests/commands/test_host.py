@@ -417,3 +417,144 @@ class TestHostCommands:
 
         assert result.exit_code == 1
         assert "Inventory is not initialized" in result.output
+
+
+class TestConnectionCleanup:
+    """Tests for connection cleanup behavior with ssh_pipelining setting."""
+
+    def _patch_config(self, mocker, ssh_pipelining: bool):
+        """Helper to patch app_config with specific ssh_pipelining value."""
+        from exosphere.config import Configuration
+
+        config = Configuration()
+        config["options"]["cache_autosave"] = False
+        config["options"]["ssh_pipelining"] = ssh_pipelining
+        mocker.patch.object(host_module, "app_config", config)
+
+    @pytest.mark.parametrize(
+        "pipelining,expect_close,exception",
+        [
+            (False, True, None),  # closes when pipelining disabled
+            (True, False, None),  # keeps when pipelining enabled
+            (False, True, Exception("Test error")),  # closes on exception
+        ],
+        ids=["closes_when_disabled", "keeps_when_enabled", "closes_on_exception"],
+    )
+    def test_discover_connection_management(
+        self,
+        mocker,
+        mock_host,
+        patch_context_inventory,
+        pipelining,
+        expect_close,
+        exception,
+    ):
+        """
+        Test discover command connection management behavior.
+        """
+        self._patch_config(mocker, pipelining)
+        if exception:
+            mock_host.discover.side_effect = exception
+
+        result = runner.invoke(host_module.app, ["discover", mock_host.name])
+
+        if exception:
+            assert result.exit_code == 1
+        else:
+            assert result.exit_code == 0
+
+        if expect_close:
+            mock_host.close.assert_called_once()
+        else:
+            mock_host.close.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "pipelining,discover,sync,expected_closes",
+        [
+            (False, False, False, 1),  # basic: refresh_updates only
+            (False, True, False, 2),  # with discover
+            (False, False, True, 2),  # with sync
+            (False, True, True, 3),  # with discover and sync
+            (True, True, True, 0),  # pipelining enabled: no closes
+        ],
+        ids=["basic", "with_discover", "with_sync", "with_both", "pipelining_enabled"],
+    )
+    def test_refresh_connection_management(
+        self,
+        mocker,
+        mock_host,
+        patch_context_inventory,
+        pipelining,
+        discover,
+        sync,
+        expected_closes,
+    ):
+        """
+        Test refresh command connection management with various options.
+        """
+        self._patch_config(mocker, pipelining)
+
+        cmd = ["refresh", mock_host.name]
+        if discover:
+            cmd.append("--discover")
+        if sync:
+            cmd.append("--sync")
+
+        result = runner.invoke(host_module.app, cmd)
+
+        assert result.exit_code == 0
+        assert mock_host.close.call_count == expected_closes
+
+    @pytest.mark.parametrize(
+        "operation,discover,sync",
+        [
+            ("discover", True, False),  # discover fails
+            ("sync_repos", False, True),  # sync fails
+            ("refresh_updates", False, False),  # refresh_updates fails
+        ],
+        ids=["discover_exception", "sync_exception", "refresh_updates_exception"],
+    )
+    def test_refresh_closes_connection_on_exception(
+        self, mocker, mock_host, patch_context_inventory, operation, discover, sync
+    ):
+        """
+        Test that refresh closes connection even when operations fail.
+        """
+        self._patch_config(mocker, False)
+        getattr(mock_host, operation).side_effect = Exception("Test error")
+
+        cmd = ["refresh", mock_host.name]
+        if discover:
+            cmd.append("--discover")
+        if sync:
+            cmd.append("--sync")
+
+        result = runner.invoke(host_module.app, cmd)
+
+        assert result.exit_code == 1
+        # Should still close connection despite exception
+        mock_host.close.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "pipelining,expect_close",
+        [
+            (False, True),  # closes when pipelining disabled
+            (True, False),  # keeps when pipelining enabled
+        ],
+        ids=["closes_when_disabled", "keeps_when_enabled"],
+    )
+    def test_ping_connection_management(
+        self, mocker, mock_host, patch_context_inventory, pipelining, expect_close
+    ):
+        """
+        Test ping command connection management behavior.
+        """
+        self._patch_config(mocker, pipelining)
+
+        result = runner.invoke(host_module.app, ["ping", mock_host.name])
+
+        assert result.exit_code == 0
+        if expect_close:
+            mock_host.close.assert_called_once()
+        else:
+            mock_host.close.assert_not_called()
