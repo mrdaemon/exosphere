@@ -111,8 +111,7 @@ class TestConnectionReaper:
         caplog.set_level("DEBUG")
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
-        config["options"]["ssh_pipelining_lifetime"] = 60  # Very short
-        config["options"]["ssh_pipelining_reap_interval"] = 60
+        config["options"]["ssh_pipelining_lifetime"] = 10  # Very short
 
         mocker.patch("exosphere.pipelining.app_config", config)
 
@@ -120,7 +119,7 @@ class TestConnectionReaper:
         reaper.start()
 
         assert "is very short!" in caplog.text.lower()
-        assert "60s" in caplog.text
+        assert "10s" in caplog.text
 
         # Should start anyways, because I'm not your dad
         assert reaper.is_running
