@@ -1027,7 +1027,8 @@ class TestExosphereREPL:
         its very specific context to delegate this to the Typer help system.
         """
         ctx = mocker.Mock(spec=Context)
-        mock_sub = mocker.Mock()
+        mock_sub = mocker.MagicMock()  # Must be iterable
+        mock_sub.commands = {}  # Empty dict for subcommands
         ctx.command = mocker.Mock()
         ctx.command.commands = {"test_command": mock_sub}
         repl = ExosphereREPL(ctx)
@@ -1164,7 +1165,8 @@ class TestExosphereREPL:
         Typer commands that are invoked without args are mostly all configured
         to show help, but also raise a NoArgsIsHelpError.
         """
-        mock_sub = mocker.Mock()
+        mock_sub = mocker.MagicMock()  # Must be iterable
+        mock_sub.commands = {}  # Empty dict for subcommands
 
         # Simulate the NoArgsIsHelpError being raised when invoking a command
         dummy_ctx_mgr = mocker.MagicMock()
@@ -1273,7 +1275,8 @@ class TestExosphereREPL:
         Test that general exceptions during command execution are handled gracefully.
         """
         ctx = mocker.Mock(spec=Context)
-        mock_sub = mocker.Mock()
+        mock_sub = mocker.MagicMock()  # Must be iterable
+        mock_sub.commands = {}  # Empty dict for subcommands
         ctx.command = mocker.Mock()
         ctx.command.commands = {"failing_cmd": mock_sub}
 
@@ -1371,3 +1374,59 @@ class TestExosphereREPL:
 
         repl.cmdloop()
         clear_mock.assert_called_once()
+
+    def test_hidden_commands_shown_in_interactive_help(self, mocker):
+        """
+        Test that hidden commands are shown when help is invoked in interactive mode.
+        """
+        ctx = mocker.Mock(spec=Context)
+        ctx.command = None
+        repl = ExosphereREPL(ctx)
+
+        # Setup generalized hidden subcommand
+        hidden_cmd = mocker.MagicMock()
+        hidden_cmd.hidden = True
+        hidden_cmd.commands = {}
+
+        hidden_cmd.make_context.side_effect = click.exceptions.Exit(0)
+
+        # Setup root command containing the hidden command
+        root_cmd = mocker.MagicMock()
+        root_cmd.commands = {"connections": hidden_cmd}
+        repl.root_command = root_cmd
+
+        repl.execute_command("connections --help")
+
+        # The command should now be unhidden
+        assert hidden_cmd.hidden is False
+
+    def test_hidden_subcommands_shown_in_interactive_help(self, mocker):
+        """
+        Test that hidden subcommands are recursively shown when parent help is invoked.
+        """
+        ctx = mocker.Mock(spec=Context)
+        ctx.command = None
+        repl = ExosphereREPL(ctx)
+
+        # Generalized mock of a subcommand
+        hidden_subcmd = mocker.MagicMock()
+        hidden_subcmd.hidden = True
+        hidden_subcmd.commands = {}
+
+        # Setup parent containing hidden subcommand
+        parent_cmd = mocker.MagicMock()
+        parent_cmd.hidden = False
+        parent_cmd.commands = {"save": hidden_subcmd}
+
+        parent_cmd.make_context.side_effect = click.exceptions.Exit(0)
+
+        # Set up root command
+        root_cmd = mocker.MagicMock()
+        root_cmd.commands = {"inventory": parent_cmd}
+        repl.root_command = root_cmd
+
+        # Execute help command
+        repl.execute_command("inventory --help")
+
+        # The subcommand should now be unhidden
+        assert hidden_subcmd.hidden is False

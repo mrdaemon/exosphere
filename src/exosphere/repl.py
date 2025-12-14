@@ -545,6 +545,10 @@ class ExosphereREPL:
                 self.console.print(f"Available commands: {', '.join(available)}")
             return
 
+        # In interactive mode, unhide all commands.
+        # This ensures interactive-only commands are visible.
+        self._unhide_commands(subcommand)
+
         # Create context without parent to avoid issues with help
         try:
             with subcommand.make_context(command_name, args[1:]) as sub_ctx:
@@ -572,6 +576,24 @@ class ExosphereREPL:
             self.console.print(f"[red]Error executing {command_name}: {e}[/red]")
             logger.exception(f"Error executing command '{command_name}': {e}")
 
+    def _unhide_commands(self, command) -> None:
+        """
+        Recursively unhide all subcommands for interactive mode.
+
+        In interactive mode, we want to show all commands including those
+        marked as hidden (which are typically interactive-only commands).
+
+        :param command: The command to unhide along with its subcommands
+        """
+        # Unhide the command itself if it has a hidden attribute
+        if hasattr(command, "hidden"):
+            command.hidden = False
+
+        # Unhide all subcommands recursively
+        if hasattr(command, "commands") and command.commands:
+            for subcmd in command.commands.values():
+                self._unhide_commands(subcmd)
+
     def _show_help(self, args: list) -> None:
         """
         Show help with Rich formatting
@@ -597,13 +619,12 @@ class ExosphereREPL:
     def _show_general_help(self) -> None:
         """
         Show general help for interactive mode
+        Hidden commands will be included.
         """
         if self.root_command:
             subcommands = getattr(self.root_command, "commands", {})
             lines = []
             for name, cmd in subcommands.items():
-                if getattr(cmd, "hidden", False):
-                    continue
                 help_text = getattr(cmd, "help", None) or "No description available."
 
                 # Show only the first line of the help text for brevity
