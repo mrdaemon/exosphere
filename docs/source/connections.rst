@@ -101,6 +101,58 @@ pinpoint the exact issue with authentication or connectivity.
 
 .. _sudo-policies-and-privileges:
 
+SSH Pipelining
+--------------
+
+By default, Exosphere closes SSH connections to remote hosts after each
+operation (with some exceptions for batching purposes). This ensures no resources
+are left open on both the local and remote systems.
+
+Exosphere makes a best-effort attempt to batch queries within an operation to
+minimize unnecessary connection churn and overhead, but this is scoped
+to individual operations (e.g., ``discover``, ``refresh``, ``sync``, etc.).
+
+If you have a reasonably sizeable inventory and/or find that the overhead of
+repeatedly opening and closing SSH connections reduces performance, you can
+enable SSH Pipelining via the :ref:`ssh pipelining option <ssh_pipelining_option>`.
+
+When this setting is enabled, Exosphere will not close connections after each
+operation, but will instead keep them open for reuse.
+
+Connections will be allowed to idle for a configurable amount of time
+(default is 5 minutes) before being automatically closed in the background.
+
+This can speed up operations significantly if your workflow involves multiple
+operations in sequence on the same set of hosts, at the cost of leaving
+connections to remote hosts open for a longer period of time.
+
+.. admonition:: Note
+
+    Be aware that SSH pipelining is mostly useful if you use exosphere in
+    interactive mode (the REPL) or with the Text User Interface (TUI), 
+    as connections are systematically closed on program exit.
+    If you use the CLI for one-off commands, the connections
+    will be closed at the end of the command execution anyway.
+
+With pipelining enabled, you can view and manage the currently open
+connections via:
+
+.. code-block:: exosphere
+
+    exosphere> connections show
+
+as well as:
+
+.. code-block:: exosphere
+
+    exosphere> connections close
+
+See the `connections` command help for more details.
+
+The configurable values for SSH Pipelining include the :ref:`maximum lifetime
+of idle connections <ssh_pipelining_lifetime_option>`, as well as the 
+:ref:`interval at which they are reaped <ssh_pipelining_reap_interval_option>`.
+
 Sudo Policies and Privileges
 ============================
 

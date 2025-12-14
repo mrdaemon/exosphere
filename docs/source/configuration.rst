@@ -164,6 +164,9 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`default_timeout`
 - :option:`default_username`
 - :option:`max_threads`
+- :option:`ssh_pipelining`
+- :option:`ssh_pipelining_lifetime`
+- :option:`ssh_pipelining_reap_interval`
 - :option:`update_checks`
 - :option:`no_banner`
 
@@ -735,6 +738,164 @@ and examples of how to set them in the configuration file.
                 {
                     "options": {
                         "max_threads": 5
+                    }
+                }
+
+.. _ssh_pipelining_option:
+
+.. option:: ssh_pipelining
+
+    Enable SSH connection pipelining to improve performance when connecting
+    to multiple hosts.
+
+    By default, Exosphere closes connections automatically after each Host
+    operation (sync, discover, refresh, ping etc).
+
+    Enabling this option will leave connections open for reuse across multiple
+    operations, significantly improving performance in workflows that involve
+    multiple operations on the same hosts.
+
+    Idle connections will be closed automatically after a certain period of time,
+    configurable via :option:`ssh_pipelining_lifetime`, and reaped periodically
+    via :option:`ssh_pipelining_reap_interval`.
+
+    **Default**: ``false``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  ssh_pipelining: true
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                ssh_pipelining = true
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "ssh_pipelining": true
+                    }
+                }
+
+.. _ssh_pipelining_lifetime_option:
+
+.. option:: ssh_pipelining_lifetime
+
+    The number of seconds an idle SSH connection will be kept open
+    when SSH pipelining is enabled.
+
+    This setting only applies if :option:`ssh_pipelining` is set to ``true``.
+
+    When a connection has been idle (unused) for longer than this duration,
+    it will be closed by the connection reaper thread.
+
+    .. attention::
+
+        Setting this value too low may negate the performance benefits
+        of SSH pipelining, as connections will be closed before they
+        can be reused.
+
+        You will get a warning in the logs to this effect if you configure
+        this value to be less than ``60`` seconds. Consider setting this
+        to at least the longest time an operation may take on your slowest host,
+        as a baseline.
+
+        Otherwise, you can leave this at the default value.
+
+
+    **Default**: ``300`` (5 minutes)
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  ssh_pipelining_lifetime: 240  # 4 minutes
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                ssh_pipelining_lifetime = 240  # 4 minutes
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "ssh_pipelining_lifetime": 240
+                    }
+                }
+
+.. _ssh_pipelining_reap_interval_option:
+
+.. option:: ssh_pipelining_reap_interval
+
+    The interval (in seconds) at which the reaper thread wakes up to check for
+    and close idle SSH connections when SSH pipelining is enabled.
+
+    This setting only applies if :option:`ssh_pipelining` is set to ``true``.
+
+    .. attention::
+
+        Setting this value too high will cause idle connections to remain
+        open for longer than necessary, potentially extending their lifetime
+        beyond :option:`ssh_pipelining_lifetime` by up to this interval duration.
+
+        Conversely, having the reaper thread wake up frequently has negligible overhead
+        since it will only perform work when there are actually idle connections to close.
+
+        You should consider that this value effectively adds up to this amount of time
+        to the actual lifetime of idle connections. For example, with a lifetime of
+        300s and an interval of 30s, connections may remain open for up to 330s.
+
+        If in doubt, leave this at the default value.
+
+    **Default**: ``30`` (30 seconds)
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  ssh_pipelining_reap_interval: 60  # 1 minute
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                ssh_pipelining_reap_interval = 60  # 1 minute
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "ssh_pipelining_reap_interval": 60
                     }
                 }
 
