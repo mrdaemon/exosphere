@@ -45,7 +45,7 @@ app = Typer(
 # Setup commands from modules
 app.add_typer(inventory.app, name="inventory")
 app.add_typer(host.app, name="host")
-app.add_typer(connections.app, name="connections")
+app.add_typer(connections.app, name="connections", hidden=True)  # Interactive-only
 app.add_typer(ui.app, name="ui")
 app.add_typer(config.app, name="config")
 app.add_typer(report.app, name="report")

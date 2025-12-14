@@ -423,7 +423,7 @@ def status(
     console.print(table)
 
 
-@app.command()
+@app.command(hidden=True)  # Interactive-only command
 def save() -> None:
     """
     Save the current inventory state to disk
@@ -438,6 +438,8 @@ def save() -> None:
 
     Since this is enabled by default, you will rarely need to invoke this
     manually.
+
+    This command is only available in interactive mode.
 
     """
     logger = logging.getLogger(__name__)
