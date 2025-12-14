@@ -153,6 +153,16 @@ that host specifically by setting the ``connect_timeout``
 :ref:`host option <connect_timeout_host_option>` to a higher value, without
 having to change the global option.
 
+The frequent SSH connections are causing issues on my SSH server
+----------------------------------------------------------------
+
+If you have systems that have connection rate limiting, or take a while
+to authenticate, you can enable SSH connection pipelining to reduce
+the amount of connection churn.
+
+See the :ref:`documentation on SSH Pipelining <ssh_pipelining_docs>` as
+well as the :ref:`ssh_pipelining configuration option <ssh_pipelining_option>`.
+
 I don't like the ascii art banner in interactive mode
 -----------------------------------------------------
 
