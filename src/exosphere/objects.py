@@ -427,6 +427,9 @@ class Host:
                 )
                 self.online = False
                 raise
+        finally:
+            if not app_config["options"]["ssh_pipelining"]:
+                self.close()
 
         # Update host info based on detection results
         self.os = platform_info.os
@@ -463,10 +466,6 @@ class Host:
                 " This is likely a bug, and should be reported."
             )
             self._pkginst = None
-
-        # Close connection if pipelining is disabled
-        if not app_config["options"]["ssh_pipelining"]:
-            self.close()
 
     def sync_repos(self) -> None:
         """
@@ -509,15 +508,16 @@ class Host:
             )
             return
 
-        pkg_manager = self._pkginst
-        if not pkg_manager.reposync(self.connection):
-            raise DataRefreshError(
-                f"Failed to sync package repositories on {self.name}"
-            )
-
-        # Close connection if pipelining is disabled
-        if not app_config["options"]["ssh_pipelining"]:
-            self.close()
+        try:
+            pkg_manager = self._pkginst
+            if not pkg_manager.reposync(self.connection):
+                raise DataRefreshError(
+                    f"Failed to sync package repositories on {self.name}"
+                )
+        finally:
+            # Close connection if pipelining is disabled
+            if not app_config["options"]["ssh_pipelining"]:
+                self.close()
 
     def refresh_updates(self) -> None:
         """
@@ -554,8 +554,12 @@ class Host:
             )
             return
 
-        pkg_manager = self._pkginst
-        self.updates = pkg_manager.get_updates(self.connection)
+        try:
+            pkg_manager = self._pkginst
+            self.updates = pkg_manager.get_updates(self.connection)
+        finally:
+            if not app_config["options"]["ssh_pipelining"]:
+                self.close()
 
         if not self.updates:
             self.logger.info("No updates available for %s", self.name)
@@ -568,10 +572,6 @@ class Host:
 
         # Update the last refresh timestamp
         self.last_refresh = datetime.now(timezone.utc)
-
-        # Close connection if pipelining is disabled
-        if not app_config["options"]["ssh_pipelining"]:
-            self.close()
 
     def close(self, clear: bool = False) -> None:
         """

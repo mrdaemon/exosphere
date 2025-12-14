@@ -10,47 +10,47 @@ from exosphere.providers.api import requires_sudo
 from exosphere.security import SudoPolicy
 
 
+@pytest.fixture
+def mock_connection(mocker):
+    """
+    Fixture to mock the Fabric Connection object.
+    Automatically configures context manager support.
+    """
+    # Mock the Connection class
+    mock_connection_class = mocker.patch("exosphere.objects.Connection", autospec=True)
+
+    # Create a mock instance with autospec for better validation
+    mock_instance = mock_connection_class.return_value
+    mock_instance.__enter__ = mocker.Mock(return_value=mock_instance)
+    mock_instance.__exit__ = mocker.Mock(return_value=None)
+
+    # Configure the mocked class to return our context manager-enabled instance
+    mock_connection_class.return_value = mock_instance
+
+    return mock_connection_class
+
+
+@pytest.fixture
+def mock_hostinfo(mocker):
+    """
+    Fixture to mock the HostInfo object.
+    A generic host running Debian Linux.
+    """
+    hostinfo = mocker.Mock(
+        spec=HostInfo,
+        os="linux",
+        version="12",
+        flavor="debian",
+        package_manager="apt",
+        is_supported=True,
+    )
+
+    mocker.patch("exosphere.setup.detect.platform_detect", return_value=hostinfo)
+
+    return hostinfo
+
+
 class TestHostObject:
-    @pytest.fixture
-    def mock_connection(self, mocker):
-        """
-        Fixture to mock the Fabric Connection object.
-        Automatically configures context manager support.
-        """
-        # Mock the Connection class
-        mock_connection_class = mocker.patch(
-            "exosphere.objects.Connection", autospec=True
-        )
-
-        # Create a mock instance with autospec for better validation
-        mock_instance = mock_connection_class.return_value
-        mock_instance.__enter__ = mocker.Mock(return_value=mock_instance)
-        mock_instance.__exit__ = mocker.Mock(return_value=None)
-
-        # Configure the mocked class to return our context manager-enabled instance
-        mock_connection_class.return_value = mock_instance
-
-        return mock_connection_class
-
-    @pytest.fixture
-    def mock_hostinfo(self, mocker):
-        """
-        Fixture to mock the HostInfo object.
-        A generic host running Debian Linux.
-        """
-        hostinfo = mocker.Mock(
-            spec=HostInfo,
-            os="linux",
-            version="12",
-            flavor="debian",
-            package_manager="apt",
-            is_supported=True,
-        )
-
-        mocker.patch("exosphere.setup.detect.platform_detect", return_value=hostinfo)
-
-        return hostinfo
-
     @pytest.fixture(autouse=True)
     def mock_config(self, mocker):
         """
@@ -1241,10 +1241,14 @@ class TestHostObject:
 class TestHostTaskMethodsConnectionCleanup:
     """Tests that Host task methods properly close connections based on config."""
 
-    @pytest.mark.parametrize("ssh_pipelining", [True, False])
-    def test_discover_connection_cleanup(self, mocker, ssh_pipelining):
+    @pytest.mark.parametrize(
+        "ssh_pipelining", [True, False], ids=["pipelining_on", "pipelining_off"]
+    )
+    def test_discover_connection_cleanup(
+        self, mocker, ssh_pipelining, mock_connection, mock_hostinfo
+    ):
         """Test discover() closes connection when pipelining disabled."""
-        # Mock everything needed for discover to run
+
         config = Configuration()
         config["options"]["ssh_pipelining"] = ssh_pipelining
         mocker.patch("exosphere.objects.app_config", config)
@@ -1255,29 +1259,8 @@ class TestHostTaskMethodsConnectionCleanup:
         # Mock close method to track calls
         mock_close = mocker.patch.object(host, "close")
 
-        # Mock platform_detect to return supported platform
-        mock_platform = HostInfo(
-            os="linux",
-            version="22.04",
-            flavor="ubuntu",
-            package_manager="apt",
-            is_supported=True,
-        )
-        mocker.patch(
-            "exosphere.setup.detect.platform_detect", return_value=mock_platform
-        )
-
         # Mock PkgManagerFactory
         mocker.patch("exosphere.objects.PkgManagerFactory")
-
-        # Mock the connection
-        mock_conn = mocker.Mock()
-        mocker.patch.object(
-            type(host),
-            "connection",
-            new_callable=mocker.PropertyMock,
-            return_value=mock_conn,
-        )
 
         host.discover()
 
@@ -1286,8 +1269,10 @@ class TestHostTaskMethodsConnectionCleanup:
         else:
             mock_close.assert_called_once()
 
-    @pytest.mark.parametrize("ssh_pipelining", [True, False])
-    def test_ping_connection_cleanup(self, mocker, ssh_pipelining):
+    @pytest.mark.parametrize(
+        "ssh_pipelining", [True, False], ids=["pipelining_on", "pipelining_off"]
+    )
+    def test_ping_connection_cleanup(self, mocker, ssh_pipelining, mock_connection):
         """Test ping() respects close_connection parameter."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = ssh_pipelining
@@ -1298,15 +1283,8 @@ class TestHostTaskMethodsConnectionCleanup:
         # Mock close method
         mock_close = mocker.patch.object(host, "close")
 
-        # Mock the connection
-        mock_conn = mocker.Mock()
-        mock_conn.run = mocker.Mock()
-        mocker.patch.object(
-            type(host),
-            "connection",
-            new_callable=mocker.PropertyMock,
-            return_value=mock_conn,
-        )
+        # Configure mock connection for ping
+        mock_connection.return_value.run = mocker.Mock()
 
         # ping() now checks ssh_pipelining internally
         host.ping()
@@ -1316,8 +1294,12 @@ class TestHostTaskMethodsConnectionCleanup:
         else:
             mock_close.assert_called_once()
 
-    @pytest.mark.parametrize("ssh_pipelining", [True, False])
-    def test_sync_repos_connection_cleanup(self, mocker, ssh_pipelining):
+    @pytest.mark.parametrize(
+        "ssh_pipelining", [True, False], ids=["pipelining_on", "pipelining_off"]
+    )
+    def test_sync_repos_connection_cleanup(
+        self, mocker, ssh_pipelining, mock_connection
+    ):
         """Test sync_repos() closes connection when pipelining disabled."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = ssh_pipelining
@@ -1336,15 +1318,6 @@ class TestHostTaskMethodsConnectionCleanup:
         host._pkginst = mock_pkg
         host.sudo_policy = SudoPolicy.NOPASSWD
 
-        # Mock connection
-        mock_conn = mocker.Mock()
-        mocker.patch.object(
-            type(host),
-            "connection",
-            new_callable=mocker.PropertyMock,
-            return_value=mock_conn,
-        )
-
         # Mock check_sudo_policy to return True
         mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
 
@@ -1355,9 +1328,78 @@ class TestHostTaskMethodsConnectionCleanup:
         else:
             mock_close.assert_called_once()
 
-    @pytest.mark.parametrize("ssh_pipelining", [True, False])
-    def test_refresh_updates_connection_cleanup(self, mocker, ssh_pipelining):
+    @pytest.mark.parametrize(
+        "ssh_pipelining", [True, False], ids=["pipelining_on", "pipelining_off"]
+    )
+    def test_refresh_updates_connection_cleanup(
+        self, mocker, ssh_pipelining, mock_connection
+    ):
         """Test refresh_updates() closes connection when pipelining disabled."""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = ssh_pipelining
+        mocker.patch("exosphere.objects.app_config", config)
+
+        host = Host(name="test", ip="127.0.0.1")
+        host.online = True
+        host.supported = True
+
+        mock_close = mocker.patch.object(host, "close")
+
+        mock_pkg = mocker.Mock()
+        mock_pkg.get_updates = mocker.Mock(return_value=[])
+        host._pkginst = mock_pkg
+        host.sudo_policy = SudoPolicy.NOPASSWD
+
+        mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
+
+        host.refresh_updates()
+
+        if ssh_pipelining:
+            mock_close.assert_not_called()
+        else:
+            mock_close.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "ssh_pipelining", [True, False], ids=["pipelining_on", "pipelining_off"]
+    )
+    def test_discover_connection_cleanup_on_exception(
+        self, mocker, ssh_pipelining, mock_connection
+    ):
+        """Test discover() closes connection on exception when pipelining disabled."""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = ssh_pipelining
+        mocker.patch("exosphere.objects.app_config", config)
+
+        host = Host(name="test", ip="127.0.0.1")
+        host.online = True
+
+        # Mock close method
+        mock_close = mocker.patch.object(host, "close")
+
+        # Mock platform_detect to raise exception
+        mocker.patch(
+            "exosphere.setup.detect.platform_detect",
+            side_effect=DataRefreshError("Test error"),
+        )
+
+        # Mock ping to not raise
+        mocker.patch.object(host, "ping", return_value=True)
+
+        with pytest.raises(DataRefreshError):
+            host.discover()
+
+        if ssh_pipelining:
+            mock_close.assert_not_called()
+        else:
+            mock_close.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "ssh_pipelining", [True, False], ids=["pipelining_on", "pipelining_off"]
+    )
+    def test_sync_repos_connection_cleanup_on_exception(
+        self, mocker, ssh_pipelining, mock_connection
+    ):
+        """Test sync_repos() closes connection on exception when pipelining disabled."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = ssh_pipelining
         mocker.patch("exosphere.objects.app_config", config)
@@ -1369,25 +1411,50 @@ class TestHostTaskMethodsConnectionCleanup:
         # Mock close method
         mock_close = mocker.patch.object(host, "close")
 
-        # Mock package manager
+        # Mock package manager to raise exception
         mock_pkg = mocker.Mock()
-        mock_pkg.get_updates = mocker.Mock(return_value=[])
+        mock_pkg.reposync = mocker.Mock(side_effect=RuntimeError("Test error"))
         host._pkginst = mock_pkg
         host.sudo_policy = SudoPolicy.NOPASSWD
 
-        # Mock connection
-        mock_conn = mocker.Mock()
-        mocker.patch.object(
-            type(host),
-            "connection",
-            new_callable=mocker.PropertyMock,
-            return_value=mock_conn,
-        )
-
-        # Mock check_sudo_policy
         mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
 
-        host.refresh_updates()
+        with pytest.raises(RuntimeError):
+            host.sync_repos()
+
+        if ssh_pipelining:
+            mock_close.assert_not_called()
+        else:
+            mock_close.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "ssh_pipelining", [True, False], ids=["pipelining_on", "pipelining_off"]
+    )
+    def test_refresh_updates_connection_cleanup_on_exception(
+        self, mocker, ssh_pipelining, mock_connection
+    ):
+        """Test refresh_updates() closes connection on exception when pipelining disabled."""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = ssh_pipelining
+        mocker.patch("exosphere.objects.app_config", config)
+
+        host = Host(name="test", ip="127.0.0.1")
+        host.online = True
+        host.supported = True
+
+        # Mock close method
+        mock_close = mocker.patch.object(host, "close")
+
+        # Mock package manager to raise exception
+        mock_pkg = mocker.Mock()
+        mock_pkg.get_updates = mocker.Mock(side_effect=RuntimeError("Test error"))
+        host._pkginst = mock_pkg
+        host.sudo_policy = SudoPolicy.NOPASSWD
+
+        mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
+
+        with pytest.raises(RuntimeError):
+            host.refresh_updates()
 
         if ssh_pipelining:
             mock_close.assert_not_called()
