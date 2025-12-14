@@ -52,6 +52,14 @@ def show(
             metavar="[HOSTS]...",
         ),
     ] = None,
+    active_only: Annotated[
+        bool,
+        typer.Option(
+            "--active",
+            "-a",
+            help="Show only hosts with active connections.",
+        ),
+    ] = False,
 ) -> None:
     """
     Show SSH connection state for inventory hosts.
@@ -69,13 +77,25 @@ def show(
     if hosts is None:
         raise typer.Exit(code=2)  # Argument error
 
+    # Filter for active connections if requested
+    if active_only:
+        hosts = [h for h in hosts if h.connection_last_used is not None]
+        if not hosts:
+            console.print("No active connections.")
+            raise typer.Exit(code=0)
+
+    table_title = "SSH Connection States"
+
+    if active_only:
+        table_title += " (Active Only)"
+
     table = Table(
         "Host",
         "IP",
         "Port",
         "Idle",
         "State",
-        title="SSH Connection States",
+        title=table_title,
         caption=f"Idle connections older than {pipelining_max_age}s are closed every {pipelining_interval}s",
         caption_justify="right",
     )
