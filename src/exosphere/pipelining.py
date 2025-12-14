@@ -83,6 +83,15 @@ class ConnectionReaper:
                 f"Long-running commands may be interrupted. Recommended: >= {MIN_SSH_LIFETIME}s"
             )
 
+        # Sanity check on interval, as this scenario is very unlikely
+        # to do what the user expects or wants.
+        if self.check_interval >= self.max_lifetime:
+            self.logger.warning(
+                f"ssh_pipelining_reap_interval ({self.check_interval}s)"
+                f" is greater than or equal to ssh_pipelining_lifetime!"
+                f" Connections may not be closed as expected."
+            )
+
         self.logger.info("Starting connection reaper thread")
         self._stop_event.clear()
         self._thread = Thread(target=self._run, daemon=True, name="ConnectionReaper")

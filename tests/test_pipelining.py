@@ -127,6 +127,28 @@ class TestConnectionReaper:
         # Cleanup
         reaper.stop()
 
+    def test_reaper_warns_on_interval_too_long(self, mocker, mock_inventory, caplog):
+        """Test warning when ssh_pipelining_reap_interval >= lifetime."""
+        caplog.set_level("DEBUG")
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = True
+        config["options"]["ssh_pipelining_lifetime"] = 120
+        config["options"]["ssh_pipelining_reap_interval"] = 120  # Equal to lifetime
+
+        mocker.patch("exosphere.pipelining.app_config", config)
+
+        reaper = ConnectionReaper()
+        reaper.start()
+
+        assert "greater than or equal to" in caplog.text.lower()
+        assert "may not be closed as expected" in caplog.text.lower()
+
+        # Should start anyways
+        assert reaper.is_running
+
+        # Cleanup
+        reaper.stop()
+
     def test_reaper_stop_not_running(self, mock_config, caplog):
         """Test stopping a reaper that isn't running."""
         caplog.set_level("DEBUG")
