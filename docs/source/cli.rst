@@ -238,6 +238,31 @@ You can also show exclusively the configuration options that have been changed:
 
 The output will include what the default value originally was.
 
+Viewing the state of SSH connections
+------------------------------------
+
+If you have :ref:`SSH Pipelining <ssh_pipelining_docs>` enabled, you can view
+the current state of the SSH connection pool by running:
+
+.. code-block:: exosphere
+
+   exosphere> connections show
+
+This will display the currently open SSH connections, their age, and
+which hosts they are connected to, as well as tell you when they will be
+reaped.
+
+You can manually close them with the following command:
+
+.. code-block:: exosphere
+
+   exosphere> connections close
+
+Both of these commands can take arguments, including specifying particular hosts.
+See the built in `--help` argument output for details.
+
+If you do not have SSH Pipelining enabled (the default), connections are 
+automatically closed after each operation, so these commands will have no effect.
 
 Launching the Text-based User Interface
 ---------------------------------------
