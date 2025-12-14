@@ -13,7 +13,7 @@ from exosphere import app_config, context
 from exosphere.inventory import Inventory
 
 # Minimum recommended SSH connection lifetime in seconds
-MIN_SSH_LIFETIME = 120
+MIN_SSH_LIFETIME = 60
 
 
 class ConnectionReaper:
