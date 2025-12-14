@@ -101,6 +101,8 @@ pinpoint the exact issue with authentication or connectivity.
 
 .. _sudo-policies-and-privileges:
 
+.. _ssh_pipelining_docs:
+
 SSH Pipelining
 --------------
 
