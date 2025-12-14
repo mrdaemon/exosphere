@@ -12,8 +12,8 @@ from threading import Event, Thread
 from exosphere import app_config, context
 from exosphere.inventory import Inventory
 
-# Minimum recommended reaper interval in seconds
-MIN_REAPER_INTERVAL = 120
+# Minimum recommended SSH connection lifetime in seconds
+MIN_SSH_LIFETIME = 120
 
 
 class ConnectionReaper:
@@ -77,10 +77,10 @@ class ConnectionReaper:
             return
 
         # Sanity check on lifetime, as very low values may cause issues
-        if self.max_lifetime < MIN_REAPER_INTERVAL:
+        if self.max_lifetime < MIN_SSH_LIFETIME:
             self.logger.warning(
                 f"ssh_pipelining_lifetime ({self.max_lifetime}s) is very short! "
-                f"Long-running commands may be interrupted. Recommended: >= {MIN_REAPER_INTERVAL}s"
+                f"Long-running commands may be interrupted. Recommended: >= {MIN_SSH_LIFETIME}s"
             )
 
         self.logger.info("Starting connection reaper thread")
