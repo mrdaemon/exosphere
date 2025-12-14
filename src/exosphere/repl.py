@@ -81,6 +81,10 @@ class ExosphereCompleter(Completer):
         "sudo": {
             "check": HostMatchMode.SINGLE,  # sudo check <name>
         },
+        "connections": {
+            "show": HostMatchMode.MULTIPLE,  # connections show [names...]
+            "close": HostMatchMode.MULTIPLE,  # connections close [names...]
+        },
     }
 
     # Commands that take host names as option values (e.g., --host <name>)

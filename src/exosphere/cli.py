@@ -15,7 +15,16 @@ from rich.console import Console
 from typer import Context, Exit, Option, Typer
 
 from exosphere import __version__, app_config
-from exosphere.commands import config, host, inventory, report, sudo, ui, version
+from exosphere.commands import (
+    config,
+    connections,
+    host,
+    inventory,
+    report,
+    sudo,
+    ui,
+    version,
+)
 from exosphere.commands.utils import print_version
 from exosphere.repl import start_repl
 
@@ -36,6 +45,7 @@ app = Typer(
 # Setup commands from modules
 app.add_typer(inventory.app, name="inventory")
 app.add_typer(host.app, name="host")
+app.add_typer(connections.app, name="connections")
 app.add_typer(ui.app, name="ui")
 app.add_typer(config.app, name="config")
 app.add_typer(report.app, name="report")
