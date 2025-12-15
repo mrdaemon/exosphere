@@ -182,7 +182,7 @@ def get_hosts_or_error(
         if unmatched:
             err_console.print(
                 Panel.fit(
-                    f"Hosts not found in inventory: {', '.join(unmatched)}",
+                    f"Host(s) not found in inventory: {', '.join(unmatched)}",
                     title="Error",
                 )
             )
