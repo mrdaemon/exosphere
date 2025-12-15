@@ -131,7 +131,7 @@ connections to remote hosts open for a longer period of time.
 .. admonition:: Note
 
     Be aware that SSH pipelining is mostly useful if you use exosphere in
-    interactive mode (the REPL) or with the Text User Interface (TUI), 
+    interactive mode (the REPL) or with the Text User Interface (TUI),
     as connections are systematically closed on program exit.
     If you use the CLI for one-off commands, the connections
     will be closed at the end of the command execution anyway.
@@ -152,7 +152,7 @@ as well as:
 See the `connections` command help for more details.
 
 The configurable values for SSH Pipelining include the :ref:`maximum lifetime
-of idle connections <ssh_pipelining_lifetime_option>`, as well as the 
+of idle connections <ssh_pipelining_lifetime_option>`, as well as the
 :ref:`interval at which they are reaped <ssh_pipelining_reap_interval_option>`.
 
 Sudo Policies and Privileges

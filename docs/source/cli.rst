@@ -261,7 +261,7 @@ You can manually close them with the following command:
 Both of these commands can take arguments, including specifying particular hosts.
 See the built in `--help` argument output for details.
 
-If you do not have SSH Pipelining enabled (the default), connections are 
+If you do not have SSH Pipelining enabled (the default), connections are
 automatically closed after each operation, so these commands will have no effect.
 
 Launching the Text-based User Interface
