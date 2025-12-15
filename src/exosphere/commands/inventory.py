@@ -439,8 +439,9 @@ def save() -> None:
     Since this is enabled by default, you will rarely need to invoke this
     manually.
 
-    This command is only available in interactive mode.
-
+    This command is only available in interactive mode, as the inventory
+    state is not persisted between separate CLI invocations when autosave
+    is disabled.
     """
     logger = logging.getLogger(__name__)
     logger.debug("Starting inventory save operation")

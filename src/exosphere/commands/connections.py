@@ -16,9 +16,14 @@ from exosphere.commands.utils import (
 )
 
 ROOT_HELP = """
-Connections State Commands
+Connection State Management Commands
 
 Commands to inspect the state of SSH connections to inventory hosts.
+These commands are only useful when SSH Pipelining is enabled,
+otherwise no persistent connections to hosts are maintained.
+
+Only useful from Interactive Mode, as connections are not maintained
+between separate CLI invocations.
 """
 
 app = typer.Typer(
@@ -63,6 +68,14 @@ def show(
 ) -> None:
     """
     Show SSH connection state for inventory hosts.
+
+    Display the current SSH connection state for specified hosts, or
+    all hosts if none are specified.
+
+    Connections that have been idle for longer than the configured
+    maximum age will be marked as "Expiring".
+
+    Only useful when SSH Pipelining is enabled.
     """
 
     if not app_config["options"]["ssh_pipelining"]:
@@ -84,7 +97,7 @@ def show(
             console.print("No active connections.")
             raise typer.Exit(code=0)
 
-    table_title = "SSH Connection States"
+    table_title = "SSH Connections"
 
     if active_only:
         table_title += " (Active Only)"
