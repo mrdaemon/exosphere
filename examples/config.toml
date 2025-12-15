@@ -1,5 +1,5 @@
 [options]
-log_level = "INFO"
+log_level = "DEBUG"
 max_threads = 5 # Limit parallel actions to 5 threads
 default_username = "alice" # Default username across hosts (optional)
 

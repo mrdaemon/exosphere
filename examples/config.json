@@ -1,6 +1,6 @@
 {
     "options": {
-        "log_level": "INFO",
+        "log_level": "DEBUG",
         "max_threads": 5,
         "default_username": "alice"
     },
