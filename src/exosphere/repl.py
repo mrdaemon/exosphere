@@ -631,7 +631,7 @@ class ExosphereREPL:
                 # This can be a multi-line string
                 first_line = help_text.split("\n")[0]
 
-                lines.append(f"[cyan]{name:<11}[/cyan] {first_line}")
+                lines.append(f"[cyan]{name:<13}[/cyan] {first_line}")
 
             if lines:
                 content = "\n".join(lines)
@@ -639,6 +639,7 @@ class ExosphereREPL:
                     content,
                     title="Commands",
                     title_align="left",
+                    border_style="dim",
                 )
                 self.console.print("\nAvailable modules during interactive use:\n")
                 self.console.print(panel)
