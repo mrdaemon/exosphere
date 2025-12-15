@@ -95,8 +95,8 @@ class Host:
         # Last use of shared connection
         self._connection_last_used: float | None = None
 
-        # Lock for thread-safe access to Connection object
-        self._connection_lock = RLock()
+        # Lock for thread-safe access to connection state
+        self._connection_state_lock = RLock()
 
         # Connection timeout - if not set per-host, will use the
         # default timeout from the configuration.
@@ -141,7 +141,7 @@ class Host:
         """
         state = self.__dict__.copy()
         state["_connection"] = None  # Do not serialize the connection
-        state["_connection_lock"] = None  # Do not serialize the lock
+        state["_connection_state_lock"] = None  # Do not serialize the lock
         state["_connection_last_used"] = None  # Do not serialize last used timestamp
         state["_pkginst"] = None  # Do not serialize the package manager instance
         state["logger"] = None  # Do not serialize the logger
@@ -167,7 +167,7 @@ class Host:
         self.logger = logging.getLogger(__name__)
         self._connection = None
         self._connection_last_used = None
-        self._connection_lock = RLock()
+        self._connection_state_lock = RLock()
         if "package_manager" in state and state.get("supported", False):
             self._pkginst = PkgManagerFactory.create(state["package_manager"])
 
@@ -266,7 +266,9 @@ class Host:
 
         :return: Fabric Connection object
         """
-        with self._connection_lock:
+        # Acquire lock mostly for thread-safety of our own attributes.
+        # Fabric's Connection object is thread-safe in itself.
+        with self._connection_state_lock:
             if self._connection is None:
                 conn_args = {
                     "host": self.ip,
@@ -324,17 +326,21 @@ class Host:
         "last used" here is defined as the last time anything requested
         the `Connection` object through the property for this host.
 
+        Property access is thread-safe, and will reset the timestamp
+        to None if the connection is no longer active.
+
         :return: Timestamp of last use in seconds since epoch, or None
                  if connection has never been used.
         """
-        if not self.is_connected and self._connection_last_used is not None:
-            self.logger.warning(
-                "Connection to %s no longer active, resetting last used", self.name
-            )
-            self._connection_last_used = None
-            return None
+        with self._connection_state_lock:
+            if not self.is_connected and self._connection_last_used is not None:
+                self.logger.warning(
+                    "Connection to %s no longer active, resetting last used", self.name
+                )
+                self._connection_last_used = None
+                return None
 
-        return self._connection_last_used
+            return self._connection_last_used
 
     @property
     def is_connected(self) -> bool:
@@ -607,7 +613,8 @@ class Host:
         :param clear: If True, sets the internal connection object
                       to None after closing.
         """
-        with self._connection_lock:
+        # Acquire lock for thread-safe access to our own attributes
+        with self._connection_state_lock:
             if self._connection is not None:
                 try:
                     self._connection.close()
