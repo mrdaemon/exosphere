@@ -252,6 +252,7 @@ class TestHostObject:
         mock_instance = mock_connection.return_value
         mock_instance.run.return_value = mocker.Mock()
         mock_instance.run.return_value.failed = False
+        mock_instance.is_connected = True
 
         host = Host(name="test_host", ip="127.0.0.1")
         assert host.ping() is True
@@ -311,6 +312,25 @@ class TestHostObject:
             pytest.fail(f"Ping should not raise an exception, but we got a: {e}")
 
         assert host.online is False  # Should be False on failure
+
+    def test_host_ping_failure_does_not_set_connection_timestamp(
+        self, mocker, mock_connection
+    ):
+        """
+        Test that failed ping does not set connection_last_used timestamp.
+
+        This ensures that the ConnectionReaper doesn't treat failed connections
+        as open connections that need to be reaped.
+        """
+        mock_instance = mock_connection.return_value
+        mock_instance.run.side_effect = ConnectionError("Connection failed")
+        mock_instance.is_connected = False
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.ping()
+
+        assert host.online is False
+        assert host.connection_last_used is None
 
     def test_host_discovery(self, mocker, mock_connection, mock_hostinfo):
         """
@@ -1236,6 +1256,84 @@ class TestHostObject:
         _ = host.connection
 
         assert host.connection_last_used > first_timestamp
+
+    def test_is_connected_returns_true_when_connected(self, mocker, mock_connection):
+        """Test that is_connected returns True when connection is established."""
+        mock_instance = mock_connection.return_value
+        mock_instance.is_connected = True
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        _ = host.connection  # Create connection
+
+        assert host.is_connected is True
+
+    def test_is_connected_returns_false_when_no_connection(self, mocker):
+        """Test that is_connected returns False when connection doesn't exist."""
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        assert host.is_connected is False
+
+    def test_is_connected_returns_false_when_not_connected(
+        self, mocker, mock_connection
+    ):
+        """Test that is_connected returns False when connection exists but not connected."""
+        mock_instance = mock_connection.return_value
+        mock_instance.is_connected = False
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        _ = host.connection  # Create connection object
+
+        assert host.is_connected is False
+
+    def test_connection_last_used_returns_none_when_not_connected(
+        self, mocker, mock_connection
+    ):
+        """Test that connection_last_used returns None when not connected."""
+        mock_instance = mock_connection.return_value
+        mock_instance.is_connected = False
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        _ = host.connection  # Sets timestamp
+
+        # Should return None because is_connected is False
+        assert host.connection_last_used is None
+
+    def test_connection_last_used_warns_on_desync(
+        self, mocker, mock_connection, caplog
+    ):
+        """Test that connection_last_used logs warning when desynchronized."""
+        import logging
+
+        mock_instance = mock_connection.return_value
+        mock_instance.is_connected = False
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        _ = host.connection  # Sets timestamp
+
+        with caplog.at_level(logging.WARNING):
+            _ = host.connection_last_used
+
+        assert "Connection to test_host no longer active" in caplog.text
+        assert "resetting last used" in caplog.text
+
+    def test_connection_last_used_returns_timestamp_when_connected(
+        self, mocker, mock_connection
+    ):
+        """Test that connection_last_used returns timestamp when connected."""
+        import time
+
+        mock_instance = mock_connection.return_value
+        mock_instance.is_connected = True
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        before = time.time()
+        _ = host.connection
+        after = time.time()
+
+        last_used = host.connection_last_used
+        assert last_used is not None
+        assert before <= last_used <= after
 
 
 class TestHostTaskMethodsConnectionCleanup:

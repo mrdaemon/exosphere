@@ -79,7 +79,7 @@ def show(
 
     # Filter for active connections if requested
     if active_only:
-        hosts = [h for h in hosts if h.connection_last_used is not None]
+        hosts = [h for h in hosts if h.is_connected]
         if not hosts:
             console.print("No active connections.")
             raise typer.Exit(code=0)
@@ -105,7 +105,7 @@ def show(
         host_ip = host.ip
         host_port = host.port
 
-        if host.connection_last_used is not None:
+        if host.is_connected and host.connection_last_used is not None:
             idle_seconds = round(time.time() - host.connection_last_used)
             host_idle = _format_duration(idle_seconds)
 
@@ -169,7 +169,7 @@ def close(
     inactive_count = 0
 
     for host in hosts:
-        if host.connection_last_used is None:
+        if not host.is_connected:
             inactive_count += 1
             continue
 

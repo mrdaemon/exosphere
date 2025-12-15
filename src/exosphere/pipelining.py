@@ -145,11 +145,22 @@ class ConnectionReaper:
         reaped_count = 0
 
         for host in self._inventory.hosts:
-            if host.connection_last_used is None:
+            # Skip hosts without active connections
+            if not host.is_connected:
+                continue
+
+            # Get last used timestamp, skip if never used
+            # This situation should not normally occur, but exists
+            # mostly as a safeguard.
+            last_used = host.connection_last_used
+            if last_used is None:
+                self.logger.warning(
+                    "Connection to %s was never used, skipping idle check", host.name
+                )
                 continue
 
             # Check idle/age time
-            idle_time = now - host.connection_last_used
+            idle_time = now - last_used
             if idle_time > self.max_lifetime:
                 self.logger.debug(
                     "Closing idle connection to %s (idle for %.1f seconds)",

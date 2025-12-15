@@ -327,7 +327,23 @@ class Host:
         :return: Timestamp of last use in seconds since epoch, or None
                  if connection has never been used.
         """
+        if not self.is_connected and self._connection_last_used is not None:
+            self.logger.warning(
+                "Connection to %s no longer active, resetting last used", self.name
+            )
+            self._connection_last_used = None
+            return None
+
         return self._connection_last_used
+
+    @property
+    def is_connected(self) -> bool:
+        """
+        Check if the host has an active SSH connection.
+
+        :return: True if connection exists and is connected, False otherwise
+        """
+        return self._connection is not None and self._connection.is_connected
 
     @property
     def security_updates(self) -> list[Update]:

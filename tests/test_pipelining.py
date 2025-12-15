@@ -190,8 +190,10 @@ class TestConnectionReaper:
         mock_inventory.hosts = [mock_host]
 
         if last_used_offset is None:
+            mock_host.is_connected = False
             mock_host.connection_last_used = None
         else:
+            mock_host.is_connected = True
             mock_host.connection_last_used = time.time() - last_used_offset
 
         reaper = ConnectionReaper()
@@ -249,3 +251,23 @@ class TestConnectionReaper:
         reaper.close_idle_connections()
 
         assert "no hosts" in caplog.text.lower()
+
+    def test_reaper_skips_connected_hosts_without_timestamp(
+        self, mock_config, mock_inventory, mock_host, caplog
+    ):
+        """Test that the reaper handles desync edge cases."""
+        caplog.set_level("WARNING")
+
+        # This is the edge case where connection shows as connected
+        # but timestamp was reset (desynchronized state)
+        mock_host.is_connected = True
+        mock_host.connection_last_used = None
+        mock_inventory.hosts = [mock_host]
+
+        reaper = ConnectionReaper()
+        reaper.close_idle_connections()
+
+        # Should log warning and skip
+        assert "was never used" in caplog.text
+        assert "skipping idle check" in caplog.text
+        mock_host.close.assert_not_called()

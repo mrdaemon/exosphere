@@ -16,18 +16,21 @@ def mock_inventory(mocker):
     mock_host1.name = "webserver"
     mock_host1.ip = "192.168.1.10"
     mock_host1.port = 22
+    mock_host1.is_connected = True
     mock_host1.connection_last_used = 1234567890.0  # Active connection
 
     mock_host2 = mocker.Mock()
     mock_host2.name = "dbserver"
     mock_host2.ip = "192.168.1.20"
     mock_host2.port = 22
+    mock_host2.is_connected = False
     mock_host2.connection_last_used = None  # No active connection
 
     mock_host3 = mocker.Mock()
     mock_host3.name = "appserver"
     mock_host3.ip = "192.168.1.30"
     mock_host3.port = 22
+    mock_host3.is_connected = True
     mock_host3.connection_last_used = 1234567850.0  # Active connection (different age)
 
     mock_inventory = mocker.Mock()
