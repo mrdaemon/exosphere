@@ -3,7 +3,8 @@
 <p>
   <a href="https://github.com/mrdaemon/exosphere/releases"><img src="https://img.shields.io/github/v/release/mrdaemon/exosphere" alt="GitHub release"></a>
   <a href="https://pypi.org/project/exosphere-cli/"><img src="https://img.shields.io/pypi/v/exosphere-cli" alt="PyPI"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.13+-purple.svg" alt="Python Version"></a>
+  <a href="https://github.com/mrdaemon/exosphere/tree/main"><img src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmrdaemon%2Fexosphere%2Frefs%2Fheads%2Fmain%2Fpyproject.toml&query=%24.project.version&label=dev&color=purple" alt="Current Dev Version"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fmrdaemon%2Fexosphere%2Frefs%2Fheads%2Fmain%2Fpyproject.toml" alt="Python Version"></a>
   <a href="https://github.com/mrdaemon/exosphere/actions/workflows/test-suite.yml"><img src="https://img.shields.io/github/actions/workflow/status/mrdaemon/exosphere/test-suite.yml?label=test%20suite" alt="Test Suite"></a>
   <a href="https://github.com/mrdaemon/exosphere/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mrdaemon/exosphere" alt="License"></a>
 </p>
