@@ -73,9 +73,8 @@ class Pkg(PkgManager):
         updates: list[Update] = []
         vulnerable: list[str] = []
 
-        # Collect required data for audit and updates
+        # Collect vulnerable packages first
         audit_result = cx.run("pkg audit -q", hide=True, warn=True)
-        query_result = cx.run("pkg upgrade -qn | grep -e '^\\s'", hide=True, warn=True)
 
         if audit_result.failed:
             # We check for stderr here, as pkg audit will return
@@ -109,6 +108,8 @@ class Pkg(PkgManager):
         )
 
         # Check package updates
+        query_result = cx.run("pkg upgrade -qn | grep -e '^\\s'", hide=True, warn=True)
+
         if query_result.failed:
             # Nonzero exit can mean grep found no matches.
             if query_result.stderr:
