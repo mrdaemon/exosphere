@@ -1233,14 +1233,14 @@ wheels = [
 
 [[package]]
 name = "pytest-json-ctrf"
-version = "0.3.5"
+version = "0.3.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pytest" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/88/1d/7f149972644af2cd1f3e49b17e9584af3f9df41ce84b5bfc5250abb44643/pytest_json_ctrf-0.3.5.tar.gz", hash = "sha256:3efc3afc6dd1fb69f73031217b1dfa239154241aaca63db8a8995cf3779bd7ff", size = 6665, upload-time = "2024-10-10T12:26:33.911Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7a/3d/55e1de95b82b7630e9112191d7b8b8c5a466a25591c284ccd12f6f0b6a28/pytest_json_ctrf-0.3.6.tar.gz", hash = "sha256:750f7d00d2519212271227d8e7c5870beb8d31f72f7608c0ed459a43b1e71e02", size = 6707, upload-time = "2025-12-28T11:04:59.63Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/51/a8/d58637d10f70ae14a1ad18cb37f4aa32d5593510213d5f929892cb1c9c6d/pytest_json_ctrf-0.3.5-py3-none-any.whl", hash = "sha256:e82fd1d69be2f92385bc33540063e5ad7b17b36de67764c84f3ceb9815a895e9", size = 6837, upload-time = "2024-10-10T12:26:32.76Z" },
+    { url = "https://files.pythonhosted.org/packages/57/60/d1b84bc0a5cc5d73e0807fe799d9a3c3dfde3abf7907667882b3c74ba4c9/pytest_json_ctrf-0.3.6-py3-none-any.whl", hash = "sha256:82231614ff52b5eec14e214761eb2d785b45c062775b315a67b44659a42f5a2d", size = 6877, upload-time = "2025-12-28T11:04:58.497Z" },
 ]
 
 [[package]]
