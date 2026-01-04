@@ -45,6 +45,8 @@ class HostState:
     It is not intended for this field to be specified directly, but
     instead to be incremented via its default value whenever the
     structure changes, to allow for easy migrations in load_or_create.
+
+    Updates list is stored as a tuple to ensure container immutability.
     """
 
     # Platform information (discovery results)
@@ -52,11 +54,11 @@ class HostState:
     version: str | None
     flavor: str | None
     package_manager: str | None
-    supported: bool | None
+    supported: bool
 
     # Host State
     online: bool
-    updates: list["Update"]
+    updates: tuple["Update", ...]
     last_refresh: UtcDateTime | None
 
     # Version of state structure for compatibility checks
