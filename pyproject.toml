@@ -1,6 +1,6 @@
 [project]
 name = "exosphere-cli"
-version = "2.2.0.dev0"
+version = "2.2.0.dev1"
 description = "CLI/TUI driven patch reporting for remote Unix-like systems."
 readme = "README.md"
 authors = [
