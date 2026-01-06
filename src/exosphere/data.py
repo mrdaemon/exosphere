@@ -39,7 +39,7 @@ class HostState:
     Data class to hold the state of a host.
     Used mainly for serialization to disk.
 
-    Contains a state_version field to help with compatibility checks
+    Contains a schema_version field to help with compatibility checks
     when loading cache from an earlier version of exosphere.
 
     It is not intended for this field to be specified directly, but
@@ -63,7 +63,7 @@ class HostState:
 
     # Version of state structure for compatibility checks
     # This should be incremented whenever the structure changes.
-    state_version: int = 1
+    schema_version: int = 1
 
 
 @dataclass(frozen=True)
