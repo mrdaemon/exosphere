@@ -3,11 +3,11 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Generator
 
-from exosphere import app_config
+from exosphere import migrations
 from exosphere.config import Configuration
+from exosphere.data import HostState
 from exosphere.database import DiskCache
 from exosphere.objects import Host
-from exosphere.security import SudoPolicy
 
 
 class Inventory:
@@ -52,7 +52,7 @@ class Inventory:
         with DiskCache(self.cache_file) as cache:
             self.logger.info("Saving inventory state to cache file %s", self.cache_file)
             for host in self.hosts:
-                cache[host.name] = host
+                cache[host.name] = host.to_state()
 
     def close_all(self, clear: bool = False) -> None:
         """
@@ -116,6 +116,9 @@ class Inventory:
             "Initializing inventory with %d hosts", len(self.configuration["hosts"])
         )
 
+        self.logger.debug("Loading state from cache file %s", self.cache_file)
+        self.logger.debug("Current Schema Version: %d", HostState.schema_version)
+
         # Load hosts state from cache if available
         with DiskCache(self.cache_file) as cache:
             for name, host in config_hosts.items():
@@ -124,7 +127,10 @@ class Inventory:
                 cached_hosts.add(name)
 
             # If hosts are in cache but not in config, remove them
-            if self.configuration["options"].get("cache_autopurge"):
+            if (
+                self.configuration["options"]["cache_autopurge"]
+                and self.configuration["options"]["cache_autosave"]
+            ):
                 for host in list(cache.keys()):
                     if host not in cached_hosts:
                         self.logger.info("Removing stale host %s from cache", host)
@@ -152,6 +158,8 @@ class Inventory:
         :return: An instance of Host
         """
 
+        host_obj: Host
+
         # Validate the host configuration, remove entries that are not
         # parameters to the Host class constructor with a warning
         valid_params = {
@@ -171,46 +179,18 @@ class Inventory:
             self.logger.debug("Host %s not found in cache, creating new", name)
             return Host(**host_cfg)
 
-        def reset_property(host_obj: Host, attr_name: str, default_value: Any) -> None:
-            if getattr(host_obj, attr_name) != default_value:
-                self.logger.debug(
-                    "Resetting %s on host %s as it is no longer in config",
-                    attr_name,
-                    name,
-                )
-                setattr(host_obj, attr_name, default_value)
-
         try:
             self.logger.debug("Loading host state for %s from cache", name)
-            host_obj = cache[name]
+            host_state: Host | HostState = cache[name]
 
-            # Update host properties with configuration values
-            for k, v in host_cfg.items():
-                if k == "name":
-                    continue
-                setattr(host_obj, k, v)
+            # Backwards compatibility, attempt to migrate full Host
+            # objects to HostState if found in cache
+            if isinstance(host_state, Host):
+                host_state = migrations.migrate_from_host(host_state)
 
-            # Return properties to defaults if they are not in config
-            port_default = inspect.signature(Host.__init__).parameters["port"].default
-            connect_timeout_default = int(app_config["options"]["default_timeout"])
-            sudo_policy_default = SudoPolicy(
-                app_config["options"]["default_sudo_policy"].lower()
-            )
-
-            if "port" not in host_cfg:
-                reset_property(host_obj, "port", port_default)
-
-            if "connect_timeout" not in host_cfg:
-                reset_property(host_obj, "connect_timeout", connect_timeout_default)
-
-            if "sudo_policy" not in host_cfg:
-                reset_property(host_obj, "sudo_policy", sudo_policy_default)
-
-            # Also remove optional properties that are no longer in config
-            # by resetting them to None
-            for k in Host.OPTIONAL_PARAMS:
-                if k not in host_cfg:
-                    reset_property(host_obj, k, None)
+            self.logger.debug("Applying cached state to host %s", name)
+            host_obj = Host(**host_cfg)
+            host_obj.from_state(host_state)
 
         except Exception as e:
             self.logger.warning(

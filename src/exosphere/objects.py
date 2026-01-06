@@ -1,4 +1,3 @@
-import inspect
 import logging
 import time
 from datetime import datetime, timezone
@@ -9,7 +8,7 @@ from fabric import Connection
 from paramiko.ssh_exception import PasswordRequiredException
 
 from exosphere import app_config
-from exosphere.data import HostInfo, Update
+from exosphere.data import HostInfo, HostState, Update
 from exosphere.errors import (
     AUTH_FAILURE_MESSAGE,
     DataRefreshError,
@@ -133,88 +132,63 @@ class Host:
         # This should be a timezone-aware UTC datetime!
         self.last_refresh: UtcDateTime | None = None
 
-    def __getstate__(self) -> dict:
+    def from_state(self, state: HostState) -> None:
         """
-        Custom getstate method to avoid serializing unserializables.
-        Copies the state dict and plucks out stuff that doesn't
-        serialize well, or is otherwise problematic.
-        """
-        state = self.__dict__.copy()
-        state["_connection"] = None  # Do not serialize the connection
-        state["_connection_state_lock"] = None  # Do not serialize the lock
-        state["_connection_last_used"] = None  # Do not serialize last used timestamp
-        state["_pkginst"] = None  # Do not serialize the package manager instance
-        state["logger"] = None  # Do not serialize the logger
-        return state
+        Update the Host object from a HostState dataclass instance.
+        Useful for loading state from disk or cache.
 
-    def __setstate__(self, state: dict) -> None:
-        """
-        Custom setstate method to restore the state of the object.
-        Resets properties and members that are not serializable
-
-        Additionally, ensures that all parameters with defaults
-        are properly set, to avoid issues during deserialization
-        between different versions of the Host class.
+        :param state: HostState instance to load state from
         """
 
-        self.__dict__.update(state)
+        # Warn in case of schema version mismatch
+        if state.schema_version > HostState.schema_version:
+            self.logger.warning(
+                "HostState schema version %d is newer! (expected %d.) "
+                "This may indicate a cache from a newer version and may cause issues.",
+                state.schema_version,
+                HostState.schema_version,
+            )
 
-        # Ensure supported member is set for backward compatibility
-        if not hasattr(self, "supported"):
-            self.supported = True
+        # V1 state mapping
+        self.os = state.os
+        self.version = state.version
+        self.flavor = state.flavor
+        self.package_manager = state.package_manager
+        self.supported = state.supported
+        self.online = state.online
+        self.updates = list(state.updates)
+        self.last_refresh = state.last_refresh
 
-        # Reset unserializables
-        self.logger = logging.getLogger(__name__)
-        self._connection = None
-        self._connection_last_used = None
-        self._connection_state_lock = RLock()
-        if "package_manager" in state and state.get("supported", False):
-            self._pkginst = PkgManagerFactory.create(state["package_manager"])
+        # NOTE: For future schema versions involving simple new fields,
+        # a simple check for state.schema_version to skip loading those
+        # should be sufficient to let the class defaults take over.
+        # Anything more involved should invoke migration logic in the
+        # migrations module, and implemented in load_or_create_host.
+        # See the inventory module for details.
 
-        # Ensure all parameters with defaults are properly set
-        # This helps during version/signature changes.
-        signature = inspect.signature(self.__init__)
+        # Instantiate concrete package manager if defined
+        if self.package_manager and self.supported:
+            self._pkginst = PkgManagerFactory.create(self.package_manager)
+        else:
+            self._pkginst = None
 
-        for name, param in signature.parameters.items():
-            if name == "self":
-                continue
-            if not hasattr(self, name):
-                # Handle optional parameters that are processed in the constructor
-                # and use the default value from the configuration if not set
-                if name == "connect_timeout":
-                    setattr(self, name, app_config["options"]["default_timeout"])
-                    continue
+    def to_state(self) -> HostState:
+        """
+        Convert the Host object to a HostState dataclass instance.
+        Useful for serialization to disk or caching.
 
-                if name == "sudo_policy":
-                    setattr(
-                        self,
-                        name,
-                        SudoPolicy(app_config["options"]["default_sudo_policy"]),
-                    )
-                    continue
-
-                # Handle everything else that eats the default value from the constructor
-                if param.default is not inspect.Parameter.empty:
-                    setattr(self, name, param.default)
-                else:
-                    raise ValueError(
-                        "Unable to de-serialize Host object state: "
-                        f"Missing required parameter '{name}'"
-                    )
-
-        # Handle timezone-naive datetimes for backward compatibility
-        if hasattr(self, "last_refresh") and self.last_refresh is not None:
-            if self.last_refresh.tzinfo is None:
-                self.logger.debug(
-                    "Converting timezone-naive last_refresh datetime to UTC for host %s",
-                    self.name,
-                )
-                # We can safely assume the original datetime was in local time
-                # and convert to UTC. This is not IDEAL, but good enough.
-                local_timestamp = self.last_refresh.timestamp()
-                self.last_refresh = datetime.fromtimestamp(
-                    local_timestamp, tz=timezone.utc
-                )
+        :return: HostState instance representing the current state of the Host
+        """
+        return HostState(
+            os=self.os,
+            version=self.version,
+            flavor=self.flavor,
+            package_manager=self.package_manager,
+            supported=self.supported,
+            online=self.online,
+            updates=tuple(self.updates),
+            last_refresh=self.last_refresh,
+        )
 
     def to_dict(self) -> dict:
         """
