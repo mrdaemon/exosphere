@@ -65,7 +65,7 @@ class TestHostObject:
         return mocker.patch("exosphere.objects.app_config", config)
 
     @pytest.fixture()
-    def mock_config_with_sudopolicy_pass(self, mocker, mock_config):
+    def mock_config_with_sudopolicy_nopasswd(self, mocker, mock_config):
         """
         Fixture to mock the application configuration with all its
         default values, but with a sudo_policy set to NOPASSWD.
@@ -144,6 +144,8 @@ class TestHostObject:
         assert host.username is None  # Default username is None
         assert host.description is None  # Default description is None
         assert host.sudo_policy == SudoPolicy.SKIP
+        assert host.supported is True  # Default supported is True
+        assert host.updates == []
 
     def test_host_connection(self, mocker, mock_connection):
         """
@@ -412,7 +414,7 @@ class TestHostObject:
         assert host.online is False
 
     def test_host_discovery_data_refresh_error(
-        self, mocker, mock_connection, mock_config_with_sudopolicy_pass
+        self, mocker, mock_connection, mock_config_with_sudopolicy_nopasswd
     ):
         """
         Test behavior of discovery when a DataRefreshError is raised.
@@ -460,162 +462,6 @@ class TestHostObject:
         """
         host = Host(**host_config)
         assert repr(host) == expected_repr
-
-    def test_host_getstate_removes_unserializables(self, mocker):
-        """
-        Test that __getstate__ removes unserializable attributes.
-        """
-        host = Host(name="test_host", ip="127.0.0.1")
-
-        mocker.patch.object(host, "_connection", mocker.Mock())
-        mocker.patch.object(host, "_pkginst", mocker.Mock())
-
-        state = host.__getstate__()
-
-        assert state["_connection"] is None
-        assert state["_pkginst"] is None
-
-        assert state["name"] == "test_host"
-        assert state["ip"] == "127.0.0.1"
-
-    def test_host_setstate_restores_state_and_pkginst(self, mocker):
-        """
-        Test that __setstate__ restores state and recreates _pkginst
-        """
-        fake_pkginst = mocker.MagicMock()
-        mock_factory = mocker.patch(
-            "exosphere.objects.PkgManagerFactory.create", return_value=fake_pkginst
-        )
-
-        state = {
-            "name": "test_host",
-            "ip": "127.0.0.1",
-            "port": 22,
-            "online": True,
-            "os": "linux",
-            "version": "12",
-            "flavor": "debian",
-            "package_manager": "apt",
-            "supported": True,
-            "_connection": "THE BEFORES",
-            "_pkginst": "THE BEFORES",
-            "updates": [],
-            "last_refresh": None,
-        }
-
-        host = Host(name="test_host", ip="127.0.0.1")
-        host.__setstate__(state)
-
-        assert host.name == "test_host"
-        assert host.ip == "127.0.0.1"
-        assert host.os == "linux"
-        assert host.version == "12"
-        assert host.package_manager == "apt"
-
-        assert host._connection != "THE BEFORES"
-        assert host._connection != "THE BEFORES"
-
-        assert host._connection is None
-        mock_factory.assert_called_once_with("apt")
-        assert host._pkginst == fake_pkginst
-
-    def test_host_setstate_restores_state_and_new_defaults(self, mocker):
-        """
-        test that __setstate__ restores state but also applies new default
-        parameters that were not present when last serialized.
-        """
-
-        # State without sudo_policy, connect_timeout and supported
-        legacy_state = {
-            "name": "test_host",
-            "ip": "127.0.0.1",
-            "port": 22,
-            "online": True,
-            "os": "linux",
-            "version": "12",
-            "flavor": "debian",
-            "package_manager": "apt",
-            "updates": [],
-            "last_refresh": None,
-        }
-
-        host = Host.__new__(Host)
-        host.__setstate__(legacy_state)
-
-        # Ensure new defaults are applied
-        assert host.connect_timeout == 10
-        assert host.sudo_policy == SudoPolicy.SKIP
-        assert host.supported is True
-
-    def test_host_setstate_migrates_naive_datetime_to_utc(self, mocker):
-        """
-        Test that __setstate__ automatically migrates naive datetime to UTC timezone-aware.
-        This ensures backward compatibility with old serialized data.
-        """
-        # Create a naive datetime (simulating old serialized data)
-        naive_datetime = datetime(2025, 9, 23, 10, 30, 45)  # No timezone
-
-        legacy_state = {
-            "name": "test_host",
-            "ip": "127.0.0.1",
-            "port": 22,
-            "last_refresh": naive_datetime,
-        }
-
-        host = Host.__new__(Host)
-        host.__setstate__(legacy_state)
-
-        # Verify the datetime was converted to UTC timezone-aware
-        assert host.last_refresh is not None
-        assert host.last_refresh.tzinfo is not None
-        assert host.last_refresh.tzinfo == timezone.utc
-
-        # The actual timestamp should be preserved (converted from local to UTC)
-        expected_utc = datetime.fromtimestamp(
-            naive_datetime.timestamp(), tz=timezone.utc
-        )
-        assert host.last_refresh == expected_utc
-
-    def test_host_setstate_preserves_timezone_aware_datetime(self, mocker):
-        """
-        Test that __setstate__ preserves already timezone-aware datetime.
-        """
-        # Create a timezone-aware datetime (simulating new serialized data)
-        utc_datetime = datetime(2025, 9, 23, 14, 30, 45, tzinfo=timezone.utc)
-
-        state = {
-            "name": "test_host",
-            "ip": "127.0.0.1",
-            "port": 22,
-            "last_refresh": utc_datetime,
-        }
-
-        host = Host.__new__(Host)
-        host.__setstate__(state)
-
-        # Verify the datetime was preserved unchanged
-        assert host.last_refresh is not None
-        assert host.last_refresh == utc_datetime
-        assert host.last_refresh.tzinfo == timezone.utc
-
-    def test_host_setstate_valueerror_on_missing_required(self, mocker):
-        """
-        Test that __setstate__ raises ValueError if required parameters are missing.
-        Ensures de-serialization fails aggressively if required parameters are not present.
-        """
-        state = {
-            "name": "test_host",
-            # Missing 'ip' parameter
-            "port": 22,
-        }
-
-        host = Host.__new__(Host)
-
-        with pytest.raises(
-            ValueError,
-            match="Unable to de-serialize Host object state: Missing required parameter 'ip'",
-        ):
-            host.__setstate__(state)
 
     def test_security_update_property(self, mocker):
         """
@@ -706,7 +552,7 @@ class TestHostObject:
         assert host.is_stale is False
 
     def test_sync_repos_success(
-        self, mocker, mock_connection, mock_config_with_sudopolicy_pass
+        self, mocker, mock_connection, mock_config_with_sudopolicy_nopasswd
     ):
         """
         Test that sync_repos calls reposync and succeeds when online and _pkginst is set.
@@ -724,7 +570,7 @@ class TestHostObject:
 
         pkg_manager.reposync.assert_called_once_with(host.connection)
 
-    def test_sync_repos_offline_raises(self, mock_config_with_sudopolicy_pass):
+    def test_sync_repos_offline_raises(self, mock_config_with_sudopolicy_nopasswd):
         """
         Test that sync_repos raises OfflineHostError if host is offline.
         """
@@ -735,7 +581,7 @@ class TestHostObject:
             host.sync_repos()
 
     def test_sync_repos_no_pkginst_raises(
-        self, caplog, mock_config_with_sudopolicy_pass
+        self, caplog, mock_config_with_sudopolicy_nopasswd
     ):
         """
         Test that sync_repos raises DataRefreshError if _pkginst is None.
@@ -753,7 +599,7 @@ class TestHostObject:
         assert "Package manager implementation unavailable" in logs
 
     def test_sync_repos_reposync_failure_raises(
-        self, mocker, mock_connection, mock_config_with_sudopolicy_pass
+        self, mocker, mock_connection, mock_config_with_sudopolicy_nopasswd
     ):
         """
         Test that sync_repos raises DataRefreshError if reposync returns False.
@@ -798,7 +644,7 @@ class TestHostObject:
         )
 
     def test_refresh_updates_success_with_updates(
-        self, mocker, mock_connection, mock_config_with_sudopolicy_pass
+        self, mocker, mock_connection, mock_config_with_sudopolicy_nopasswd
     ):
         """
         Test that refresh_updates populates updates and sets last_refresh when updates are found.
@@ -823,7 +669,7 @@ class TestHostObject:
         assert before <= host.last_refresh <= after
 
     def test_refresh_updates_success_no_updates(
-        self, mocker, mock_connection, caplog, mock_config_with_sudopolicy_pass
+        self, mocker, mock_connection, caplog, mock_config_with_sudopolicy_nopasswd
     ):
         """
         Test that refresh_updates logs info when no updates are found.
@@ -843,7 +689,7 @@ class TestHostObject:
         assert "No updates available for test_host" in caplog.text
 
     def test_refresh_updates_offline_raises(
-        self, mocker, mock_config_with_sudopolicy_pass
+        self, mocker, mock_config_with_sudopolicy_nopasswd
     ):
         """
         Test that refresh_updates raises OfflineHostError if host is offline.
@@ -856,7 +702,7 @@ class TestHostObject:
             host.refresh_updates()
 
     def test_refresh_updates_no_pkginst_raises(
-        self, mocker, caplog, mock_config_with_sudopolicy_pass
+        self, mocker, caplog, mock_config_with_sudopolicy_nopasswd
     ):
         """
         Test that refresh_updates raises DataRefreshError if _pkginst is None.
@@ -1334,6 +1180,283 @@ class TestHostObject:
         last_used = host.connection_last_used
         assert last_used is not None
         assert before <= last_used <= after
+
+
+class TestHostStateSerialization:
+    """Test suite for Host and HostState serialization"""
+
+    def test_to_state_basic(self, mocker):
+        """Test basic conversion from Host to HostState"""
+        from exosphere.data import HostState
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.os = "linux"
+        host.version = "12"
+        host.flavor = "debian"
+        host.package_manager = "apt"
+        host.supported = True
+        host.online = True
+        host.updates = []
+        host.last_refresh = None
+
+        state = host.to_state()
+
+        assert isinstance(state, HostState)
+        assert state.os == "linux"
+        assert state.version == "12"
+        assert state.flavor == "debian"
+        assert state.package_manager == "apt"
+        assert state.supported is True
+        assert state.online is True
+        assert isinstance(state.updates, tuple)
+        assert len(state.updates) == 0
+        assert state.last_refresh is None
+
+    def test_to_state_with_updates(self, mocker):
+        """Test conversion with updates list"""
+        from exosphere.data import Update
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.os = "linux"
+        host.supported = True
+        host.online = True
+        host.updates = [
+            Update(
+                name="pkg1", current_version="1.0", new_version="1.1", security=False
+            ),
+            Update(
+                name="pkg2", current_version="2.0", new_version="2.1", security=True
+            ),
+        ]
+        host.last_refresh = datetime.now(timezone.utc)
+
+        state = host.to_state()
+
+        assert isinstance(state.updates, tuple)
+        assert len(state.updates) == 2
+        assert state.updates[0].name == "pkg1"
+        assert state.updates[1].name == "pkg2"
+        assert state.updates[1].security is True
+
+    def test_to_state_with_timezone_aware_datetime(self, mocker):
+        """Test conversion preserves timezone-aware datetime"""
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.os = "linux"
+        host.supported = True
+        host.online = True
+        host.updates = []
+
+        now = datetime.now(timezone.utc)
+        host.last_refresh = now
+
+        state = host.to_state()
+
+        assert state.last_refresh == now
+        assert state.last_refresh.tzinfo == timezone.utc  # type: ignore
+
+    def test_from_state_basic(self, mocker):
+        """Test basic loading of state into Host"""
+        from exosphere.data import HostState
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        state = HostState(
+            os="linux",
+            version="12",
+            flavor="debian",
+            package_manager="apt",
+            supported=True,
+            online=True,
+            updates=(),
+            last_refresh=None,
+        )
+
+        host.from_state(state)
+
+        assert host.os == "linux"
+        assert host.version == "12"
+        assert host.flavor == "debian"
+        assert host.package_manager == "apt"
+        assert host.supported is True
+        assert host.online is True
+        assert isinstance(host.updates, list)
+        assert len(host.updates) == 0
+
+    def test_from_state_converts_tuple_to_list(self, mocker):
+        """Test that from_state converts updates tuple to list"""
+        from exosphere.data import HostState, Update
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        update1 = Update(
+            name="libhyperoneechan",
+            current_version="1.0",
+            new_version="1.1",
+            security=False,
+        )
+        update2 = Update(
+            name="lillies-bloom",
+            current_version="2.0",
+            new_version="2.1",
+            security=True,
+        )
+
+        state = HostState(
+            os="linux",
+            version="12",
+            flavor="debian",
+            package_manager="apt",
+            supported=True,
+            online=True,
+            updates=(update1, update2),
+            last_refresh=None,
+        )
+
+        host.from_state(state)
+
+        assert isinstance(host.updates, list)
+        assert len(host.updates) == 2
+        assert host.updates[0] == update1
+        assert host.updates[1] == update2
+
+    def test_from_state_recreates_pkginst(self, mocker):
+        """Test that from_state recreates package manager instance"""
+        from exosphere.data import HostState
+
+        mock_factory = mocker.patch("exosphere.objects.PkgManagerFactory.create")
+        fake_pkginst = mocker.MagicMock()
+        mock_factory.return_value = fake_pkginst
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        state = HostState(
+            os="linux",
+            version="12",
+            flavor="debian",
+            package_manager="apt",
+            supported=True,
+            online=True,
+            updates=(),
+            last_refresh=None,
+        )
+
+        host.from_state(state)
+
+        mock_factory.assert_called_once_with("apt")
+        assert host._pkginst == fake_pkginst
+
+    def test_from_state_no_pkginst_when_not_supported(self, mocker):
+        """Test that from_state doesn't create pkginst for unsupported hosts"""
+        from exosphere.data import HostState
+
+        mock_factory = mocker.patch("exosphere.objects.PkgManagerFactory.create")
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        state = HostState(
+            os="linux",
+            version="12",
+            flavor="unknown",
+            package_manager="unknown",
+            supported=False,
+            online=True,
+            updates=(),
+            last_refresh=None,
+        )
+
+        host.from_state(state)
+
+        mock_factory.assert_not_called()
+        assert host._pkginst is None
+
+    def test_from_state_warns_on_newer_schema_version(self, mocker, caplog):
+        """Test that from_state warns when loading newer schema version"""
+        from exosphere.data import HostState
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        state = HostState(
+            os="linux",
+            version="12",
+            flavor="debian",
+            package_manager="apt",
+            supported=True,
+            online=True,
+            updates=(),
+            last_refresh=None,
+            schema_version=999,  # Future version
+        )
+
+        with caplog.at_level("WARNING"):
+            host.from_state(state)
+
+        assert any(
+            "HostState schema version 999 is newer" in message
+            for message in caplog.messages
+        )
+
+    def test_roundtrip_preserves_data(self, mocker):
+        """Verify Host → HostState → Host preserves all data"""
+        from exosphere.data import Update
+
+        # Create host with full state
+        host1 = Host(name="test_host", ip="127.0.0.1")
+        host1.os = "linux"
+        host1.version = "12"
+        host1.flavor = "debian"
+        host1.package_manager = "apt"
+        host1.supported = True
+        host1.online = True
+        host1.updates = [
+            Update(
+                name="pkg1", current_version="1.0", new_version="1.1", security=False
+            ),
+            Update(
+                name="pkg2", current_version="2.0", new_version="2.1", security=True
+            ),
+        ]
+        host1.last_refresh = datetime(2026, 1, 6, 10, 30, 0, tzinfo=timezone.utc)
+
+        # Serialize to state
+        state = host1.to_state()
+
+        # Create new host and deserialize
+        host2 = Host(name="test_host", ip="127.0.0.1")
+        host2.from_state(state)
+
+        # Verify all data preserved
+        assert host2.os == "linux"
+        assert host2.version == "12"
+        assert host2.flavor == "debian"
+        assert host2.package_manager == "apt"
+        assert host2.supported is True
+        assert host2.online is True
+        assert len(host2.updates) == 2
+        assert host2.updates[0].name == "pkg1"
+        assert host2.updates[1].name == "pkg2"
+        assert host2.updates[1].security is True
+        assert host2.last_refresh == datetime(
+            2026, 1, 6, 10, 30, 0, tzinfo=timezone.utc
+        )
+
+    def test_roundtrip_with_minimal_state(self, mocker):
+        """Verify round-trip works with minimal state"""
+        host1 = Host(name="test_host", ip="127.0.0.1")
+        # Don't set any discovery state, use defaults
+
+        state = host1.to_state()
+
+        host2 = Host(name="test_host", ip="127.0.0.1")
+        host2.from_state(state)
+
+        assert host2.os is None
+        assert host2.version is None
+        assert host2.flavor is None
+        assert host2.package_manager is None
+        assert host2.supported is True  # Default
+        assert host2.online is False  # Default
+        assert len(host2.updates) == 0
+        assert host2.last_refresh is None
 
 
 class TestHostTaskMethodsConnectionCleanup:
