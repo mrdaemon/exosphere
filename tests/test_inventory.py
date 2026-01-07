@@ -372,6 +372,141 @@ class TestInventory:
             for message in caplog.messages
         )
 
+    def test_load_or_create_host_with_minimal_state(self, mocker, mock_diskcache):
+        """
+        Test that a HostState with all None values can be loaded.
+        This represents a host that was never discovered.
+        """
+        from exosphere.objects import Host
+
+        inventory = Inventory(Configuration())
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+        cache_mock.__contains__.return_value = True
+
+        minimal_state = HostState(
+            os=None,
+            version=None,
+            flavor=None,
+            package_manager=None,
+            supported=True,
+            online=False,
+            updates=(),
+            last_refresh=None,
+        )
+
+        cache_mock.__getitem__.return_value = minimal_state
+        host_cfg = {"name": "minimal", "ip": "192.168.1.1"}
+        result = inventory.load_or_create_host("minimal", host_cfg, cache_mock)
+
+        assert isinstance(result, Host)
+        assert result.name == "minimal"
+        assert result.os is None
+        assert result.version is None
+        assert result.package_manager is None
+        assert result._pkginst is None
+
+    def test_load_or_create_host_with_unsupported_host(self, mocker, mock_diskcache):
+        """
+        Test that an unsupported host with package_manager doesn't crash.
+        The from_state logic should not instantiate pkginst when supported=False.
+        """
+        from exosphere.objects import Host
+
+        inventory = Inventory(Configuration())
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+        cache_mock.__contains__.return_value = True
+
+        state = HostState(
+            os="unknown",
+            version="0",
+            flavor=None,
+            package_manager="unknown_pm",
+            supported=False,
+            online=False,
+            updates=(),
+            last_refresh=None,
+        )
+
+        cache_mock.__getitem__.return_value = state
+        host_cfg = {"name": "unsupported", "ip": "192.168.1.2"}
+        result = inventory.load_or_create_host("unsupported", host_cfg, cache_mock)
+
+        assert isinstance(result, Host)
+        assert result.supported is False
+        assert result._pkginst is None
+
+    def test_load_or_create_host_with_contradictory_state(self, mocker, mock_diskcache):
+        """
+        Test contradictory state: package_manager set but os is None.
+        This should not crash even though it's logically inconsistent,
+        and a new Discover call will clean it right up anyways.
+        """
+        from exosphere.objects import Host
+
+        inventory = Inventory(Configuration())
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+        cache_mock.__contains__.return_value = True
+
+        state = HostState(
+            os=None,
+            version=None,
+            flavor=None,
+            package_manager="apt",
+            supported=True,
+            online=True,
+            updates=(),
+            last_refresh=None,
+        )
+
+        cache_mock.__getitem__.return_value = state
+        host_cfg = {"name": "contradictory", "ip": "192.168.1.3"}
+        result = inventory.load_or_create_host("contradictory", host_cfg, cache_mock)
+
+        assert isinstance(result, Host)
+        assert result.os is None
+        assert result.package_manager == "apt"
+        assert result._pkginst is not None
+
+    def test_load_or_create_host_with_invalid_package_manager(
+        self, mocker, mock_diskcache, caplog
+    ):
+        """
+        Test that an invalid package manager name is handled gracefully.
+        When PkgManagerFactory.create raises an error during from_state,
+        load_or_create_host should catch it and create a fresh host.
+        """
+        from exosphere.objects import Host
+
+        inventory = Inventory(Configuration())
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+        cache_mock.__contains__.return_value = True
+
+        state = HostState(
+            os="linux",
+            version="12",
+            flavor="unknown",
+            package_manager="invalid_pm_12345",
+            supported=True,
+            online=True,
+            updates=(),
+            last_refresh=None,
+        )
+
+        cache_mock.__getitem__.return_value = state
+
+        mock_factory = mocker.patch("exosphere.objects.PkgManagerFactory.create")
+        mock_factory.side_effect = ValueError("Unknown package manager")
+
+        host_cfg = {"name": "invalidpm", "ip": "192.168.1.7"}
+
+        with caplog.at_level("WARNING"):
+            result = inventory.load_or_create_host("invalidpm", host_cfg, cache_mock)
+
+        assert isinstance(result, Host)
+        assert result.name == "invalidpm"
+        assert result.os is None
+        assert any("Failed to load host state" in m for m in caplog.messages)
+
     def test_get_host(self, mock_config):
         """
         Test that get_host retrieves a host by name from the inventory.
