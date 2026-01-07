@@ -466,6 +466,8 @@ and examples of how to set them in the configuration file.
     Whether or not to automatically remove hosts from cache when they are
     removed from the configuration file.
 
+    If :option:`cache_autosave` is set to False, **this option has no effect**.
+
     .. admonition:: Note
 
         If **all** of the hosts are removed from the configuration file,
