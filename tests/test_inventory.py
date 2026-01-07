@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 
 from exosphere.config import Configuration
+from exosphere.data import HostState
 from exosphere.inventory import Inventory
 from exosphere.security import SudoPolicy
 
@@ -34,61 +35,7 @@ class TestInventory:
         mock_dc = mocker.patch("exosphere.inventory.DiskCache")
         return mock_dc
 
-    @pytest.fixture
-    def mock_host_class(self, mocker):
-        """
-        Mock the Host class fairly in depth to ensure it behaves like the real one.
-        This includes faking the signature of the __init__ method.
-        """
-        from inspect import Parameter, Signature
-
-        import exosphere.objects
-
-        original_optional_params = exosphere.objects.Host.OPTIONAL_PARAMS
-
-        def make_mock_host(**kwargs):
-            m = mocker.create_autospec(exosphere.objects.Host, instance=True, **kwargs)
-            m.name = kwargs.get("name", "mock_host")
-            m.ip = kwargs.get("ip", "127.0.0.1")
-            m.port = kwargs.get("port", 22)
-            m.description = kwargs.get("description", None)
-            m.username = kwargs.get("username", None)
-            m.sudo_policy = kwargs.get("sudo_policy", SudoPolicy.SKIP)
-            m.close = mocker.Mock()
-            return m
-
-        patcher = mocker.patch("exosphere.inventory.Host", side_effect=make_mock_host)
-
-        # Conserve the original OPTIONAL_PARAMS constant from the Host class
-        # Those are serialization hints
-        patcher.OPTIONAL_PARAMS = original_optional_params
-
-        mock_signature = Signature(
-            parameters=[
-                Parameter("self", Parameter.POSITIONAL_OR_KEYWORD),
-                Parameter("name", Parameter.POSITIONAL_OR_KEYWORD),
-                Parameter("ip", Parameter.POSITIONAL_OR_KEYWORD),
-                Parameter("port", Parameter.POSITIONAL_OR_KEYWORD, default=22),
-                Parameter("username", Parameter.POSITIONAL_OR_KEYWORD, default=None),
-                Parameter("description", Parameter.POSITIONAL_OR_KEYWORD, default=None),
-                Parameter(
-                    "connect_timeout", Parameter.POSITIONAL_OR_KEYWORD, default=30
-                ),
-                Parameter(
-                    "sudo_policy",
-                    Parameter.POSITIONAL_OR_KEYWORD,
-                    default=SudoPolicy.SKIP,
-                ),
-            ]
-        )
-
-        mocker.patch(
-            "exosphere.inventory.inspect.signature", return_value=mock_signature
-        )
-
-        return patcher
-
-    def test_init_all(self, mocker, mock_config, mock_diskcache, mock_host_class):
+    def test_init_all(self, mock_config, mock_diskcache):
         """
         Test that init_all creates Host objects from the configuration.
         """
@@ -124,7 +71,7 @@ class TestInventory:
         assert inventory.hosts[4].ip == "127.0.0.5"
         assert inventory.hosts[4].sudo_policy == SudoPolicy.NOPASSWD
 
-    def test_init_all_with_empty_hosts(self, mocker, mock_diskcache, caplog):
+    def test_init_all_with_empty_hosts(self, mock_diskcache, caplog):
         """
         Test that init_all handles empty host configuration gracefully.
         """
@@ -141,47 +88,79 @@ class TestInventory:
         assert len(inventory.hosts) == 0
         assert any("No hosts found in inventory" in m for m in caplog.messages)
 
+    @pytest.mark.parametrize(
+        "cache_autopurge,cache_autosave,expected_purge",
+        [
+            (True, True, True),
+            (False, True, False),
+            (True, False, False),
+            (False, False, False),
+        ],
+        ids=[
+            "autopurge_and_autosave",
+            "no_autopurge_but_autosave",
+            "autopurge_and_no_autosave",
+            "no_autopurge_and_no_autosave",
+        ],
+    )
     def test_init_all_removes_stale_hosts(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
+        self,
+        mock_config,
+        mock_diskcache,
+        cache_autopurge,
+        cache_autosave,
+        expected_purge,
     ):
         """
-        Test that init_all removes hosts that are not in the configuration from cache
-        by default
+        Test that init_all removes hosts in cache that are no longer in
+        the configuration file, while honoring cache_autopurge and
+        cache_autosave settings.
         """
+        mock_config["options"]["cache_autopurge"] = cache_autopurge
+        mock_config["options"]["cache_autosave"] = cache_autosave
         cache_mock = mock_diskcache.return_value.__enter__.return_value
         cache_mock.keys.return_value = ["host1", "host2", "stalehost"]
 
         _ = Inventory(mock_config)
 
-        cache_mock.__delitem__.assert_any_call("stalehost")
+        if expected_purge:
+            cache_mock.__delitem__.assert_any_call("stalehost")
+        else:
+            cache_mock.__delitem__.assert_not_called()
 
-    def test_init_all_does_not_remove_stale_hosts(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
-    ):
+    def test_save_state(self, mocker, mock_config, mock_diskcache):
         """
-        Test that init_all does not remove stale hosts from cache if configured to do so.
+        Test that save_state saves all hosts to the cache using to_state().
         """
-        mock_config["options"]["cache_autopurge"] = False
-        cache_mock = mock_diskcache.return_value.__enter__.return_value
-        cache_mock.keys.return_value = ["host1", "host2", "stalehost"]
 
-        _ = Inventory(mock_config)
-
-        cache_mock.__delitem__.assert_not_called()
-
-    def test_save_state(self, mocker, mock_config, mock_diskcache, mock_host_class):
-        """
-        Test that save_state saves all hosts to the cache.
-        """
         inventory = Inventory(mock_config)
         cache_mock = mock_diskcache.return_value.__enter__.return_value
+
+        for host in inventory.hosts:
+            host.to_state = mocker.Mock(
+                return_value=HostState(
+                    os=None,
+                    version=None,
+                    flavor=None,
+                    package_manager=None,
+                    supported=True,
+                    online=False,
+                    updates=(),
+                    last_refresh=None,
+                )
+            )
 
         inventory.save_state()
 
         for host in inventory.hosts:
-            cache_mock.__setitem__.assert_any_call(host.name, host)
+            to_state_mock = host.to_state  # type: ignore[method-assign]
+            to_state_mock.assert_called_once()  # type: ignore[attr-defined]
+            cache_mock.__setitem__.assert_any_call(
+                host.name,
+                to_state_mock.return_value,  # type: ignore[attr-defined]
+            )
 
-    def test_clear_state(self, mocker, mock_config, mock_diskcache, mock_host_class):
+    def test_clear_state(self, mocker, mock_config, mock_diskcache):
         """
         Test that clear_state clears the cache and re-initializes the inventory.
         """
@@ -194,7 +173,7 @@ class TestInventory:
         assert len(inventory.hosts) == 5
 
     def test_clear_state_handles_file_not_found(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
+        self, mocker, mock_config, mock_diskcache
     ):
         """
         Test that clear_state handles FileNotFoundError gracefully.
@@ -209,7 +188,7 @@ class TestInventory:
             pytest.fail(f"Unexpected exception raised: {e}")
 
     def test_clear_state_raises_on_other_exception(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
+        self, mocker, mock_config, mock_diskcache
     ):
         """
         Test that clear_state raises RuntimeError on other exceptions.
@@ -222,105 +201,153 @@ class TestInventory:
         with pytest.raises(RuntimeError):
             inventory.clear_state()
 
-    @pytest.mark.parametrize(
-        "host_name,host_cfg,cache_contains,cache_getitem_side_effect,expect_new,expect_warning",
-        [
-            (
-                "host1",
-                {"name": "host1", "ip": "127.0.0.1", "port": 2222},
-                lambda k: k == "host1",
-                lambda k: mock.Mock(name="host1_mock") if k == "host1" else KeyError,
-                False,
-                False,
-            ),
-            (
-                "host2",
-                {"name": "host2", "ip": "127.0.0.2", "port": 2222},
-                lambda k: False,
-                None,
-                True,
-                False,
-            ),
-            (
-                "host3",
-                {"name": "host3", "ip": "127.0.0.3", "port": 2222},
-                lambda k: True,
-                Exception("corrupt cache or whatever"),
-                True,
-                True,
-            ),
-        ],
-        ids=[
-            "load_on_cache_hit",
-            "create_on_cache_miss",
-            "create_on_cache_error",
-        ],
-    )
-    def test_load_or_create_host(
-        self,
-        mocker,
-        mock_config,
-        mock_diskcache,
-        mock_host_class,
-        caplog,
-        host_name,
-        host_cfg,
-        cache_contains,
-        cache_getitem_side_effect,
-        expect_new,
-        expect_warning,
-    ):
+    def test_load_or_create_host_on_cache_miss(self, mocker, mock_diskcache):
         """
-        Test load_or_create_host behavior with various cache states.
+        Test that load_or_create_host creates a new Host on cache miss.
         """
-        inventory = Inventory(mock_config)
+        from exosphere.objects import Host
+
+        inventory = Inventory(Configuration())
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+        cache_mock.__contains__.return_value = False
+
+        host_cfg = {"name": "testhost", "ip": "192.168.1.100", "port": 2222}
+        result = inventory.load_or_create_host("testhost", host_cfg, cache_mock)
+
+        assert isinstance(result, Host)
+        assert result.name == "testhost"
+        assert result.ip == "192.168.1.100"
+        assert result.port == 2222
+        # Ensure some defaults are defaulting
+        assert result.os is None
+        assert result.online is False
+
+    def test_load_or_create_host_on_cache_error(self, mocker, mock_diskcache, caplog):
+        """
+        Test that load_or_create_host creates a new Host when cache read fails.
+        """
+        from exosphere.objects import Host
+
+        inventory = Inventory(Configuration())
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+        cache_mock.__contains__.return_value = True
+        cache_mock.__getitem__.side_effect = Exception("corrupt cache")
+
+        host_cfg = {"name": "testhost", "ip": "192.168.1.100", "port": 2222}
+
+        with caplog.at_level("WARNING"):
+            result = inventory.load_or_create_host("testhost", host_cfg, cache_mock)
+
+        assert isinstance(result, Host)
+        assert result.name == "testhost"
+
+        # Assert some defaults are defaulting
+        assert result.os is None
+        assert result.online is False
+
+        assert any(
+            "Failed to load host state for testhost from cache" in m
+            for m in caplog.messages
+        )
+
+    def test_load_or_create_host_with_hoststate_in_cache(self, mocker, mock_diskcache):
+        """
+        Test that load_or_create_host loads HostState from cache correctly.
+        """
+        from exosphere.objects import Host
+
+        inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
 
-        # Horrying kludge to mock cache behavior
-        cache_mock.__contains__.side_effect = cache_contains
+        cached_state = HostState(
+            os="linux",
+            version="12",
+            flavor="debian",
+            package_manager="apt",
+            supported=True,
+            online=True,
+            updates=(),
+            last_refresh=None,
+        )
 
-        if callable(cache_getitem_side_effect):
+        cache_mock.__contains__.return_value = True
+        cache_mock.__getitem__.return_value = cached_state
 
-            def modified_getitem(k):
-                if k == host_name:
-                    return mock_host_class(**host_cfg)
-                else:
-                    raise KeyError(k)
+        host_cfg = {"name": "testhost", "ip": "192.168.1.100"}
+        result = inventory.load_or_create_host("testhost", host_cfg, cache_mock)
 
-            cache_mock.__getitem__.side_effect = modified_getitem
+        # Verify Host was constructed with config params
+        assert isinstance(result, Host)
+        assert result.name == "testhost"
+        assert result.ip == "192.168.1.100"
 
-        if isinstance(cache_getitem_side_effect, Exception):
-            cache_mock.__getitem__.side_effect = cache_getitem_side_effect
+        # Verify cached state was applied
+        assert result.os == "linux"
+        assert result.version == "12"
+        assert result.flavor == "debian"
+        assert result.package_manager == "apt"
+        assert result.supported is True
+        assert result.online is True
 
-        if expect_warning:
-            with caplog.at_level("WARNING"):
-                result = inventory.load_or_create_host(host_name, host_cfg, cache_mock)
-        else:
-            result = inventory.load_or_create_host(host_name, host_cfg, cache_mock)
+    def test_load_or_create_host_with_legacy_host_in_cache(
+        self, mocker, mock_diskcache
+    ):
+        """
+        Test that load_or_create_host calls migration for legacy Host objects.
+        This ensures the inventory layer properly invokes the migration system.
+        """
+        from exosphere.objects import Host
 
-        if expect_new:
-            mock_host_class.assert_any_call(**host_cfg)
-            assert result.name == host_cfg["name"]
-            assert result.ip == host_cfg["ip"]
-            assert result.port == host_cfg["port"]
-        else:
-            assert result.name == host_cfg["name"]
-            assert result.ip == host_cfg["ip"]
-            assert result.port == host_cfg["port"]
+        inventory = Inventory(Configuration())
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
 
-        if expect_warning:
-            assert any(
-                f"Failed to load host state for {host_name} from cache" in m
-                for m in caplog.messages
-            )
+        # Simulate legacy Host object in cache (old format)
+        legacy_host = Host(name="oldhost", ip="192.168.1.50")
+        legacy_host.os = "freebsd"
+        legacy_host.version = "14"
+        legacy_host.online = True
+
+        cache_mock.__contains__.return_value = True
+        cache_mock.__getitem__.return_value = legacy_host
+
+        # We actually mock the migration code. The actual tests for this
+        # live in the test_migrations.py suite.
+        mock_migrate = mocker.patch("exosphere.inventory.migrations.migrate_from_host")
+        mock_migrate.return_value = HostState(
+            os="freebsd",
+            version="14",
+            flavor=None,
+            package_manager="pkg",
+            supported=True,
+            online=True,
+            updates=(),
+            last_refresh=None,
+        )
+
+        host_cfg = {"name": "oldhost", "ip": "192.168.1.50"}
+        result = inventory.load_or_create_host("oldhost", host_cfg, cache_mock)
+
+        # Verify migration was called
+        mock_migrate.assert_called_once_with(legacy_host)
+        assert isinstance(result, Host)
+        assert result.name == "oldhost"
+        assert result.os == "freebsd"
+        assert result.version == "14"
+        assert result.package_manager == "pkg"
+        assert result.supported is True
+        assert result.online is True
 
     def test_load_or_create_host_with_unknown_option(
-        self, mocker, mock_diskcache, mock_config, caplog
+        self, mocker, mock_diskcache, caplog
     ):
         """
         Test that load_or_create_host ignores unknown options in host configuration.
         """
-        inventory = Inventory(mock_config)
+        from exosphere.objects import Host
+
+        inventory = Inventory(Configuration())
+        cache_mock = mock_diskcache.return_value.__enter__.return_value
+        cache_mock.__contains__.return_value = False
 
         host_cfg = {
             "name": "host5",
@@ -329,9 +356,10 @@ class TestInventory:
             "unknown_option": "should_be_ignored",
         }
         with caplog.at_level("WARNING"):
-            result = inventory.load_or_create_host("host5", host_cfg, mock_diskcache)
+            result = inventory.load_or_create_host("host5", host_cfg, cache_mock)
 
         # Ensure the host is created without the unknown option
+        assert isinstance(result, Host)
         assert result.name == "host5"
         assert result.ip == "127.0.0.8"
         assert result.port == 22
@@ -344,77 +372,7 @@ class TestInventory:
             for message in caplog.messages
         )
 
-    def test_load_or_create_host_with_removed_option_in_cache(
-        self,
-        mocker,
-        mock_diskcache,
-        mock_host_class,
-        caplog,
-    ):
-        """
-        Test that load_or_create_host handles removed options from config
-        that are present in the cache gracefully. They are expected to be
-        reset to their default values.
-        """
-
-        # Configuration with a single host with no options
-        config_data = {
-            "options": {
-                "cache_file": "test_cache.db",
-            },
-            "hosts": [
-                {
-                    "name": "host99",
-                    "ip": "127.0.0.99",
-                },
-            ],
-        }
-
-        config = Configuration()
-        config.update_from_mapping(config_data)
-
-        inventory = Inventory(config)
-
-        # Simulate a host in the cache with options that have been removed from config
-        cache_mock = mock_diskcache.return_value.__enter__.return_value
-
-        cached_host = mocker.create_autospec(
-            spec="exosphere.objects.Host", instance=True
-        )
-        cached_host.name = "host99"
-        cached_host.ip = "127.0.0.99"
-        cached_host.port = 2222
-        cached_host.username = "megaroot"
-        cached_host.description = "test host"
-        cached_host.connect_timeout = 999
-        cached_host.sudo_policy = SudoPolicy.NOPASSWD
-
-        # Cache returns cached host
-        cache_mock.__contains__.side_effect = lambda k: k == "host99"
-        cache_mock.__getitem__.side_effect = (
-            lambda k: cached_host if k == "host99" else KeyError(k)
-        )
-
-        # Reset mock before actual test
-        mock_host_class.reset_mock()
-
-        result = inventory.load_or_create_host("host99", config["hosts"][0], cache_mock)
-
-        # Ensure the host is loaded from cache and not actually created
-        mock_host_class.assert_not_called()
-
-        # Ensure the host is created with default values for removed options
-        assert result.name == "host99"
-        assert result.ip == "127.0.0.99"
-        assert result.port == 22  # Default port
-        assert result.username is None
-        assert result.description is None
-        assert result.connect_timeout == config["options"]["default_timeout"]
-        assert result.sudo_policy == SudoPolicy(
-            config["options"]["default_sudo_policy"]
-        )
-
-    def test_get_host(self, mocker, mock_config):
+    def test_get_host(self, mock_config):
         """
         Test that get_host retrieves a host by name from the inventory.
         """
@@ -427,19 +385,21 @@ class TestInventory:
         assert host.ip == "127.0.0.2"
         assert host.port == 22
 
-    def test_get_host_returns_none_if_not_found(self, mocker, mock_config):
+    def test_get_host_returns_none_if_not_found(self, mocker, mock_config, caplog):
         """
-        Test that get_host returns None if the host is not found.
+        Test that get_host returns None if the host is not found and logs an error.
         """
         inventory = Inventory(mock_config)
 
-        host = inventory.get_host("nonexistent")
+        with caplog.at_level("ERROR"):
+            host = inventory.get_host("nonexistent")
 
         assert host is None
+        assert any(
+            "Host 'nonexistent' not found in inventory" in m for m in caplog.messages
+        )
 
-    def test_discover_all_calls_run_task(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
-    ):
+    def test_discover_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
         """
         Test that discover_all calls run_task with 'discover'.
         """
@@ -452,9 +412,7 @@ class TestInventory:
 
         mock_run.assert_called_once_with("discover")
 
-    def test_sync_repos_all_calls_run_task(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
-    ):
+    def test_sync_repos_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
         """
         Test that sync_repos_all calls run_task with 'sync_repos'.
         """
@@ -470,7 +428,7 @@ class TestInventory:
         mock_run.assert_called_once_with("sync_repos")
 
     def test_refresh_updates_all_calls_run_task(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
+        self, mocker, mock_config, mock_diskcache
     ):
         """
         Test that refresh_updates_all calls run_task with 'refresh_updates'.
@@ -486,9 +444,7 @@ class TestInventory:
 
         mock_run.assert_called_once_with("refresh_updates")
 
-    def test_ping_all_calls_run_task(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
-    ):
+    def test_ping_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
         """
         Test that ping_all calls run_task with 'ping'.
         """
@@ -503,18 +459,21 @@ class TestInventory:
 
         mock_run.assert_called_once_with("ping")
 
-    def test_run_task_with_custom_host_list(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
-    ):
+    def test_run_task_with_custom_host_list(self, mocker, mock_config, mock_diskcache):
         """
         Test that run_task works with a custom list of hosts.
         """
+        from exosphere.objects import Host
+
         inventory = Inventory(mock_config)
 
         # Create hosts but only run task on subset
-        mock_host1 = mock_host_class(name="host1", ip="127.0.0.1")
-        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
-        mock_host3 = mock_host_class(name="host3", ip="127.0.0.3")
+        mock_host1 = mocker.create_autospec(Host, instance=True)
+        mock_host1.name = "host1"
+        mock_host2 = mocker.create_autospec(Host, instance=True)
+        mock_host2.name = "host2"
+        mock_host3 = mocker.create_autospec(Host, instance=True)
+        mock_host3.name = "host3"
 
         inventory.hosts = [mock_host1, mock_host2, mock_host3]
 
@@ -534,7 +493,7 @@ class TestInventory:
 
     @pytest.mark.parametrize("hosts_arg", [None, [], [{}]])
     def test_run_task_no_hosts(
-        self, mocker, mock_config, mock_diskcache, mock_host_class, hosts_arg, caplog
+        self, mocker, mock_config, mock_diskcache, hosts_arg, caplog
     ):
         """
         Test run_task yields nothing and logs a warning if there are no hosts.
@@ -575,19 +534,24 @@ class TestInventory:
             )
 
     def test_run_task_method_not_callable(
-        self, mocker, mock_config, mock_diskcache, mock_host_class, caplog
+        self, mocker, mock_config, mock_diskcache, caplog
     ):
         """
         Test run_task yields nothing and logs error if method is not callable.
         """
         import exosphere.inventory
+        from exosphere.objects import Host
 
         inventory = Inventory(mock_config)
-        mock_host = mock_host_class.return_value
+        mock_host = mocker.create_autospec(Host, instance=True)
+        mock_host.name = "mockhost"
 
         # Set an attribute that is not callable
         mocker.patch.object(
-            exosphere.inventory.Host, "not_callable", "Hi it's me, ur string"
+            exosphere.inventory.Host,
+            "not_callable",
+            "Hi it's me, ur string",
+            create=True,
         )
 
         inventory.hosts = [mock_host]
@@ -605,17 +569,19 @@ class TestInventory:
         "method_name",
         ["discover", "sync_repos", "refresh_updates", "ping"],
     )
-    def test_run_task(
-        self, mocker, mock_config, mock_diskcache, mock_host_class, caplog, method_name
-    ):
+    def test_run_task(self, mocker, mock_config, mock_diskcache, caplog, method_name):
         """
         Test run_task behavior with success and failure cases.
         """
+        from exosphere.objects import Host
+
         inventory = Inventory(mock_config)
 
         # Create two mock hosts
-        mock_host1 = mock_host_class(name="host1", ip="127.0.0.1", port=22)
-        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2", port=22)
+        mock_host1 = mocker.create_autospec(Host, instance=True)
+        mock_host1.name = "host1"
+        mock_host2 = mocker.create_autospec(Host, instance=True)
+        mock_host2.name = "host2"
 
         # host1: method succeeds, host2: method raises exception
         mocker.patch.object(mock_host1, method_name, return_value="ok")
@@ -691,7 +657,6 @@ class TestInventory:
         mocker,
         mock_config,
         mock_diskcache,
-        mock_host_class,
         caplog,
         method_name,
         should_raise,
@@ -702,11 +667,15 @@ class TestInventory:
         """
         Test that *_all methods log individual host results appropriately.
         """
+        from exosphere.objects import Host
+
         inventory = Inventory(mock_config)
 
         # Create mock hosts with different outcomes
-        mock_host1 = mock_host_class(name="host1", ip="127.0.0.1")
-        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
+        mock_host1 = mocker.create_autospec(Host, instance=True)
+        mock_host1.name = "host1"
+        mock_host2 = mocker.create_autospec(Host, instance=True)
+        mock_host2.name = "host2"
 
         # host1 succeeds, host2 fails
         if not should_raise:
@@ -732,14 +701,17 @@ class TestInventory:
         assert any(completion_log in m for m in caplog.messages)
 
     def test_ping_all_handles_unexpected_exceptions(
-        self, mocker, mock_config, mock_diskcache, mock_host_class, caplog
+        self, mocker, mock_config, mock_diskcache, caplog
     ):
         """
         Test that ping_all handles unexpected exceptions gracefully.
         """
+        from exosphere.objects import Host
+
         inventory = Inventory(mock_config)
 
-        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
+        mock_host = mocker.create_autospec(Host, instance=True)
+        mock_host.name = "host1"
         # Force an exception that shouldn't normally happen
         mocker.patch.object(
             mock_host, "ping", side_effect=RuntimeError("unexpected error")
@@ -756,7 +728,7 @@ class TestInventory:
         assert any("Pinged all hosts" in m for m in caplog.messages)
 
     def test_run_task_uses_max_threads_configuration(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
+        self, mocker, mock_config, mock_diskcache
     ):
         """
         Test that run_task uses max_threads from configuration.
@@ -764,8 +736,11 @@ class TestInventory:
         # Set specific max_threads value
         mock_config["options"]["max_threads"] = 5
 
+        from exosphere.objects import Host
+
         inventory = Inventory(mock_config)
-        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
+        mock_host = mocker.create_autospec(Host, instance=True)
+        mock_host.name = "host1"
         inventory.hosts = [mock_host]
 
         # Mock ThreadPoolExecutor to verify max_workers
@@ -787,16 +762,19 @@ class TestInventory:
         # Verify ThreadPoolExecutor was called with correct max_workers
         mock_executor.assert_called_once_with(max_workers=5)
 
-    def test_close_all_closes_all_hosts(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
-    ):
+    def test_close_all_closes_all_hosts(self, mocker, mock_config, mock_diskcache):
         """
         Test that close_all() calls close() on all hosts.
         """
+        from exosphere.objects import Host
+
         inventory = Inventory(mock_config)
-        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
-        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
-        mock_host3 = mock_host_class(name="host3", ip="127.0.0.3")
+        mock_host = mocker.create_autospec(Host, instance=True)
+        mock_host.name = "host1"
+        mock_host2 = mocker.create_autospec(Host, instance=True)
+        mock_host2.name = "host2"
+        mock_host3 = mocker.create_autospec(Host, instance=True)
+        mock_host3.name = "host3"
         inventory.hosts = [mock_host, mock_host2, mock_host3]
 
         mocker.patch.object(mock_host, "close")
@@ -809,15 +787,17 @@ class TestInventory:
         mock_host2.close.assert_called_once_with(clear=False)
         mock_host3.close.assert_called_once_with(clear=False)
 
-    def test_close_all_with_clear(
-        self, mocker, mock_config, mock_diskcache, mock_host_class
-    ):
+    def test_close_all_with_clear(self, mocker, mock_config, mock_diskcache):
         """
         Test that close_all(clear=True) passes clear flag to hosts.
         """
+        from exosphere.objects import Host
+
         inventory = Inventory(mock_config)
-        mock_host = mock_host_class(name="host1", ip="127.0.0.1")
-        mock_host2 = mock_host_class(name="host2", ip="127.0.0.2")
+        mock_host = mocker.create_autospec(Host, instance=True)
+        mock_host.name = "host1"
+        mock_host2 = mocker.create_autospec(Host, instance=True)
+        mock_host2.name = "host2"
         inventory.hosts = [mock_host, mock_host2]
 
         mocker.patch.object(mock_host, "close")
@@ -828,7 +808,7 @@ class TestInventory:
         mock_host.close.assert_called_once_with(clear=True)
         mock_host2.close.assert_called_once_with(clear=True)
 
-    def test_close_all_with_empty_inventory(self, mocker, mock_diskcache):
+    def test_close_all_with_empty_inventory(self, mock_diskcache):
         """
         Test that close_all() handles empty inventory gracefully.
         """
