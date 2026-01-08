@@ -38,14 +38,6 @@ class Host:
 
     """
 
-    # Serialization hint for optional parameters
-    # of this class that can safely be set to None
-    # if they are missing from the serialized state.
-    OPTIONAL_PARAMS = [
-        "username",
-        "description",
-    ]
-
     def __init__(
         self,
         name: str,
