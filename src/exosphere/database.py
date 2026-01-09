@@ -1,6 +1,7 @@
 import lzma
 import pickle
 import shelve
+from typing import Any
 
 
 class DiskCache(shelve.DbfilenameShelf):
@@ -13,12 +14,12 @@ class DiskCache(shelve.DbfilenameShelf):
     Doing so is also entirely untested, so good luck.
     """
 
-    def __getitem__(self, key):
-        value = super().__getitem__(key)
+    def __getitem__(self, key: str) -> Any:
+        value: bytes = super().__getitem__(key)
         return pickle.loads(lzma.decompress(value))
 
-    def __setitem__(self, key, value):
-        compressed_value = lzma.compress(
+    def __setitem__(self, key: str, value: Any) -> None:
+        compressed_value: bytes = lzma.compress(
             pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL)
         )
         super().__setitem__(key, compressed_value)
@@ -26,7 +27,7 @@ class DiskCache(shelve.DbfilenameShelf):
     # We also override the get method to ensure it goes through
     # our compressed __getitem__ method, otherwise the parent get
     # would absolutely return a raw compressed blob.
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         try:
             return self[key]
         except KeyError:
