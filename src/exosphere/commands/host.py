@@ -15,7 +15,12 @@ from rich.text import Text
 from typing_extensions import Annotated
 
 from exosphere import app_config
-from exosphere.commands.utils import console, err_console, get_host_or_error
+from exosphere.commands.utils import (
+    HostArgument,
+    console,
+    err_console,
+    get_host_or_error,
+)
 from exosphere.objects import Host
 
 # Reuse the save function from the inventory command
@@ -143,7 +148,9 @@ def _display_updates_table(host: Host, security_only: bool) -> None:
 
 @app.command()
 def show(
-    name: Annotated[str, typer.Argument(help="Host from inventory to show")],
+    name: Annotated[
+        str, typer.Argument(help="Host from inventory to show"), HostArgument()
+    ],
     include_updates: Annotated[
         bool,
         typer.Option(
@@ -204,7 +211,9 @@ def show(
 
 @app.command()
 def discover(
-    name: Annotated[str, typer.Argument(help="Host from inventory to discover")],
+    name: Annotated[
+        str, typer.Argument(help="Host from inventory to discover"), HostArgument()
+    ],
 ) -> None:
     """
     Gather platform data for host.
@@ -239,7 +248,9 @@ def discover(
 
 @app.command()
 def refresh(
-    name: Annotated[str, typer.Argument(help="Host from inventory to refresh")],
+    name: Annotated[
+        str, typer.Argument(help="Host from inventory to refresh"), HostArgument()
+    ],
     full: Annotated[
         bool, typer.Option("--sync", "-s", help="Also sync package repositories")
     ] = False,
@@ -320,7 +331,9 @@ def refresh(
 
 @app.command()
 def ping(
-    name: Annotated[str, typer.Argument(help="Host from inventory to ping")],
+    name: Annotated[
+        str, typer.Argument(help="Host from inventory to ping"), HostArgument()
+    ],
 ) -> None:
     """
     Ping a specific host to check its reachability.

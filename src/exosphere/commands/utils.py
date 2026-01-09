@@ -10,6 +10,7 @@ as well as display bits around task execution, errors and status.
 
 import platform
 import sys
+from dataclasses import dataclass
 
 import typer
 from rich import box
@@ -31,6 +32,26 @@ STATUS_FORMATS = {
 
 console = Console()
 err_console = Console(stderr=True)
+
+
+@dataclass
+class HostArgument:
+    """
+    Annotation class for typer Host arguments for REPL completion.
+
+    Set multiple=True to allow completion of multiple hosts.
+    """
+
+    multiple: bool = False
+
+
+@dataclass
+class HostOption:
+    """
+    Annotation class for typer Host options for REPL completion.
+    """
+
+    pass
 
 
 def print_version() -> None:

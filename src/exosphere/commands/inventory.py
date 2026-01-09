@@ -19,6 +19,7 @@ from typing_extensions import Annotated
 
 from exosphere import app_config
 from exosphere.commands.utils import (
+    HostArgument,
     console,
     err_console,
     get_hosts_or_error,
@@ -60,6 +61,7 @@ def discover(
         typer.Argument(
             help="Host(s) to discover, all if not specified", metavar="[HOST]..."
         ),
+        HostArgument(multiple=True),
     ] = None,
 ) -> None:
     """
@@ -136,6 +138,7 @@ def refresh(
         typer.Argument(
             help="Host(s) to refresh, all if not specified", metavar="[HOST]..."
         ),
+        HostArgument(multiple=True),
     ] = None,
 ) -> None:
     """
@@ -243,6 +246,7 @@ def ping(
         typer.Argument(
             help="Host(s) to ping, all if not specified", metavar="[HOST]..."
         ),
+        HostArgument(multiple=True),
     ] = None,
 ) -> None:
     """
@@ -322,6 +326,7 @@ def status(
         typer.Argument(
             help="Host(s) to show status for, all if not specified", metavar="[HOST]..."
         ),
+        HostArgument(multiple=True),
     ] = None,
 ) -> None:
     """

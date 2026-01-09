@@ -6,16 +6,19 @@ like command history, autocompletion, and better line editing while
 maintaining Rich output formatting.
 """
 
+import inspect
 import logging
 import shlex
+from collections.abc import Generator
 from enum import Enum
+from typing import Annotated, get_args, get_origin
 
 import click
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.history import FileHistory, InMemoryHistory
+from prompt_toolkit.history import FileHistory, History
 from prompt_toolkit.shortcuts import CompleteStyle
 from rich.console import Console
 from rich.panel import Panel
@@ -23,6 +26,7 @@ from typer import Context
 
 from exosphere import app_config
 from exosphere import context as app_context
+from exosphere.commands.utils import HostArgument, HostOption
 
 logger = logging.getLogger(__name__)
 
@@ -52,54 +56,121 @@ class ExosphereCompleter(Completer):
      - Host name completion for options that accept them
      - Built-in commands like help, exit, clear
 
+    Host completion behavior is driven by metadata extracted from command
+    annotations (HostArgument and HostOption) at initialization time.
     """
 
-    # We hardcode some stuff for host name completion here.
-    # In a perfect world we would extract this from Typer commands,
-    # but we already do this in two different places in the codebase
-    # (including documentation generation). I'm just tired, boss.
-
-    # Commands that take host names as positional arguments
-    # Maps command paths to their host completion mode
-    # Keys are nested for subcommands
-    HOST_ARG_COMMANDS = {
-        "host": {
-            "show": HostMatchMode.SINGLE,  # host show <name>
-            "ping": HostMatchMode.SINGLE,  # host ping <name>
-            "discover": HostMatchMode.SINGLE,  # host discover <name>
-            "refresh": HostMatchMode.SINGLE,  # host refresh <name>
-        },
-        "inventory": {
-            "ping": HostMatchMode.MULTIPLE,  # inventory ping [names...]
-            "discover": HostMatchMode.MULTIPLE,  # inventory discover [names...]
-            "refresh": HostMatchMode.MULTIPLE,  # inventory refresh [names...]
-            "status": HostMatchMode.MULTIPLE,  # inventory status [names...]
-        },
-        "report": {
-            "generate": HostMatchMode.MULTIPLE,  # report generate [names...]
-        },
-        "sudo": {
-            "check": HostMatchMode.SINGLE,  # sudo check <name>
-        },
-        "connections": {
-            "show": HostMatchMode.MULTIPLE,  # connections show [names...]
-            "close": HostMatchMode.MULTIPLE,  # connections close [names...]
-        },
-    }
-
-    # Commands that take host names as option values (e.g., --host <name>)
-    # Maps command paths to option names that accept host names
-    HOST_OPTION_COMMANDS = {
-        "sudo": {
-            "generate": ["--host", "-h"],  # sudo generate --host <name>
-        },
-    }
-
-    def __init__(self, root_command):
+    def __init__(self, root_command: click.Command | None) -> None:
         self.root_command = root_command
         self.commands = ["clear", "help", "exit", "quit"]
         if root_command:
             self.commands += list(getattr(root_command, "commands", {}))
+
+        # Extract host command metadata from annotations
+        # We do this ahead of time, on init instead of on demand, for performance.
+        arg_commands, option_commands = self._extract_host_metadata(root_command)
+        self.HOST_ARG_COMMANDS = arg_commands
+        self.HOST_OPTION_COMMANDS = option_commands
+
+    def _extract_host_metadata(
+        self, root_command: click.Command | None
+    ) -> tuple[dict[str, dict[str, HostMatchMode]], dict[str, dict[str, list[str]]]]:
+        """
+        Extract host completion metadata from command annotations.
+
+        We do this by introspecting the Click/Typer command signatures
+        and looking for our custom HostArgument and HostOption annotations.
+        """
+        host_args = {}
+        host_options = {}
+
+        if not root_command:
+            return host_args, host_options
+
+        try:
+            commands = getattr(root_command, "commands", {})
+            for group_name, group_cmd in commands.items():
+                self._extract_from_group(group_name, group_cmd, host_args, host_options)
+        except (AttributeError, TypeError) as e:
+            logger.debug("Could not extract host completion metadata: %s", e)
+
+        return host_args, host_options
+
+    def _extract_from_group(
+        self,
+        group_name: str,
+        group_cmd: click.Command,
+        host_args: dict[str, dict[str, HostMatchMode]],
+        host_options: dict[str, dict[str, list[str]]],
+    ) -> None:
+        """Extract host completion metadata from a command group."""
+        commands = getattr(group_cmd, "commands", {})
+        for cmd_name, cmd in commands.items():
+            self._extract_from_command(
+                group_name, cmd_name, cmd, host_args, host_options
+            )
+
+    def _extract_from_command(
+        self,
+        group_name: str,
+        cmd_name: str,
+        cmd: click.Command,
+        host_args: dict[str, dict[str, HostMatchMode]],
+        host_options: dict[str, dict[str, list[str]]],
+    ) -> None:
+        """Extract host completion metadata from a single command."""
+        if not hasattr(cmd, "callback") or not cmd.callback:
+            return
+
+        sig = inspect.signature(cmd.callback)
+        for param in sig.parameters.values():
+            self._extract_from_parameter(
+                group_name, cmd_name, cmd, param, host_args, host_options
+            )
+
+    def _extract_from_parameter(
+        self,
+        group_name: str,
+        cmd_name: str,
+        cmd: click.Command,
+        param: inspect.Parameter,
+        host_args: dict[str, dict[str, HostMatchMode]],
+        host_options: dict[str, dict[str, list[str]]],
+    ) -> None:
+        """Extract host metadata from a parameter annotation."""
+        if param.annotation == inspect.Parameter.empty:
+            return
+
+        if get_origin(param.annotation) is not Annotated:
+            return
+
+        args = get_args(param.annotation)
+        for metadata in args[1:]:
+            if isinstance(metadata, HostArgument):
+                if group_name not in host_args:
+                    host_args[group_name] = {}
+                mode = (
+                    HostMatchMode.MULTIPLE
+                    if metadata.multiple
+                    else HostMatchMode.SINGLE
+                )
+                host_args[group_name][cmd_name] = mode
+
+            elif isinstance(metadata, HostOption):
+                option_names = self._get_option_names_from_param(cmd, param.name)
+                if option_names:
+                    if group_name not in host_options:
+                        host_options[group_name] = {}
+                    host_options[group_name][cmd_name] = option_names
+
+    def _get_option_names_from_param(
+        self, cmd: click.Command, param_name: str
+    ) -> list[str]:
+        """Extract option names from Click command param."""
+        for click_param in getattr(cmd, "params", []):
+            if getattr(click_param, "name", None) == param_name:
+                return getattr(click_param, "opts", [])
+        return []
 
     def _get_host_names(self) -> list[str]:
         """Get list of host names from current inventory."""
@@ -195,7 +266,7 @@ class ExosphereCompleter(Completer):
 
     def _complete_host_positional_arg(
         self, command: str, words: list[str], text: str, current: str, sp: int
-    ):
+    ) -> Generator[Completion, None, None]:
         """Complete host names for positional arguments."""
         if command not in self.HOST_ARG_COMMANDS:
             return
@@ -213,6 +284,7 @@ class ExosphereCompleter(Completer):
         mode = subcmd_config[words[1]]
 
         # Determine if this position accepts host names based on completion mode
+        accepts_hosts = False
         match mode:
             case HostMatchMode.SINGLE:
                 # Only position 0
@@ -233,7 +305,7 @@ class ExosphereCompleter(Completer):
 
             yield from self._complete_host_names(current, sp, exclude=exclude)
 
-    def _is_flag_option(self, subsub, option_name: str) -> bool:
+    def _is_flag_option(self, subsub: click.Command, option_name: str) -> bool:
         """
         Check if an option is a flag (doesn't take a value).
 
@@ -244,24 +316,23 @@ class ExosphereCompleter(Completer):
             return False
 
         # We check for Click/Typer is_flag, count, and BOOL type
-        # All of them imply the option value is themselves (a flag)
+        # All of them imply the option value is the option itself (a flag)
+        # We have to do this due to inconsistencies across Typer/Click details.
         for param in subsub.params:
-            if hasattr(param, "opts") and option_name in param.opts:
+            if option_name in getattr(param, "opts", []):
                 if getattr(param, "is_flag", False):
                     return True
                 if getattr(param, "count", False):
                     return True
-                if (
-                    hasattr(param, "type")
-                    and getattr(param.type, "name", None) == "BOOL"
-                ):
+                param_type = getattr(param, "type", None)
+                if param_type and getattr(param_type, "name", None) == "BOOL":
                     return True
 
         return False
 
     def _complete_subsubcommand(
         self, command: str, subcommand, words: list[str], text: str, used_opts: set
-    ):
+    ) -> Generator[Completion, None, None]:
         """
         Complete options and arguments for a subsubcommand
         (e.g., 'host show').
@@ -280,9 +351,8 @@ class ExosphereCompleter(Completer):
         # (e.g., typing "--ho" to get "--host")
         if current.startswith("-"):
             opts = {"--help"}
-            for param in subsub.params:
-                if hasattr(param, "opts"):
-                    opts.update(o for o in param.opts if o.startswith("--"))
+            for param in getattr(subsub, "params", []):
+                opts.update(o for o in getattr(param, "opts", []) if o.startswith("--"))
 
             # Filter matching options
             matching_opts = [
@@ -307,7 +377,9 @@ class ExosphereCompleter(Completer):
         # Complete host names for positional arguments
         yield from self._complete_host_positional_arg(command, words, text, current, sp)
 
-    def get_completions(self, document: Document, complete_event):
+    def get_completions(
+        self, document: Document, complete_event
+    ) -> Generator[Completion, None, None]:
         """
         Retrieve completions based on current input.
 
@@ -351,11 +423,10 @@ class ExosphereCompleter(Completer):
         sp = -len(current) if current else 0
 
         # Complete subcommands if available
-        if hasattr(subcommand, "commands") and subcommand.commands:
+        commands = getattr(subcommand, "commands", {})
+        if commands:
             if len(words) == 1 or (len(words) == 2 and not text.endswith(" ")):
-                matching = [
-                    name for name in subcommand.commands if name.startswith(current)
-                ]
+                matching = [name for name in commands if name.startswith(current)]
 
                 yield from self._make_completions(matching, sp)
             elif len(words) >= 2:
@@ -407,7 +478,7 @@ class ExosphereREPL:
         # Setup the specialized completer
         self.completer = ExosphereCompleter(self.root_command)
 
-    def _setup_history(self) -> FileHistory | InMemoryHistory:
+    def _setup_history(self) -> History:
         """
         Setup persistent command history using FileHistory
 
@@ -525,11 +596,12 @@ class ExosphereREPL:
 
         :param args: Command arguments
         """
-        if not self.root_command or not args:
-            if not self.root_command:
-                self.console.print("[red]No root command available[/red]")
-            else:
-                self.console.print("[red]No command specified[/red]")
+        if not self.root_command:
+            self.console.print("[red]No root command available[/red]")
+            return
+
+        if not args:
+            self.console.print("[red]No command specified[/red]")
             return
 
         command_name = args[0]
@@ -576,7 +648,7 @@ class ExosphereREPL:
             self.console.print(f"[red]Error executing {command_name}: {e}[/red]")
             logger.exception(f"Error executing command '{command_name}': {e}")
 
-    def _unhide_commands(self, command) -> None:
+    def _unhide_commands(self, command: click.Command) -> None:
         """
         Recursively unhide all subcommands for interactive mode.
 
@@ -590,9 +662,8 @@ class ExosphereREPL:
             command.hidden = False
 
         # Unhide all subcommands recursively
-        if hasattr(command, "commands") and command.commands:
-            for subcmd in command.commands.values():
-                self._unhide_commands(subcmd)
+        for subcmd in getattr(command, "commands", {}).values():
+            self._unhide_commands(subcmd)
 
     def _show_help(self, args: list) -> None:
         """

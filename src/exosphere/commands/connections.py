@@ -10,6 +10,7 @@ from typing_extensions import Annotated
 
 from exosphere import app_config
 from exosphere.commands.utils import (
+    HostArgument,
     console,
     err_console,
     get_hosts_or_error,
@@ -56,6 +57,7 @@ def show(
             help="Hosts to show connection state for. If omitted, shows all hosts.",
             metavar="[HOSTS]...",
         ),
+        HostArgument(multiple=True),
     ] = None,
     active_only: Annotated[
         bool,
@@ -152,6 +154,7 @@ def close(
             help="Hosts to close connections for. If omitted, close all connections.",
             metavar="[HOSTS]...",
         ),
+        HostArgument(multiple=True),
     ] = None,
     verbose: Annotated[
         bool,

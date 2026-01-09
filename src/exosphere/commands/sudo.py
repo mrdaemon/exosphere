@@ -10,6 +10,7 @@ from rich.table import Table
 from typing_extensions import Annotated
 
 from exosphere import app_config, context
+from exosphere.commands.utils import HostArgument, HostOption
 from exosphere.data import ProviderInfo
 from exosphere.objects import Host
 from exosphere.providers.factory import PkgManagerFactory
@@ -158,7 +159,9 @@ def policy():
 
 @app.command()
 def check(
-    host: str = typer.Argument(help="Host to check security policies for"),
+    host: Annotated[
+        str, typer.Argument(help="Host to check security policies for"), HostArgument()
+    ],
 ):
     """
     Check the effective Sudo Policies for a given host.
@@ -310,6 +313,7 @@ def generate(
             rich_help_panel="Mandatory Options (mutually exclusive)",
             show_default=False,
         ),
+        HostOption(),
     ] = None,
     provider: Annotated[
         str | None,

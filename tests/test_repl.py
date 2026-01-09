@@ -2,12 +2,74 @@
 Tests for the REPL module
 """
 
+from typing import Annotated
+
 import click
 import pytest
 from prompt_toolkit.history import FileHistory, InMemoryHistory
 from typer import Context
 
+from exosphere.commands.utils import HostArgument, HostOption
 from exosphere.repl import ExosphereCompleter, ExosphereREPL
+
+
+@pytest.fixture
+def mock_host_arg_command(mocker):
+    """
+    Factory fixture for creating mock Typer/Click commands with HostArgument annotations.
+    """
+
+    def _make(multiple=False):
+        if multiple:
+
+            def callback_multi(
+                hosts: Annotated[list[str], HostArgument(multiple=True)],
+            ):
+                pass
+
+            callback = callback_multi
+        else:
+
+            def callback_single(host: Annotated[str, HostArgument()]):
+                pass
+
+            callback = callback_single
+
+        click_param = mocker.Mock()
+        click_param.name = "hosts" if multiple else "host"
+        click_param.opts = []
+
+        cmd = mocker.Mock()
+        cmd.callback = callback
+        cmd.params = [click_param]
+        return cmd
+
+    return _make
+
+
+@pytest.fixture
+def mock_host_option_command(mocker):
+    """
+    Factory fixture for creating mock Typer/Click commands with HostOption annotations.
+    """
+
+    def _make(option_names=None):
+        if option_names is None:
+            option_names = ["--host", "-h"]
+
+        def callback(host: Annotated[str | None, HostOption()] = None):
+            pass
+
+        click_param = mocker.Mock()
+        click_param.name = "host"
+        click_param.opts = option_names
+
+        cmd = mocker.Mock()
+        cmd.callback = callback
+        cmd.params = [click_param]
+        return cmd
+
+    return _make
 
 
 class TestExosphereCompleter:
@@ -231,7 +293,13 @@ class TestExosphereCompleter:
         ],
     )
     def test_completion_space_behavior(
-        self, mocker, completion_type, input_text, expected_single, expected_multiple
+        self,
+        mocker,
+        mock_host_arg_command,
+        completion_type,
+        input_text,
+        expected_single,
+        expected_multiple,
     ):
         """
         Test that completions add space for single match, no space for multiple.
@@ -263,7 +331,9 @@ class TestExosphereCompleter:
         sub = mocker.Mock()
         sub.commands = {"baz": subsub}
         if completion_type == "host":
-            sub.commands["show"] = subsub
+            # For host completions, create a command with HostArgument annotation
+            show_cmd = mock_host_arg_command(multiple=False)
+            sub.commands["show"] = show_cmd
         root = mocker.Mock()
         root.commands = {"foo": sub, "host": sub, "inventory": sub}
 
@@ -335,7 +405,7 @@ class TestExosphereCompleter:
         assert "test" in completer.commands
         assert "example" in completer.commands
 
-    def test_get_completions_host_positional_arg(self, mocker):
+    def test_get_completions_host_positional_arg(self, mocker, mock_host_arg_command):
         """
         Test completion of host names for positional arguments
         (e.g., 'host show <TAB>')
@@ -359,13 +429,10 @@ class TestExosphereCompleter:
 
         repl.app_context.inventory = mock_inventory
 
-        # Mock command structure
-        param = mocker.Mock()
-        param.opts = ["--help"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
+        # Mock command structure with HostArgument annotation
+        show_cmd = mock_host_arg_command(multiple=False)
         sub = mocker.Mock()
-        sub.commands = {"show": subsub}
+        sub.commands = {"show": show_cmd}
         root = mocker.Mock()
         root.commands = {"host": sub}
 
@@ -381,7 +448,9 @@ class TestExosphereCompleter:
         assert "dbserver" in completions
         assert "appserver" in completions
 
-    def test_get_completions_host_positional_arg_prefix(self, mocker):
+    def test_get_completions_host_positional_arg_prefix(
+        self, mocker, mock_host_arg_command
+    ):
         """
         Test completion of host names with prefix matching
         (e.g., 'host show web<TAB>')
@@ -405,13 +474,10 @@ class TestExosphereCompleter:
 
         repl.app_context.inventory = mock_inventory
 
-        # Mock command structure
-        param = mocker.Mock()
-        param.opts = ["--help"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
+        # Mock command structure with HostArgument annotation
+        show_cmd = mock_host_arg_command(multiple=False)
         sub = mocker.Mock()
-        sub.commands = {"show": subsub}
+        sub.commands = {"show": show_cmd}
         root = mocker.Mock()
         root.commands = {"host": sub}
 
@@ -436,7 +502,7 @@ class TestExosphereCompleter:
         ids=["long-form", "short-form"],
     )
     def test_get_completions_host_option_value(
-        self, mocker, option_flag, expected_hosts
+        self, mocker, mock_host_option_command, option_flag, expected_hosts
     ):
         """
         Test completion of host names for option values
@@ -459,13 +525,10 @@ class TestExosphereCompleter:
 
         repl.app_context.inventory = mock_inventory
 
-        # Mock command structure
-        param = mocker.Mock()
-        param.opts = ["--host", "-h", "--help"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
+        # Mock command structure with HostOption annotation
+        generate_cmd = mock_host_option_command(option_names=["--host", "-h"])
         sub = mocker.Mock()
-        sub.commands = {"generate": subsub}
+        sub.commands = {"generate": generate_cmd}
         root = mocker.Mock()
         root.commands = {"sudo": sub}
 
@@ -634,7 +697,15 @@ class TestExosphereCompleter:
         repl.app_context.inventory = mock_inventory
 
         # Mock command structure for 'host show' with flag option
+        # Create a function with HostArgument for positional completion
+        def callback(
+            host: Annotated[str, HostArgument()],
+            updates_only: bool = False,
+        ):
+            pass
+
         flag_param = mocker.Mock()
+        flag_param.name = "updates_only"
         flag_param.opts = ["--updates-only", "-u"]
         flag_param.is_flag = is_flag_value
         flag_param.count = count_value
@@ -649,10 +720,16 @@ class TestExosphereCompleter:
             flag_param.type = mocker.Mock()
             flag_param.type.name = "STRING"
 
-        subsub = mocker.Mock()
-        subsub.params = [flag_param]
+        # Create host param for the positional argument
+        host_param = mocker.Mock()
+        host_param.name = "host"
+        host_param.opts = []  # Positional args have no opts
+
+        show_cmd = mocker.Mock()
+        show_cmd.callback = callback
+        show_cmd.params = [host_param, flag_param]
         sub = mocker.Mock()
-        sub.commands = {"show": subsub}
+        sub.commands = {"show": show_cmd}
         root = mocker.Mock()
         root.commands = {"host": sub}
 
@@ -668,7 +745,7 @@ class TestExosphereCompleter:
         assert "webserver" in completions
         assert "dbserver" in completions
 
-    def test_get_completions_excludes_used_hosts(self, mocker):
+    def test_get_completions_excludes_used_hosts(self, mocker, mock_host_arg_command):
         """
         Test that host completions exclude already-specified hosts.
         Hosts already part of the command line should not be suggested again.
@@ -692,13 +769,10 @@ class TestExosphereCompleter:
 
         repl.app_context.inventory = mock_inventory
 
-        # Mock command structure
-        param = mocker.Mock()
-        param.opts = ["--help"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
+        # Mock command structure with HostArgument(multiple=True) annotation
+        ping_cmd = mock_host_arg_command(multiple=True)
         sub = mocker.Mock()
-        sub.commands = {"ping": subsub}
+        sub.commands = {"ping": ping_cmd}
         root = mocker.Mock()
         root.commands = {"inventory": sub}
 

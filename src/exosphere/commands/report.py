@@ -9,6 +9,7 @@ from rich.json import JSON
 from typing_extensions import Annotated
 
 from exosphere.commands.utils import (
+    HostArgument,
     console,
     err_console,
     get_hosts_or_error,
@@ -92,6 +93,7 @@ def generate(
             help="One or more hosts to include (all if not specified)",
             metavar="[HOST]...",
         ),
+        HostArgument(multiple=True),
     ] = None,
 ) -> None:
     """
