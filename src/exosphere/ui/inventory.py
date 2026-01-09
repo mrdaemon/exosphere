@@ -207,7 +207,7 @@ class HostDetailsPanel(Screen):
                 f"[red]{update.name}[/red]" if update.security else update.name
             )
 
-    def on_key(self, event) -> None:
+    def on_key(self, event: Key) -> None:
         """Handle key presses to return to the inventory screen."""
         if event.key == "escape":
             self.dismiss()
@@ -280,7 +280,7 @@ class UpdateDetailsPanel(Screen):
         """Set the title of the screen on mount."""
         self.title = f"Update Details: {self.update.name}"
 
-    def on_key(self, event) -> None:
+    def on_key(self, event: Key) -> None:
         """Handle key presses to return to the host details screen."""
         if event.key == "escape":
             self.dismiss()
@@ -544,7 +544,7 @@ class InventoryScreen(Screen):
                 )
                 return all_hosts
 
-    def _populate_table(self, table: DataTable, hosts: list[Host]):
+    def _populate_table(self, table: DataTable, hosts: list[Host]) -> None:
         """Populate given table with host data"""
 
         def maybe_unknown(value: str | None, supported: bool = False) -> str:

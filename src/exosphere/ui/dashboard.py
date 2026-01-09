@@ -4,6 +4,7 @@ Dashboard Screen module
 
 import logging
 
+from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, VerticalScroll
@@ -127,7 +128,7 @@ class DashboardScreen(Screen):
 
         yield Footer()
 
-    def on_resize(self, event) -> None:
+    def on_resize(self, event: events.Resize) -> None:
         """Handle screen resize to update grid columns."""
         self.update_grid_columns()
 

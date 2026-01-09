@@ -12,6 +12,7 @@ from typing_extensions import Annotated
 from exosphere import app_config, context
 from exosphere.commands.utils import HostArgument, HostOption
 from exosphere.data import ProviderInfo
+from exosphere.inventory import Inventory
 from exosphere.objects import Host
 from exosphere.providers.factory import PkgManagerFactory
 from exosphere.security import SudoPolicy, check_sudo_policy, has_sudo_flag
@@ -32,7 +33,7 @@ console = Console()
 err_console = Console(stderr=True)
 
 
-def _get_inventory():
+def _get_inventory() -> Inventory:
     """
     Get the inventory from context
     A convenience wrapper that bails if the inventory is not initialized
@@ -147,7 +148,7 @@ def _get_username(user: str | None, host: Host | None = None) -> str:
 
 
 @app.command()
-def policy():
+def policy() -> None:
     """
     Show the current global Sudo Policy.
 
@@ -162,7 +163,7 @@ def check(
     host: Annotated[
         str, typer.Argument(help="Host to check security policies for"), HostArgument()
     ],
-):
+) -> None:
     """
     Check the effective Sudo Policies for a given host.
 

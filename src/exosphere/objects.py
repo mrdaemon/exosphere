@@ -654,7 +654,7 @@ class Host:
 
         return self.online
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.online and self.supported:
             status = "Online"
         elif self.online and not self.supported:
@@ -668,5 +668,5 @@ class Host:
             f"{self.package_manager}], {status}"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Host(name='{self.name}', ip='{self.ip}', port='{self.port}')"

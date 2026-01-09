@@ -451,7 +451,7 @@ class ExosphereREPL:
     - And probably more as I start to regret my life choices
     """
 
-    def __init__(self, ctx: Context, prompt_text: str = "exosphere> "):
+    def __init__(self, ctx: Context, prompt_text: str = "exosphere> ") -> None:
         """
         Initialize the REPL with the given context and prompt.
 

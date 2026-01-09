@@ -150,7 +150,7 @@ def diff(
             help="Show full configuration diff, including unmodified options.",
         ),
     ] = False,
-):
+) -> None:
     """
     Show the differences between the current configuration and the defaults.
 

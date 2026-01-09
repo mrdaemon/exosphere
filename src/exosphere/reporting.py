@@ -52,7 +52,7 @@ class ReportRenderer:
     provided data.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the report renderer."""
 
         self.env = self.setup_jinja_environment(text=False)

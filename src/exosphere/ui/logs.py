@@ -29,7 +29,7 @@ class RichLogFormatter(logging.Formatter):
         "CRITICAL": "bold red",
     }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         # Get the color for this log level
         level_color = self.LEVEL_COLORS.get(record.levelname, "white")
 
@@ -75,7 +75,7 @@ class UILogHandler(logging.Handler):
     application is made of a mix of threads and async coroutines.
     """
 
-    def emit(self, record) -> None:
+    def emit(self, record: logging.LogRecord) -> None:
         msg = self.format(record)
         if hasattr(self, "log_widget") and self.log_widget:
             self.log_widget.write(msg)
