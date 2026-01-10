@@ -4,7 +4,7 @@ import threading
 import pytest
 from textual.widgets import RichLog
 
-from exosphere.ui.logs import LOG_BUFFER, LOG_BUFFER_LOCK, LogsScreen, UILogHandler
+from exosphere.ui.logs import LogsScreen, UILogHandler
 
 
 @pytest.fixture
@@ -32,11 +32,7 @@ def mock_app(mocker):
 @pytest.fixture(autouse=True)
 def clear_log_buffer():
     """Clear the log buffer before each test to avoid test interference."""
-    with LOG_BUFFER_LOCK:
-        LOG_BUFFER.clear()
-    yield
-    with LOG_BUFFER_LOCK:
-        LOG_BUFFER.clear()
+    UILogHandler.clear_buffer()
 
 
 class TestUILogHandler:
@@ -63,9 +59,9 @@ class TestUILogHandler:
         ui_log_handler.emit(record)
 
         # Check that the message is in the buffer
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 1
-            assert "Test message" in LOG_BUFFER[0]
+        buffer_contents = UILogHandler.get_buffer_contents()
+        assert len(buffer_contents) == 1
+        assert "Test message" in buffer_contents[0]
 
     def test_emit_with_log_widget_writes_directly(self, ui_log_handler, mock_rich_log):
         """Test that messages are written directly when log widget is set."""
@@ -92,8 +88,7 @@ class TestUILogHandler:
         assert "Test message" in args[0]
 
         # Check that buffer is empty
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 0
+        assert UILogHandler.get_buffer_size() == 0
 
     def test_set_log_widget_none_clears_widget(self, ui_log_handler, mock_rich_log):
         """Test that setting log widget to None clears it."""
@@ -107,9 +102,18 @@ class TestUILogHandler:
 
     def test_set_log_widget_flushes_buffer(self, ui_log_handler, mock_rich_log, mocker):
         """Test that setting a log widget flushes the buffer."""
-        # Add some messages to the buffer first
-        with LOG_BUFFER_LOCK:
-            LOG_BUFFER.extend(["Message 1", "Message 2", "Message 3"])
+        # Add some messages to the buffer first by emitting logs
+        for i in range(1, 4):
+            record = logging.LogRecord(
+                name="test",
+                level=logging.INFO,
+                pathname="test.py",
+                lineno=i,
+                msg=f"Message {i}",
+                args=(),
+                exc_info=None,
+            )
+            ui_log_handler.emit(record)
 
         # Mock the logger to avoid actual log output during test
         mock_logger = mocker.patch("exosphere.ui.logs.logging.getLogger")
@@ -125,8 +129,7 @@ class TestUILogHandler:
         assert calls[2][0][0] == "Message 3"
 
         # Check that buffer is now empty
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 0
+        assert UILogHandler.get_buffer_size() == 0
 
         # Check that debug message was logged
         mock_logger.assert_called_with("exosphere.ui")
@@ -138,9 +141,16 @@ class TestUILogHandler:
         self, ui_log_handler, mock_rich_log, mocker
     ):
         """Test that exceptions during buffer flush are handled gracefully."""
-        # Add a message to the buffer
-        with LOG_BUFFER_LOCK:
-            LOG_BUFFER.append("Test message")
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="test.py",
+            lineno=1,
+            msg="Test message",
+            args=(),
+            exc_info=None,
+        )
+        ui_log_handler.emit(record)
 
         # Make the log widget throw an exception
         mock_rich_log.write.side_effect = Exception("Write failed")
@@ -157,8 +167,7 @@ class TestUILogHandler:
         )
 
         # Buffer should still be cleared even though write failed
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 0
+        assert UILogHandler.get_buffer_size() == 0
 
     def test_threading_safety(self, ui_log_handler):
         """Test that the handler works safely across multiple threads."""
@@ -192,16 +201,14 @@ class TestUILogHandler:
             thread.join()
 
         # Check that all messages made it to the buffer
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 10
-            # All messages should be present (order may vary due to threading)
-            buffer_messages = set(LOG_BUFFER)
-            expected_messages = {f"Message {i}" for i in range(10)}
-            assert any(
-                expected in msg
-                for expected in expected_messages
-                for msg in buffer_messages
-            )
+        buffer_contents = UILogHandler.get_buffer_contents()
+        assert len(buffer_contents) == 10
+        # All messages should be present (order may vary due to threading)
+        buffer_messages = set(buffer_contents)
+        expected_messages = {f"Message {i}" for i in range(10)}
+        assert any(
+            expected in msg for expected in expected_messages for msg in buffer_messages
+        )
 
 
 class TestLogsScreen:
@@ -326,22 +333,13 @@ class TestLogsScreen:
 
 
 class TestLogBufferGlobals:
-    """Tests for the global log buffer state."""
-
-    def test_log_buffer_lock_is_reentrant(self):
-        """Test that LOG_BUFFER_LOCK is reentrant."""
-        # This should not deadlock
-        with LOG_BUFFER_LOCK:
-            with LOG_BUFFER_LOCK:
-                LOG_BUFFER.append("test")
-
-        with LOG_BUFFER_LOCK:
-            assert "test" in LOG_BUFFER
+    """Tests for the class-level buffer for thread safety."""
 
     def test_log_buffer_initial_state(self):
-        """Test that LOG_BUFFER starts empty (cleared by fixture)."""
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 0
+        """Test that UILogHandler buffer starts empty (cleared by fixture)."""
+        buffer_contents = UILogHandler.get_buffer_contents()
+        assert isinstance(buffer_contents, list)
+        assert len(buffer_contents) == 0
 
 
 class TestIntegration:
@@ -376,16 +374,14 @@ class TestIntegration:
         ui_log_handler.emit(record2)
 
         # Check buffer has messages
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 2
+        assert UILogHandler.get_buffer_size() == 2
 
         # Step 2: Set widget (should flush buffer)
         ui_log_handler.set_log_widget(mock_rich_log)
 
         # Check buffer was flushed to widget
         assert mock_rich_log.write.call_count == 2
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 0
+        assert UILogHandler.get_buffer_size() == 0
 
         # Step 3: Emit new log (should go directly to widget)
         record3 = logging.LogRecord(
@@ -401,8 +397,7 @@ class TestIntegration:
 
         # Check new message went directly to widget
         assert mock_rich_log.write.call_count == 3
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 0
+        assert UILogHandler.get_buffer_size() == 0
 
         # Step 4: Clear widget (should reset to buffering mode)
         ui_log_handler.set_log_widget(None)
@@ -419,6 +414,6 @@ class TestIntegration:
         ui_log_handler.emit(record4)
 
         # Should be back to buffering
-        with LOG_BUFFER_LOCK:
-            assert len(LOG_BUFFER) == 1
-            assert "Buffered again" in LOG_BUFFER[0]
+        buffer_contents = UILogHandler.get_buffer_contents()
+        assert len(buffer_contents) == 1
+        assert "Buffered again" in buffer_contents[0]

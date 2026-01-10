@@ -13,10 +13,6 @@ from textual.widgets import Footer, Header, RichLog
 
 logger = logging.getLogger("exosphere.ui.logs")
 
-LOG_BUFFER = []
-LOG_BUFFER_LOCK = threading.RLock()
-LOG_HANDLER = None
-
 
 class RichLogFormatter(logging.Formatter):
     """Custom formatter that adds Rich markup with level-specific colors."""
@@ -75,15 +71,44 @@ class UILogHandler(logging.Handler):
     application is made of a mix of threads and async coroutines.
     """
 
+    # Class level buffer shared across instances, holds logs until
+    # the widget is available and ready to receive them.
+    _buffer: list[str] = []
+    _buffer_lock = threading.RLock()
+
+    @classmethod
+    def get_buffer_contents(cls) -> list[str]:
+        """
+        Get a copy of the current buffer contents.
+        Thread-safe.
+        """
+        with cls._buffer_lock:
+            return cls._buffer.copy()
+
+    @classmethod
+    def clear_buffer(cls) -> None:
+        """
+        Clear the local buffer.
+        Thread-safe.
+        """
+        with cls._buffer_lock:
+            cls._buffer.clear()
+
+    @classmethod
+    def get_buffer_size(cls) -> int:
+        """Get the current buffer size."""
+        with cls._buffer_lock:
+            return len(cls._buffer)
+
     def emit(self, record: logging.LogRecord) -> None:
         msg = self.format(record)
         if hasattr(self, "log_widget") and self.log_widget:
             self.log_widget.write(msg)
             return
 
-        # If log_widget is not set, store the message in a buffer
-        with LOG_BUFFER_LOCK:
-            LOG_BUFFER.append(msg)
+        # If log_widget is not set, store message in buffer
+        with self._buffer_lock:
+            self._buffer.append(msg)
 
     def set_log_widget(self, log_widget: RichLog | None) -> None:
         """Set the log widget to write logs to."""
@@ -98,8 +123,8 @@ class UILogHandler(logging.Handler):
         )
 
         # Flush any buffered logs to the widget
-        with LOG_BUFFER_LOCK:
-            for msg in LOG_BUFFER:
+        with self._buffer_lock:
+            for msg in self._buffer:
                 try:
                     self.log_widget.write(msg)
                 except Exception as e:
@@ -107,7 +132,7 @@ class UILogHandler(logging.Handler):
                         f"Error writing buffered log message to log pane!: {str(e)}"
                     )
 
-            LOG_BUFFER.clear()
+            self._buffer.clear()
 
 
 class LogsScreen(Screen):
