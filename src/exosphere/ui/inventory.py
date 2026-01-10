@@ -220,7 +220,7 @@ class HostDetailsPanel(Screen):
         row_data = table.get_row(event.row_key)
 
         # Extract the update name, removing Rich markup if present
-        update_display_name = str(row_data[0])  # First column
+        update_display_name = row_data[0]  # First column
         update_name = re.sub(r"\[/?[^\]]*\]", "", update_display_name)
 
         logger.debug("Selected update name: %s", update_name)
@@ -362,7 +362,7 @@ class InventoryScreen(Screen):
         table = self.query_one(DataTable)
         row_data = table.get_row(event.row_key)
 
-        host_name = str(row_data[0])  # First column is the host name
+        host_name = row_data[0]  # First column is the host name
 
         if not context.inventory:
             logger.error("Inventory is not initialized, cannot select row.")
