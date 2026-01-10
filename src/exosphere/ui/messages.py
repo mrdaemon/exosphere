@@ -4,6 +4,16 @@ UI Messages and Events Module
 This defines custom messages and events used within the Exosphere TUI
 application, as well as support classes such as the Screen Flags
 registry.
+
+This vaguely hacky implementation allows modal screens to notify each
+other when their underlying data models have changed, so they can
+refresh their widgets whenever they come back.
+
+This was born out of difficulty trying to consistently pass messages
+between modal screens that may or may not be active at any given time.
+
+It seemed more explicit than incrementing a reactive on the core app
+and firing off refresh events based on this.
 """
 
 import logging
