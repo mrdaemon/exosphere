@@ -524,7 +524,7 @@ requires-dist = [
     { name = "prompt-toolkit", specifier = ">=3.0.51" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "rich", specifier = ">=14.1.0" },
-    { name = "textual", specifier = ">=6.2.0" },
+    { name = "textual", specifier = ">=6.7.0" },
     { name = "textual-serve", marker = "extra == 'web'", specifier = ">=1.1.3" },
     { name = "typer", specifier = ">=0.20.0" },
 ]

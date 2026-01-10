@@ -241,13 +241,10 @@ def test_dashboard_on_mount_sets_titles(mocker):
 
     screen = DashboardScreen()
 
-    mock_update_grid = mocker.patch.object(screen, "update_grid_columns")
-
     screen.on_mount()
 
     assert screen.title == "Exosphere"
     assert screen.sub_title == "Dashboard"
-    mock_update_grid.assert_called_once()  # Ensure grid columns are updated
 
 
 def test_dashboard_compose_with_hosts(mock_context, host_online, host_offline, mocker):
@@ -258,13 +255,13 @@ def test_dashboard_compose_with_hosts(mock_context, host_online, host_offline, m
 
     # Mock Textual widgets to avoid app context issues
     mock_vertical_scroll = mocker.MagicMock()
-    mock_container = mocker.MagicMock()
+    mock_item_grid = mocker.MagicMock()
     mock_host_widget = mocker.MagicMock()
 
     mocker.patch(
         "exosphere.ui.dashboard.VerticalScroll", return_value=mock_vertical_scroll
     )
-    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    mocker.patch("exosphere.ui.dashboard.ItemGrid", return_value=mock_item_grid)
     host_widget_mock = mocker.patch(
         "exosphere.ui.dashboard.HostWidget", return_value=mock_host_widget
     )

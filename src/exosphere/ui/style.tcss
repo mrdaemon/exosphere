@@ -47,8 +47,6 @@ FilterScreen {
 }
 
 #hosts-container {
-    layout: grid;
-    grid-size: 4;  /* Default, will update dynamically */
     grid-gutter: 0 0;
     height: auto;
 }

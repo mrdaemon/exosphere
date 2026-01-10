@@ -4,10 +4,9 @@ Dashboard Screen module
 
 import logging
 
-from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, VerticalScroll
+from textual.containers import Container, ItemGrid, VerticalScroll
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Label
@@ -22,9 +21,8 @@ logger = logging.getLogger("exosphere.ui.dashboard")
 
 # Arbitrary grid and widget sizing values
 # They are arbitrary based on aesthetics.
-MIN_WIDGET_WIDTH = 25  # Min host widget width, including borders and padding
-MIN_GRID_COLUMNS = 2  # Minimum number of grid columns
-MAX_GRID_COLUMNS = 8  # Maximum number of grid columns
+# Values include borders and padding, as well as contents.
+MIN_WIDGET_WIDTH = 24
 
 
 class HostWidget(Widget):
@@ -122,59 +120,19 @@ class DashboardScreen(Screen):
 
         # Grid container for host widgets
         with VerticalScroll(id="hosts-scroll"):
-            with Container(id="hosts-container"):
+            with ItemGrid(
+                id="hosts-container",
+                min_column_width=MIN_WIDGET_WIDTH,
+            ):
                 for host in hosts:
                     yield HostWidget(host)
 
         yield Footer()
 
-    def on_resize(self, event: events.Resize) -> None:
-        """Handle screen resize to update grid columns."""
-        self.update_grid_columns()
-
     def on_mount(self) -> None:
         """Set the title and subtitle of the dashboard."""
         self.title = "Exosphere"
         self.sub_title = "Dashboard"
-        self.update_grid_columns()
-
-    def update_grid_columns(self) -> None:
-        """
-        Update the grid column count based on screen width.
-
-        This is as close as I can get (at least with my understanding
-        of Textual) to reactive grids. We simply recalculate how many
-        columns we can safely fit in based on entirely arbitrary values
-        that "seem alright" for minimum tile width, and just update the
-        CSS dynamically on resize.
-        """
-
-        terminal_width = self.size.width
-        min_tile_width = MIN_WIDGET_WIDTH
-
-        columns_exact = terminal_width / min_tile_width
-        max_columns = int(columns_exact)
-
-        # If we're within 3 characters of fitting another column, allow it
-        if columns_exact - max_columns >= 0.88:  # ~22 of 25 chars
-            max_columns += 1
-
-        max_columns = max(1, max_columns)
-
-        # Cap grid columns between minimum and maximum
-        columns = min(max(MIN_GRID_COLUMNS, max_columns), MAX_GRID_COLUMNS)
-
-        # Update the CSS dynamically - but only if the container exists
-        # Early calls or empty dashboards may not have the container yet
-        try:
-            container = self.query_one("#hosts-container")
-            if container:
-                container.styles.grid_size_columns = columns
-        except Exception:
-            logger.debug(
-                "Failed to update grid columns, container not found."
-                " This is expected if the dashboard is empty or not mounted yet."
-            )
 
     def refresh_hosts(self, task: str | None = None) -> None:
         """Refresh the host widgets."""
