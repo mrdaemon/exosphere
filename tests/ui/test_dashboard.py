@@ -2,7 +2,6 @@ import pytest
 
 from exosphere.objects import Host
 from exosphere.ui.dashboard import DashboardScreen, HostWidget
-from exosphere.ui.messages import HostStatusChanged
 
 
 @pytest.fixture
@@ -387,7 +386,7 @@ def test_dashboard_refresh_hosts_without_task(mocker, mock_context):
 def test_dashboard_action_ping_all_hosts(mocker):
     """Test DashboardScreen action_ping_all_hosts method."""
     screen = DashboardScreen()
-    mock_run_task = mocker.patch.object(screen, "_run_task")
+    mock_run_task = mocker.patch.object(screen, "run_task")
 
     screen.action_ping_all_hosts()
 
@@ -401,7 +400,7 @@ def test_dashboard_action_ping_all_hosts(mocker):
 def test_dashboard_action_discover_hosts(mocker):
     """Test DashboardScreen action_discover_hosts method."""
     screen = DashboardScreen()
-    mock_run_task = mocker.patch.object(screen, "_run_task")
+    mock_run_task = mocker.patch.object(screen, "run_task")
 
     screen.action_discover_hosts()
 
@@ -448,72 +447,19 @@ def test_dashboard_on_screen_resume_clean(mocker):
     mock_screenflags.flag_screen_clean.assert_not_called()
 
 
-def test_dashboard_run_task_no_inventory(mocker):
-    """Test DashboardScreen _run_task method with no inventory."""
-    screen = DashboardScreen()
+class TestRunTask:
+    """Test the task running features of DashboardScreen."""
 
-    # Mock context with no inventory
-    mocker.patch("exosphere.ui.dashboard.context.inventory", None)
+    def test_dashboard_get_screen_name(self):
+        """Test that DashboardScreen implements get_screen_name correctly."""
+        screen = DashboardScreen()
+        assert screen.get_screen_name() == "dashboard"
 
-    # Mock app using PropertyMock
-    mock_app = mocker.MagicMock()
-    mocker.patch.object(
-        type(screen), "app", new_callable=mocker.PropertyMock, return_value=mock_app
-    )
+    def test_dashboard_refresh_data_after_task(self, mocker, mock_context):
+        """Test that refresh_data_after_task calls refresh_hosts."""
+        screen = DashboardScreen()
+        mock_refresh = mocker.patch.object(screen, "refresh_hosts")
 
-    screen._run_task("test", "Testing...", "No hosts message")
+        screen.refresh_data_after_task("ping")
 
-    mock_app.push_screen.assert_called_once()
-    # Verify ErrorScreen is pushed
-    args = mock_app.push_screen.call_args[0][0]
-    assert "ErrorScreen" in str(type(args))
-
-
-def test_dashboard_run_task_no_hosts(mocker, mock_context):
-    """Test DashboardScreen _run_task method with no hosts."""
-    screen = DashboardScreen()
-    mock_context.inventory.hosts = []
-
-    # Mock app using PropertyMock
-    mock_app = mocker.MagicMock()
-    mocker.patch.object(
-        type(screen), "app", new_callable=mocker.PropertyMock, return_value=mock_app
-    )
-
-    screen._run_task("test", "Testing...", "No hosts message")
-
-    mock_app.push_screen.assert_called_once()
-    # Verify ErrorScreen is pushed with no hosts message
-    args = mock_app.push_screen.call_args[0][0]
-    assert "ErrorScreen" in str(type(args))
-
-
-def test_dashboard_run_task_with_hosts(mocker, mock_context, host_online):
-    """Test DashboardScreen _run_task method with hosts."""
-    screen = DashboardScreen()
-    mock_context.inventory.hosts = [host_online]
-
-    # Mock app using PropertyMock
-    mock_app = mocker.MagicMock()
-    mocker.patch.object(
-        type(screen), "app", new_callable=mocker.PropertyMock, return_value=mock_app
-    )
-
-    # Mock post_message
-    mock_post_message = mocker.patch.object(screen, "post_message")
-
-    screen._run_task("ping", "Pinging...", "No hosts message")
-
-    mock_app.push_screen.assert_called_once()
-    # Verify ProgressScreen is pushed
-    args = mock_app.push_screen.call_args[0][0]
-    assert "ProgressScreen" in str(type(args))
-
-    # Test the callback function
-    callback = mock_app.push_screen.call_args[1]["callback"]
-    callback(None)  # Simulate task completion
-
-    mock_post_message.assert_called_once()
-    message = mock_post_message.call_args[0][0]
-    assert isinstance(message, HostStatusChanged)
-    assert message.current_screen == "dashboard"
+        mock_refresh.assert_called_once()

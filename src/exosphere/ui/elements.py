@@ -11,6 +11,7 @@ The Task Dispatch logic for UI Screens is implemented here.
 """
 
 import logging
+from collections.abc import Callable
 
 from textual import work
 from textual.app import ComposeResult
@@ -23,8 +24,105 @@ from textual.worker import get_current_worker
 from exosphere import app_config, context
 from exosphere.inventory import Inventory
 from exosphere.objects import Host
+from exosphere.ui.messages import HostStatusChanged
 
 logger = logging.getLogger("exosphere.ui.elements")
+
+
+class TaskRunnerScreen(Screen):
+    """
+    Screen class "mixin" for screens that run tasks.
+
+    If your screen intends to run tasks on hosts, inherit from
+    this class instead of Screen, and gain access to the run_task()
+    method.
+
+    Requires subclasses to implement:
+
+    - get_screen_name() -> str (method returning screen identifier)
+    - refresh_data_after_task(taskname: str) -> None (public method)
+
+    refresh_data_after_task() is called automatically after task
+    completion by the default callback of run_task(), which also
+    sends a HostStatusChanged message to notify other screens of
+    potential data model changes.
+
+    Use it to call or implement any refresh method on your screen
+    to update the UI after a task has modified host data.
+
+    Exosphere has a lot of widgets that are difficult to make reactive,
+    such as data tables and grid views, so this is the official
+    workaround.
+
+    If you do not need it, implement it with `pass` and/or use your
+    own callback in run_task().
+    """
+
+    def run_task(
+        self,
+        taskname: str,
+        message: str,
+        no_hosts_message: str,
+        save_state: bool = True,
+        callback: Callable | None = None,
+    ) -> None:
+        """
+        Dispatch a task to all hosts in the inventory.
+
+        If callback is not provided, defaults to sending HostStatusChanged
+        and calling self.refresh_data_after_task().
+
+        :param taskname: Name of the task to run.
+        :param message: Message to display in the progress screen.
+        :param no_hosts_message: Message to display if no hosts are available.
+        :param save_state: Whether to save the state after running the task.
+        :param callback: Optional callback function to execute after the task.
+                         Defaults to sending HostStatusChanged + refreshing data.
+        """
+
+        def default_callback(_):
+            """Default: send message + refresh data"""
+            screen_name = self.get_screen_name()
+            logger.debug(
+                "Task %s completed on %s, sending status change message.",
+                taskname,
+                screen_name,
+            )
+            self.post_message(HostStatusChanged(screen_name))
+            self.refresh_data_after_task(taskname)
+
+        inventory = context.inventory
+        if not inventory:
+            self.app.push_screen(
+                ErrorScreen("Inventory is not initialized, cannot run tasks.")
+            )
+            return
+
+        if not inventory.hosts:
+            logger.warning("No hosts available to run task '%s'.", taskname)
+            self.app.push_screen(ErrorScreen(no_hosts_message))
+            return
+
+        self.app.push_screen(
+            ProgressScreen(message, inventory.hosts, taskname, save_state),
+            callback or default_callback,
+        )
+
+    def refresh_data_after_task(self, taskname: str) -> None:
+        """
+        Refresh screen data after task completion.
+
+        Subclasses must implement this to define their refresh behavior.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement refresh_data_after_task()"
+        )
+
+    def get_screen_name(self) -> str:
+        """Return the screen identifier for this screen."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement get_screen_name()"
+        )
 
 
 class ErrorScreen(Screen):

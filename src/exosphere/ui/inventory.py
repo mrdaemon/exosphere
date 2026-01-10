@@ -4,7 +4,6 @@ Inventory Screen Module
 
 import logging
 import re
-from collections.abc import Callable
 from enum import StrEnum
 
 from textual.app import ComposeResult
@@ -17,8 +16,7 @@ from textual.widgets import DataTable, Footer, Header, Label, ListItem, ListView
 from exosphere import context
 from exosphere.objects import Host, Update
 from exosphere.ui.context import screenflags
-from exosphere.ui.elements import ErrorScreen, ProgressScreen
-from exosphere.ui.messages import HostStatusChanged
+from exosphere.ui.elements import ErrorScreen, TaskRunnerScreen
 
 logger = logging.getLogger("exosphere.ui.inventory")
 
@@ -286,7 +284,7 @@ class UpdateDetailsPanel(Screen):
             self.dismiss()
 
 
-class InventoryScreen(Screen):
+class InventoryScreen(TaskRunnerScreen):
     """Screen for the inventory."""
 
     CSS_PATH = "style.tcss"
@@ -354,6 +352,10 @@ class InventoryScreen(Screen):
 
         self._populate_table(table, hosts)
         self._update_status_bar()
+
+    def get_screen_name(self) -> str:
+        """Return screen identifier."""
+        return "inventory"
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the data table."""
@@ -444,10 +446,14 @@ class InventoryScreen(Screen):
                 title="Refresh Complete",
             )
 
+    def refresh_data_after_task(self, taskname: str) -> None:
+        """Callback to refresh data views after task completion."""
+        self.refresh_rows(taskname)
+
     def action_refresh_updates_all(self) -> None:
         """Action to refresh updates for all hosts."""
 
-        self._run_task(
+        self.run_task(
             taskname="refresh_updates",
             message="Refreshing updates for all hosts...",
             no_hosts_message="No hosts available to refresh updates.",
@@ -461,7 +467,7 @@ class InventoryScreen(Screen):
             """Callback to refresh updates after sync is complete"""
             self.action_refresh_updates_all()
 
-        self._run_task(
+        self.run_task(
             taskname="sync_repos",
             message="Syncing repositories for all hosts.\nThis may take a long time!",
             no_hosts_message="No hosts available to sync repositories.",
@@ -585,57 +591,3 @@ class InventoryScreen(Screen):
                 security_updates,
                 status_str,
             )
-
-    def _run_task(
-        self,
-        taskname: str,
-        message: str,
-        no_hosts_message: str,
-        save_state: bool = True,
-        callback: Callable | None = None,
-    ) -> None:
-        """
-        Dispatch a task to all hosts in the inventory.
-
-        Note: If you modify the callback via parameter, you are on your
-        own to refresh the data table after the task is completed.
-
-        :param taskname: Name of the task to run.
-        :param message: Message to display in the progress screen.
-        :param no_hosts_message: Message to display if no hosts are available.
-        :param save_state: Whether to save the state after running the task.
-        :param callback: Optional callback function to execute after the task.
-                         Defaults implicitly to self.refresh_rows().
-        """
-
-        def send_message(_):
-            """Send message to flag other screens as dirty"""
-            logger.debug("Task %s completed, sending status change message.", taskname)
-            self.post_message(HostStatusChanged("inventory"))
-            self.refresh_rows(taskname)
-
-        inventory = context.inventory
-
-        if inventory is None:
-            logger.error("Inventory is not initialized, cannot run tasks.")
-            self.app.push_screen(
-                ErrorScreen("Inventory is not initialized, cannot run tasks.")
-            )
-            return
-
-        hosts = inventory.hosts if inventory else []
-
-        if not hosts:
-            logger.warning("No hosts available to run task '%s'.", taskname)
-            self.app.push_screen(ErrorScreen(no_hosts_message))
-            return
-
-        self.app.push_screen(
-            ProgressScreen(
-                message=message,
-                hosts=hosts,
-                taskname=taskname,
-                save=save_state,
-            ),
-            callback or send_message,
-        )

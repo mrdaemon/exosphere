@@ -7,15 +7,13 @@ import logging
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, ItemGrid, VerticalScroll
-from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Label
 
 from exosphere import context
 from exosphere.objects import Host
 from exosphere.ui.context import screenflags
-from exosphere.ui.elements import ErrorScreen, ProgressScreen
-from exosphere.ui.messages import HostStatusChanged
+from exosphere.ui.elements import TaskRunnerScreen
 
 logger = logging.getLogger("exosphere.ui.dashboard")
 
@@ -92,7 +90,7 @@ class HostWidget(Widget):
         return "[$text-success]Online[/]" if online else "[$text-error]Offline[/]"
 
 
-class DashboardScreen(Screen):
+class DashboardScreen(TaskRunnerScreen):
     """Screen for the dashboard."""
 
     CSS_PATH = "style.tcss"
@@ -134,6 +132,10 @@ class DashboardScreen(Screen):
         self.title = "Exosphere"
         self.sub_title = "Dashboard"
 
+    def get_screen_name(self) -> str:
+        """Return screen identifier."""
+        return "dashboard"
+
     def refresh_hosts(self, task: str | None = None) -> None:
         """Refresh the host widgets."""
         if task:
@@ -146,10 +148,14 @@ class DashboardScreen(Screen):
 
         self.app.notify("Host data successfully refreshed", title="Refresh Complete")
 
+    def refresh_data_after_task(self, taskname: str) -> None:
+        """Callback to refresh data views after task completion."""
+        self.refresh_hosts(taskname)
+
     def action_ping_all_hosts(self) -> None:
         """Action to ping all hosts."""
 
-        self._run_task(
+        self.run_task(
             taskname="ping",
             message="Pinging all hosts...",
             no_hosts_message="No hosts available to ping.",
@@ -158,7 +164,7 @@ class DashboardScreen(Screen):
     def action_discover_hosts(self) -> None:
         """Action to discover all hosts."""
 
-        self._run_task(
+        self.run_task(
             taskname="discover",
             message="Discovering all hosts...",
             no_hosts_message="No hosts available to discover.",
@@ -170,42 +176,3 @@ class DashboardScreen(Screen):
             logger.debug("Dashboard screen is dirty, refreshing host widgets.")
             self.refresh_hosts()
             screenflags.flag_screen_clean("dashboard")
-
-    def _run_task(self, taskname: str, message: str, no_hosts_message: str) -> None:
-        """Run a task on all hosts."""
-
-        def send_message(_):
-            """
-            Send a message indicating host status may have changed.
-            """
-            logger.debug(
-                "Task '%s' completed, sending status change message.", taskname
-            )
-            self.post_message(HostStatusChanged("dashboard"))
-            self.refresh_hosts(taskname)
-
-        inventory = context.inventory
-
-        if inventory is None:
-            logger.error("Inventory is not initialized, cannot run tasks.")
-            self.app.push_screen(
-                ErrorScreen("Inventory is not initialized, cannot run tasks.")
-            )
-            return
-
-        hosts = inventory.hosts if inventory else []
-
-        if not hosts:
-            logger.warning("No hosts available to run task '%s'.", taskname)
-            self.app.push_screen(ErrorScreen(no_hosts_message))
-            return
-
-        self.app.push_screen(
-            ProgressScreen(
-                message=message,
-                hosts=hosts,
-                taskname=taskname,
-                save=True,  # All dashboard operations affect state
-            ),
-            callback=send_message,  # Signal everyone that hosts changed
-        )

@@ -514,3 +514,21 @@ class TestRefreshRows:
         assert mock_app.notify.call_count == 1
         notify_kwargs = mock_app.notify.call_args[1]
         assert notify_kwargs.get("severity") == "error"
+
+
+class TestRunTask:
+    """Test the task running features of InventoryScreen."""
+
+    def test_inventory_screen_get_screen_name(self, inventory_screen):
+        """Test get_screen_name returns correct identifier."""
+        assert inventory_screen.get_screen_name() == "inventory"
+
+    def test_inventory_refresh_data_after_task(
+        self, mocker, setup_inventory_mock, inventory_screen
+    ):
+        """Test refresh_data_after_task calls refresh_rows."""
+        mock_refresh = mocker.patch.object(inventory_screen, "refresh_rows")
+
+        inventory_screen.refresh_data_after_task("test_task")
+
+        mock_refresh.assert_called_once()
