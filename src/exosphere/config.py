@@ -275,47 +275,58 @@ class Configuration(dict):
         # in the configuration.
         hosts = self.get("hosts", [])
         if isinstance(hosts, list):
-            # uniqueness constraint for host names
-            names: list[str] = [
-                str(host.get("name"))
-                for host in hosts
-                if isinstance(host, dict) and "name" in host
-            ]
-            dupes: set[str] = {str(name) for name in names if names.count(name) > 1}
-            if dupes:
-                msg = f"Duplicate host names found in configuration: {', '.join(dupes)}"
-                raise ValueError(msg)
-
-            # Validation for individual entries
-            for host in hosts:
-                if not isinstance(host, dict):
-                    continue
-
-                # Name field MUST be present
-                if "name" not in host:
-                    msg = "Host entry is missing required 'name' field"
-                    raise ValueError(msg)
-
-                # IP field MUST be present
-                if "ip" not in host:
-                    host_name = host.get("name", "unnamed host")
-                    msg = f"Host '{host_name}' is missing required 'ip' field"
-                    raise ValueError(msg)
-
-                # IP field cannot contain '@' character
-                # Library will interpret this as a username which will result
-                # in a lot of undefined or unexpected behaviors.
-                # We allow it in the username field, however, for kerberos reasons.
-                if "ip" in host and "@" in str(host["ip"]):
-                    host_name = host.get("name", "unnamed host")
-                    msg = (
-                        f"Host '{host_name}' has invalid hostname or ip: "
-                        "'@' character is not allowed. "
-                        "If you are trying to specify a username, use the 'username' option."
-                    )
-                    raise ValueError(msg)
+            self._validate_hosts(hosts)
 
         return True
+
+    def _validate_hosts(self, hosts: list) -> None:
+        """
+        Validate the hosts list configuration.
+
+        :param hosts: List of host configuration dictionaries
+        :raises ValueError: On validation failure
+        """
+        # Check for duplicate host names
+        names: list[str] = [
+            str(host.get("name"))
+            for host in hosts
+            if isinstance(host, dict) and "name" in host
+        ]
+
+        dupes: set[str] = {str(name) for name in names if names.count(name) > 1}
+
+        if dupes:
+            msg = f"Duplicate host names found in configuration: {', '.join(dupes)}"
+            raise ValueError(msg)
+
+        # Validate each host entry
+        for host in hosts:
+            if not isinstance(host, dict):
+                continue
+
+            # Name field MUST be present
+            if "name" not in host:
+                msg = "Host entry is missing required 'name' field"
+                raise ValueError(msg)
+
+            # IP field MUST be present
+            if "ip" not in host:
+                host_name = host.get("name", "unnamed host")
+                msg = f"Host '{host_name}' is missing required 'ip' field"
+                raise ValueError(msg)
+
+            # IP field cannot contain '@' character
+            # Library will interpret this as a username which will result
+            # in a lot of undefined or unexpected behaviors.
+            # We allow it in the username field, however, for kerberos reasons.
+            if "ip" in host and "@" in str(host["ip"]):
+                host_name = host.get("name", "(unknown)")
+                msg = (
+                    f"Host '{host_name}' has invalid hostname or ip: "
+                    "'@' character is not allowed. "
+                    "If you are trying to specify a username, use the 'username' option."
+                )
+                raise ValueError(msg)
 
     def deep_update(self, d: dict, u: dict) -> dict:
         """
