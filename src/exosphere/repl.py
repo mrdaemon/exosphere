@@ -43,6 +43,13 @@ class HostMatchMode(Enum):
     MULTIPLE = "multiple"
 
 
+# Reusable type aliases for host completion metadata
+type SubcommandHostMode = dict[str, HostMatchMode]
+type HostArgMetadata = dict[str, SubcommandHostMode]
+type SubcommandOptionNames = dict[str, list[str]]
+type HostOptionMetadata = dict[str, SubcommandOptionNames]
+
+
 class ExosphereCompleter(Completer):
     """
     Readline-like completion for Exosphere Commands
@@ -74,7 +81,7 @@ class ExosphereCompleter(Completer):
 
     def _extract_host_metadata(
         self, root_command: click.Command | None
-    ) -> tuple[dict[str, dict[str, HostMatchMode]], dict[str, dict[str, list[str]]]]:
+    ) -> tuple[HostArgMetadata, HostOptionMetadata]:
         """
         Extract host completion metadata from command annotations.
 
@@ -100,8 +107,8 @@ class ExosphereCompleter(Completer):
         self,
         group_name: str,
         group_cmd: click.Command,
-        host_args: dict[str, dict[str, HostMatchMode]],
-        host_options: dict[str, dict[str, list[str]]],
+        host_args: HostArgMetadata,
+        host_options: HostOptionMetadata,
     ) -> None:
         """Extract host completion metadata from a command group."""
         commands = getattr(group_cmd, "commands", {})
@@ -115,8 +122,8 @@ class ExosphereCompleter(Completer):
         group_name: str,
         cmd_name: str,
         cmd: click.Command,
-        host_args: dict[str, dict[str, HostMatchMode]],
-        host_options: dict[str, dict[str, list[str]]],
+        host_args: HostArgMetadata,
+        host_options: HostOptionMetadata,
     ) -> None:
         """Extract host completion metadata from a single command."""
         if not hasattr(cmd, "callback") or not cmd.callback:
@@ -134,8 +141,8 @@ class ExosphereCompleter(Completer):
         cmd_name: str,
         cmd: click.Command,
         param: inspect.Parameter,
-        host_args: dict[str, dict[str, HostMatchMode]],
-        host_options: dict[str, dict[str, list[str]]],
+        host_args: HostArgMetadata,
+        host_options: HostOptionMetadata,
     ) -> None:
         """Extract host metadata from a parameter annotation."""
         if param.annotation == inspect.Parameter.empty:
