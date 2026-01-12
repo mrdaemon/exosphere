@@ -19,3 +19,8 @@ listed below.
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. autoclass:: exosphere.data.HostState
+   :members:
+   :undoc-members:
+   :show-inheritance:
