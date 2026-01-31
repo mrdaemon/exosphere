@@ -8,6 +8,7 @@
     "flavor": "ubuntu",
     "version": "22.04",
     "supported": true,
+    "stale": false,
     "online": true,
     "package_manager": "apt",
     "updates": [
@@ -26,7 +27,7 @@
         "source": "security"
       }
     ],
-    "last_refresh": "2025-09-30T00:59:03.989Z"
+    "last_refresh": "2026-01-31T06:01:51.649Z"
   },
   {
     "name": "db-01",
@@ -37,6 +38,7 @@
     "flavor": "debian",
     "version": "12",
     "supported": true,
+    "stale": false,
     "online": true,
     "package_manager": "apt",
     "updates": [
@@ -55,7 +57,7 @@
         "source": "security"
       }
     ],
-    "last_refresh": "2025-09-30T01:59:03.990Z"
+    "last_refresh": "2026-01-31T07:01:51.649Z"
   },
   {
     "name": "admin-01",
@@ -66,10 +68,11 @@
     "flavor": "freebsd",
     "version": "14.3-RELEASE-p3",
     "supported": true,
+    "stale": false,
     "online": true,
     "package_manager": "pkg",
     "updates": [],
-    "last_refresh": "2025-09-29T23:59:03.990Z"
+    "last_refresh": "2026-01-31T05:01:51.649Z"
   },
   {
     "name": "lb-01",
@@ -80,10 +83,11 @@
     "flavor": "rhel",
     "version": "9",
     "supported": true,
+    "stale": false,
     "online": true,
     "package_manager": "dnf",
     "updates": [],
-    "last_refresh": "2025-09-30T02:29:03.990Z"
+    "last_refresh": "2026-01-31T07:31:51.649Z"
   },
   {
     "name": "dev-staging",
@@ -94,9 +98,10 @@
     "flavor": "ubuntu",
     "version": "20.04",
     "supported": true,
+    "stale": true,
     "online": false,
     "package_manager": "apt",
     "updates": [],
-    "last_refresh": "2025-09-27T02:59:03.990Z"
+    "last_refresh": "2026-01-28T08:01:51.649Z"
   }
 ]

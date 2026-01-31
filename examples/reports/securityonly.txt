@@ -3,7 +3,7 @@
 SYSTEM UPDATES REPORT
 =====================
 
-Security Only Report, complete, generated: 2025-09-29 22:59:04 -0400
+Security Only Report, complete, generated: 2026-01-31 03:01:51 -0500
 
 Summary:
 
@@ -17,7 +17,7 @@ Web Server
 
   System: linux ubuntu 22.04
   Package Manager: apt
-  Last Refresh: 2025-09-29 20:59:03 -0400
+  Last Refresh: 2026-01-31 01:01:51 -0500
 
   Security Updates (2):
 
@@ -33,7 +33,7 @@ PostgreSQL database server
 
   System: linux debian 12
   Package Manager: apt
-  Last Refresh: 2025-09-29 21:59:03 -0400
+  Last Refresh: 2026-01-31 02:01:51 -0500
 
   Security Updates (2):
 
@@ -49,7 +49,7 @@ Admin Server
 
   System: freebsd 14.3-RELEASE-p3
   Package Manager: pkg
-  Last Refresh: 2025-09-29 19:59:03 -0400
+  Last Refresh: 2026-01-31 00:01:51 -0500
 
   No updates available.
 
@@ -60,7 +60,7 @@ HAProxy load balancer
 
   System: linux rhel 9
   Package Manager: dnf
-  Last Refresh: 2025-09-29 22:29:03 -0400
+  Last Refresh: 2026-01-31 02:31:51 -0500
 
   No updates available.
 
@@ -71,11 +71,11 @@ Development and staging environment
 
   System: linux ubuntu 20.04
   Package Manager: apt
-  Last Refresh: 2025-09-26 22:59:03 -0400 (Stale, needs refresh)
+  Last Refresh: 2026-01-28 03:01:51 -0500 (Stale, needs refresh)
 
   No updates available.
 
 
 -------------------------------------------
-Generated with Exosphere version 1.5.0.dev0
+Generated with Exosphere version 2.2.1.dev0
 https://github.com/mrdaemon/exosphere

@@ -1,6 +1,6 @@
 # System Updates Report
 
-Updates Only Report, complete, generated on 2025-09-29 22:59:04 -0400
+Updates Only Report, complete, generated on 2026-01-31 03:01:51 -0500
 
 - **Total hosts:** 5
 - **Hosts with updates:** 4
@@ -14,7 +14,7 @@ Updates Only Report, complete, generated on 2025-09-29 22:59:04 -0400
 - **Description**: Web Server
 - **OS**: linux ubuntu 22.04
 - **Package Manager**: apt
-- **Last Refresh**: 2025-09-29 20:59:03 -0400
+- **Last Refresh**: 2026-01-31 01:01:51 -0500
 
 **Available Updates (4):**
 
@@ -32,7 +32,7 @@ Updates Only Report, complete, generated on 2025-09-29 22:59:04 -0400
 - **Description**: PostgreSQL database server
 - **OS**: linux debian 12
 - **Package Manager**: apt
-- **Last Refresh**: 2025-09-29 21:59:03 -0400
+- **Last Refresh**: 2026-01-31 02:01:51 -0500
 
 **Available Updates (4):**
 
@@ -50,7 +50,7 @@ Updates Only Report, complete, generated on 2025-09-29 22:59:04 -0400
 - **Description**: Admin Server
 - **OS**: freebsd 14.3-RELEASE-p3
 - **Package Manager**: pkg
-- **Last Refresh**: 2025-09-29 19:59:03 -0400
+- **Last Refresh**: 2026-01-31 00:01:51 -0500
 
 **Available Updates (2):**
 
@@ -66,7 +66,7 @@ Updates Only Report, complete, generated on 2025-09-29 22:59:04 -0400
 - **Description**: Development and staging environment
 - **OS**: linux ubuntu 20.04
 - **Package Manager**: apt
-- **Last Refresh**: 2025-09-26 22:59:03 -0400 *(Stale, needs refresh)*
+- **Last Refresh**: 2026-01-28 03:01:51 -0500 *(Stale, needs refresh)*
 
 **Available Updates (1):**
 
@@ -76,4 +76,4 @@ Updates Only Report, complete, generated on 2025-09-29 22:59:04 -0400
 
 ---
 
-*Generated with [Exosphere](https://github.com/mrdaemon/exosphere) version 1.5.0.dev0*
+*Generated with [Exosphere](https://github.com/mrdaemon/exosphere) version 2.2.1.dev0*
