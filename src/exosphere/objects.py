@@ -205,6 +205,7 @@ class Host:
             "flavor": self.flavor,
             "version": self.version,
             "supported": self.supported,
+            "stale": self.is_stale,
             "online": self.online,
             "package_manager": self.package_manager,
             "updates": [update.__dict__.copy() for update in self.updates],

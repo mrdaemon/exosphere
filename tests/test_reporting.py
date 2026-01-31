@@ -72,6 +72,35 @@ class TestReportRenderer:
 
         return host
 
+    @pytest.fixture
+    def stale_host(self):
+        """Create a Host object with stale data for testing."""
+        from datetime import timedelta
+
+        host = Host(
+            name="stale-host",
+            ip="192.168.1.102",
+            description="Host with stale data",
+        )
+        host.os = "linux"
+        host.flavor = "ubuntu"
+        host.version = "22.04"
+        host.package_manager = "apt"
+        # Set last_refresh to 25 hours ago (past default 24h stale threshold)
+        host.last_refresh = datetime.now(tz=timezone.utc) - timedelta(hours=25)
+        host.supported = True
+        host.updates = [
+            Update(
+                name="test-package",
+                current_version="1.0.0",
+                new_version="1.0.1",
+                security=False,
+                source="main",
+            ),
+        ]
+
+        return host
+
     def test_renderer_initialization(self, renderer):
         """Test that ReportRenderer initializes correctly."""
         assert isinstance(renderer.env, jinja2.Environment)
@@ -110,15 +139,15 @@ class TestReportRenderer:
         assert "rjust" in env.filters
         assert "center" in env.filters
 
-    def test_render_json(self, renderer, sample_host, empty_host):
+    def test_render_json(self, renderer, sample_host, empty_host, stale_host):
         """Test JSON rendering."""
-        hosts = [sample_host, empty_host]
+        hosts = [sample_host, empty_host, stale_host]
         result = renderer.render_json(hosts, ReportType.full)
 
         # Should be valid JSON
         parsed = json.loads(result)
         assert isinstance(parsed, list)
-        assert len(parsed) == 2
+        assert len(parsed) == 3
 
         # Check structure of first host
         host_data = parsed[0]
@@ -126,11 +155,33 @@ class TestReportRenderer:
         assert host_data["ip"] == "192.168.1.100"
         assert host_data["description"] == "Test server for unit tests"
         assert len(host_data["updates"]) == 2
+        assert "stale" in host_data
+        assert isinstance(host_data["stale"], bool)
+        assert host_data["stale"] is False
 
         # Check security updates count
         security_updates = [u for u in host_data["updates"] if u["security"]]
         assert len(security_updates) == 1
         assert security_updates[0]["name"] == "curl"
+
+        # Check structure of empty host
+        empty_host_data = parsed[1]
+        assert empty_host_data["name"] == "empty-host"
+        assert empty_host_data["ip"] == "192.168.1.101"
+        assert "stale" in empty_host_data
+        assert isinstance(empty_host_data["stale"], bool)
+
+        # Empty host should have no updates
+        assert empty_host_data["updates"] == []
+
+        # Check structure of stale host
+        stale_host_data = parsed[2]
+        assert stale_host_data["name"] == "stale-host"
+        assert stale_host_data["stale"] is True
+
+        # Ensure third host is marked as stale
+        assert parsed[2]["name"] == "stale-host"
+        assert parsed[2]["stale"] is True
 
     def test_render_text(self, renderer, sample_host):
         """Test text rendering."""
@@ -417,6 +468,48 @@ class TestReportRenderer:
         # Only security updates
         assert "curl" in result
         assert "vim" not in result
+
+    def test_render_text_stale_indicator(self, renderer, stale_host):
+        """Test that stale hosts show a stale indicator in text output."""
+        hosts = [stale_host]
+        result = renderer.render_text(
+            hosts,
+            hosts_count=1,
+            report_type=ReportType.full,
+            report_scope=ReportScope.filtered,
+        )
+
+        # Should contain stale indicator
+        assert "stale-host" in result
+        assert "Stale" in result or "stale" in result
+
+    def test_render_markdown_stale_indicator(self, renderer, stale_host):
+        """Test that stale hosts show a stale indicator in markdown output."""
+        hosts = [stale_host]
+        result = renderer.render_markdown(
+            hosts,
+            hosts_count=1,
+            report_type=ReportType.full,
+            report_scope=ReportScope.filtered,
+        )
+
+        # Should contain stale indicator
+        assert "stale-host" in result
+        assert "Stale" in result or "stale" in result
+
+    def test_render_html_stale_indicator(self, renderer, stale_host):
+        """Test that stale hosts show a stale indicator in HTML output."""
+        hosts = [stale_host]
+        result = renderer.render_html(
+            hosts,
+            hosts_count=1,
+            report_type=ReportType.full,
+            report_scope=ReportScope.filtered,
+        )
+
+        # Should contain stale indicator (with CSS class)
+        assert "stale-host" in result
+        assert "stale" in result.lower()
 
 
 class TestJSONSchemaValidation:

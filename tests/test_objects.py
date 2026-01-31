@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from exosphere.config import Configuration
-from exosphere.data import HostInfo
+from exosphere.data import HostInfo, Update
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.objects import Host
 from exosphere.providers.api import requires_sudo
@@ -550,6 +550,86 @@ class TestHostObject:
         host.last_refresh = datetime.now(timezone.utc) - timedelta(seconds=30)
 
         assert host.is_stale is False
+
+    def test_to_dict(self, mock_config):
+        """
+        Test that to_dict() returns correct dictionary representation.
+
+        Verifies that all expected fields are present with correct types
+        and values for both complete and minimal host configurations.
+        """
+        mock_config.update_from_mapping({"options": {"stale_threshold": 86400}})
+
+        # Test with fully populated host
+        complete_host = Host(
+            name="complete-host",
+            ip="192.168.1.1",
+            port=2222,
+            description="Test host description",
+        )
+        complete_host.os = "linux"
+        complete_host.flavor = "ubuntu"
+        complete_host.version = "22.04"
+        complete_host.package_manager = "apt"
+        complete_host.last_refresh = datetime.now(timezone.utc)
+        complete_host.supported = True
+        complete_host.online = True
+        complete_host.updates = [
+            Update(
+                name="curl",
+                current_version="7.81.0-1",
+                new_version="7.81.0-2",
+                security=True,
+                source="security",
+            ),
+        ]
+
+        result = complete_host.to_dict()
+
+        # Verify all required fields are present
+        assert result["name"] == "complete-host"
+        assert result["description"] == "Test host description"
+        assert result["ip"] == "192.168.1.1"
+        assert result["port"] == 2222
+        assert result["os"] == "linux"
+        assert result["flavor"] == "ubuntu"
+        assert result["version"] == "22.04"
+        assert result["supported"] is True
+        assert result["stale"] is False  # Fresh host
+        assert result["online"] is True
+        assert result["package_manager"] == "apt"
+        assert len(result["updates"]) == 1
+        assert result["updates"][0]["name"] == "curl"
+        assert isinstance(result["last_refresh"], str)  # ISO 8601 string
+        assert result["last_refresh"].endswith("Z")  # UTC marker
+
+        # Test with minimal/undiscovered host
+        minimal_host = Host(name="minimal-host", ip="10.0.0.1")
+        minimal_host.last_refresh = None  # Never refreshed
+
+        minimal_result = minimal_host.to_dict()
+
+        assert minimal_result["name"] == "minimal-host"
+        assert minimal_result["description"] is None
+        assert minimal_result["ip"] == "10.0.0.1"
+        assert minimal_result["port"] == 22  # Default
+        assert minimal_result["os"] is None  # Not discovered
+        assert minimal_result["flavor"] is None
+        assert minimal_result["version"] is None
+        assert minimal_result["supported"] is True  # Default is True
+        assert minimal_result["stale"] is True  # Never refreshed
+        assert minimal_result["online"] is False  # Default
+        assert minimal_result["package_manager"] is None
+        assert minimal_result["updates"] == []
+        assert minimal_result["last_refresh"] is None
+
+        # Test stale detection with old last_refresh
+        stale_host = Host(name="stale-host", ip="192.168.1.2")
+        stale_host.last_refresh = datetime.now(timezone.utc) - timedelta(hours=25)
+        stale_host.supported = True
+
+        stale_result = stale_host.to_dict()
+        assert stale_result["stale"] is True
 
     def test_sync_repos_success(
         self, mocker, mock_connection, mock_config_with_sudopolicy_nopasswd

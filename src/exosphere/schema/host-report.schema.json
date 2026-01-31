@@ -19,6 +19,7 @@
         "flavor",
         "version",
         "supported",
+        "stale",
         "online",
         "package_manager",
         "updates",
@@ -58,6 +59,10 @@
         "supported": {
           "type": "boolean",
           "description": "Whether this host type is supported by Exosphere"
+        },
+        "stale": {
+          "type": "boolean",
+          "description": "Whether the host data is stale and needs refreshed"
         },
         "online": {
           "type": "boolean",
