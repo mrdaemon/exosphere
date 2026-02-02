@@ -1376,15 +1376,15 @@ wheels = [
 
 [[package]]
 name = "renku-sphinx-theme"
-version = "0.5.1"
+version = "0.5.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sphinx" },
     { name = "sphinx-rtd-theme" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/8c/49b36088600b7afa9986545c5aab5a85c1d11e425bc8917e4f6c84e1aa6c/renku_sphinx_theme-0.5.1.tar.gz", hash = "sha256:fa0ea3a8a1802b151c5d6a84f5809d2c96f98f7d5f55bba3569cd1889246aa0e", size = 587142, upload-time = "2025-12-10T12:20:56.086Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/41/a9/a7b0fe166863002acc16bd9160bf56b66cd0c9721de750765a8c31eb50ba/renku_sphinx_theme-0.5.2.tar.gz", hash = "sha256:9cd0325960d1ba75b3df69920a95777b761b2cb610f258cdce70f2cfcdd0c855", size = 587200, upload-time = "2026-01-26T13:07:51.126Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/25/9902edb5710cf35a7d6ae63ce6bea3738b03ef298ff8aa90c060439c3031/renku_sphinx_theme-0.5.1-py2.py3-none-any.whl", hash = "sha256:009bebe2cff14c1de8c8ab775acb9cb58f6a05e06f1712734e94fe3520934898", size = 580161, upload-time = "2025-12-10T12:20:54.631Z" },
+    { url = "https://files.pythonhosted.org/packages/54/d3/c0409a84f21929c6fcf5e670084fa92ce151892e71a1ff5c9670d89bc02a/renku_sphinx_theme-0.5.2-py2.py3-none-any.whl", hash = "sha256:5ccd3053cfc9c227b41ec5daaad940b1ef21fc82ad093981a1b236f6e73516fa", size = 580182, upload-time = "2026-01-26T13:07:48.916Z" },
 ]
 
 [[package]]
