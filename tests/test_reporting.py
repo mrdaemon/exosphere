@@ -303,8 +303,10 @@ class TestReportRenderer:
                     "json": lambda result: json.loads(result)[0]["updates"] == [],
                     "text": lambda result: "No updates available." in result,
                     "markdown": lambda result: "**No updates available.**" in result,
-                    "html": lambda result: "<em>No updates available.</em>" in result
-                    and "<strong>Total updates:</strong> 0" in result,
+                    "html": lambda result: (
+                        "<em>No updates available.</em>" in result
+                        and "<strong>Total updates:</strong> 0" in result
+                    ),
                 },
             ),
         ],
