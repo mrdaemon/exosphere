@@ -24,7 +24,9 @@ Create ``config.yaml`` in the `Config` directory shown here.
 .. code-block:: yaml
 
     # Username for SSH connections, optional
-    # If not specified, the current user will be used
+    # If not specified, the current user will be used.
+    # The entire "options" section can be omitted if you
+    # don't need to set any global options.
     options:
       default_username: admin
 
