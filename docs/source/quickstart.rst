@@ -20,6 +20,7 @@ Create ``config.yaml`` in the `Config` directory shown here.
 
 **Basic configuration**
 
+Add your :ref:`hosts <config_inventory>` and :ref:`options <config_options>` to the configuration file.
 
 .. code-block:: yaml
 
@@ -57,6 +58,11 @@ Create ``config.yaml`` in the `Config` directory shown here.
     $ exosphere
 
 At the exosphere prompt, you can run commands to manage your hosts.
+You can also explore the interactive help system in the CLI by running:
+
+.. code-block:: exosphere
+
+    exosphere> help
 
 **Discover Hosts**
 
@@ -88,8 +94,12 @@ updates all in one place.
 Next Steps
 ----------
 
-To go further, you can explore the various commands in the :doc:`cli` or start the full
-:doc:`ui` for a more interactive experience:
+To go further, you can:
+
+* Explore the various commands in the :doc:`cli`
+* Explore the :doc:`reporting` features to generate reports and json data
+
+Or start the full :doc:`ui` for a more interactive experience:
 
 .. code-block:: shell
 
@@ -99,4 +109,6 @@ To go further, you can explore the various commands in the :doc:`cli` or start t
 
    For more advanced configuration options, authentication details, and troubleshooting,
    see the full :doc:`configuration` and :doc:`connections` documentation.
+
+   The :doc:`faq` section may also be helpful for common questions and issues.
 

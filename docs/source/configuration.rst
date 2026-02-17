@@ -145,6 +145,7 @@ the configuration (if any):
 
     exosphere config source
 
+.. _config_options:
 
 Options
 -------
@@ -996,6 +997,8 @@ and examples of how to set them in the configuration file.
                         "no_banner": true
                     }
                 }
+
+.. _config_inventory:
 
 Inventory
 ---------
