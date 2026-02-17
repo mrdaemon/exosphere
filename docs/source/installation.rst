@@ -54,8 +54,10 @@ The package name is `exosphere-cli`.
 
     .. group-tab:: uv
 
+        https://docs.astral.sh/uv/getting-started/installation/
+
         If you do not have Python 3.13 or later available, you can use `uv`_ to
-        install Exosphere. Click the link above to see how to install `uv` for
+        install Exosphere. Click the link above to see how to install `uv`_ for
         your platform, and then simply run:
 
         .. code-block:: bash
