@@ -33,6 +33,7 @@ or see [the documentation](https://exosphere.readthedocs.io/en/stable/) to get s
 - See everything in one spot, at a glance, without complex automation or enterprise
   solutions
 - Does not require Python (or anything else) to be installed on remote systems
+- Parallel operations across hosts with optional SSH pipelining
 - Document based reporting in HTML, text or markdown format
 - JSON output for integration with other tools
 
