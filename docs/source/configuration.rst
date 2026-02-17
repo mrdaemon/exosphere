@@ -42,10 +42,6 @@ as the value.
 Structure
 ---------
 
-The configuration file is split into two main sections, `Options` and `Hosts`.
-The `Options` section contains general settings for Exosphere, while the `Hosts`
-section contains the Inventory of hosts that Exosphere will connect to.
-
 Below is a full example of a configuration file, in all supported formats.
 Any option left out will use the default values, which are documented below.
 
@@ -62,6 +58,10 @@ Any option left out will use the default values, which are documented below.
     .. group-tab:: JSON
 
         .. literalinclude:: ../../examples/config.json
+
+The configuration file is split into two main sections, :ref:`config_options` and :ref:`Hosts<config_inventory>`.
+The :ref:`config_options` section contains general settings for Exosphere, while the :ref:`Hosts<config_inventory>`
+section contains the Inventory of hosts that Exosphere will connect to.
 
 .. _config_env_vars:
 
