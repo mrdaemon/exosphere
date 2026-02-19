@@ -488,7 +488,7 @@ wheels = [
 
 [[package]]
 name = "exosphere-cli"
-version = "2.3.0.dev0"
+version = "2.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "fabric" },
@@ -1005,11 +1005,11 @@ wheels = [
 
 [[package]]
 name = "platformdirs"
-version = "4.9.1"
+version = "4.9.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6c/d5/763666321efaded11112de8b7a7f2273dd8d1e205168e73c334e54b0ab9a/platformdirs-4.9.1.tar.gz", hash = "sha256:f310f16e89c4e29117805d8328f7c10876eeff36c94eac879532812110f7d39f", size = 28392, upload-time = "2026-02-14T21:02:44.973Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/04/fea538adf7dbbd6d186f551d595961e564a3b6715bdf276b477460858672/platformdirs-4.9.2.tar.gz", hash = "sha256:9a33809944b9db043ad67ca0db94b14bf452cc6aeaac46a88ea55b26e2e9d291", size = 28394, upload-time = "2026-02-16T03:56:10.574Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/77/e8c95e95f1d4cdd88c90a96e31980df7e709e51059fac150046ad67fac63/platformdirs-4.9.1-py3-none-any.whl", hash = "sha256:61d8b967d34791c162d30d60737369cbbd77debad5b981c4bfda1842e71e0d66", size = 21307, upload-time = "2026-02-14T21:02:43.492Z" },
+    { url = "https://files.pythonhosted.org/packages/48/31/05e764397056194206169869b50cf2fee4dbbbc71b344705b9c0d878d4d8/platformdirs-4.9.2-py3-none-any.whl", hash = "sha256:9170634f126f8efdae22fb58ae8a0eaa86f38365bc57897a6c4f781d1f5875bd", size = 21168, upload-time = "2026-02-16T03:56:08.891Z" },
 ]
 
 [[package]]
@@ -1752,7 +1752,7 @@ wheels = [
 
 [[package]]
 name = "textual"
-version = "7.5.0"
+version = "8.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py", extra = ["linkify"] },
@@ -1762,9 +1762,9 @@ dependencies = [
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/38/7d169a765993efde5095c70a668bf4f5831bb7ac099e932f2783e9b71abf/textual-7.5.0.tar.gz", hash = "sha256:c730cba1e3d704e8f1ca915b6a3af01451e3bca380114baacf6abf87e9dac8b6", size = 1592319, upload-time = "2026-01-30T13:46:39.881Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/08/1e1f705825359590ddfaeda57653bd518c4ff7a96bb2c3239ba1b6fc4c51/textual-8.0.0.tar.gz", hash = "sha256:ce48f83a3d686c0fac0e80bf9136e1f8851c653aa6a4502e43293a151df18809", size = 1595895, upload-time = "2026-02-16T17:12:14.215Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/78/96ddb99933e11d91bc6e05edae23d2687e44213066bcbaca338898c73c47/textual-7.5.0-py3-none-any.whl", hash = "sha256:849dfee9d705eab3b2d07b33152b7bd74fb1f5056e002873cc448bce500c6374", size = 718164, upload-time = "2026-01-30T13:46:37.635Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/be/e191c2a15da20530fde03564564e3e4b4220eb9d687d4014957e5c6a5e85/textual-8.0.0-py3-none-any.whl", hash = "sha256:8908f4ebe93a6b4f77ca7262197784a52162bc88b05f4ecf50ac93a92d49bb8f", size = 718904, upload-time = "2026-02-16T17:12:11.962Z" },
 ]
 
 [[package]]
@@ -1802,7 +1802,7 @@ wheels = [
 
 [[package]]
 name = "typer"
-version = "0.23.1"
+version = "0.24.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -1810,9 +1810,9 @@ dependencies = [
     { name = "rich" },
     { name = "shellingham" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/07/b822e1b307d40e263e8253d2384cf98c51aa2368cc7ba9a07e523a1d964b/typer-0.23.1.tar.gz", hash = "sha256:2070374e4d31c83e7b61362fd859aa683576432fd5b026b060ad6b4cd3b86134", size = 120047, upload-time = "2026-02-13T10:04:30.984Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/b6/3e681d3b6bb22647509bdbfdd18055d5adc0dce5c5585359fa46ff805fdc/typer-0.24.0.tar.gz", hash = "sha256:f9373dc4eff901350694f519f783c29b6d7a110fc0dcc11b1d7e353b85ca6504", size = 118380, upload-time = "2026-02-16T22:08:48.496Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/91/9b286ab899c008c2cb05e8be99814807e7fbbd33f0c0c960470826e5ac82/typer-0.23.1-py3-none-any.whl", hash = "sha256:3291ad0d3c701cbf522012faccfbb29352ff16ad262db2139e6b01f15781f14e", size = 56813, upload-time = "2026-02-13T10:04:32.008Z" },
+    { url = "https://files.pythonhosted.org/packages/85/d0/4da85c2a45054bb661993c93524138ace4956cb075a7ae0c9d1deadc331b/typer-0.24.0-py3-none-any.whl", hash = "sha256:5fc435a9c8356f6160ed6e85a6301fdd6e3d8b2851da502050d1f92c5e9eddc8", size = 56441, upload-time = "2026-02-16T22:08:47.535Z" },
 ]
 
 [[package]]
@@ -1844,15 +1844,15 @@ wheels = [
 
 [[package]]
 name = "uvicorn"
-version = "0.40.0"
+version = "0.41.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "h11" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c3/d1/8f3c683c9561a4e6689dd3b1d345c815f10f86acd044ee1fb9a4dcd0b8c5/uvicorn-0.40.0.tar.gz", hash = "sha256:839676675e87e73694518b5574fd0f24c9d97b46bea16df7b8c05ea1a51071ea", size = 81761, upload-time = "2025-12-21T14:16:22.45Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/32/ce/eeb58ae4ac36fe09e3842eb02e0eb676bf2c53ae062b98f1b2531673efdd/uvicorn-0.41.0.tar.gz", hash = "sha256:09d11cf7008da33113824ee5a1c6422d89fbc2ff476540d69a34c87fab8b571a", size = 82633, upload-time = "2026-02-16T23:07:24.1Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/d8/2083a1daa7439a66f3a48589a57d576aa117726762618f6bb09fe3798796/uvicorn-0.40.0-py3-none-any.whl", hash = "sha256:c6c8f55bc8bf13eb6fa9ff87ad62308bbbc33d0b67f84293151efe87e0d5f2ee", size = 68502, upload-time = "2025-12-21T14:16:21.041Z" },
+    { url = "https://files.pythonhosted.org/packages/83/e4/d04a086285c20886c0daad0e026f250869201013d18f81d9ff5eada73a88/uvicorn-0.41.0-py3-none-any.whl", hash = "sha256:29e35b1d2c36a04b9e180d4007ede3bcb32a85fbdfd6c6aeb3f26839de088187", size = 68783, upload-time = "2026-02-16T23:07:22.357Z" },
 ]
 
 [[package]]
