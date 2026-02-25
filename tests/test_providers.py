@@ -234,6 +234,27 @@ class TestPkgProvider:
         return mock_connection
 
     @pytest.fixture
+    def mock_connection_sudo_audit_failed(self, mocker, mock_connection):
+        """
+        Fixture to mock a connection where 'pkg update -q' succeeds but
+        'pkg audit -qF' fails with a non-empty stderr.
+        """
+        mock_update = mocker.MagicMock()
+        mock_update.failed = False
+
+        mock_audit = mocker.MagicMock()
+        mock_audit.failed = True
+        mock_audit.stderr = "pkg: Unable to fetch vulnerability database"
+
+        def side_effect(cmd, *args, **kwargs):
+            if "pkg audit" in cmd:
+                return mock_audit
+            return mock_update
+
+        mock_connection.sudo.side_effect = side_effect
+        return mock_connection
+
+    @pytest.fixture
     def mock_pkg_output(self, mocker, mock_connection):
         """
         Fixture to mock the output of the pkg command enumerating packages.
@@ -426,26 +447,40 @@ class TestPkgProvider:
         return mock_connection
 
     @pytest.mark.parametrize(
-        "connection_fixture, expected",
+        "connection_fixture, expected, expected_sudo_calls",
         [
-            ("mock_connection_sudo", True),
-            ("mock_connection_sudo_failed", False),
+            ("mock_connection_sudo", True, 2),
+            ("mock_connection_sudo_failed", False, 1),
+            ("mock_connection_sudo_audit_failed", False, 2),
         ],
-        ids=["success", "failure"],
+        ids=["success", "pkg_update_failure", "pkg_audit_failure"],
     )
-    def test_reposync(self, request, connection_fixture, expected):
+    def test_reposync(self, request, connection_fixture, expected, expected_sudo_calls):
         """
         Test the reposync method of the Pkg provider.
+
+        Covers:
+        - success: both sudo commands succeed
+        - pkg_update_failure: 'pkg update -q' fails, short-circuits after 1 call.
+        - pkg_audit_failure: 'pkg update -q' succeeds but 'pkg audit -qF' fails
         """
         mock_connection = request.getfixturevalue(connection_fixture)
 
         pkg = Pkg()
         result = pkg.reposync(mock_connection)
 
-        mock_connection.sudo.assert_called_once_with(
+        # The first sudo call is always 'pkg update -q'
+        mock_connection.sudo.assert_any_call(
             "/usr/sbin/pkg update -q", hide=True, warn=True
         )
 
+        # When both calls are made, assert the second one too
+        if expected_sudo_calls == 2:
+            mock_connection.sudo.assert_any_call(
+                "/usr/sbin/pkg audit -qF", hide=True, warn=True
+            )
+
+        assert mock_connection.sudo.call_count == expected_sudo_calls
         assert result is expected
 
     @pytest.mark.parametrize(
