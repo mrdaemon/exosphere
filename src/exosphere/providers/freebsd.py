@@ -26,6 +26,7 @@ class Pkg(PkgManager):
 
     SUDOERS_COMMANDS: list[str] | None = [
         "/usr/sbin/pkg update -q",
+        "/usr/sbin/pkg audit -qF",
     ]
 
     def __init__(self) -> None:
@@ -41,7 +42,11 @@ class Pkg(PkgManager):
         """
         Synchronize the package repository.
 
-        This method is equivalent to running 'pkg update -q'.
+        It will also download the latest version of the vuln.xml
+        database to check for security updates.
+
+        This method is equivalent to running 'pkg update -q', followed
+        by 'pkg audit -qF'.
 
         :param cx: Fabric Connection object
         :return: True if synchronization is successful, False otherwise.
@@ -53,6 +58,19 @@ class Pkg(PkgManager):
         if result.failed:
             self.logger.error(
                 f"Failed to synchronize FreeBSD pkg repositories: {result.stderr}"
+            )
+            return False
+
+        # Sync vulnerability data via pkg audit -qF, which forces a download
+        # of the vuln.xml database. We do not store or parse the output, as
+        # the cost of running it a second time in get_updates() is negligible,
+        # and will be a local operation anyways.
+        self.logger.debug("Synchronizing vuln.xml via pkg audit")
+        audit_result = cx.sudo("/usr/sbin/pkg audit -qF", hide=True, warn=True)
+
+        if audit_result.failed and audit_result.stderr:
+            self.logger.error(
+                f"Failed to synchronize vuln.xml via pkg audit: {audit_result.stderr}"
             )
             return False
 
