@@ -101,7 +101,8 @@ The FreeBSD provider is implemented in the `exosphere.providers.freebsd` module.
 It uses the `pkg` command to manage packages and updates.
 
 Repo sync **requires** sudo privileges, as it needs to run ``/usr/sbin/pkg update``
-to update the package cache from repository.
+to update the package cache from repository, as well as refresh ``vuln.xml`` for
+use by ``pkg audit``.
 
 This also means you will need to have the ``sudo`` package installed on the
 remote system if you want to use this functionality. Unfortunately, ``doas``
@@ -122,8 +123,9 @@ Exact Commands ran on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``/usr/sbin/pkg update -q`` **(requires sudo)**
-- ``pkg audit -q`` for security updates
-- ``pkg upgrade -qn | grep -e '^\\s'``
+- ``/usr/sbin/pkg audit -qF`` **(requires sudo)**
+- ``/usr/sbin/pkg audit -q`` for security updates
+- ``/usr/sbin/pkg upgrade -qn | grep -e '^\\s'``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
