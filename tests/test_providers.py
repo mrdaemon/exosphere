@@ -1,10 +1,85 @@
 import logging
 
 import pytest
+from invoke.exceptions import AuthFailure
 
 from exosphere.data import Update
 from exosphere.errors import DataRefreshError
 from exosphere.providers import Apt, Dnf, Pkg, PkgAdd, PkgManagerFactory, Yum
+from exosphere.providers.api import requires_sudo
+
+
+class TestRequiresSudoDecorator:
+    """
+    Tests for the requires_sudo decorator in isolation.
+    """
+
+    def test_sets_requires_sudo_attribute(self):
+        """
+        Ensure the decorator sets the __requires_sudo attribute on the wrapped function.
+        """
+
+        @requires_sudo
+        def some_method():
+            pass
+
+        assert getattr(some_method, "__requires_sudo", False) is True
+
+    def test_passthrough_on_success(self):
+        """
+        Ensure normal execution passes the return value through unchanged.
+        """
+
+        @requires_sudo
+        def some_method():
+            return "ok"
+
+        assert some_method() == "ok"
+
+    def test_auth_failure_raises_data_refresh_error(self, mocker):
+        """
+        Ensure AuthFailure raised by cx.sudo() is caught and re-raised as
+        DataRefreshError with an actionable message about sudoers configuration.
+        """
+        mock_result = mocker.MagicMock()
+
+        @requires_sudo
+        def some_method():
+            raise AuthFailure(result=mock_result, prompt="[sudo] password: ")
+
+        with pytest.raises(DataRefreshError) as exc_info:
+            some_method()
+
+        assert "sudo" in str(exc_info.value).lower()
+
+    def test_auth_failure_preserves_cause(self, mocker):
+        """
+        Ensure the original AuthFailure is chained as __cause__ on the
+        DataRefreshError so that tracebacks remain useful.
+        """
+        mock_result = mocker.MagicMock()
+        original = AuthFailure(result=mock_result, prompt="[sudo] password: ")
+
+        @requires_sudo
+        def some_method():
+            raise original
+
+        with pytest.raises(DataRefreshError) as exc_info:
+            some_method()
+
+        assert exc_info.value.__cause__ is original
+
+    def test_other_exceptions_are_not_intercepted(self):
+        """
+        Ensure unrelated exceptions propagate as-is.
+        """
+
+        @requires_sudo
+        def some_method():
+            raise ValueError("unrelated error")
+
+        with pytest.raises(ValueError, match="unrelated error"):
+            some_method()
 
 
 class TestPkgManagerFactory:

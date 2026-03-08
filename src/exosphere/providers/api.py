@@ -6,13 +6,23 @@ well as helper functions and decorators to be used by package manager
 provider implementations.
 """
 
+import functools
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 
 from fabric import Connection
+from invoke.exceptions import AuthFailure
 
 from exosphere.data import Update
+from exosphere.errors import DataRefreshError
+
+_SUDO_AUTH_FAILURE_MESSAGE = (
+    "Sudo failed: "
+    "Ensure the user is configured with passwordless sudo. "
+    "You can use 'exosphere sudo generate' to produce a sudoers snippet for this host. "
+    "See: https://exosphere.readthedocs.io/en/stable/connections.html#id1"
+)
 
 
 def requires_sudo(func: Callable) -> Callable:
@@ -23,9 +33,21 @@ def requires_sudo(func: Callable) -> Callable:
     it requires sudo privileges to execute. You should add it to any
     method that requires elevated privileges, i.e. whenever you are
     using 'cx.sudo()' instead of 'cx.run()'.
+
+    Additionally, the decorator provides enhanced error handling for
+    sudo related failures, presenting a clear message about sudo policies
+    and sudoers configuration when an AuthFailure or related exception occurs.
     """
-    setattr(func, "__requires_sudo", True)
-    return func
+
+    @functools.wraps(func)
+    def wrapper(*args: object, **kwargs: object) -> object:
+        try:
+            return func(*args, **kwargs)
+        except AuthFailure as e:
+            raise DataRefreshError(_SUDO_AUTH_FAILURE_MESSAGE) from e
+
+    setattr(wrapper, "__requires_sudo", True)
+    return wrapper
 
 
 class PkgManager(ABC):
