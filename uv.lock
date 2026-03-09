@@ -1727,15 +1727,15 @@ wheels = [
 
 [[package]]
 name = "sphinxcontrib-typer"
-version = "0.8.0"
+version = "0.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sphinx" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/45/844b8bb4ceb98b90adb352d695f82632176041e93c169d2ad19d434fb9b8/sphinxcontrib_typer-0.8.0.tar.gz", hash = "sha256:7637045f1446ed991b80dcaeea4b9f85258e08ddbc3ef91ac80baac5603ff282", size = 382277, upload-time = "2026-02-12T22:41:42.307Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ff/17/7e07799e1df369c170e747f8866b80563ff88d385f14304f8891a9f0fe4e/sphinxcontrib_typer-0.8.1.tar.gz", hash = "sha256:223016757b3ab1995971fce048ed5e939b4fd45ca0c255e320e0f87d04dbf9ef", size = 228669, upload-time = "2026-03-06T00:43:01.459Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/91/e50144ab98635102e9c33d599177381aa2d9996efcb5179ed59a1bb421d6/sphinxcontrib_typer-0.8.0-py3-none-any.whl", hash = "sha256:876547f7f0ded9eca17fdc8191373f4ac096642f00bf19c5e99c950228a0436a", size = 14529, upload-time = "2026-02-12T22:41:40.863Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/30/715e975d6e0b47979d37dab9fca05d8a178e45384d6f44fbf7ec76368220/sphinxcontrib_typer-0.8.1-py3-none-any.whl", hash = "sha256:869a69caf367af94e4acf2cfd62ce8b87faa02831c3d68c5fb1c96cc6b5dac2a", size = 14711, upload-time = "2026-03-06T00:42:59.781Z" },
 ]
 
 [[package]]
