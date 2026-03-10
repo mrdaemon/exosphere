@@ -16,6 +16,18 @@ AUTH_FAILURE_MESSAGE = (
     "and that your username is correct for the host."
 )
 
+# Sudo authentication failure message for better UX
+# This is intended to be displayed whenever a sudo command fails due to
+# a password prompt, or failure raised by Invoke's AuthFailure exception.
+# This will generally come up when a user is not configured with passwordless
+# sudo, but has a Sudo Policy of NOPASSWD or equivalent.
+SUDO_AUTH_FAILURE_MESSAGE = (
+    "Sudo failed: "
+    "Ensure the user is configured with passwordless sudo. "
+    "You can use 'exosphere sudo generate' to produce a sudoers snippet for this host. "
+    "See: https://exosphere.readthedocs.io/en/stable/connections.html#id1"
+)
+
 
 class DataRefreshError(Exception):
     """Exception raised for errors encountered during data refresh."""

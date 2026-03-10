@@ -15,14 +15,7 @@ from fabric import Connection
 from invoke.exceptions import AuthFailure
 
 from exosphere.data import Update
-from exosphere.errors import DataRefreshError
-
-_SUDO_AUTH_FAILURE_MESSAGE = (
-    "Sudo failed: "
-    "Ensure the user is configured with passwordless sudo. "
-    "You can use 'exosphere sudo generate' to produce a sudoers snippet for this host. "
-    "See: https://exosphere.readthedocs.io/en/stable/connections.html#id1"
-)
+from exosphere.errors import SUDO_AUTH_FAILURE_MESSAGE, DataRefreshError
 
 
 def requires_sudo(func: Callable) -> Callable:
@@ -44,7 +37,7 @@ def requires_sudo(func: Callable) -> Callable:
         try:
             return func(*args, **kwargs)
         except AuthFailure as e:
-            raise DataRefreshError(_SUDO_AUTH_FAILURE_MESSAGE) from e
+            raise DataRefreshError(SUDO_AUTH_FAILURE_MESSAGE) from e
 
     setattr(wrapper, "__requires_sudo", True)
     return wrapper
