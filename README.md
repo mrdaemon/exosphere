@@ -50,7 +50,7 @@ Supported platforms for remote hosts include:
 - FreeBSD (using pkg)
 - OpenBSD (using pkg_add)
 
-Unsupported platform with with SSH connectivity checks only:
+Unsupported platforms with SSH connectivity checks only:
 
 - Other Linux distributions (e.g., Arch Linux, Gentoo, NixOS, etc.)
 - Other BSD systems (NetBSD)
@@ -64,9 +64,11 @@ This includes network equipment with proprietary operating systems, etc.
 For installation instructions, configuration and usage examples,
 [full documentation](https://exosphere.readthedocs.io/) is available.
 
-## Development Quick Start
+## Development
 
-tl;dr, use [uv](https://docs.astral.sh/uv/getting-started/installation/)
+### Development Quick Start
+
+TL;DR, use [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
 ```bash
 uv sync --dev
@@ -87,7 +89,7 @@ For more details, and available tasks, run:
 uv run poe --help
 ```
 
-## UI Development Quick Start
+### UI Development Quick Start
 
 The UI is built with [Textual](https://textual.textualize.io/).
 
@@ -108,7 +110,7 @@ reflect changes immediately.
 
 Make sure you run Exosphere UI with `exosphere ui start`.
 
-## Documentation Editing Quick Start
+### Documentation Editing Quick Start
 
 To edit the documentation, you can use the following commands:
 
@@ -133,6 +135,89 @@ documentation, but can also be invoked separately:
 ```bash
 uv run poe docs-lint
 ```
+
+### Project Structure
+
+The project is managed via uv and `pyproject.toml`, which contains all dependencies,
+scripts, and metadata for the application.
+
+We use [Poe the Poet](https://poethepoet.natn.io/) as a task runner, and all
+tasks are defined in the `pyproject.toml` file under the `[tool.poe.tasks]` table.
+
+#### Root Directory
+
+| path | description |
+| ---- | ----------- |
+| `docs/` | Sphinx documentation source tree |
+| `docs/source/_ext/` | Custom Sphinx extensions for the project |
+| `examples/` | Example configuration files and reports |
+| `scripts/` | Utilitarian scripts for dev and maintenance |
+| `src/` | Main source code for the application |
+| `tests/` | Test suite for the application |
+
+#### Source Tree
+
+| path | description |
+| ---- | ----------- |
+| `src/exosphere/` | Main application source code |
+| `src/exosphere/commands/` | CLI command implementations |
+| `src/exosphere/providers/` | Package Manager Provider implementations (e.g. debian, freebsd, redhat, etc) |
+| `src/exosphere/schema/` | Reporting JSON schema definitions |
+| `src/exosphere/setup/` | Discovery and platform detection module |
+| `src/exosphere/templates/` | Jinja2 templates for reporting |
+| `src/exosphere/ui/` | Textual UI source code |
+| `src/exosphere/ui/style.tcss` | Textual CSS for styling the UI |
+
+The rest of the source tree should be fairly self-explanatory.
+
+#### Core Modules
+
+Paths below are relative to `src/exosphere/` unless otherwise noted.
+
+| module | description |
+| ------ | ----------- |
+| main.py | Main entry point for the application |
+| providers/api.py | Package manager provider API and base classes |
+| providers/factory.py | Concrete provider factory for creation of Package Managers |
+| cli.py | CLI interface entry point |
+| config.py | Configuration subsystem, including defaults |
+| context.py | Context management for shared state across commands and UI |
+| data.py | Data models and structures for serialization and exchange |
+| database.py | Cache system for serialization |
+| errors.py | Exception classes and general error messages |
+| inventory.py | Inventory management subsystem |
+| migrations.py | Cache format migration processes |
+| objects.py | Main objects for representing Hosts, and most of the relevant logic |
+| pipelining.py | SSH pipelining implementation, including reaper thread |
+| repl.py | REPL module for interactive CLI usage |
+| reporting.py | Reporting subsystem, including templates and formatters |
+| security.py | Sudo management subsystem, including policy and utilities |
+
+Generally, most of the things Exosphere does to hosts (including connection management
+and operations) are going to be found in `objects.py`.
+
+#### UI Modules
+
+Paths below are relative to `src/exosphere/` unless otherwise noted.
+
+| module | description |
+| ------ | ----------- |
+| ui/app.py | Main Textual application class and entry point for the UI |
+| ui/context.py | UI Context management for shared state across UI components |
+| ui/elements.py | Shared UI elements, including task runners |
+| ui/dashboard.py | Dashboard view implementation |
+| ui/inventory.py | Inventory view implementation |
+| ui/logs.py | Logs view implementation |
+| ui/messages.py | Screen refresh and message passing system |
+
+The TCSS for all of it is in a single file under `ui/style.tcss`.
+
+### Using Exosphere as a Library
+
+This use case is not currently well supported, but it is possible to use Exosphere as a library.
+The documentation for this (alongside actual examples) is still a WIP, but you can
+refer to the [Online API Documentation](https://exosphere.readthedocs.io/en/stable/api/index.html)
+for the core functionality and objects that are considered public.
 
 ## License
 
