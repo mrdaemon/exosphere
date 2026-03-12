@@ -141,7 +141,7 @@ uv run poe docs-lint
 The project is managed via uv and `pyproject.toml`, which contains all dependencies,
 scripts, and metadata for the application.
 
-We use [Poe the Poet](https://poethepoet.natn.io/) as a task runner, and all
+Exosphere uses [Poe the Poet](https://poethepoet.natn.io/) as a task runner, and all
 tasks are defined in the `pyproject.toml` file under the `[tool.poe.tasks]` table.
 
 #### Root Directory
@@ -176,22 +176,22 @@ Paths below are relative to `src/exosphere/` unless otherwise noted.
 
 | module | description |
 | ------ | ----------- |
-| main.py | Main entry point for the application |
-| providers/api.py | Package manager provider API and base classes |
-| providers/factory.py | Concrete provider factory for creation of Package Managers |
-| cli.py | CLI interface entry point |
-| config.py | Configuration subsystem, including defaults |
-| context.py | Context management for shared state across commands and UI |
-| data.py | Data models and structures for serialization and exchange |
-| database.py | Cache system for serialization |
-| errors.py | Exception classes and general error messages |
-| inventory.py | Inventory management subsystem |
-| migrations.py | Cache format migration processes |
-| objects.py | Main objects for representing Hosts, and most of the relevant logic |
-| pipelining.py | SSH pipelining implementation, including reaper thread |
-| repl.py | REPL module for interactive CLI usage |
-| reporting.py | Reporting subsystem, including templates and formatters |
-| security.py | Sudo management subsystem, including policy and utilities |
+| `main.py` | Main entry point for the application |
+| `providers/api.py` | Package manager provider API and base classes |
+| `providers/factory.py` | Concrete provider factory for creation of Package Managers |
+| `cli.py` | CLI interface entry point |
+| `config.py` | Configuration subsystem, including defaults |
+| `context.py` | Context management for shared state across commands and UI |
+| `data.py` | Data models and structures for serialization and exchange |
+| `database.py` | Cache system for serialization |
+| `errors.py` | Exception classes and general error messages |
+| `inventory.py` | Inventory management subsystem |
+| `migrations.py` | Cache format migration processes |
+| `objects.py` | Main objects for representing Hosts, and most of the relevant logic |
+| `pipelining.py` | SSH pipelining implementation, including reaper thread |
+| `repl.py` | REPL module for interactive CLI usage |
+| `reporting.py` | Reporting subsystem, including templates and formatters |
+| `security.py` | Sudo management subsystem, including policy and utilities |
 
 Generally, most of the things Exosphere does to hosts (including connection management
 and operations) are going to be found in `objects.py`.
@@ -202,13 +202,13 @@ Paths below are relative to `src/exosphere/` unless otherwise noted.
 
 | module | description |
 | ------ | ----------- |
-| ui/app.py | Main Textual application class and entry point for the UI |
-| ui/context.py | UI Context management for shared state across UI components |
-| ui/elements.py | Shared UI elements, including task runners |
-| ui/dashboard.py | Dashboard view implementation |
-| ui/inventory.py | Inventory view implementation |
-| ui/logs.py | Logs view implementation |
-| ui/messages.py | Screen refresh and message passing system |
+| `ui/app.py` | Main Textual application class and entry point for the UI |
+| `ui/context.py` | UI Context management for shared state across UI components |
+| `ui/elements.py` | Shared UI elements, including task runners |
+| `ui/dashboard.py` | Dashboard view implementation |
+| `ui/inventory.py` | Inventory view implementation |
+| `ui/logs.py` | Logs view implementation |
+| `ui/messages.py` | Screen refresh and message passing system |
 
 The TCSS for all of it is in a single file under `ui/style.tcss`.
 
