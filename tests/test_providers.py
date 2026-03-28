@@ -1422,6 +1422,27 @@ class TestDnfProvider:
 
         return create_scenario
 
+    @pytest.fixture
+    def make_run_result(self, mocker):
+        """
+        Generic Factory fixture to build Fabric run() results
+        """
+
+        def _make(
+            stdout: str = "",
+            failed: bool = False,
+            return_code: int = 0,
+            stderr: str = "",
+        ):
+            result = mocker.MagicMock()
+            result.stdout = stdout
+            result.failed = failed
+            result.return_code = return_code
+            result.stderr = stderr
+            return result
+
+        return _make
+
     @pytest.mark.parametrize(
         "connection_fixture, expected",
         [
@@ -1730,3 +1751,166 @@ class TestDnfProvider:
         assert (
             "Update for kernel.x86_64 is already in the list, skipping"
         ) in caplog.text
+
+    def test_kernel_query_scoped_to_installed_repo(
+        self, mocker, mock_connection, make_run_result
+    ):
+        """
+        Kernel query should be scoped to the installed kernel source repo.
+        This prevents selecting a newer kernel from a different repository.
+        """
+        dnf = Dnf()
+
+        mock_installed = make_run_result(
+            stdout="""
+            Installed Packages
+            kernel.x86_64  5.14.0-570.18.1.el9_6  @cloud-kernel
+            """
+        )
+
+        mock_scoped_kernel = make_run_result(
+            stdout="kernel.x86_64  5.14.0-570.19.1.el9_7  cloud-kernel\n"
+        )
+
+        def side_effect(cmd, *args, **kwargs):
+            if "list installed kernel" in cmd:
+                return mock_installed
+            if "repoquery kernel" in cmd and "--repoid=cloud-kernel" in cmd:
+                return mock_scoped_kernel
+
+            return make_run_result()
+
+        mock_connection.run.side_effect = side_effect
+
+        update = dnf._get_kernel_updates(mock_connection)
+
+        assert update is not None
+        assert update.new_version == "5.14.0-570.19.1.el9_7"
+        assert update.source == "cloud-kernel"
+
+        repoquery_calls = [
+            c.args[0]
+            for c in mock_connection.run.call_args_list
+            if "repoquery kernel" in c.args[0]
+        ]
+        assert len(repoquery_calls) == 1
+        assert "--repoid=cloud-kernel" in repoquery_calls[0]
+
+    def test_kernel_query_unknown_repo_falls_back_to_unscoped(
+        self, mocker, mock_connection, make_run_result
+    ):
+        """
+        If yumdb source repo is stale/unknown, retry kernel query without
+        --repoid instead of failing.
+        """
+        dnf = Dnf()
+
+        mock_installed = make_run_result(
+            stdout="""
+            Installed Packages
+            kernel.x86_64  5.14.0-570.18.1.el9_6  @cloud-kernel
+            """
+        )
+
+        mock_unknown_repo = make_run_result(
+            failed=True,
+            return_code=1,
+            stderr="Error: Unknown repo: 'cloud-kernel'",
+        )
+
+        mock_unscoped_kernel = make_run_result(
+            stdout="kernel.x86_64  5.14.0-570.20.1.el9_7  baseos\n"
+        )
+
+        def side_effect(cmd, *args, **kwargs):
+            if "list installed kernel" in cmd:
+                return mock_installed
+            if "repoquery kernel" in cmd and "--repoid=cloud-kernel" in cmd:
+                return mock_unknown_repo
+            if "repoquery kernel" in cmd and "--repoid=" not in cmd:
+                return mock_unscoped_kernel
+
+            return make_run_result()
+
+        mock_connection.run.side_effect = side_effect
+
+        update = dnf._get_kernel_updates(mock_connection)
+
+        assert update is not None
+        assert update.new_version == "5.14.0-570.20.1.el9_7"
+        assert update.source == "baseos"
+
+        repoquery_calls = [
+            c.args[0]
+            for c in mock_connection.run.call_args_list
+            if "repoquery kernel" in c.args[0]
+        ]
+        assert len(repoquery_calls) == 2
+        assert "--repoid=cloud-kernel" in repoquery_calls[0]
+        assert "--repoid=" not in repoquery_calls[1]
+
+    @pytest.mark.parametrize("repo", ["@commandline", "@System", "@anaconda"])
+    def test_kernel_query_local_install_does_not_scope_repo(
+        self, mocker, mock_connection, make_run_result, repo
+    ):
+        """
+        Local/manual installs should not set source_repo and therefore should
+        query all enabled repos (no --repoid).
+        """
+        dnf = Dnf()
+
+        mock_installed = make_run_result(
+            stdout=f"""
+            Installed Packages
+            kernel.x86_64  5.14.0-570.18.1.el9_6  {repo}
+            """
+        )
+
+        mock_kernel = make_run_result(
+            stdout="kernel.x86_64  5.14.0-570.19.1.el9_7  baseos\n"
+        )
+
+        def side_effect(cmd, *args, **kwargs):
+            if "list installed kernel" in cmd:
+                return mock_installed
+            if "repoquery kernel" in cmd:
+                return mock_kernel
+
+            return make_run_result()
+
+        mock_connection.run.side_effect = side_effect
+
+        update = dnf._get_kernel_updates(mock_connection)
+
+        assert update is not None
+        repoquery_calls = [
+            c.args[0]
+            for c in mock_connection.run.call_args_list
+            if "repoquery kernel" in c.args[0]
+        ]
+        assert len(repoquery_calls) == 1
+        assert "--repoid=" not in repoquery_calls[0]
+
+    def test_get_installed_kernel_info_returns_none_source_for_local_install(
+        self, mocker, mock_connection, make_run_result
+    ):
+        """
+        _get_installed_kernel_info should return source_repo=None when all
+        installed kernels come from pseudo/local repos.
+        """
+        dnf = Dnf()
+
+        mock_installed = make_run_result(
+            stdout="""
+            Installed Packages
+            kernel.x86_64  5.14.0-570.16.1.el9_6  @System
+            kernel.x86_64  5.14.0-570.18.1.el9_6  @commandline
+            """
+        )
+
+        mock_connection.run.return_value = mock_installed
+
+        versions, source_repo = dnf._get_installed_kernel_info(mock_connection)
+
+        assert versions == ["5.14.0-570.16.1.el9_6", "5.14.0-570.18.1.el9_6"]
+        assert source_repo is None

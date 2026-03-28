@@ -159,6 +159,69 @@ class Dnf(PkgManager):
 
         return updates
 
+    def _get_installed_kernel_info(
+        self, cx: Connection
+    ) -> tuple[list[str], str | None]:
+        """
+        Return installed kernel versions and the source repo of the
+        highest-versioned installed kernel.
+
+        Uses `dnf list installed` for speed. The repo column is normalized by
+        stripping a leading '@' if present.
+
+        :param cx: Fabric Connection object.
+        :return: Tuple of (installed_versions, source_repo) where source_repo
+                 is the repoid string without any leading '@', or None if the
+                 repo cannot be determined (e.g. manually installed RPMs).
+        """
+        result = cx.run(
+            f"{self.pkgbin} --quiet -y list installed kernel",
+            hide=True,
+            warn=True,
+        )
+
+        if result.failed:
+            raise DataRefreshError(
+                f"Failed to query installed kernels: {result.stderr}"
+            )
+
+        versions: list[str] = []
+        source_repo: str | None = None
+
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+
+            if "installed packages" in line.lower():
+                continue
+
+            # Stop parsing at "Available Packages" section.
+            # Mainly for DNF5 compat with its "helpful" output.
+            if "available packages" in line.lower():
+                break
+
+            parsed = self._parse_line(line)
+            if not parsed:
+                self.logger.debug("Failed to parse line: %s. Skipping.", line)
+                continue
+
+            _, version, from_repo = parsed
+            versions.append(version)
+
+            # Normalize repo string
+            repo = from_repo.lstrip("@")
+
+            # Best effort skip of pseudo repo sources
+            # Those usually indicate manually installed packages
+            if repo and repo not in ("System", "commandline", "anaconda"):
+                source_repo = repo
+
+        self.logger.debug(
+            "Installed kernel versions: %s, source repo: %s", versions, source_repo
+        )
+        return versions, source_repo
+
     def _get_kernel_updates(self, cx: Connection) -> Update | None:
         """
         Get latest kernel update if it differs from installed
@@ -167,22 +230,74 @@ class Dnf(PkgManager):
         manage kernel images. The packages are essentially slotted,
         and they are New Packages, not straight upgrades in any
         meaningful way.
+
+        We also resolve the source repo for the currently installed
+        kernel first, and then scope the query for latest kernel to
+        that, if possible.
+
+        This prevents cross-repo false positives where the current kernel
+        comes from one repo, but another repo has a newer kernel.
+
+        Common cases where this happens:
+
+        - System with kernel from third party vendor repo
+        - Systems where main repo was switched after installation
+        - Systems with multiple kernel repositories enabled in general
+
         """
+        self.logger.debug("Checking installed kernels")
+        installed_versions, source_repo = self._get_installed_kernel_info(cx)
+
+        if not installed_versions:
+            self.logger.warning("No installed kernels found? This is likely a bug!")
+            return None
+
+        if source_repo:
+            self.logger.debug(
+                "Scoping kernel update query to source repo: %s", source_repo
+            )
+        else:
+            self.logger.warning(
+                "Could not determine kernel source repo; querying all repos."
+                " This may produce false positives on systems with multiple"
+                " kernel repositories."
+            )
+
         self.logger.debug("Querying repository for latest kernel")
 
         # Format the output to match 'check-update'
         queryformat = "%{name}.%{arch}  %{version}-%{release}  %{repoid}\n"
 
+        repoid_arg = f"--repoid={source_repo}" if source_repo else ""
+
         raw_query = cx.run(
-            f"{self.pkgbin} --quiet -y repoquery kernel --latest-limit=1 --queryformat='{queryformat}'",
+            f"{self.pkgbin} --quiet -y repoquery kernel {repoid_arg}"
+            f" --latest-limit=1 --queryformat='{queryformat}'",
             hide=True,
             warn=True,
         )
 
         if raw_query.failed:
-            raise DataRefreshError(
-                f"Failed to retrieve latest kernel from repo: {raw_query.stderr}"
-            )
+            # Source repo in the dnf/yum cache can be stale for various
+            # reasons, such as repo renaming or removal since installation.
+            # We fall back to an unscoped query in this case.
+            if source_repo and "unknown repo" in raw_query.stderr.lower():
+                self.logger.warning(
+                    "Kernel source repo '%s' is unknown to DNF; retrying"
+                    " kernel query across all enabled repos.",
+                    source_repo,
+                )
+                raw_query = cx.run(
+                    f"{self.pkgbin} --quiet -y repoquery kernel"
+                    f" --latest-limit=1 --queryformat='{queryformat}'",
+                    hide=True,
+                    warn=True,
+                )
+
+            if raw_query.failed:
+                raise DataRefreshError(
+                    f"Failed to retrieve latest kernel from repo: {raw_query.stderr}"
+                )
 
         latest: tuple[str, str, str] | None = None
 
@@ -207,16 +322,6 @@ class Dnf(PkgManager):
 
         latest_name, latest_version, latest_source = latest
         self.logger.debug("Latest version is %s", latest_version)
-
-        self.logger.debug("Checking installed kernels")
-        installed_kernels = self._get_current_versions(cx, ["kernel"])
-
-        if not installed_kernels:
-            self.logger.warning("No installed kernels found? This is likely a bug.")
-            return None
-
-        # Kernel packages are ALWAYS slotted, and will always return a list
-        installed_versions = [v for k in installed_kernels.values() for v in k]
 
         if latest_version not in installed_versions:
             # We can generally assume that if a kernel package is
