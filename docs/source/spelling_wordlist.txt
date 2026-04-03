@@ -22,6 +22,7 @@ flatpaks
 github
 hostname
 init
+installonly
 ip
 jinja
 jinja2
@@ -31,6 +32,7 @@ keybinds
 kwargs
 linux
 lstrip
+misconfiguration
 nopasswd
 nullable
 pre

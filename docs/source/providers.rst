@@ -71,8 +71,7 @@ Exact Commands ran on remote systems
 - ``dnf --quiet -y makecache --refresh``
 - ``dnf --quiet -y check-update``
 - ``dnf --quiet -y check-update --security``
-- ``dnf --quiet -y list installed <package_name>``
-- ``dnf --quiet -y repoquery kernel --latest-limit=1 --queryformat='%{name}.%{arch}  %{version}-%{release}  %{repoid}\n'``
+- ``dnf --quiet -y list installed <package_name> [<package_name> ...]``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
@@ -81,6 +80,15 @@ Command dependencies
 
 Usage Notes and Issues
 ^^^^^^^^^^^^^^^^^^^^^^
+
+Some minor limitations:
+
+* Current version detection is done on a best effort basis, installonly packages
+  are clobbered down to the last installed version. This is generally accurate enough, but
+  it is difficult to provide guarantees given the dnf/yum interfaces available.
+* Some Vendor configurations may cause the provider to fail to detect kernel updates.
+  This is generally a misconfiguration, and you should seek vendor support to resolve this.
+  Google Compute Platform (GCP) is known to exhibit this issue with some legacy vendor kernels.
 
 In some scenarios, the `yum` or `dnf` commands may hang when running due to
 unexpectedly prompting for user input interactively, which Exosphere cannot handle.

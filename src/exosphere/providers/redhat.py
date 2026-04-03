@@ -2,6 +2,8 @@
 RedHat Package Manager Provider
 """
 
+import re
+
 from fabric import Connection
 
 from exosphere.data import Update
@@ -16,9 +18,14 @@ class Dnf(PkgManager):
     Implements the DNF package manager interface.
     Can also be used as a drop-in replacement for YUM.
 
-    The whole RPM ecosystem is kind of a piece of shit in terms of
-    integration between high level and low level interfaces.
-    It is what it is.
+    Some limitations:
+     - Current Version data is provided on a Best Effort basis
+     - Slotted/installonly packages especially are clobbered down to a
+       single version
+     - Some broken kernel repo configurations may cause kernel updates
+       to not be displayed, but this is a Vendor Specific issue, and
+       working around it is not worth the effort as it introduces new
+       and exciting issues for systems where this is not the case.
     """
 
     def __init__(self, use_yum: bool = False) -> None:
@@ -31,6 +38,7 @@ class Dnf(PkgManager):
         super().__init__()
         self.logger.debug("Initializing RedHat DNF package manager")
         self.security_updates: list[str] = []
+        self.line_pattern: re.Pattern | None = None
 
     def reposync(self, cx: Connection) -> bool:
         """
@@ -67,13 +75,7 @@ class Dnf(PkgManager):
         # Get security updates first
         self.security_updates = self._get_security_updates(cx)
 
-        # Get kernel updates second
-        kernel_update = self._get_kernel_updates(cx)
-        if kernel_update:
-            self.logger.debug("A new kernel is available.")
-            updates.append(kernel_update)
-
-        # Get all other updates
+        # Get all updates
         raw_query = cx.run(
             f"{self.pkgbin} --quiet -y check-update", hide=True, warn=True
         )
@@ -98,11 +100,18 @@ class Dnf(PkgManager):
                 continue
 
             # Stop processing at "Obsoleting Packages" section
-            if "obsoleting packages" in line.lower():
+            if "obsoleting packages" in line.casefold():
                 self.logger.debug(
                     "Reached 'Obsoleting Packages' section, stopping parsing."
                 )
                 break
+
+            # Skip Security: annotation lines emitted by dnf when
+            # some intermediate security updates are installed but not active,
+            # or similar scenarios
+            if line.casefold().startswith("security:"):
+                self.logger.debug("Skipping security annotation line: %s", line)
+                continue
 
             parsed = self._parse_line(line)
             if parsed is None:
@@ -115,37 +124,24 @@ class Dnf(PkgManager):
 
         self.logger.debug("Found %d update(s)", len(parsed_tuples))
 
-        installed_versions = self._get_current_versions(
+        # Skip the rest of processing if no parsable updates were found.
+        # This likely indicates an issue with the system, unexpected
+        # output, or an issue with our parser needing adjustments.
+        if not parsed_tuples:
+            self.logger.warning(
+                "%s reported updates, but none were extracted! "
+                "This is likely a bug, consider filing an issue." % self.pkgbin.upper()
+            )
+            return updates
+
+        installed_versions = self._get_current_version(
             cx, [name for name, _, _ in parsed_tuples]
         )
 
         for name, version, source in parsed_tuples:
-            # If update was provided by security or kernel checks, skip it here
-            # Whether it shows up in both lists depends on configuration and
-            # this varies from specific flavor to flavor.
-            if name in [u.name for u in updates]:
-                self.logger.debug(
-                    "Update for %s is already in the list, skipping", name
-                )
-                continue
-
             is_security = name in self.security_updates
 
             current_version = installed_versions.get(name, None)
-
-            # Handle slotted packages, if they show up for any reason.
-            # We only handle the kernel package as slotted, but it may show
-            # up here in some edge cases or configurations.
-            if isinstance(current_version, list):
-                self.logger.debug(
-                    "Slotted package %s has multiple versions: %s",
-                    name,
-                    current_version,
-                )
-                current_version = current_version[-1] if current_version else None
-                self.logger.debug(
-                    "Using version %s for currently installed.", current_version
-                )
 
             update = Update(
                 name=name,
@@ -158,89 +154,6 @@ class Dnf(PkgManager):
             updates.append(update)
 
         return updates
-
-    def _get_kernel_updates(self, cx: Connection) -> Update | None:
-        """
-        Get latest kernel update if it differs from installed
-
-        This is a separate step due to the way redhat systems usually
-        manage kernel images. The packages are essentially slotted,
-        and they are New Packages, not straight upgrades in any
-        meaningful way.
-        """
-        self.logger.debug("Querying repository for latest kernel")
-
-        # Format the output to match 'check-update'
-        queryformat = "%{name}.%{arch}  %{version}-%{release}  %{repoid}\n"
-
-        raw_query = cx.run(
-            f"{self.pkgbin} --quiet -y repoquery kernel --latest-limit=1 --queryformat='{queryformat}'",
-            hide=True,
-            warn=True,
-        )
-
-        if raw_query.failed:
-            raise DataRefreshError(
-                f"Failed to retrieve latest kernel from repo: {raw_query.stderr}"
-            )
-
-        latest: tuple[str, str, str] | None = None
-
-        for line in raw_query.stdout.splitlines():
-            line = line.strip()
-
-            if not line:
-                continue
-
-            parsed = self._parse_line(line)
-
-            if not parsed:
-                self.logger.debug("Failed to parse line: %s. Skipping.", line)
-                continue
-
-            latest = parsed
-            break  # Only one result is expected anyways.
-
-        if not latest:
-            self.logger.warning("Repo query did not return a kernel, skipping check")
-            return None
-
-        latest_name, latest_version, latest_source = latest
-        self.logger.debug("Latest version is %s", latest_version)
-
-        self.logger.debug("Checking installed kernels")
-        installed_kernels = self._get_current_versions(cx, ["kernel"])
-
-        if not installed_kernels:
-            self.logger.warning("No installed kernels found? This is likely a bug.")
-            return None
-
-        # Kernel packages are ALWAYS slotted, and will always return a list
-        installed_versions = [v for k in installed_kernels.values() for v in k]
-
-        if latest_version not in installed_versions:
-            # We can generally assume that if a kernel package is
-            # present in security updates, it's going to be this one,
-            # even though we don't explicitly check and compare the versions.
-            is_security: bool = latest_name in self.security_updates
-
-            self.logger.debug("Found new kernel: %s", latest_version)
-
-            self.logger.debug(
-                "Kernel %s is %s",
-                latest_version,
-                "security" if is_security else "not security",
-            )
-
-            return Update(
-                name=latest_name,
-                current_version=installed_versions[-1] if installed_versions else None,
-                new_version=latest_version,
-                source=latest_source,
-                security=is_security,
-            )
-
-        return None
 
     def _get_security_updates(self, cx: Connection) -> list[str]:
         """
@@ -275,11 +188,15 @@ class Dnf(PkgManager):
                 continue
 
             # Stop processing at "Obsoleting Packages" section
-            if line.startswith("Obsoleting Packages"):
+            if line.casefold().startswith("obsoleting packages"):
                 self.logger.debug(
                     "Reached 'Obsoleting Packages' section, stopping parsing."
                 )
                 break
+
+            # Skip Security: annotation lines
+            if line.casefold().startswith("security:"):
+                continue
 
             parsed = self._parse_line(line)
             if parsed:
@@ -291,40 +208,46 @@ class Dnf(PkgManager):
 
     def _parse_line(self, line: str) -> tuple[str, str, str] | None:
         """
-        Parse a line from the DNF output to create an Update object.
+        Parse a line from DNF check-update style tabular output
+        Extracts Update object data as a tuple.
 
         :param line: Line from DNF output.
         :return: Tuple of (name, version, source) or None if parsing fails.
         """
-        parts = line.split()
 
-        if len(parts) < 3:
-            self.logger.debug("Line does not contain enough parts: %s", line)
+        # Lazy compile the line pattern on first use
+        if self.line_pattern is None:
+            self.line_pattern = re.compile(
+                r"^(?P<name>[a-z0-9][\w+.-]*\.\w+)\s+"  # Package (name.arch)
+                r"(?P<version>[\w.+~:-]+-[\w.+~]+)\s+"  # RPM version-release
+                r"(?P<source>@?[a-z0-9][\w.:+/-]*)$",  # Repo source (optional @)
+                re.ASCII | re.IGNORECASE,
+            )
+
+        match = self.line_pattern.match(line)
+
+        if not match:
+            self.logger.debug("Skipping garbage line: %s", line)
             return None
 
-        name = parts[0]
-        version = parts[1]
-        source = parts[2]
+        return (match["name"], match["version"], match["source"].removeprefix("@"))
 
-        return (name, version, source)
-
-    def _get_current_versions(
+    def _get_current_version(
         self, cx: Connection, package_names: list[str]
-    ) -> dict[str, str | list[str]]:
+    ) -> dict[str, str]:
         """
         Get the currently installed version of a package.
 
-        Kernel packages are handled specially since they are slotted.
-        We don't generally care about slotted packages and just clobber it
-        down to a single version, but kernel packages are of interest.
+        This method clobbers packages down to a single version.
+        For installonly/slotted packages with multiple installed versions,
+        the last reported version is used.
 
-        If 'kernel' is in the package_names, the value will be
-        a list of versions.
+        This is done on a best effort basis, but works well enough
+        given the limitations of the DNF/YUM interfaces.
 
         :param cx: Fabric Connection object.
         :param package_names: Package names to return versions for.
-        :return: Currently installed version of the package, or
-                 list of installed versions if kernel package.
+        :return: Currently installed version of each package.
         """
 
         result = cx.run(
@@ -340,14 +263,14 @@ class Dnf(PkgManager):
 
         for line in result.stdout.splitlines():
             line = line.strip()
-            if not line or "installed packages" in line.lower():
+            if not line or "installed packages" in line.casefold():
                 continue
 
             # Stop parsing at "Available packages" section
             # This is for DNF5 compatibility, which helpfully lists them
             # and our clobbering logic prevents current version logic from
             # working.
-            if "available packages" in line.lower():
+            if "available packages" in line.casefold():
                 self.logger.debug(
                     "Reached 'Available packages' section, stopping parsing."
                 )
@@ -363,25 +286,18 @@ class Dnf(PkgManager):
 
             existing_key = current_versions.get(name)
 
-            # Kernel packages are slotted and we want to keep all of them.
-            if name.split(".")[0] == "kernel":
-                if not existing_key:
-                    current_versions[name] = [version]
-                else:
-                    current_versions[name].append(version)
-            else:
-                # Everything else gets clobbered because slotted packages
-                # generally don't matter from a UX standpoint. We just need
-                # the last version in the results.
-                if existing_key:
-                    self.logger.debug(
-                        "Clobbering %s with %s for package %s",
-                        existing_key,
-                        version,
-                        name,
-                    )
+            # Clobber packages down to a single version
+            # This handles slotted/installonly packages where multiple
+            # versions may be installed concurrently.
+            if existing_key:
+                self.logger.debug(
+                    "Clobbering %s with %s for package %s",
+                    existing_key,
+                    version,
+                    name,
+                )
 
-                current_versions[name] = version
+            current_versions[name] = version
 
         self.logger.debug("Current versions: %s", current_versions)
         return current_versions
@@ -400,10 +316,5 @@ class Yum(Dnf):
     def __init__(self) -> None:
         """
         Initialize the Yum package manager.
-
-        :param sudo: Whether to use sudo for package refresh operations
-            (default is True).
-        :param password: Optional password for sudo operations, if not
-            using NOPASSWD.
         """
         super().__init__(use_yum=True)
