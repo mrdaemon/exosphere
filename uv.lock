@@ -504,7 +504,7 @@ wheels = [
 
 [[package]]
 name = "exosphere-cli"
-version = "2.4.1.dev3"
+version = "2.4.1.dev4"
 source = { editable = "." }
 dependencies = [
     { name = "fabric" },

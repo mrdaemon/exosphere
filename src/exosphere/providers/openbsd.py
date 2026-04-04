@@ -30,6 +30,7 @@ class PkgAdd(PkgManager):
         """
         super().__init__()
         self.logger.debug("Initializing OpenBSD pkg_add package manager")
+        self.line_pattern: re.Pattern | None = None
 
     def reposync(self, cx: Connection) -> bool:
         """
@@ -67,7 +68,7 @@ class PkgAdd(PkgManager):
         # Syspatch returns non-zero exit code if the release is unsupported,
         # and we use this to determine if we can track security status.
         if version_query.failed:
-            if "unsupported release" in version_query.stderr.lower():
+            if "unsupported release" in version_query.stderr.casefold():
                 self.logger.warning(
                     "Host is running unsupported OpenBSD release. "
                     "Security status will not be tracked.",
@@ -139,9 +140,13 @@ class PkgAdd(PkgManager):
         :return: An Update object or None if not an update
         """
 
-        pattern = r"^Update candidates: ([\w\-.+]+)-([^\s]+) -> ([\w\-.+]+)-([^\s]+)$"
+        # Compile the regex pattern on first use
+        if self.line_pattern is None:
+            self.line_pattern = re.compile(
+                r"^Update candidates: ([\w\-.+]+)-([^\s]+) -> ([\w\-.+]+)-([^\s]+)$"
+            )
 
-        match = re.match(pattern, line)
+        match = self.line_pattern.match(line)
 
         if not match:
             self.logger.debug("Could not parse: %s", line)

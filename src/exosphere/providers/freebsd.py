@@ -36,6 +36,7 @@ class Pkg(PkgManager):
         super().__init__()
         self.logger.debug("Initializing FreeBSD pkg package manager")
         self.vulnerable: list[str] = []
+        self.line_pattern: re.Pattern | None = None
 
     @requires_sudo
     def reposync(self, cx: Connection) -> bool:
@@ -169,17 +170,20 @@ class Pkg(PkgManager):
         Also extracts the repository name in case of recent versions of pkg.
         """
 
-        pattern = (
-            r"^\s*(?P<name>\S+):\s+"  # Package name, followed by colon and spaces
-            r"(?P<version>[^\s]+)"  # Current version: non-space characters
-            r"(?:"  # Start of alternation group
-            r"(?:\s+->\s+(?P<new>[^\s]+))?"  # Optional separator and new version
-            r")"  # End of alternation group
-            r"(?:\s*\[(?P<repo>.*?)\])?"  # Optional repo tag in brackets (e.g., [FreeBSD])
-            r"$"  # End of line
-        )
+        # Compile the regex pattern on first use
+        if self.line_pattern is None:
+            self.line_pattern = re.compile(
+                r"^\s*(?P<name>\S+):\s+"  # Package name, followed by colon and spaces
+                r"(?P<version>[^\s]+)"  # Current version: non-space characters
+                r"(?:"  # Start of alternation group
+                r"(?:\s+->\s+(?P<new>[^\s]+))?"  # Optional separator and new version
+                r")"  # End of alternation group
+                r"(?:\s*\[(?P<repo>.*?)\])?"  # Optional repo tag in brackets (e.g., [FreeBSD])
+                r"$"  # End of line
+            )
 
-        match = re.match(pattern, line)
+        match = self.line_pattern.match(line)
+
         if not match:
             return None
 

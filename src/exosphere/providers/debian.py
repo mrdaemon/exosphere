@@ -28,6 +28,7 @@ class Apt(PkgManager):
         """
         super().__init__()
         self.logger.debug("Initializing Debian Apt package manager")
+        self.line_pattern: re.Pattern | None = None
 
     @requires_sudo
     def reposync(self, cx: Connection) -> bool:
@@ -108,15 +109,17 @@ class Apt(PkgManager):
         :return: Update data class instance or None if parsing fails.
         """
 
-        pattern = (
-            r"^Inst\s+"  # Starts with "Inst" followed by space(s)
-            r"(?P<name>\S+)\s+"  # Package name: non-space characters
-            r"(?:\[(?P<current_version>[^\]]+)\]\s+)?"  # Current version: text in [] (optional)
-            r"\((?P<new_version>\S+)\s+"  # New version: first non-space in ()
-            r"(?P<source>.+?)\s+\[[^\]]+\]\)"  # Repo source: lazily capture text until next [..]
-        )
+        # Compile the regex pattern on first use
+        if self.line_pattern is None:
+            self.line_pattern = re.compile(
+                r"^Inst\s+"  # Starts with "Inst" followed by space(s)
+                r"(?P<name>\S+)\s+"  # Package name: non-space characters
+                r"(?:\[(?P<current_version>[^\]]+)\]\s+)?"  # Current version: text in [] (optional)
+                r"\((?P<new_version>\S+)\s+"  # New version: first non-space in ()
+                r"(?P<source>.+?)\s+\[[^\]]+\]\)"  # Repo source: lazily capture text until next [..]
+            )
 
-        match = re.match(pattern, line)
+        match = self.line_pattern.match(line)
 
         if not match:
             return None
@@ -135,7 +138,7 @@ class Apt(PkgManager):
         repo_source = match["source"].strip()
         is_security = False
 
-        if "security" in repo_source.lower():
+        if "security" in repo_source.casefold():
             self.logger.debug(
                 f"Package {package_name} is a security update: {new_version}"
             )
