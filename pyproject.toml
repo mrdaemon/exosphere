@@ -1,6 +1,6 @@
 [project]
 name = "exosphere-cli"
-version = "2.4.1.dev4"
+version = "2.4.1"
 description = "CLI/TUI driven patch reporting for remote Unix-like systems."
 readme = "README.md"
 authors = [
@@ -11,7 +11,6 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.13",
@@ -74,7 +73,7 @@ issues = "https://github.com/mrdaemon/exosphere/issues"
 exosphere = "exosphere.main:main"
 
 [build-system]
-requires = ["uv_build>=0.7.19,<0.11.0"]
+requires = ["uv_build>=0.7.19,<0.12.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
