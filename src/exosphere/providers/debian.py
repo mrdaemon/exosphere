@@ -50,6 +50,10 @@ class Apt(PkgManager):
             )
             return False
 
+        # Log warnings from apt-get if there was any stderr output.
+        if update.stderr:
+            self._log_apt_warn(update.stderr)
+
         self.logger.debug("Apt repositories synchronized successfully")
 
         return True
@@ -78,6 +82,10 @@ class Apt(PkgManager):
             # We're probably good, no updates available.
             self.logger.debug("No updates available or no matches in output.")
             return updates
+
+        # Log warnings from apt-get if there was any stderr output.
+        if raw_query.stderr:
+            self._log_apt_warn(raw_query.stderr)
 
         for line in raw_query.stdout.splitlines():
             line = line.strip()
@@ -151,3 +159,16 @@ class Apt(PkgManager):
             source=repo_source,
             security=is_security,
         )
+
+    def _log_apt_warn(self, lines: str) -> None:
+        """
+        Log warnings from APT stderr output.
+        We ignore empty lines and lines that do not begin with "W:"
+
+        :param lines: Stderr output to log.
+        """
+        for line in lines.splitlines():
+            line = line.strip()
+            if not line or not line.startswith("W: "):
+                continue
+            self.logger.warning("APT: %s", line)

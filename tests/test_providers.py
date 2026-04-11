@@ -229,6 +229,30 @@ class TestAptProvider:
         assert updates[7].name == "big-patch"
         assert updates[7].security
 
+    def test_get_updates_logs_apt_warnings(self, mock_connection, caplog):
+        """
+        Test that non-fatal APT stderr output is logged as a warning.
+        """
+        apt = Apt()
+        mock_connection.run.return_value.stdout = (
+            "Inst dovecot-core [1:2.3.19.1+dfsg1-2.1+deb12u1] "
+            "(1:2.3.19.1+dfsg1-2.1+deb12u2 Debian:12.11/stable [amd64])"
+        )
+        mock_connection.run.return_value.stderr = (
+            "W: Unable to read /etc/apt/preferences.d/pin-dovecot - "
+            "open (13: Permission denied)"
+        )
+
+        with caplog.at_level(logging.WARNING, logger="exosphere.providers.apt"):
+            updates = apt.get_updates(mock_connection)
+
+        assert len(updates) == 1
+        assert any("APT: W:" in message for message in caplog.messages)
+        assert any(
+            "Unable to read /etc/apt/preferences.d/pin-dovecot" in message
+            for message in caplog.messages
+        )
+
     def test_get_updates_no_updates(self, mock_pkg_output_no_updates):
         """
         Test the get_updates method of the Apt provider when no updates are available.
