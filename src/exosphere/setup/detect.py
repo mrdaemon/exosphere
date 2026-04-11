@@ -30,6 +30,10 @@ def platform_detect(cx: Connection) -> HostInfo:
     Detect the platform of the remote system.
     Entry point for refreshing all platform details.
 
+    Linux detection in general depends on the presence of a well-formed
+    /etc/os-release file, which is a safe assumption for everything we
+    explicitly support that's not EOL'd.
+
     :param cx: Fabric Connection object
     :return: HostInfo object with platform details
     """
@@ -114,8 +118,6 @@ def flavor_detect(cx: Connection, platform_name: str) -> str:
 
     # Linux
     if platform_name == "linux":
-        # We're just going to query /etc/os-release directly.
-        # Using lsb_release would be better, but it's less available
         result_id = cx.run("grep ^ID= /etc/os-release", hide=True, warn=True)
         result_like_id = cx.run(
             "grep ^ID_LIKE= /etc/os-release",
@@ -125,7 +127,7 @@ def flavor_detect(cx: Connection, platform_name: str) -> str:
 
         if result_id.failed:
             raise DataRefreshError(
-                "Failed to detect OS flavor via lsb identifier.",
+                "Failed to detect OS flavor via os-release identifier.",
                 stderr=result_id.stderr,
                 stdout=result_id.stdout,
             )
@@ -187,36 +189,31 @@ def version_detect(cx: Connection, flavor_name: str) -> str:
     if flavor_name.lower() not in SUPPORTED_FLAVORS:
         raise UnsupportedOSError(f"Unsupported OS flavor: {flavor_name}")
 
-    # Debian/Ubuntu
-    if flavor_name in ["ubuntu", "debian"]:
-        result_version = cx.run("lsb_release -s -r", hide=True, warn=True)
+    # Linux flavors that rely on os-release metadata
+    # (which is all of them, at the time of writing)
+    if flavor_name in ["ubuntu", "debian", "rhel", "fedora"]:
+        result_version = None
 
-        if result_version.failed:
-            raise DataRefreshError(
-                "Failed to detect OS version via lsb_release.",
-                stderr=result_version.stderr,
-                stdout=result_version.stdout,
+        # Some systems (debian sid, for instance) don't provide VERSION_ID,
+        # So we fall back to VERSION_CODENAME in these cases.
+        # If neither work, we just err on the side of failure.
+        for version_key in ["VERSION_ID", "VERSION_CODENAME"]:
+            result_version = cx.run(
+                f"grep ^{version_key}= /etc/os-release", hide=True, warn=True
             )
 
-        return result_version.stdout.strip()
+            if not result_version.failed:
+                logger.debug("Found version using %s", version_key)
+                version_line = result_version.stdout.strip()
+                version_value = version_line.partition("=")[2].strip().strip("\"'")
 
-    # Redhat-likes
-    if flavor_name in ["rhel", "fedora"]:
-        result_version = cx.run(
-            "grep ^VERSION_ID= /etc/os-release", hide=True, warn=True
+                return version_value
+
+        raise DataRefreshError(
+            "Failed to detect OS version via os-release VERSION_ID or VERSION_CODENAME.",
+            stderr=result_version.stderr if result_version else "",
+            stdout=result_version.stdout if result_version else "",
         )
-
-        if result_version.failed:
-            raise DataRefreshError(
-                "Failed to detect OS version via os-release VERSION_ID.",
-                stderr=result_version.stderr,
-                stdout=result_version.stdout,
-            )
-
-        version_line = result_version.stdout.strip()
-        version_value = version_line.partition("=")[2].strip().strip("\"'")
-
-        return version_value.lower()
 
     # FreeBSD
     if flavor_name == "freebsd":

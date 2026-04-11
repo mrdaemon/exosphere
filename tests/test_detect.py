@@ -137,8 +137,8 @@ class TestDetection:
     @pytest.mark.parametrize(
         "flavor,stdout,expected",
         [
-            ("ubuntu", "20.04\n", "20.04"),
-            ("debian", "12\n", "12"),
+            ("ubuntu", 'VERSION_ID="20.04"\n', "20.04"),
+            ("debian", 'VERSION_ID="12"\n', "12"),
             ("rhel", 'VERSION_ID="8.3"\n', "8.3"),
             ("freebsd", "13.0-RELEASE-p4\n", "13.0-RELEASE-p4"),
             ("openbsd", "7.3\n", "7.3"),
@@ -157,6 +157,39 @@ class TestDetection:
         version = version_detect(connection, flavor)
 
         # Assert that the detected version is as expected
+        assert version == expected
+
+    @pytest.mark.parametrize(
+        "flavor,version_stdout,codename_stdout,expected",
+        [
+            ("debian", "", "VERSION_CODENAME=sid\n", "sid"),
+            ("ubuntu", "", "VERSION_CODENAME=noble\n", "noble"),
+            ("fedora", "", "VERSION_CODENAME=rawhide\n", "rawhide"),
+            ("rhel", "", "VERSION_CODENAME=beefymiracle\n", "beefymiracle"),
+        ],
+        ids=[
+            "debian",
+            "ubuntu",
+            "fedora",
+            "rhel",  # Unlikely, but hey. Coverage!
+        ],
+    )
+    def test_version_detect_codename_fallback(
+        self, connection, flavor, version_stdout, codename_stdout, expected
+    ) -> None:
+        """
+        Some systems may not provide VERSION_ID, so we fall back to
+        VERSION_CODENAME for os-release based Linux flavors.
+        (which is all of them at this time)
+        """
+        # Setup fixture with side effects
+        connection.run.side_effect = [
+            _run_return(True, version_stdout),
+            _run_return(False, codename_stdout),
+        ]
+
+        version = version_detect(connection, flavor)
+
         assert version == expected
 
     @pytest.mark.parametrize(
@@ -252,7 +285,7 @@ class TestDetection:
             _run_return(False, "Linux\n"),
             _run_return(False, 'ID="debian"\n'),
             _run_return(True, ""),  # no ID_LIKE
-            _run_return(False, "12\n"),
+            _run_return(False, 'VERSION_ID="12"\n'),
             _run_return(False, "apt\n"),
         ]
 

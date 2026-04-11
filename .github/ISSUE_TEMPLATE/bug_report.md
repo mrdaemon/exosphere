@@ -28,6 +28,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Managed system where issue occurs (if applicable):**
  - Platform [e.g. FreeBSD 14.1, RockyLinux 9, Debian Linux 12 etc]
+ - The output of `cat /etc/os-release` (if applicable, linux only)
 
 **Additional context**
 Add any other context about the problem here.
