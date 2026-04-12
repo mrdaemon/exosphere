@@ -216,11 +216,14 @@ class Dnf(PkgManager):
         """
 
         # Lazy compile the line pattern on first use
+        # Repository source component is usually in the form of "reponame"
+        # but can be prefixed with "@" or in the case of missing metadata,
+        # be the string "<unknown>" or similar. We account for these here.
         if self.line_pattern is None:
             self.line_pattern = re.compile(
                 r"^(?P<name>[a-z0-9][\w+.-]*\.\w+)\s+"  # Package (name.arch)
                 r"(?P<version>[\w.+~:-]+-[\w.+~]+)\s+"  # RPM version-release
-                r"(?P<source>@?[a-z0-9][\w.:+/-]*)$",  # Repo source (optional @)
+                r"(?P<source>@?[a-z0-9][\w.:+/-]*|<[^>\s]+>)$",  # Repo source (optional @ or <>
                 re.ASCII | re.IGNORECASE,
             )
 
@@ -230,7 +233,10 @@ class Dnf(PkgManager):
             self.logger.debug("Skipping garbage line: %s", line)
             return None
 
-        return (match["name"], match["version"], match["source"].removeprefix("@"))
+        # Cleanup source string before sending it up
+        source = match["source"].removeprefix("@").strip("<>")
+
+        return (match["name"], match["version"], source)
 
     def _get_current_version(
         self, cx: Connection, package_names: list[str]

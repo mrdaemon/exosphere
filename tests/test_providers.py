@@ -1324,10 +1324,10 @@ class TestDnfProvider:
         return _side_effect
 
     @pytest.fixture
-    def mock_kernel_test_scenario(self, mocker, mock_connection):
+    def mock_dnf_command_scenario(self, mocker, mock_connection):
         """
-        Flexible fixture factory for kernel test scenarios.
-        Returns a function that can create different kernel test setups.
+        Flexible fixture factory for DNF command output scenarios.
+        Returns a function that can create different DNF output setups.
         """
 
         def create_scenario(
@@ -1517,7 +1517,7 @@ class TestDnfProvider:
             for cmd in command_calls
         )
 
-    def test_get_updates_kernel(self, mock_kernel_test_scenario, caplog):
+    def test_get_updates_kernel(self, mock_dnf_command_scenario, caplog):
         """
         Test kernel update scenario: 3 kernels installed, 1 new kernel available.
         This tests the slotted package behavior where kernels are stored as lists
@@ -1526,7 +1526,7 @@ class TestDnfProvider:
         dnf = Dnf()
 
         # Setup scenario with new kernel in check-update output + dummy package
-        mock_connection = mock_kernel_test_scenario(
+        mock_connection = mock_dnf_command_scenario(
             regular_updates="""
             some-package.x86_64  1.2.3-4.el9  updates
             kernel.x86_64  5.14.0-570.19.1.el9_7  updates
@@ -1557,7 +1557,7 @@ class TestDnfProvider:
         assert kernel_update.source == "updates"
 
     def test_get_updates_kernel_only_no_regular_updates(
-        self, mock_kernel_test_scenario, caplog
+        self, mock_dnf_command_scenario, caplog
     ):
         """
         Test that a kernel-only update is correctly detected when no other
@@ -1565,7 +1565,7 @@ class TestDnfProvider:
         """
         dnf = Dnf()
 
-        mock_connection = mock_kernel_test_scenario(
+        mock_connection = mock_dnf_command_scenario(
             regular_updates="kernel.x86_64  5.14.0-570.19.1.el9_7  updates",
             regular_updates_failed=True,
             regular_updates_code=100,
@@ -1589,7 +1589,7 @@ class TestDnfProvider:
         assert kernel_update.current_version == "5.14.0-570.16.1.el9_6"
 
     def test_get_updates_with_package_clobbering(
-        self, mock_kernel_test_scenario, caplog
+        self, mock_dnf_command_scenario, caplog
     ):
         """
         Test get_updates when a non-kernel package has multiple installed versions.
@@ -1597,7 +1597,7 @@ class TestDnfProvider:
         """
         dnf = Dnf()
 
-        mock_connection = mock_kernel_test_scenario(
+        mock_connection = mock_dnf_command_scenario(
             regular_updates="openssl.x86_64  3.0.9-17.el9_7  updates",
             regular_updates_failed=True,
             regular_updates_code=100,
@@ -1622,8 +1622,36 @@ class TestDnfProvider:
             in caplog.text
         )
 
+    def test_get_updates_with_unknown_installed_source(
+        self, mock_dnf_command_scenario, caplog
+    ):
+        """
+        Test get_updates when list installed reports source metadata as <unknown>.
+        Package name and version should still be parsed into current_version.
+        """
+        dnf = Dnf()
+
+        mock_connection = mock_dnf_command_scenario(
+            regular_updates="fuse-common.x86_64  3.16.2-6.fc42  updates",
+            regular_updates_failed=True,
+            regular_updates_code=100,
+            installed_packages="""
+            Installed Packages
+            fuse-common.x86_64  3.16.2-5.fc42  <unknown>
+            """,
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            updates = dnf.get_updates(mock_connection)
+
+        assert len(updates) == 1
+        assert updates[0].name == "fuse-common.x86_64"
+        assert updates[0].current_version == "3.16.2-5.fc42"
+        assert updates[0].new_version == "3.16.2-6.fc42"
+        assert updates[0].source == "updates"
+
     def test_get_updates_security_annotation_lines_skipped(
-        self, mock_kernel_test_scenario, caplog
+        self, mock_dnf_command_scenario, caplog
     ):
         """
         Test that 'Security:' annotation lines emitted by newer dnf versions
@@ -1632,7 +1660,7 @@ class TestDnfProvider:
         """
         dnf = Dnf()
 
-        mock_connection = mock_kernel_test_scenario(
+        mock_connection = mock_dnf_command_scenario(
             regular_updates="""
             rsync.x86_64  3.2.5-3.el9_7.2  baseos
             Security: kernel-core-5.14.0-611.41.1.el9_7.x86_64 is an installed security update
@@ -1660,7 +1688,7 @@ class TestDnfProvider:
             "security annotation" in r.message.casefold() for r in caplog.records
         )
 
-    def test_get_updates_no_parsable_rows(self, mock_kernel_test_scenario, caplog):
+    def test_get_updates_no_parsable_rows(self, mock_dnf_command_scenario, caplog):
         """
         Test that a check-update result with exit code 100 but no parsable
         package rows emits a warning and returns early without querying
@@ -1670,7 +1698,7 @@ class TestDnfProvider:
         """
         dnf = Dnf()
 
-        mock_connection = mock_kernel_test_scenario(
+        mock_connection = mock_dnf_command_scenario(
             regular_updates="""
             Security: kernel-core-5.14.0-611.41.1.el9_7.x86_64 is an installed security update
             Security: kernel-core-5.14.0-611.36.1.el9_7.x86_64 is the currently running version
