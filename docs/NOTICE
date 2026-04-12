@@ -1,0 +1,16 @@
+# NOTICE AND ATTRIBUTION
+
+The Documentation for Exosphere contains derivative or copies of the
+following works, which are distributed under their own licenses.
+
+Fonts:
+
+- Calcutta, by Indian Type Foundry, licensed under the SIL Open Font License, Version 1.1.
+- Source Code Pro, by Adobe, licensed under the SIL Open Font License, Version 1.1.
+
+CSS:
+
+- exosphere-overrides.css contains derivative works of the Renku Sphinx Theme,
+  licensed under the Apache License, Version 2.0.
+  Copyright (c) 2017 Swiss Data Science Center (SDSC)
+  https://github.com/SwissDataScienceCenter/renku-sphinx-theme
