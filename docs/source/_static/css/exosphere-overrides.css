@@ -200,6 +200,15 @@ a:focus {
     color: #f5f7fa;
 }
 
+/* Parsed Literal Blocks should look like code blocks */
+.rst-content pre.literal-block {
+    background: #343a40;
+    color: #f5f7fa;
+    border: 1px solid #4a4f58;
+    border-radius: 4px;
+    font-family: "Source Code Pro", monospace;
+}
+
 .wy-side-scroll,
 .wy-side-nav-search,
 .wy-nav-top {
