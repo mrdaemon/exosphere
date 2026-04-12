@@ -157,9 +157,9 @@ a:focus {
 /* String Literals */
 .rst-content code.literal,
 .rst-content tt.literal {
-    background: rgba(52, 58, 64, 0.08);
-    color: inherit;
-    border: 1px solid rgba(52, 58, 64, 0.18);
+    background: #ebebeb;
+    color: #3d3d3d;
+    border: 1px solid #d4d4d4;
     border-radius: 3px;
     padding: 0.1em 0.35em;
     font-size: 0.8em;
