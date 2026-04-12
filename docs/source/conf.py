@@ -40,6 +40,9 @@ extensions = [
 templates_path = ['_templates']
 exclude_patterns = []
 
+# Use a dark-friendly Pygments token palette to match dark code blocks.
+pygments_style = 'native'
+
 # -- Spell checking configuration ---------------------------------------------
 # https://sphinxcontrib-spelling.readthedocs.io/en/stable/customize.html
 spelling_lang = 'en_US'
@@ -50,8 +53,9 @@ spelling_show_suggestions = True
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'renku'
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+html_css_files = ['css/exosphere-overrides.css']
 
 # Epilog macros for documentation references
 rst_epilog = """

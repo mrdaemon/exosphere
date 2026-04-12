@@ -1,0 +1,316 @@
+/*
+ * Exosphere Documentation CSS Overrides
+ * Meant to fit on top of the Sphinx RTD theme, most lifted straight up from
+ * the Renku Sphinx theme with some adjustments.
+ *
+ * We used to rely on the Renku theme but it is not being maintained, and
+ * forking on vendoring it felt like a chore, so we mostly cloned it as
+ * a custom CSS file and made adjustments to fit our needs.
+ *
+ * I'm absolutely terrible at CSS and/or frontend work, so this is a bit of
+ * a mess, and I'm kind of just overriding things until it looks right, but
+ * this is functional enough for now.
+ *
+ * FIXME: This should be cleaned up, and the LICENSE should be updated to
+ * reflect the (very loose) use of the Renku Sphinx theme as a base.
+ *
+ */
+
+ /* Font definitions, no Google Fonts please */
+@font-face {
+    font-family: "Calcutta";
+    src: url("../fonts/calcutta/Calcutta-Regular.woff") format("woff"),
+         url("../fonts/calcutta/Calcutta-Regular.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 400;
+    text-rendering: optimizeLegibility;
+}
+
+@font-face {
+    font-family: "Calcutta";
+    src: url("../fonts/calcutta/Calcutta-Medium.woff") format("woff"),
+         url("../fonts/calcutta/Calcutta-Medium.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 500;
+    text-rendering: optimizeLegibility;
+}
+
+@font-face {
+    font-family: "Calcutta";
+    src: url("../fonts/calcutta/Calcutta-Bold.woff") format("woff"),
+         url("../fonts/calcutta/Calcutta-Bold.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 700;
+    text-rendering: optimizeLegibility;
+}
+
+@font-face {
+    font-family: "Source Code Pro";
+    src: url("../fonts/source-code-pro/SourceCodePro-Regular.woff2") format("woff2"),
+         url("../fonts/source-code-pro/SourceCodePro-Regular.woff") format("woff");
+    font-style: normal;
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "Source Code Pro";
+    src: url("../fonts/source-code-pro/SourceCodePro-It.woff2") format("woff2"),
+         url("../fonts/source-code-pro/SourceCodePro-It.woff") format("woff");
+    font-style: italic;
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "Source Code Pro";
+    src: url("../fonts/source-code-pro/SourceCodePro-Medium.woff2") format("woff2"),
+         url("../fonts/source-code-pro/SourceCodePro-Medium.woff") format("woff");
+    font-style: normal;
+    font-weight: 500;
+}
+
+:root {
+    --exo-max-width: 950px;
+}
+
+.wy-nav-side {
+    background: #01192d;
+}
+
+@media screen and (min-width: 1100px) {
+    .wy-nav-content-wrap {
+        background: #01192d;
+    }
+}
+
+body {
+    background: #f5f5f5;
+    font-family: "Calcutta", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.wy-menu-vertical,
+.wy-side-nav-search,
+.wy-nav-top,
+button,
+input,
+select,
+textarea {
+    font-family: "Calcutta", sans-serif;
+}
+
+code,
+kbd,
+pre,
+samp,
+.rst-content code,
+.rst-content tt {
+    font-family: "Source Code Pro", monospace;
+}
+
+a,
+a:visited {
+    color: #009568;
+}
+
+a:hover,
+a:focus {
+    color: #00bd84;
+}
+
+.wy-nav-content {
+    max-width: var(--exo-max-width);
+    background: #f5f5f5;
+    margin-top: 0;
+    margin-bottom: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.rst-content {
+    color: #3d3d3d;
+}
+
+.rst-content h1,
+.rst-content h2,
+.rst-content h3,
+.rst-content h4 {
+    position: relative;
+    padding-right: 1.25rem;
+}
+
+.rst-content h1 .headerlink,
+.rst-content h2 .headerlink,
+.rst-content h3 .headerlink,
+.rst-content h4 .headerlink {
+    position: absolute;
+    right: 0;
+    top: 0.1em;
+    margin-left: 0;
+    line-height: 1;
+}
+
+/* String Literals */
+.rst-content code.literal,
+.rst-content tt.literal {
+    background: rgba(52, 58, 64, 0.08);
+    color: inherit;
+    border: 1px solid rgba(52, 58, 64, 0.18);
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+    font-size: 0.8em;
+}
+
+.rst-content .note {
+    color: #003274;
+    background: #ccddf3;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.rst-content .note .admonition-title {
+    display: none;
+}
+
+.rst-content .warning {
+    color: #605000;
+    background: #fcf4cc;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.rst-content .warning .admonition-title {
+    display: none;
+}
+
+.rst-content .highlight {
+    background: #343a40;
+    border: 1px solid #4a4f58;
+    border-radius: 4px;
+}
+
+.rst-content .highlight pre,
+.rst-content div[class^="highlight"] pre,
+.rst-content div[class*=" highlight-"] pre {
+    background: #343a40;
+    color: #f5f7fa;
+}
+
+.wy-side-scroll,
+.wy-side-nav-search,
+.wy-nav-top {
+    background-color: #01192d;
+}
+
+.wy-side-nav-search input[type="text"] {
+    width: 100%;
+    border-radius: 0;
+    padding: 6px 12px;
+    border-color: #01192d;
+}
+
+.wy-menu-vertical p.caption,
+.wy-menu-vertical .caption-text {
+    color: #2ea6e8;
+    font-weight: 700;
+}
+
+.wy-menu-vertical a,
+.wy-menu-vertical a:visited {
+    font-size: 100%;
+    color: #d9d9d9;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+    background-color: transparent;
+}
+
+.wy-menu-vertical li.current,
+.wy-menu-vertical li.current ul {
+    background: transparent;
+}
+
+.wy-menu-vertical li.current a,
+.wy-menu-vertical li.current a:visited {
+    border-right: 0 !important;
+}
+
+.wy-menu-vertical li.toctree-l1 > a,
+.wy-menu-vertical li.toctree-l1 > a:visited {
+    opacity: 0.5;
+}
+
+.wy-menu-vertical li.toctree-l1 > a:hover,
+.wy-menu-vertical li.toctree-l1 > a:focus,
+.wy-menu-vertical li.toctree-l1.current > a,
+.wy-menu-vertical li.toctree-l1.current > a:visited {
+    opacity: 1;
+}
+
+.wy-menu-vertical li.toctree-l1.current > a,
+.wy-menu-vertical li.toctree-l1.current > a:visited,
+.wy-menu-vertical li.current > a,
+.wy-menu-vertical li.current > a:visited {
+    background-color: #01192d !important;
+    color: #ffffff !important;
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+}
+
+.wy-menu-vertical .toctree-l1.current .toctree-l2 > ul,
+.wy-menu-vertical .toctree-l2.current .toctree-l3 > ul,
+.wy-menu-vertical .toctree-l3.current .toctree-l4 > ul,
+.wy-menu-vertical .toctree-l4.current .toctree-l5 > ul {
+    background: transparent !important;
+}
+
+.wy-menu-vertical li.toctree-l2 > a,
+.wy-menu-vertical li.toctree-l2 > a:visited,
+.wy-menu-vertical li.toctree-l3 > a,
+.wy-menu-vertical li.toctree-l3 > a:visited,
+.wy-menu-vertical li.toctree-l4 > a,
+.wy-menu-vertical li.toctree-l4 > a:visited {
+    border: 0;
+    background-color: #566673 !important;
+    color: #d9d9d9 !important;
+}
+
+.wy-menu-vertical li.toctree-l2.current > a,
+.wy-menu-vertical li.toctree-l2.current > a:visited,
+.wy-menu-vertical li.toctree-l3.current > a,
+.wy-menu-vertical li.toctree-l3.current > a:visited,
+.wy-menu-vertical li.toctree-l4.current > a,
+.wy-menu-vertical li.toctree-l4.current > a:visited {
+    color: #ffffff !important;
+}
+
+.wy-menu-vertical li.toctree-l1 > a:hover,
+.wy-menu-vertical li.toctree-l1 > a:focus {
+    background-color: #01192d !important;
+    color: #ffffff !important;
+}
+
+.wy-menu-vertical li.toctree-l2 > a:hover,
+.wy-menu-vertical li.toctree-l2 > a:focus,
+.wy-menu-vertical li.toctree-l3 > a:hover,
+.wy-menu-vertical li.toctree-l3 > a:focus,
+.wy-menu-vertical li.toctree-l4 > a:hover,
+.wy-menu-vertical li.toctree-l4 > a:focus,
+.wy-menu-vertical li.current a:hover,
+.wy-menu-vertical li.current a:focus {
+    background-color: #566673 !important;
+    color: #ffffff !important;
+}
+
+@media screen and (max-width: 768px) {
+    .wy-nav-content {
+        margin-top: 0;
+        margin-bottom: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+}

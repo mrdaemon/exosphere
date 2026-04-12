@@ -46,3 +46,7 @@ docs/source/_static/reports/
 
 # In dir volumes
 /volume/
+
+# Temporary files / Scratch
+/tmp/
+/temp/
