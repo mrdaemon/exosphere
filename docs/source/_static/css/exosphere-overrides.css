@@ -188,25 +188,27 @@ a:focus {
 }
 
 .rst-content .highlight {
-    background: #343a40;
-    border: 1px solid #4a4f58;
+    border: 1px solid rgba(0, 0, 0, 0.2);
     border-radius: 4px;
+    overflow: hidden;
 }
 
-.rst-content .highlight pre,
+.rst-content .linenodiv pre,
 .rst-content div[class^="highlight"] pre,
-.rst-content div[class*=" highlight-"] pre {
-    background: #343a40;
-    color: #f5f7fa;
+.rst-content div[class*=" highlight-"] pre,
+.rst-content pre.literal-block {
+    font-family: "Source Code Pro", monospace;
+    line-height: 1.4;
 }
 
-/* Parsed Literal Blocks should look like code blocks */
+/* Parsed Literal Blocks should look like code blocks.
+ * Background hardcoded to match pygments_style = 'nord-darker'.
+ */
 .rst-content pre.literal-block {
-    background: #343a40;
-    color: #f5f7fa;
-    border: 1px solid #4a4f58;
+    background: #242933;
+    color: #d8dee9;
+    border: 1px solid rgba(0, 0, 0, 0.2);
     border-radius: 4px;
-    font-family: "Source Code Pro", monospace;
 }
 
 .wy-side-scroll,

@@ -41,7 +41,7 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 # Use a dark-friendly Pygments token palette to match dark code blocks.
-pygments_style = 'native'
+pygments_style = 'nord-darker'
 
 # -- Spell checking configuration ---------------------------------------------
 # https://sphinxcontrib-spelling.readthedocs.io/en/stable/customize.html
