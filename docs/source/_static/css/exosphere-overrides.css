@@ -74,7 +74,7 @@
 
 body {
     background: #f5f5f5;
-    font-family: "Calcutta", sans-serif;
+    font-family: "Calcutta", "DejaVu Sans", sans-serif;
 }
 
 h1,
@@ -90,7 +90,7 @@ button,
 input,
 select,
 textarea {
-    font-family: "Calcutta", sans-serif;
+    font-family: "Calcutta", "DejaVu Sans", sans-serif;
 }
 
 code,
@@ -99,7 +99,7 @@ pre,
 samp,
 .rst-content code,
 .rst-content tt {
-    font-family: "Source Code Pro", monospace;
+    font-family: "Source Code Pro", "DejaVu Sans Mono", monospace;
 }
 
 a,
@@ -199,7 +199,7 @@ a:focus {
 .rst-content div[class^="highlight"] pre,
 .rst-content div[class*=" highlight-"] pre,
 .rst-content pre.literal-block {
-    font-family: "Source Code Pro", monospace;
+    font-family: "Source Code Pro", "DejaVu Sans Mono", monospace;
     font-size: 13px;
     font-weight: 500;
     line-height: 1.4;

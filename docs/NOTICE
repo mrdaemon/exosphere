@@ -5,8 +5,19 @@ following works, which are distributed under their own licenses.
 
 Fonts:
 
-- Calcutta, by Indian Type Foundry, licensed under the SIL Open Font License, Version 1.1.
-- Source Code Pro, by Adobe, licensed under the SIL Open Font License, Version 1.1.
+- Calcutta, by Indian Type Foundry,
+  licensed under the SIL Open Font License, Version 1.1.
+- Source Code Pro, by Adobe,
+  licensed under the SIL Open Font License, Version 1.1.
+
+CSS includes convenience fallback to the following fonts if the above are not
+available or unsuitable for packaging and distribution due to their licenses:
+
+- Dejavu Sans
+- Dejavu Sans Mono
+
+Which are distributed under this license:
+https://dejavu-fonts.github.io/License.html
 
 CSS:
 
