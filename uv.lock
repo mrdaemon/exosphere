@@ -504,7 +504,7 @@ wheels = [
 
 [[package]]
 name = "exosphere-cli"
-version = "2.4.2.dev0"
+version = "2.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "fabric" },
@@ -578,7 +578,7 @@ dev = [
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
     { name = "sphinx-tabs", specifier = ">=3.4.7" },
     { name = "sphinxcontrib-spelling", specifier = ">=8.0.1" },
-    { name = "sphinxcontrib-typer", specifier = ">=0.5.1" },
+    { name = "sphinxcontrib-typer", specifier = ">=0.7.2" },
     { name = "textual-dev", specifier = ">=1.7.0" },
 ]
 
