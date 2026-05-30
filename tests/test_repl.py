@@ -243,6 +243,47 @@ class TestExosphereCompleter:
         assert "--opt2" in completions
         assert "--help" in completions
 
+    def test_get_completions_choice_option_value(self, mocker):
+        """
+        Test completion of values for a fixed-choice (Enum) option (e.g. --sort).
+        """
+        import click
+        from prompt_toolkit.completion import CompleteEvent
+        from prompt_toolkit.document import Document
+
+        param = mocker.Mock()
+        param.opts = ["-o", "--sort"]
+        param.type = click.Choice(["host", "os", "flavor", "status"])
+        subsub = mocker.Mock()
+        subsub.params = [param]
+        sub = mocker.Mock()
+        sub.commands = {"status": subsub}
+        root = mocker.Mock()
+        root.commands = {"inventory": sub}
+
+        completer = ExosphereCompleter(root)
+
+        # A trailing space offers every choice (no trailing space on multiples)
+        doc = Document("inventory status --sort ")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+        assert completions == {"host", "os", "flavor", "status"}
+
+        # A prefix filters down; a single match gets a trailing space
+        doc = Document("inventory status --sort fl")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+        assert completions == {"flavor "}
+
+        # The short option form completes the same way
+        doc = Document("inventory status -o o")
+        completions = set(
+            c.text for c in completer.get_completions(doc, CompleteEvent())
+        )
+        assert completions == {"os "}
+
     @pytest.mark.parametrize(
         "completion_type,input_text,expected_single,expected_multiple",
         [

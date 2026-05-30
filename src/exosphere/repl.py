@@ -337,6 +337,27 @@ class ExosphereCompleter(Completer):
 
         return False
 
+    def _get_choice_option_values(
+        self, subsub: click.Command, option_name: str
+    ) -> list[str] | None:
+        """
+        Return the valid values for a fixed-choice option, or None.
+
+        Used to complete the value of an option backed by a fixed set of
+        choices (e.g. an Enum).
+
+        Returns None when the option is not a choice option, so the
+        caller can fall back to its usual handling.
+        """
+        for param in getattr(subsub, "params", []):
+            if option_name in getattr(param, "opts", []):
+                param_type = getattr(param, "type", None)
+                if isinstance(param_type, click.Choice):
+                    return list(param_type.choices)
+                return None
+
+        return None
+
     def _complete_subsubcommand(
         self, command: str, subcommand, words: list[str], text: str, used_opts: set
     ) -> Generator[Completion, None, None]:
@@ -374,12 +395,24 @@ class ExosphereCompleter(Completer):
             yield from self._complete_host_names(current, sp)
             return
 
-        # Stop completion if we are following an option flag that expects a value
+        # Determine the previous word, to detect option-value context.
         prev_word = (
             words[-1] if text.endswith(" ") else (words[-2] if len(words) >= 2 else "")
         )
-        if prev_word.startswith("-") and not self._is_flag_option(subsub, prev_word):
-            return
+
+        if prev_word.startswith("-"):
+            # If the previous word was an option backed by a fixed set of
+            # choices (e.g. an Enum like --sort), complete those values.
+            choices = self._get_choice_option_values(subsub, prev_word)
+            if choices is not None:
+                matching = [c for c in choices if c.startswith(current)]
+                yield from self._make_completions(matching, sp)
+                return
+
+            # Otherwise, stop completion if we are following a non-flag
+            # option that expects a value we can't complete.
+            if not self._is_flag_option(subsub, prev_word):
+                return
 
         # Complete host names for positional arguments
         yield from self._complete_host_positional_arg(command, words, text, current, sp)
