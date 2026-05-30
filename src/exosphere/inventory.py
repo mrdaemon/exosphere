@@ -4,7 +4,7 @@ import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import StrEnum
-from typing import Any, Generator
+from typing import Any, Generator, assert_never
 
 from exosphere import migrations
 from exosphere.config import Configuration
@@ -357,10 +357,9 @@ class Inventory:
             case FilterMode.SECURITY_ONLY:
                 return [h for h in target if h.supported and h.security_updates]
             case _:
-                self.logger.warning(
-                    "Unknown filter mode: %s, returning all hosts.", mode
-                )
-                return list(target)
+                # Invalid filter mode
+                # Reaching this implies a programming error
+                assert_never(mode)
 
     def sort_hosts(
         self,
@@ -397,10 +396,9 @@ class Inventory:
         """
         target = list(hosts if hosts is not None else self.hosts)
 
-        key = _SORT_KEYS.get(by)
-        if key is None:
-            self.logger.warning("Unknown sort field: %s, returning unsorted.", by)
-            return target
+        # Sort keys are pre-defined, if any are missing, that is a bug,
+        # so we just let it raise a KeyError to surface the issue.
+        key = _SORT_KEYS[by]
 
         # All hosts are sortable by name, even unsupported ones
         if by == SortField.HOST:
