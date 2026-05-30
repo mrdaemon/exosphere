@@ -1,6 +1,9 @@
 import inspect
 import logging
+import re
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from enum import StrEnum
 from typing import Any, Generator
 
 from exosphere import migrations
@@ -8,6 +11,111 @@ from exosphere.config import Configuration
 from exosphere.data import HostState
 from exosphere.database import DiskCache
 from exosphere.objects import Host
+
+
+class FilterMode(StrEnum):
+    """
+    Filter modes for inventory views.
+
+    Values are human-readable labels, suitable for display in both the
+    CLI status output and the TUI inventory screen.
+    """
+
+    NONE = "All Hosts"
+    UPDATES_ONLY = "Updates"
+    SECURITY_ONLY = "Security Updates"
+
+
+class SortField(StrEnum):
+    """
+    Sortable columns for inventory views.
+
+    The value of each member is the lowercase token accepted on the CLI
+    (e.g. ``--sort os``). The :attr:`label` property returns the matching
+    column header used for display in both the CLI table and the TUI
+    inventory screen.
+    """
+
+    HOST = "host"
+    OS = "os"
+    FLAVOR = "flavor"
+    VERSION = "version"
+    UPDATES = "updates"
+    SECURITY = "security"
+    STATUS = "status"
+
+    @property
+    def label(self) -> str:
+        """Human-readable column header for this field."""
+        return _SORT_LABELS[self]
+
+
+# Column headers for each sortable field, used for display.
+# Kept as an explicit mapping since simple casing rules can't produce
+# headers like "OS" from the lowercase CLI tokens.
+_SORT_LABELS: dict[SortField, str] = {
+    SortField.HOST: "Host",
+    SortField.OS: "OS",
+    SortField.FLAVOR: "Flavor",
+    SortField.VERSION: "Version",
+    SortField.UPDATES: "Updates",
+    SortField.SECURITY: "Security",
+    SortField.STATUS: "Status",
+}
+
+
+def _str_key(value: str | None) -> tuple:
+    """
+    Sort key for optional strings.
+
+    Present values sort first (case-insensitively); None/empty values
+    sort last, regardless of sort direction reversal.
+    """
+    return (value is None or value == "", (value or "").lower())
+
+
+def _version_key(version: str | None) -> tuple:
+    """
+    Produce a natural-sort key for a version string.
+
+    Splits the version into numeric and non-numeric chunks so numeric
+    segments compare as integers (``9`` < ``12`` < ``22``) rather than
+    lexically. Each chunk is wrapped in a ``(type, value)`` tuple so
+    numeric and string chunks never compare against each other.
+
+    None/empty versions sort last.
+    """
+    if not version:
+        # Sort undiscovered/unknown versions last
+        return ((2,),)
+
+    chunks: list[tuple] = []
+    for part in re.findall(r"\d+|[^\d]+", version):
+        if part.isdigit():
+            chunks.append((0, int(part)))
+        else:
+            chunks.append((1, part.lower()))
+
+    return tuple(chunks)
+
+
+# Sort key functions for each inventory table field.
+# Each key returns a tuple so that the sort is total, and undiscovered
+# values land consistently.
+# Python's sort is stable, so hosts comparing as equal keep their
+# existing relative order (and so, default in config order).
+_SORT_KEYS: dict[SortField, Callable[[Host], tuple]] = {
+    SortField.HOST: lambda h: (h.name.lower(),),
+    SortField.OS: lambda h: _str_key(h.os),
+    SortField.FLAVOR: lambda h: _str_key(h.flavor),
+    # Version is meaningless across flavors, so it is grouped
+    # then natural-sorted within each flavor.
+    SortField.VERSION: lambda h: (*_str_key(h.flavor), _version_key(h.version)),
+    SortField.UPDATES: lambda h: (len(h.updates),),
+    SortField.SECURITY: lambda h: (len(h.security_updates),),
+    # Online hosts sort before offline ones in ascending order.
+    SortField.STATUS: lambda h: (not h.online,),
+}
 
 
 class Inventory:
@@ -222,6 +330,89 @@ class Inventory:
             return None
 
         return host
+
+    def filter_hosts(
+        self, mode: FilterMode, hosts: list[Host] | None = None
+    ) -> list[Host]:
+        """
+        Filter hosts by the given FilterMode.
+
+        Operates on the provided list of hosts, or the entire inventory
+        if none is given.
+
+        Returns a new list of hosts matching the filter.
+
+        :param mode: The FilterMode to apply
+        :param hosts: Optional list of hosts to filter, defaults to
+                      entire inventory
+        :return: List of hosts matching the filter
+        """
+        target = hosts if hosts is not None else self.hosts
+
+        match mode:
+            case FilterMode.NONE:
+                return list(target)
+            case FilterMode.UPDATES_ONLY:
+                return [h for h in target if h.supported and h.updates]
+            case FilterMode.SECURITY_ONLY:
+                return [h for h in target if h.supported and h.security_updates]
+            case _:
+                self.logger.warning(
+                    "Unknown filter mode: %s, returning all hosts.", mode
+                )
+                return list(target)
+
+    def sort_hosts(
+        self,
+        by: SortField,
+        hosts: list[Host] | None = None,
+        reverse: bool = False,
+    ) -> list[Host]:
+        """
+        Sort hosts by the given SortField.
+
+        Operates on the provided list of hosts, or the entire inventory
+        if none is given.
+
+        The sort is stable, so hosts comparing equal retain their existing
+        relative order (e.g. their order in the configuration file).
+
+        Sorting by SortField.VERSION is compound: hosts are grouped by
+        flavor first, then ordered by a natural-sort of their version
+        within each flavor, since version strings are not meaningfully
+        comparable across different flavors.
+
+        Except when sorting by host name, unsupported hosts are always
+        pinned to the bottom of the result (regardless of sort direction),
+        since their column values (version, update counts, etc.) are not
+        meaningful and would otherwise be interleaved with real data.
+
+        Returns a new list of hosts sorted by the given field.
+
+        :param by: The SortField to sort by
+        :param hosts: Optional list of hosts to sort; defaults to all
+                      hosts in the inventory
+        :param reverse: Whether to reverse the sort order
+        :return: New list of hosts sorted by the given field
+        """
+        target = list(hosts if hosts is not None else self.hosts)
+
+        key = _SORT_KEYS.get(by)
+        if key is None:
+            self.logger.warning("Unknown sort field: %s, returning unsorted.", by)
+            return target
+
+        # All hosts are sortable by name, even unsupported ones
+        if by == SortField.HOST:
+            return sorted(target, key=key, reverse=reverse)
+
+        # For every other field, unsupported hosts have no meaningful value
+        # to compare, so they are always appended at the end (keeping their
+        # existing relative order) rather than sorted in with the rest.
+        supported = [h for h in target if h.supported]
+        unsupported = [h for h in target if not h.supported]
+
+        return sorted(supported, key=key, reverse=reverse) + unsupported
 
     def discover_all(self) -> None:
         """

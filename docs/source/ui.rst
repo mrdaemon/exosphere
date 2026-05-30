@@ -121,6 +121,8 @@ The following operations can be performed from the Inventory screen:
 - **Refresh Updates**: Press `ctrl+r` to refresh the updates for all hosts.
 - **Sync & Refresh**: Press `ctrl+x` to sync the repositories and refresh updates
   for all hosts.
+- **Filter**: Press `ctrl+f` to filter the hosts shown in the table.
+- **Sort**: Press `ctrl+s` to sort the table by a chosen column.
 
 .. admonition:: Note
 
@@ -161,6 +163,26 @@ The active filter will be shown in the status bar at the bottom of the screen:
 
 You can clear the filter by pressing `ctrl+f` again and selecting the
 "Show All" option.
+
+**Sorting Hosts**
+
+You can sort the hosts with `ctrl+s`, which opens a prompt listing the
+sortable columns along with a *Reverse order* checkbox. Navigate the
+columns with the Arrow Keys, toggle the checkbox with ``Tab`` then
+``Space``, and press ``Enter`` to apply.
+
+After applying a sort, the active sort field and direction are shown in
+the status bar alongside any active filter. You can restore the original
+configuration order by pressing `ctrl+s` again and selecting the
+"Default (config order)" option.
+
+Sorting and filtering are independent and can be combined freely.
+
+.. admonition:: Note
+
+   Sorting by *Version* groups hosts by flavor first, then orders versions
+   within each flavor, since version numbers are not directly comparable
+   across different flavors.
 
 Logs Screen
 -----------

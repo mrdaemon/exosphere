@@ -16,6 +16,18 @@ def mock_inventory(mocker):
     """
     fake_inventory = mocker.create_autospec(inventory_module.Inventory, instance=True)
     fake_inventory.hosts = []
+
+    # The status command delegates filtering and sorting to the inventory.
+    # Wire the autospec mock to the real implementations so it returns
+    # actual host lists rather than bare Mocks.
+    real = inventory_module.Inventory
+    fake_inventory.filter_hosts.side_effect = lambda mode, hosts=None: (
+        real.filter_hosts(fake_inventory, mode, hosts)
+    )
+    fake_inventory.sort_hosts.side_effect = lambda by, hosts=None, reverse=False: (
+        real.sort_hosts(fake_inventory, by, hosts, reverse)
+    )
+
     mocker.patch.object(utils_module.context, "inventory", fake_inventory)
     return fake_inventory
 
@@ -408,6 +420,66 @@ class TestStatusCommand:
         assert "host1" in result.output
         assert "host2" not in result.output
         assert "host3" not in result.output
+
+    def test_sort_by_host(self, create_host, mock_inventory):
+        """
+        Test status command with --sort host orders rows alphabetically.
+        """
+        mock_inventory.hosts = [
+            create_host(name="charlie"),
+            create_host(name="alpha"),
+            create_host(name="bravo"),
+        ]
+
+        result = runner.invoke(inventory_module.app, ["status", "--sort", "host"])
+
+        assert result.exit_code == 0
+        out = result.output
+        assert out.index("alpha") < out.index("bravo") < out.index("charlie")
+
+    def test_sort_reverse(self, create_host, mock_inventory):
+        """
+        Test status command with --sort host --reverse orders rows descending.
+        """
+        mock_inventory.hosts = [
+            create_host(name="alpha"),
+            create_host(name="bravo"),
+            create_host(name="charlie"),
+        ]
+
+        result = runner.invoke(
+            inventory_module.app, ["status", "--sort", "host", "--reverse"]
+        )
+
+        assert result.exit_code == 0
+        out = result.output
+        assert out.index("charlie") < out.index("bravo") < out.index("alpha")
+
+    def test_sort_invalid_field_errors(self, create_host, mock_inventory):
+        """
+        Test status command with an invalid --sort value is rejected.
+        """
+        mock_inventory.hosts = [create_host(name="host1")]
+
+        result = runner.invoke(inventory_module.app, ["status", "--sort", "bogus"])
+
+        assert result.exit_code != 0
+
+    def test_reverse_without_sort_warns(self, create_host, mock_inventory, caplog):
+        """
+        Test --reverse without --sort is a no-op (logs a warning, still succeeds).
+        """
+        mock_inventory.hosts = [
+            create_host(name="bravo"),
+            create_host(name="alpha"),
+        ]
+
+        result = runner.invoke(inventory_module.app, ["status", "--reverse"])
+
+        assert result.exit_code == 0
+        # Order should be unchanged (config order preserved)
+        out = result.output
+        assert out.index("bravo") < out.index("alpha")
 
 
 class TestSaveCommand:
