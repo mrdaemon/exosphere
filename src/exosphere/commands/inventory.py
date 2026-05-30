@@ -41,6 +41,8 @@ SPINNER_PROGRESS_ARGS = (
     TimeElapsedColumn(),
 )
 
+SORT_COLUMNS = ", ".join(field.value for field in SortField)
+
 ROOT_HELP = """
 Inventory and Bulk Management Commands
 
@@ -326,7 +328,8 @@ def status(
         typer.Option(
             "-o",
             "--sort",
-            help="Sort the table by the given column",
+            metavar="COLUMN",
+            help=f"Sort the table by the given column: {SORT_COLUMNS}",
         ),
     ] = None,
     reverse: Annotated[
@@ -398,7 +401,9 @@ def status(
     if sort is not None:
         hosts = inventory.sort_hosts(sort, hosts=hosts, reverse=reverse)
     elif reverse:
-        logger.warning("--reverse has no effect without --sort")
+        err_console.print(
+            "[yellow]Warning: --reverse has no effect without --sort[/yellow]"
+        )
 
     # Iterates through all hosts in the inventory and render a nice
     # Rich table with their properties and status. Column headers are
