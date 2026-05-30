@@ -141,7 +141,7 @@ class SortScreen(Screen):
                 ListView(*items, id="sort-list", initial_index=initial_index),
                 Checkbox("Reverse order", value=self._reverse, id="sort-reverse"),
                 Label(
-                    "[dim]↑/↓ + Enter to apply, Tab + Space for reverse, "
+                    "[dim]↑/↓ + Enter to apply, 'r' to toggle reverse, "
                     "ESC to cancel[/dim]",
                     id="sort-help",
                 ),
@@ -183,8 +183,13 @@ class SortScreen(Screen):
 
     def on_key(self, event: Key) -> None:
         """Handle window key events for exit."""
-        if event.key == "escape":
-            self.dismiss(None)
+        match event.key:
+            case "escape":
+                self.dismiss(None)
+            case "r":
+                # Toggle reverse on 'r' key for convenience
+                reverse_checkbox = self.query_one("#sort-reverse", Checkbox)
+                reverse_checkbox.value = not reverse_checkbox.value
 
 
 class HostDetailsPanel(Screen):
