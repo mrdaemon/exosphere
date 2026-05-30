@@ -736,10 +736,20 @@ class TestInventory:
             ("9", "12"),  # numeric, not lexical (9 < 12)
             ("9.5", "9.10"),  # second segment compared as a number (5 < 10)
             ("14.0", "14.1"),
+            ("14.3-RELEASE-p2", "14.3-RELEASE-p10"),  # FreeBSD style
+            ("14.3-RELEASE-p12", "15.0-RELEASE-p9"),
             ("1", None),  # a known version sorts before an unknown one
             ("99.99", None),
         ],
-        ids=["9<12", "9.5<9.10", "14.0<14.1", "known<unknown", "any<unknown"],
+        ids=[
+            "numeric",
+            "subsegment",
+            "minor",
+            "patch",
+            "patch_major",
+            "known<unknown",
+            "any<unknown",
+        ],
     )
     def test_sort_hosts_version_natural_order(
         self, mock_config, mock_diskcache, mocker, earlier, later
@@ -753,8 +763,8 @@ class TestInventory:
         # absolutely fail here.
         inventory = Inventory(mock_config)
         inventory.hosts = [
-            self._mkhost(mocker, "beta", flavor="debian", version=later),
-            self._mkhost(mocker, "alpha", flavor="debian", version=earlier),
+            self._mkhost(mocker, "beta", flavor="generic", version=later),
+            self._mkhost(mocker, "alpha", flavor="generic", version=earlier),
         ]
 
         result = inventory.sort_hosts(SortField.VERSION)
