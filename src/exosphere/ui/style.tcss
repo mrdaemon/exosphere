@@ -40,6 +40,12 @@ FilterScreen {
     background: $background 60%;
 }
 
+SortScreen {
+    layout: vertical;
+    align: center middle;
+    background: $background 60%;
+}
+
 # === Dashboard Components ===
 
 #hosts-scroll {
@@ -296,6 +302,39 @@ FilterScreen {
 
 # Filter help text
 #filter-help {
+    text-align: center;
+    margin-top: 2;
+}
+
+# Sort center container
+#sort-center {
+    width: auto;
+    height: auto;
+}
+
+# Sort screen title
+#sort-title {
+    text-align: center;
+    text-style: bold;
+    width: 100%;
+    margin-bottom: 2;
+}
+
+# Sort list view
+#sort-list {
+    width: auto;
+    height: auto;
+    margin-bottom: 1;
+}
+
+# Sort reverse checkbox
+#sort-reverse {
+    width: 100%;
+    margin-top: 1;
+}
+
+# Sort help text
+#sort-help {
     text-align: center;
     margin-top: 2;
 }

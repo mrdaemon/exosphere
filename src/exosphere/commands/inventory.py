@@ -26,7 +26,7 @@ from exosphere.commands.utils import (
     get_inventory,
     run_task_with_progress,
 )
-from exosphere.inventory import Inventory
+from exosphere.inventory import FilterMode, Inventory, SortField
 
 # Constants for display
 ERROR_STYLE = {
@@ -321,6 +321,22 @@ def status(
             help="Show only hosts with pending security updates (implies --updates-only)",
         ),
     ] = False,
+    sort: Annotated[
+        SortField | None,
+        typer.Option(
+            "-o",
+            "--sort",
+            help="Sort the table by the given column",
+        ),
+    ] = None,
+    reverse: Annotated[
+        bool,
+        typer.Option(
+            "-r",
+            "--reverse",
+            help="Reverse the sort order (requires --sort)",
+        ),
+    ] = False,
     names: Annotated[
         list[str] | None,
         typer.Argument(
@@ -340,42 +356,55 @@ def status(
     updates or security updates. Filtering for security updates
     implies filtering for updates as well.
 
+    Output can also be sorted by any column with --sort, optionally
+    reversed with --reverse. Sorting by 'version' groups hosts by
+    flavor first, since versions are not comparable across flavors.
+
+    When sorting by any column other than name, hosts with unknown
+    or unsupported values for that column will be grouped together at the
+    end.
+
     No matches when filtering will exit with code 3.
     """
     logger = logging.getLogger(__name__)
     logger.info("Showing status of all hosts")
 
+    inventory: Inventory = get_inventory()
+
     hosts = get_hosts_or_error(names)
     if hosts is None:
         raise typer.Exit(2)  # Argument error
 
-    # Apply filters and set table title based on active flags
+    # Map the active flags to a FilterMode and table title.
     # Note: security_only implies updates_only as they're a subset,
     # so it effectively takes precedence here.
     match (updates_only, security_only):
         case (_, True):
+            filter_mode = FilterMode.SECURITY_ONLY
             table_suffix = "(security updates only)"
-            hosts = [host for host in hosts if host.security_updates]
         case (True, False):
+            filter_mode = FilterMode.UPDATES_ONLY
             table_suffix = "(updates only)"
-            hosts = [host for host in hosts if host.updates]
         case _:
+            filter_mode = FilterMode.NONE
             table_suffix = "Overview"
+
+    hosts = inventory.filter_hosts(filter_mode, hosts=hosts)
 
     if not hosts:
         console.print(Panel.fit("No hosts matching requested criteria."))
         raise typer.Exit(3)  # No matches for filtering
 
+    if sort is not None:
+        hosts = inventory.sort_hosts(sort, hosts=hosts, reverse=reverse)
+    elif reverse:
+        logger.warning("--reverse has no effect without --sort")
+
     # Iterates through all hosts in the inventory and render a nice
-    # Rich table with their properties and status
+    # Rich table with their properties and status. Column headers are
+    # driven by the SortField enum so they stay in sync with sorting.
     table = Table(
-        "Host",
-        "OS",
-        "Flavor",
-        "Version",
-        "Updates",
-        "Security",
-        "Status",
+        *(field.label for field in SortField),
         title=f"Host Status {table_suffix}",
         caption="* indicates stale data",
         caption_justify="right",

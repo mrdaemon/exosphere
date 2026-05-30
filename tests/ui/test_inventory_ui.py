@@ -14,8 +14,25 @@ from textual.widgets import DataTable
 
 from exosphere import context
 from exosphere.data import Update
+from exosphere.inventory import FilterMode, Inventory, SortField
 from exosphere.objects import Host
-from exosphere.ui.inventory import FilterMode, FilterScreen, InventoryScreen
+from exosphere.ui.inventory import FilterScreen, InventoryScreen, SortScreen
+
+
+def _wire_query_methods(inventory) -> None:
+    """
+    Bind the real Inventory filter/sort logic onto a mock inventory.
+
+    The screen delegates filtering and sorting to the inventory, so mock
+    inventories used in these tests need working implementations rather
+    than auto-generated Mock return values.
+    """
+    inventory.filter_hosts = lambda mode, hosts=None: Inventory.filter_hosts(
+        inventory, mode, hosts
+    )
+    inventory.sort_hosts = lambda by, hosts=None, reverse=False: Inventory.sort_hosts(
+        inventory, by, hosts, reverse
+    )
 
 
 @pytest.fixture
@@ -100,6 +117,7 @@ def mock_inventory(mocker):
     inventory.get_host = lambda name: next(
         (h for h in inventory.hosts if h.name == name), None
     )
+    _wire_query_methods(inventory)
 
     return inventory
 
@@ -210,6 +228,7 @@ class TestFilteringLogic:
         """
         mock_empty = mocker.Mock()
         mock_empty.hosts = []
+        _wire_query_methods(mock_empty)
         mocker.patch.object(context, "inventory", mock_empty)
 
         inventory_screen.current_filter = FilterMode.UPDATES_ONLY
@@ -501,6 +520,7 @@ class TestRefreshRows:
         host.updates = []
         host.security_updates = []
         mock_inv.hosts = [host]
+        _wire_query_methods(mock_inv)
         mocker.patch.object(context, "inventory", mock_inv)
 
         # Set filter to security only
@@ -532,3 +552,200 @@ class TestRunTask:
         inventory_screen.refresh_data_after_task("test_task")
 
         mock_refresh.assert_called_once()
+
+
+class TestSortScreen:
+    """Test the SortScreen modal selection logic."""
+
+    def test_select_field_dismisses_with_pair(self, mocker):
+        """Selecting a field dismisses with (SortField, reverse)."""
+        screen = SortScreen()
+        mock_checkbox = mocker.Mock()
+        mock_checkbox.value = True
+        mocker.patch.object(screen, "query_one", return_value=mock_checkbox)
+        mock_dismiss = mocker.patch.object(screen, "dismiss")
+
+        event = mocker.Mock()
+        event.item.id = "sort-os"
+        screen.on_list_view_selected(event)
+
+        mock_dismiss.assert_called_once_with((SortField.OS, True))
+        event.stop.assert_called_once()
+
+    def test_select_default_dismisses_with_none_field(self, mocker):
+        """Selecting "Default order" dismisses with (None, reverse)."""
+        screen = SortScreen()
+        mock_checkbox = mocker.Mock()
+        mock_checkbox.value = False
+        mocker.patch.object(screen, "query_one", return_value=mock_checkbox)
+        mock_dismiss = mocker.patch.object(screen, "dismiss")
+
+        event = mocker.Mock()
+        event.item.id = "sort-none"
+        screen.on_list_view_selected(event)
+
+        mock_dismiss.assert_called_once_with((None, False))
+
+    def test_select_no_id_does_nothing(self, mocker):
+        """A selection event with no id is ignored."""
+        screen = SortScreen()
+        mock_dismiss = mocker.patch.object(screen, "dismiss")
+
+        event = mocker.Mock()
+        event.item.id = None
+        screen.on_list_view_selected(event)
+
+        mock_dismiss.assert_not_called()
+
+    def test_escape_dismisses_with_none(self, mocker):
+        """ESC cancels with None (no change)."""
+        screen = SortScreen()
+        mock_dismiss = mocker.patch.object(screen, "dismiss")
+
+        event = mocker.Mock()
+        event.key = "escape"
+        screen.on_key(event)
+
+        mock_dismiss.assert_called_once_with(None)
+
+
+class TestActionSortView:
+    """Test the action_sort_view method and sort selection."""
+
+    def test_action_sort_view_opens_sort_screen(
+        self, inventory_screen, setup_inventory_mock, mocker
+    ):
+        """action_sort_view pushes a SortScreen with a callback."""
+        mock_app = mocker.Mock()
+        mocker.patch.object(
+            type(inventory_screen),
+            "app",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_app,
+        )
+
+        inventory_screen.action_sort_view()
+
+        mock_app.push_screen.assert_called_once()
+        args = mock_app.push_screen.call_args[0]
+        assert isinstance(args[0], SortScreen)
+        assert callable(args[1])
+
+    def test_action_sort_view_no_hosts(self, inventory_screen, mocker):
+        """action_sort_view shows error when no hosts available."""
+        from exosphere.ui.elements import ErrorScreen
+
+        mock_app = mocker.Mock()
+        mocker.patch.object(
+            type(inventory_screen),
+            "app",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_app,
+        )
+        mocker.patch.object(context, "inventory", None)
+
+        inventory_screen.action_sort_view()
+
+        args = mock_app.push_screen.call_args[0]
+        assert isinstance(args[0], ErrorScreen)
+
+    def test_sort_selection_applies_sort(
+        self, inventory_screen, setup_inventory_mock, mocker
+    ):
+        """Selecting a field updates state, refreshes, and updates status bar."""
+        mock_app = mocker.Mock()
+        mocker.patch.object(
+            type(inventory_screen),
+            "app",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_app,
+        )
+        mock_refresh = mocker.patch.object(inventory_screen, "refresh_rows")
+        mock_label = mocker.Mock()
+        mocker.patch.object(inventory_screen, "query_one", return_value=mock_label)
+
+        inventory_screen.action_sort_view()
+        callback = mock_app.push_screen.call_args[0][1]
+        callback((SortField.OS, True))
+
+        assert inventory_screen.current_sort == SortField.OS
+        assert inventory_screen.sort_reverse is True
+        mock_refresh.assert_called_once_with("sort")
+
+        label_text = mock_label.update.call_args[0][0]
+        assert "Sorted: OS" in label_text
+        assert "↓" in label_text
+
+    def test_sort_selection_clear_restores_default(
+        self, inventory_screen, setup_inventory_mock, mocker
+    ):
+        """Selecting "Default order" clears the active sort."""
+        mock_app = mocker.Mock()
+        mocker.patch.object(
+            type(inventory_screen),
+            "app",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_app,
+        )
+        mocker.patch.object(inventory_screen, "refresh_rows")
+        mocker.patch.object(inventory_screen, "query_one", return_value=mocker.Mock())
+
+        inventory_screen.current_sort = SortField.OS
+        inventory_screen.sort_reverse = True
+
+        inventory_screen.action_sort_view()
+        callback = mock_app.push_screen.call_args[0][1]
+        callback((None, False))
+
+        assert inventory_screen.current_sort is None
+        assert inventory_screen.sort_reverse is False
+
+    def test_sort_selection_cancel_does_nothing(
+        self, inventory_screen, setup_inventory_mock, mocker
+    ):
+        """Callback with None (cancel) leaves sort unchanged."""
+        mock_app = mocker.Mock()
+        mocker.patch.object(
+            type(inventory_screen),
+            "app",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_app,
+        )
+        mock_refresh = mocker.patch.object(inventory_screen, "refresh_rows")
+
+        inventory_screen.action_sort_view()
+        callback = mock_app.push_screen.call_args[0][1]
+        callback(None)
+
+        assert inventory_screen.current_sort is None
+        mock_refresh.assert_not_called()
+
+    def test_get_display_hosts_applies_sort(
+        self, inventory_screen, setup_inventory_mock
+    ):
+        """_get_display_hosts sorts the filtered hosts when a sort is set."""
+        inventory_screen.current_sort = SortField.HOST
+        inventory_screen.sort_reverse = True
+
+        hosts = inventory_screen._get_display_hosts()
+
+        assert [h.name for h in hosts] == [
+            "testserver3",
+            "testserver2",
+            "testserver1",
+        ]
+
+    def test_status_bar_combines_filter_and_sort(self, inventory_screen, mocker):
+        """The status bar shows both the active filter and sort."""
+        mock_label = mocker.Mock()
+        mocker.patch.object(inventory_screen, "query_one", return_value=mock_label)
+
+        inventory_screen.current_filter = FilterMode.UPDATES_ONLY
+        inventory_screen.current_sort = SortField.OS
+        inventory_screen.sort_reverse = False
+
+        inventory_screen._update_status_bar()
+
+        text = mock_label.update.call_args[0][0]
+        assert "Filtered: Updates" in text
+        assert "Sorted: OS ↑" in text

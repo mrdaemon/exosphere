@@ -148,6 +148,28 @@ using the ``--updates-only`` or ``--security-only`` flags:
 If this results in no hosts matching the criteria, Exosphere will print
 a message and exit with **code 3**.
 
+By default, hosts are listed in the order they are defined in the
+configuration file. You can sort the table by any column using ``--sort``,
+optionally reversing the order with ``--reverse``:
+
+.. code-block:: exosphere
+
+   exosphere> inventory status --sort updates --reverse
+   exosphere> inventory status --sort os
+
+The available sort columns are ``host``, ``os``, ``flavor``, ``version``,
+``updates``, ``security`` and ``status``. Sorting and filtering can be
+combined freely.
+
+.. admonition:: Note
+
+   Sorting by ``version`` groups hosts by flavor first, then orders versions
+   within each flavor, since version numbers are not directly comparable
+   across different flavors (e.g. Debian 12 versus Ubuntu 22.04).
+
+   Additionally, sorting by any value other than hostname will sort unsupported hosts
+   to the bottom of the list, since they do not have values for those columns.
+
 Viewing Host Details and Updates
 --------------------------------
 

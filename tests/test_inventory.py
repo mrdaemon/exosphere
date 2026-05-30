@@ -4,7 +4,8 @@ import pytest
 
 from exosphere.config import Configuration
 from exosphere.data import HostState
-from exosphere.inventory import Inventory
+from exosphere.inventory import FilterMode, Inventory, SortField, _version_key
+from exosphere.objects import Host
 from exosphere.security import SudoPolicy
 
 
@@ -34,6 +35,79 @@ class TestInventory:
     def mock_diskcache(self, mocker):
         mock_dc = mocker.patch("exosphere.inventory.DiskCache")
         return mock_dc
+
+    @staticmethod
+    def _mkhost(
+        mocker,
+        name,
+        os=None,
+        flavor=None,
+        version=None,
+        updates=0,
+        security=0,
+        online=True,
+        supported=True,
+    ):
+        """Create a lightweight mock Host for filter/sort tests."""
+        host = mocker.Mock(spec=Host)
+        host.name = name
+        host.os = os
+        host.flavor = flavor
+        host.version = version
+        host.online = online
+        host.supported = supported
+        host.updates = [mocker.Mock() for _ in range(updates)]
+        host.security_updates = [mocker.Mock() for _ in range(security)]
+        return host
+
+    @pytest.fixture
+    def view_inventory(self, mock_config, mock_diskcache, mocker):
+        """An inventory with crafted hosts for filter/sort tests."""
+        inventory = Inventory(mock_config)
+        inventory.hosts = [
+            self._mkhost(
+                mocker,
+                "alpha",
+                os="linux",
+                flavor="debian",
+                version="12",
+                updates=3,
+                security=1,
+                online=True,
+            ),
+            self._mkhost(
+                mocker,
+                "bravo",
+                os="linux",
+                flavor="debian",
+                version="9",
+                updates=0,
+                security=0,
+                online=True,
+            ),
+            self._mkhost(
+                mocker,
+                "charlie",
+                os="freebsd",
+                flavor="freebsd",
+                version="14.0",
+                updates=5,
+                security=2,
+                online=False,
+            ),
+            self._mkhost(
+                mocker,
+                "delta",
+                os=None,
+                flavor=None,
+                version=None,
+                updates=0,
+                security=0,
+                online=False,
+                supported=False,
+            ),
+        ]
+        return inventory
 
     def test_init_all(self, mock_config, mock_diskcache):
         """
@@ -533,6 +607,112 @@ class TestInventory:
         assert any(
             "Host 'nonexistent' not found in inventory" in m for m in caplog.messages
         )
+
+    @pytest.mark.parametrize(
+        "mode, expected",
+        [
+            (FilterMode.NONE, {"alpha", "bravo", "charlie", "delta"}),
+            (FilterMode.UPDATES_ONLY, {"alpha", "charlie"}),
+            (FilterMode.SECURITY_ONLY, {"alpha", "charlie"}),
+        ],
+        ids=["none", "updates_only", "security_only"],
+    )
+    def test_filter_hosts(self, view_inventory, mode, expected):
+        result = view_inventory.filter_hosts(mode)
+        assert {h.name for h in result} == expected
+
+    def test_filter_hosts_returns_new_list(self, view_inventory):
+        """
+        Test that filter_hosts does not return the original list
+        """
+        result = view_inventory.filter_hosts(FilterMode.NONE)
+        assert result is not view_inventory.hosts
+
+    def test_filter_hosts_explicit_list(self, view_inventory):
+        subset = view_inventory.hosts[:2]
+        result = view_inventory.filter_hosts(FilterMode.UPDATES_ONLY, hosts=subset)
+        assert {h.name for h in result} == {"alpha"}
+
+    @pytest.mark.parametrize(
+        "field, reverse, expected",
+        [
+            (SortField.HOST, False, ["alpha", "bravo", "charlie", "delta"]),
+            (SortField.HOST, True, ["delta", "charlie", "bravo", "alpha"]),
+            # Supported counts: bravo 0, alpha 3, charlie 5; unsupported delta last
+            (SortField.UPDATES, False, ["bravo", "alpha", "charlie", "delta"]),
+            (SortField.UPDATES, True, ["charlie", "alpha", "bravo", "delta"]),
+        ],
+        ids=["host_asc", "host_desc", "updates_asc", "updates_desc"],
+    )
+    def test_sort_hosts_ordering(self, view_inventory, field, reverse, expected):
+        result = view_inventory.sort_hosts(field, reverse=reverse)
+        assert [h.name for h in result] == expected
+
+    @pytest.mark.parametrize(
+        "field",
+        [
+            SortField.OS,
+            SortField.FLAVOR,
+            SortField.VERSION,
+            SortField.UPDATES,
+            SortField.SECURITY,
+            SortField.STATUS,
+        ],
+        ids=["os", "flavor", "version", "updates", "security", "status"],
+    )
+    def test_sort_hosts_unsupported_pinned_last(self, view_inventory, field):
+        # For any field other than host name, unsupported hosts (delta) must
+        # always land last, never interleaved with the supported hosts' values.
+        result = view_inventory.sort_hosts(field)
+        assert result[-1].name == "delta"
+
+    def test_sort_hosts_by_status_online_first(self, view_inventory):
+        result = view_inventory.sort_hosts(SortField.STATUS)
+        # Online (alpha, bravo) sort before offline (charlie, delta)
+        assert [h.online for h in result] == [True, True, False, False]
+
+    def test_sort_hosts_stable_preserves_config_order(
+        self, mock_config, mock_diskcache, mocker
+    ):
+        # Hosts comparing equal keep their relative configuration order, since
+        # the sort is stable. All three share an update count here.
+        inventory = Inventory(mock_config)
+        inventory.hosts = [
+            self._mkhost(mocker, "first", updates=2),
+            self._mkhost(mocker, "second", updates=2),
+            self._mkhost(mocker, "third", updates=2),
+        ]
+        result = inventory.sort_hosts(SortField.UPDATES)
+        assert [h.name for h in result] == ["first", "second", "third"]
+
+    def test_sort_hosts_by_version_compound(self, mock_config, mock_diskcache, mocker):
+        # Versions are only meaningful within a flavor: group by flavor first,
+        # then natural-sort version within each flavor.
+        inventory = Inventory(mock_config)
+        inventory.hosts = [
+            self._mkhost(mocker, "deb-9", flavor="debian", version="9"),
+            self._mkhost(mocker, "deb-12", flavor="debian", version="12"),
+            self._mkhost(mocker, "ubu-22", flavor="ubuntu", version="22.04"),
+            self._mkhost(mocker, "ubu-8", flavor="ubuntu", version="8"),
+        ]
+        result = inventory.sort_hosts(SortField.VERSION)
+        # debian group first (deb-9 < deb-12 naturally), then ubuntu group
+        assert [h.name for h in result] == ["deb-9", "deb-12", "ubu-8", "ubu-22"]
+
+    @pytest.mark.parametrize(
+        "lower, higher",
+        [
+            ("9", "12"),
+            ("9.5", "9.10"),
+            ("14.0", "14.1"),
+            ("1", None),
+            ("99.99", None),
+        ],
+        ids=["9<12", "9.5<9.10", "14.0<14.1", "1<none", "99.99<none"],
+    )
+    def test_version_key_ordering(self, lower, higher):
+        # Earlier versions sort before later ones; None/empty sorts last.
+        assert _version_key(lower) < _version_key(higher)
 
     def test_discover_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
         """

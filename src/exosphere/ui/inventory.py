@@ -4,31 +4,29 @@ Inventory Screen Module
 
 import logging
 import re
-from enum import StrEnum
 
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Center, Container, Grid, Vertical
 from textual.events import Key
 from textual.screen import Screen
-from textual.widgets import DataTable, Footer, Header, Label, ListItem, ListView
+from textual.widgets import (
+    Checkbox,
+    DataTable,
+    Footer,
+    Header,
+    Label,
+    ListItem,
+    ListView,
+)
 
 from exosphere import context
+from exosphere.inventory import FilterMode, SortField
 from exosphere.objects import Host, Update
 from exosphere.ui.context import screenflags
 from exosphere.ui.elements import ErrorScreen, TaskRunnerScreen
 
 logger = logging.getLogger("exosphere.ui.inventory")
-
-
-class FilterMode(StrEnum):
-    """
-    Filter modes for inventory FilterScreen
-    """
-
-    NONE = "All Hosts"
-    UPDATES_ONLY = "Updates"
-    SECURITY_ONLY = "Security Updates"
 
 
 class FilterScreen(Screen):
@@ -101,6 +99,92 @@ class FilterScreen(Screen):
                 self.dismiss(FilterMode.UPDATES_ONLY)
             case "s" | "S":
                 self.dismiss(FilterMode.SECURITY_ONLY)
+
+
+class SortScreen(Screen):
+    """
+    Screen for choosing a sort field and direction for the inventory view
+
+    Presents a list of sortable columns plus a "reverse" checkbox.
+
+    Dismisses with one of:
+      * ``None``                  -> aborted
+      * ``(None, reverse)``       -> default sort, restore config order
+      * ``(SortField, reverse)``  -> chosen sort
+    """
+
+    CSS_PATH = "style.tcss"
+
+    def __init__(
+        self, current_sort: SortField | None = None, reverse: bool = False
+    ) -> None:
+        super().__init__()
+        self._current_sort = current_sort
+        self._reverse = reverse
+
+    def compose(self) -> ComposeResult:
+        items = [ListItem(Label("Default (config order)"), id="sort-none")]
+        items.extend(
+            ListItem(Label(field.label), id=f"sort-{field.value}")
+            for field in SortField
+        )
+
+        # Preselect the current sort field, if any. Index 0 is the
+        # "Default (config order)" entry, so fields are offset by one.
+        initial_index = 0
+        if self._current_sort is not None:
+            initial_index = list(SortField).index(self._current_sort) + 1
+
+        yield Center(
+            Container(
+                Label("Sort Inventory View", id="sort-title"),
+                ListView(*items, id="sort-list", initial_index=initial_index),
+                Checkbox("Reverse order", value=self._reverse, id="sort-reverse"),
+                Label(
+                    "[dim]↑/↓ + Enter to apply, Tab + Space for reverse, "
+                    "ESC to cancel[/dim]",
+                    id="sort-help",
+                ),
+                classes="filter-message",
+            ),
+            id="sort-center",
+        )
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        """
+        Handle list item selection
+
+        Map to a SortField (or None for default order), read the reverse
+        checkbox, and dismiss the screen with the resulting pair.
+        """
+        item_id = event.item.id
+
+        # If something went terribly wrong, abort early.
+        if not item_id:
+            logger.warning("Selected item has no ID, cannot process sort selection!")
+            return
+
+        reverse = self.query_one("#sort-reverse", Checkbox).value
+
+        if item_id == "sort-none":
+            self.dismiss((None, reverse))
+            event.stop()
+            return
+
+        token = item_id.removeprefix("sort-")
+        try:
+            field = SortField(token)
+        except ValueError:
+            logger.warning("Unknown sort field token '%s', ignoring selection.", token)
+            return
+
+        self.dismiss((field, reverse))
+        event.stop()
+
+    def on_key(self, event: Key) -> None:
+        """Handle window key events for exit."""
+        if event.key == "escape":
+            self.dismiss(None)
 
 
 class HostDetailsPanel(Screen):
@@ -294,12 +378,15 @@ class InventoryScreen(TaskRunnerScreen):
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
         ("ctrl+x", "sync_and_refresh_all", "Sync & Refresh"),
         ("ctrl+f", "filter_view", "Filter"),
+        ("ctrl+s", "sort_view", "Sort"),
     ]
 
     def __init__(self) -> None:
         """Initialize the inventory screen."""
         super().__init__()
         self.current_filter: FilterMode = FilterMode.NONE
+        self.current_sort: SortField | None = None
+        self.sort_reverse: bool = False
 
     def compose(self) -> ComposeResult:
         """Compose the inventory layout."""
@@ -328,7 +415,7 @@ class InventoryScreen(TaskRunnerScreen):
         self.sub_title = "Inventory Management"
 
         # On mount, the filter should be All Hosts
-        hosts = self.get_filtered_hosts()
+        hosts = self._get_display_hosts()
 
         if not hosts:
             logger.warning("Inventory is empty.")
@@ -338,17 +425,9 @@ class InventoryScreen(TaskRunnerScreen):
         table.cursor_type = "row"
         table.zebra_stripes = True
 
-        COLUMNS = (
-            "Host",
-            "OS",
-            "Flavor",
-            "Version",
-            "Updates",
-            "Security",
-            "Status",
-        )
-
-        table.add_columns(*COLUMNS)
+        # Column headers are driven by the SortField enum so they stay in
+        # sync with the available sort fields.
+        table.add_columns(*(field.label for field in SortField))
 
         self._populate_table(table, hosts)
         self._update_status_bar()
@@ -402,8 +481,8 @@ class InventoryScreen(TaskRunnerScreen):
             )
             return
 
-        # Get filtered hosts based on current filter mode
-        hosts = self.get_filtered_hosts()
+        # Get filtered (and sorted) hosts for display
+        hosts = self._get_display_hosts()
 
         if not hosts:
             logger.warning("No hosts match the current filter.")
@@ -492,30 +571,56 @@ class InventoryScreen(TaskRunnerScreen):
 
         self.app.push_screen(FilterScreen(), handle_filter_selection)
 
+    def action_sort_view(self) -> None:
+        """Action to sort the inventory view."""
+
+        if not getattr(context.inventory, "hosts", []):
+            self.app.push_screen(ErrorScreen("No hosts available to sort."))
+            return
+
+        def handle_sort_selection(
+            result: tuple[SortField | None, bool] | None,
+        ) -> None:
+            """Callback to handle sort selection"""
+            if result is None:
+                return  # Cancelled, no change
+
+            field, reverse = result
+            self.current_sort = field
+            self.sort_reverse = reverse
+            self.refresh_rows("sort")
+            self._update_status_bar()
+            logger.info("Applied sort: %s (reverse=%s)", field, reverse)
+
+        self.app.push_screen(
+            SortScreen(self.current_sort, self.sort_reverse), handle_sort_selection
+        )
+
     def _update_status_bar(self) -> None:
         """
         Update the inventory info status bar below.
 
-        Normally will contain the stale data helper text, but will also
-        display any applied filters to inform the user that they are
-        viewing a partial table.
+        Displays any applied filter and/or sort to inform the user that
+        they are viewing a partial or reordered table.
 
         Future status elements (if relevant) can also be updated here.
         """
         try:
-            filter_label = self.query_one("#inventory-filter-label", Label)
+            status_label = self.query_one("#inventory-filter-label", Label)
         except Exception:
-            logger.error("Filter label not found, this is unexpected and likely a bug.")
+            logger.error("Status label not found, this is unexpected and likely a bug.")
             return
 
-        # Update filter label based on current filter
-        match self.current_filter:
-            case FilterMode.NONE:
-                filter_label.update("")
-            case FilterMode.UPDATES_ONLY:
-                filter_label.update(f"Filtered: {FilterMode.UPDATES_ONLY}")
-            case FilterMode.SECURITY_ONLY:
-                filter_label.update(f"Filtered: {FilterMode.SECURITY_ONLY}")
+        parts: list[str] = []
+
+        if self.current_filter != FilterMode.NONE:
+            parts.append(f"Filtered: {self.current_filter}")
+
+        if self.current_sort is not None:
+            arrow = "↓" if self.sort_reverse else "↑"
+            parts.append(f"Sorted: {self.current_sort.label} {arrow}")
+
+        status_label.update("  ".join(parts))
 
     def get_filtered_hosts(self) -> list[Host]:
         """
@@ -525,30 +630,21 @@ class InventoryScreen(TaskRunnerScreen):
         if not inventory:
             return []
 
-        all_hosts = inventory.hosts
+        return inventory.filter_hosts(self.current_filter)
 
-        match self.current_filter:
-            case FilterMode.NONE:
-                return all_hosts
-            case FilterMode.UPDATES_ONLY:
-                return [
-                    host
-                    for host in all_hosts
-                    if host.supported and host.updates and len(host.updates) > 0
-                ]
-            case FilterMode.SECURITY_ONLY:
-                return [
-                    host
-                    for host in all_hosts
-                    if host.supported
-                    and host.security_updates
-                    and len(host.security_updates) > 0
-                ]
-            case _:
-                logger.warning(
-                    f"Unknown filter mode: {self.current_filter}, returning all hosts."
-                )
-                return all_hosts
+    def _get_display_hosts(self) -> list[Host]:
+        """
+        Get hosts for display: filtered by the current filter, then sorted
+        by the current sort field if one is active.
+        """
+        hosts = self.get_filtered_hosts()
+
+        if self.current_sort is not None and context.inventory:
+            hosts = context.inventory.sort_hosts(
+                self.current_sort, hosts=hosts, reverse=self.sort_reverse
+            )
+
+        return hosts
 
     def _populate_table(self, table: DataTable, hosts: list[Host]) -> None:
         """Populate given table with host data"""
