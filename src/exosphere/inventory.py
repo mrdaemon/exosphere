@@ -3,7 +3,7 @@ import logging
 import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Any, Generator, assert_never
 
 from exosphere import migrations
@@ -26,96 +26,74 @@ class FilterMode(StrEnum):
     SECURITY_ONLY = "Security Updates"
 
 
-class SortField(StrEnum):
+class SortField(Enum):
     """
     Sortable columns for inventory views.
 
-    The value of each member is the lowercase token accepted on the CLI
-    (e.g. ``--sort os``). The :attr:`label` property returns the matching
-    column header used for display in both the CLI table and the TUI
-    inventory screen.
+    Each member carries everything needed to sort by it:
+
+    - The column token (used as name for user input, e.g. "version")
+    - The display ``label`` (used for display in table headers)
+    - The ``key`` function, producing a sort key for a given Host
+
+    Every key returns a tuple so the sort is total and undiscovered
+    values land consistently. Because the sort is stable, hosts
+    comparing as equal keep their existing relative order (i.e.
+    configuration order).
+
+    Sorting by ``version`` is compound (flavor first, then a natural
+    sort of the version) since versions are not comparable across
+    flavors.
     """
 
-    HOST = "host"
-    OS = "os"
-    FLAVOR = "flavor"
-    VERSION = "version"
-    UPDATES = "updates"
-    SECURITY = "security"
-    STATUS = "status"
+    HOST = ("host", "Host", lambda h: (h.name.lower(),))
+    OS = ("os", "OS", lambda h: SortField._text(h.os))
+    FLAVOR = ("flavor", "Flavor", lambda h: SortField._text(h.flavor))
+    VERSION = (
+        "version",
+        "Version",
+        lambda h: (*SortField._text(h.flavor), SortField._version(h.version)),
+    )
+    UPDATES = ("updates", "Updates", lambda h: (len(h.updates),))
+    SECURITY = ("security", "Security", lambda h: (len(h.security_updates),))
+    STATUS = ("status", "Status", lambda h: (not h.online,))  # online first
 
-    @property
-    def label(self) -> str:
-        """Human-readable column header for this field."""
-        return _SORT_LABELS[self]
+    # Annotations, not members
+    label: str
+    key: Callable[[Host], tuple]
 
+    def __new__(
+        cls, token: str, label: str, key: Callable[[Host], tuple]
+    ) -> "SortField":
+        member = object.__new__(cls)
+        member._value_ = token
+        member.label = label
+        member.key = key
+        return member
 
-# Column headers for each sortable field, used for display.
-# Kept as an explicit mapping since simple casing rules can't produce
-# headers like "OS" from the lowercase CLI tokens.
-_SORT_LABELS: dict[SortField, str] = {
-    SortField.HOST: "Host",
-    SortField.OS: "OS",
-    SortField.FLAVOR: "Flavor",
-    SortField.VERSION: "Version",
-    SortField.UPDATES: "Updates",
-    SortField.SECURITY: "Security",
-    SortField.STATUS: "Status",
-}
+    @staticmethod
+    def _text(value: str | None) -> tuple:
+        """Sort key for optional strings: present first, None/empty last."""
+        return (value is None or value == "", (value or "").lower())
 
+    @staticmethod
+    def _version(value: str | None) -> tuple:
+        """
+        Natural-sort key for a version string; None/empty sorts last.
 
-def _str_key(value: str | None) -> tuple:
-    """
-    Sort key for optional strings.
+        Splits the version into numeric and non-numeric chunks so numeric
+        segments compare as integers (9 < 12 < 22) rather than
+        lexically. Each chunk is wrapped in a (type, value) tuple so
+        numeric and string chunks never compare against each other.
+        """
+        if not value:
+            # Sort undiscovered/unknown versions last
+            return ((2,),)
 
-    Present values sort first (case-insensitively); None/empty values
-    sort last, regardless of sort direction reversal.
-    """
-    return (value is None or value == "", (value or "").lower())
-
-
-def _version_key(version: str | None) -> tuple:
-    """
-    Produce a natural-sort key for a version string.
-
-    Splits the version into numeric and non-numeric chunks so numeric
-    segments compare as integers (``9`` < ``12`` < ``22``) rather than
-    lexically. Each chunk is wrapped in a ``(type, value)`` tuple so
-    numeric and string chunks never compare against each other.
-
-    None/empty versions sort last.
-    """
-    if not version:
-        # Sort undiscovered/unknown versions last
-        return ((2,),)
-
-    chunks: list[tuple] = []
-    for part in re.findall(r"\d+|[^\d]+", version):
-        if part.isdigit():
-            chunks.append((0, int(part)))
-        else:
-            chunks.append((1, part.lower()))
-
-    return tuple(chunks)
-
-
-# Sort key functions for each inventory table field.
-# Each key returns a tuple so that the sort is total, and undiscovered
-# values land consistently.
-# Python's sort is stable, so hosts comparing as equal keep their
-# existing relative order (and so, default in config order).
-_SORT_KEYS: dict[SortField, Callable[[Host], tuple]] = {
-    SortField.HOST: lambda h: (h.name.lower(),),
-    SortField.OS: lambda h: _str_key(h.os),
-    SortField.FLAVOR: lambda h: _str_key(h.flavor),
-    # Version is meaningless across flavors, so it is grouped
-    # then natural-sorted within each flavor.
-    SortField.VERSION: lambda h: (*_str_key(h.flavor), _version_key(h.version)),
-    SortField.UPDATES: lambda h: (len(h.updates),),
-    SortField.SECURITY: lambda h: (len(h.security_updates),),
-    # Online hosts sort before offline ones in ascending order.
-    SortField.STATUS: lambda h: (not h.online,),
-}
+        return tuple(
+            (0, int(part)) if part.isdigit() else (1, part.lower())
+            for part in re.findall(r"\d+|[^\d]+", value)
+        )
 
 
 class Inventory:
@@ -396,9 +374,8 @@ class Inventory:
         """
         target = list(hosts if hosts is not None else self.hosts)
 
-        # Sort keys are pre-defined, if any are missing, that is a bug,
-        # so we just let it raise a KeyError to surface the issue.
-        key = _SORT_KEYS[by]
+        # Each SortField carries its own sort key function.
+        key = by.key
 
         # All hosts are sortable by name, even unsupported ones
         if by == SortField.HOST:

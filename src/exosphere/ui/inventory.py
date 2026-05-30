@@ -595,7 +595,8 @@ class InventoryScreen(TaskRunnerScreen):
             self.sort_reverse = reverse
             self.refresh_rows("sort")
             self._update_status_bar()
-            logger.info("Applied sort: %s (reverse=%s)", field, reverse)
+            field_name = field.value if field is not None else "default"
+            logger.info("Applied sort: %s (reverse=%s)", field_name, reverse)
 
         self.app.push_screen(
             SortScreen(self.current_sort, self.sort_reverse), handle_sort_selection
