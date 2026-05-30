@@ -219,6 +219,21 @@ The documentation for this (alongside actual examples) is still a WIP, but you c
 refer to the [Online API Documentation](https://exosphere.readthedocs.io/en/stable/api/index.html)
 for the core functionality and objects that are considered public.
 
+## LLM/"AI" Contributions Policy
+
+We do not endorse, recommend, or want contributions from Large Language Models
+(LLMs) or "AI" code generation tools. We like our bugs human made and ethically
+sourced.
+
+If you want the author to bother reviewing your pull request, take the time to
+write it yourself. Automated PRs from Claude, ChatGPT, Copilot or similar will
+be summarily rejected.
+
+Similarly, anything you wish to contribute should be something you can explain
+and defend in code review, as the human who owns the change. If you cannot
+explain it, or would defer to asking an LLM, please don't bother, and save
+everyone the time.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

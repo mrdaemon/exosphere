@@ -1,0 +1,15 @@
+# Normalize all text files to LF in the repository and on checkout.
+# This keeps line endings consistent across platforms (the project is
+# developed on both Windows and Unix) and avoids issues with certain
+# tools that expect LF line endings.
+* text=auto eol=lf
+
+# Windows batch scripts require CRLF
+*.bat text eol=crlf
+
+# Binary assets — never apply text or EOL conversion.
+*.png   binary
+*.gif   binary
+*.ttf   binary
+*.woff  binary
+*.woff2 binary

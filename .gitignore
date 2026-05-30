@@ -50,3 +50,9 @@ docs/source/_static/reports/
 # Temporary files / Scratch
 /tmp/
 /temp/
+
+# Agentic LLM Garbage
+# Please refer to the AI policy in the README for more details
+CLAUDE.md
+AGENTS.md
+copilot-instructions.md
