@@ -172,10 +172,16 @@ columns with the Arrow Keys, toggle reverse by pressing ``r`` (or focusing
 the checkbox with ``Tab`` and pressing ``Space``), and press ``Enter`` to
 apply.
 
+.. image:: /_static/sort_sample.png
+   :alt: Example of Exosphere TUI Sort Prompt
+
 After applying a sort, the active sort field and direction are shown in
 the status bar alongside any active filter. You can restore the original
 configuration order by pressing `ctrl+s` again and selecting the
 "Default (config order)" option.
+
+.. image:: /_static/ui_inventory_sort_statusbar.png
+   :alt: Exosphere TUI Inventory Status Bar with sorted status and direction
 
 Sorting and filtering are independent and can be combined freely.
 
@@ -187,9 +193,8 @@ Sorting and filtering are independent and can be combined freely.
    OS first, keeping OS families together.
 
    Additionally, hosts with no meaningful data for the selected sort column
-   (Unsupported and Undiscovered hosts) always sort to the bottom of the list,
-   regardless of the requested order. Within that bottom tier, Undiscovered
-   hosts sort above Unsupported ones.
+   always sort to the bottom of the list, regardless of the requested order.
+   Within that bottom tier, Undiscovered hosts sort above Unsupported ones.
 
 Logs Screen
 -----------

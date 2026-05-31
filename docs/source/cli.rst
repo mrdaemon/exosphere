@@ -158,8 +158,9 @@ optionally reversing the order with ``--reverse``:
    exosphere> inventory status --sort os
 
 The available sort columns are ``host``, ``os``, ``flavor``, ``version``,
-``updates``, ``security`` and ``status``. Sorting and filtering can be
-combined freely.
+``updates``, ``security`` and ``status``.
+
+Sorting and filtering **can be combined freely**.
 
 .. admonition:: Note
 
@@ -170,9 +171,8 @@ combined freely.
    together.
 
    Additionally, hosts with no meaningful data for the selected sort column
-   (Unsupported and Undiscovered hosts) always sort to the bottom of the list,
-   regardless of the requested order. Within that bottom tier, Undiscovered
-   hosts sort above Unsupported ones.
+   always sort to the bottom of the list, regardless of the requested order.
+   Within that bottom tier, Undiscovered hosts sort above Unsupported ones.
 
 You can include additional columns, such as each host's description, with
 the ``--full`` flag:
