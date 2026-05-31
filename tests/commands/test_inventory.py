@@ -251,8 +251,8 @@ class TestStatusCommand:
         )
 
         assert result.exit_code == 0
-        assert "Description" in result.output # Column present
-        assert "primary web server" in result.output # one description
+        assert "Description" in result.output  # Column present
+        assert "primary web server" in result.output  # one description
         assert result.output.count("—") == 1  # one placeholder
 
     def test_description_hidden_without_full(self, create_host, mock_inventory):
