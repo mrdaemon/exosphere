@@ -238,8 +238,10 @@ class TestStatusCommand:
         """
         Test that --full adds a Description column with the host description.
         """
-        host = create_host(name="host1", description="primary web server")
-        mock_inventory.hosts = [host]
+        # Create a host with a description one without
+        host1 = create_host(name="host1", description="primary web server")
+        host2 = create_host(name="host2", description=None)
+        mock_inventory.hosts = [host1, host2]
 
         # Widen the terminal so the extra column isn't truncated by Rich.
         result = runner.invoke(
@@ -249,8 +251,9 @@ class TestStatusCommand:
         )
 
         assert result.exit_code == 0
-        assert "Description" in result.output
-        assert "primary web server" in result.output
+        assert "Description" in result.output # Column present
+        assert "primary web server" in result.output # one description
+        assert result.output.count("—") == 1  # one placeholder
 
     def test_description_hidden_without_full(self, create_host, mock_inventory):
         """
