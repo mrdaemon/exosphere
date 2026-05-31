@@ -179,6 +179,26 @@ def test_hostwidget_compose_online_unsupported(mocker, host_unsupported):
     assert "Online" in calls[3][0][0]
 
 
+def test_hostwidget_compose_offline_unsupported(mocker, host_unsupported):
+    """Test that HostWidget correctly reports unsupported offline hosts."""
+    host_unsupported.online = False
+
+    mock_container = mocker.MagicMock()
+    mock_label = mocker.MagicMock()
+
+    mocker.patch("exosphere.ui.dashboard.Container", return_value=mock_container)
+    label_mock = mocker.patch("exosphere.ui.dashboard.Label", return_value=mock_label)
+
+    widget = HostWidget(host_unsupported)
+    list(widget.compose())
+
+    calls = label_mock.call_args_list
+    # Must not regress to "(Undiscovered)" just because it's offline
+    assert "exotic-os (unsupported)" in calls[1][0][0]
+    assert "Undiscovered" not in calls[1][0][0]
+    assert "Offline" in calls[3][0][0]
+
+
 def test_hostwidget_init():
     """Test HostWidget initialization."""
     host = Host(name="test", ip="127.0.0.1")

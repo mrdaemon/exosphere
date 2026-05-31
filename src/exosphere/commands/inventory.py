@@ -433,7 +433,7 @@ def status(
     for host in hosts:
         # Prepare some rendering data for suffixes and placeholders
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
-        unknown_status = "[dim](unknown)[/dim]"
+        undiscovered_status = "[dim](undiscovered)[/dim]"
         unsupported_status = "[dim](unsupported)[/dim]"
         empty_placeholder = "[dim]—[/dim]"
 
@@ -455,14 +455,15 @@ def status(
             "[bold green]Online[/bold green]" if host.online else "[red]Offline[/red]"
         )
 
-        # Handle platform info display with unsupported status
+        # Helper function to get platform info with appropriate
+        # handling for unsupported and undiscovered hosts
         def get_platform_info(value):
             if value:
                 return value
-            elif host.online and not host.supported:
+            elif not host.supported:
                 return unsupported_status
             else:
-                return unknown_status
+                return undiscovered_status
 
         # Construct table row for host
         row = [

@@ -197,12 +197,15 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host]
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        # Widen the terminal so the "(undiscovered)" labels aren't truncated.
+        result = runner.invoke(
+            inventory_module.app, ["status"], env={"NO_COLOR": "1", "COLUMNS": "200"}
+        )
 
         assert result.exit_code == 0
         assert "host1" in result.output
-        assert "(unknown)" in result.output
-        assert result.output.count("(unknown)") == 3
+        assert "(undiscovered)" in result.output
+        assert result.output.count("(undiscovered)") == 3
 
         assert result.output.count("—") == 2  # No data for updates
         assert result.output.count("*") == 1  # No stale, except legend
