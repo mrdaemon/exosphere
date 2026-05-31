@@ -35,6 +35,9 @@ class SortField(Enum):
     - The column token (used as name for user input, e.g. "version")
     - The display ``label`` (used for display in table headers)
     - The ``key`` function, producing a sort key for a given Host
+    - The ``has_value`` predicate, telling whether a host has a real,
+      orderable value for this column (used to pin "no data" hosts to the
+      bottom of the sort)
 
     Every key returns a tuple so the sort is total and undiscovered
     values land consistently. Because the sort is stable, hosts
@@ -46,29 +49,52 @@ class SortField(Enum):
     flavors.
     """
 
-    HOST = ("host", "Host", lambda h: (h.name.lower(),))
-    OS = ("os", "OS", lambda h: SortField._text(h.os))
-    FLAVOR = ("flavor", "Flavor", lambda h: SortField._text(h.flavor))
+    HOST = ("host", "Host", lambda h: (h.name.lower(),), lambda h: True)
+    OS = ("os", "OS", lambda h: SortField._text(h.os), lambda h: h.os is not None)
+    FLAVOR = (
+        "flavor",
+        "Flavor",
+        lambda h: SortField._text(h.flavor),
+        lambda h: h.flavor is not None,
+    )
     VERSION = (
         "version",
         "Version",
         lambda h: (*SortField._text(h.flavor), SortField._version(h.version)),
+        lambda h: h.version is not None,
     )
-    UPDATES = ("updates", "Updates", lambda h: (len(h.updates),))
-    SECURITY = ("security", "Security", lambda h: (len(h.security_updates),))
-    STATUS = ("status", "Status", lambda h: (not h.online,))  # online first
+    UPDATES = (
+        "updates",
+        "Updates",
+        lambda h: (len(h.updates),),
+        lambda h: h.supported and h.os is not None,
+    )
+    SECURITY = (
+        "security",
+        "Security",
+        lambda h: (len(h.security_updates),),
+        lambda h: h.supported and h.os is not None,
+    )
+    # online first; status is known for every host
+    STATUS = ("status", "Status", lambda h: (not h.online,), lambda h: True)
 
     # Annotations, not members
     label: str
     key: Callable[[Host], tuple]
+    has_value: Callable[[Host], bool]
 
     def __new__(
-        cls, token: str, label: str, key: Callable[[Host], tuple]
+        cls,
+        token: str,
+        label: str,
+        key: Callable[[Host], tuple],
+        has_value: Callable[[Host], bool],
     ) -> "SortField":
         member = object.__new__(cls)
         member._value_ = token
         member.label = label
         member.key = key
+        member.has_value = has_value
         return member
 
     @staticmethod
@@ -359,10 +385,18 @@ class Inventory:
         within each flavor, since version strings are not meaningfully
         comparable across different flavors.
 
-        Except when sorting by host name, unsupported hosts are always
-        pinned to the bottom of the result (regardless of sort direction),
-        since their column values (version, update counts, etc.) are not
-        meaningful and would otherwise be interleaved with real data.
+        Handling of hosts with placeholder/no data values is as follows
+
+        - All hosts can always be sorted by name and online status,
+          since those are always known
+        - Undiscovered hosts have no platform data at all, so they sort
+          last on every other data column
+        - Unsupported hosts report an OS but nothing else, so they sort
+          normally by OS but last on every other data column
+        - Hosts with no data for a column are pinned to the bottom of
+          the sort, regardless of desired order
+        - Unsupported hosts sort after Undiscovered, since the latter
+          are considered actionable.
 
         Returns a new list of hosts sorted by the given field.
 
@@ -374,20 +408,17 @@ class Inventory:
         """
         target = list(hosts if hosts is not None else self.hosts)
 
-        # Each SortField carries its own sort key function.
-        key = by.key
+        # Pre-sort hosts into sets with and without values for column
+        have_value = [h for h in target if by.has_value(h)]
+        no_value = [h for h in target if not by.has_value(h)]
 
-        # All hosts are sortable by name, even unsupported ones
-        if by == SortField.HOST:
-            return sorted(target, key=key, reverse=reverse)
+        # Undiscovered host sort above unsupported
+        undiscovered = [h for h in no_value if h.supported]
+        unsupported = [h for h in no_value if not h.supported]
 
-        # For every other field, unsupported hosts have no meaningful value
-        # to compare, so they are always appended at the end (keeping their
-        # existing relative order) rather than sorted in with the rest.
-        supported = [h for h in target if h.supported]
-        unsupported = [h for h in target if not h.supported]
-
-        return sorted(supported, key=key, reverse=reverse) + unsupported
+        return (
+            sorted(have_value, key=by.key, reverse=reverse) + undiscovered + unsupported
+        )
 
     def discover_all(self) -> None:
         """

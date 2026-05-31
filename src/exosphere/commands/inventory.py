@@ -423,7 +423,7 @@ def status(
         empty_placeholder = "[dim]—[/dim]"
 
         # Prepare table row data
-        if host.supported:
+        if host.supported and host.os is not None:
             updates = f"{len(host.updates)}{stale_suffix}"
 
             sec_count = len(host.security_updates) if host.security_updates else 0
@@ -431,7 +431,8 @@ def status(
                 f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
             ) + stale_suffix
         else:
-            # Do not show update counts for unsupported hosts
+            # Do not show update counts for unsupported or undiscovered
+            # hosts - they do not contribute meaningful data.
             updates = empty_placeholder
             security_updates = empty_placeholder
 

@@ -168,8 +168,9 @@ You can clear the filter by pressing `ctrl+f` again and selecting the
 
 You can sort the hosts with `ctrl+s`, which opens a prompt listing the
 sortable columns along with a *Reverse order* checkbox. Navigate the
-columns with the Arrow Keys, toggle the checkbox with ``Tab`` then
-``Space``, and press ``Enter`` to apply.
+columns with the Arrow Keys, toggle reverse by pressing ``r`` (or focusing
+the checkbox with ``Tab`` and pressing ``Space``), and press ``Enter`` to
+apply.
 
 After applying a sort, the active sort field and direction are shown in
 the status bar alongside any active filter. You can restore the original
@@ -183,6 +184,11 @@ Sorting and filtering are independent and can be combined freely.
    Sorting by *Version* groups hosts by flavor first, then orders versions
    within each flavor, since version numbers are not directly comparable
    across different flavors.
+
+   Additionally, hosts with no meaningful data for the selected sort column
+   (Unsupported and Undiscovered hosts) always sort to the bottom of the list,
+   regardless of the requested order. Within that bottom tier, Undiscovered
+   hosts sort above Unsupported ones.
 
 Logs Screen
 -----------
