@@ -48,7 +48,7 @@ class SortField(Enum):
     sort of the version) since versions are not comparable across
     flavors.
     """
-
+    # Tuple is (token, label, sort key function, has_value predicate)
     HOST = ("host", "Host", lambda h: (h.name.lower(),), lambda h: True)
     OS = ("os", "OS", lambda h: SortField._text(h.os), lambda h: h.os is not None)
     FLAVOR = (
