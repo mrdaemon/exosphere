@@ -663,22 +663,25 @@ class InventoryScreen(TaskRunnerScreen):
             return value if value else state
 
         for host in hosts:
-            sec_count: int = len(host.security_updates) if host.security_updates else 0
-            upd_count: int = len(host.updates) if host.updates else 0
+            # Only populate update counts for supported and discovered
+            # hosts, as other states do not carry meaningful data.
+            if host.supported and host.os is not None:
+                sec_count: int = (
+                    len(host.security_updates) if host.security_updates else 0
+                )
+                upd_count: int = len(host.updates) if host.updates else 0
 
-            security_updates = (
-                f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
-            )
-            updates = str(upd_count)
+                security_updates = (
+                    f"[red]{sec_count}[/red]" if sec_count > 0 else str(sec_count)
+                )
+                updates = str(upd_count)
 
-            # Do not show updates for unsupported hosts
-            if not host.supported:
-                security_updates = "[dim]—[/dim]"
+                if host.is_stale:
+                    updates += "[dim] *[/dim]"
+                    security_updates += "[dim] *[/dim]"
+            else:
                 updates = "[dim]—[/dim]"
-
-            if host.is_stale:
-                updates += "[dim] *[/dim]"
-                security_updates += "[dim] *[/dim]"
+                security_updates = "[dim]—[/dim]"
 
             status_str = (
                 "[green]Online[/green]" if host.online else "[red]Offline[/red]"

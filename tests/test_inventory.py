@@ -40,7 +40,7 @@ class TestInventory:
     def _mkhost(
         mocker,
         name,
-        os=None,
+        os: str | None = "linux",
         flavor=None,
         version=None,
         updates=0,
@@ -48,7 +48,12 @@ class TestInventory:
         online=True,
         supported=True,
     ):
-        """Create a lightweight mock Host for filter/sort tests."""
+        """
+        Create a lightweight mock Host for filter/sort tests.
+
+        Hosts default to a discovered state.
+        Pass ``os=None`` to mock an undiscovered host.
+        """
         host = mocker.Mock(spec=Host)
         host.name = name
         host.os = os
@@ -66,7 +71,8 @@ class TestInventory:
         An inventory with crafted hosts for filter/sort tests.
 
         They all have predictable names (nato phonetic) and varying
-        attributes, and one is Unsupported/Undiscovered.
+        attributes, and one (delta) is an unsupported host: it reports
+        an OS but no flavor/version.
         """
         inventory = Inventory(mock_config)
         inventory.hosts = [
@@ -103,7 +109,7 @@ class TestInventory:
             self._mkhost(
                 mocker,
                 "delta",
-                os=None,
+                os="plan9",
                 flavor=None,
                 version=None,
                 updates=0,
@@ -665,23 +671,89 @@ class TestInventory:
     @pytest.mark.parametrize(
         "field",
         [
-            SortField.OS,
             SortField.FLAVOR,
             SortField.VERSION,
             SortField.UPDATES,
             SortField.SECURITY,
-            SortField.STATUS,
         ],
-        ids=["os", "flavor", "version", "updates", "security", "status"],
+        ids=["flavor", "version", "updates", "security"],
     )
     def test_sort_hosts_unsupported_pinned_last(self, view_inventory, field):
         """
-        Test that unsupported hosts are always sorted last
+        Test that unsupported hosts are always sorted last on columns they lack
         """
-        # For any field other than host name, unsupported hosts (delta) must
-        # always land last, never interleaved with the supported hosts' values.
+        # Delta is unsupported, but reports an OS.
+        # For any field other than host name, status and OS,
+        # unsupported hosts must always land last, never interleaved
+        # with real, meaningful data.
         result = view_inventory.sort_hosts(field)
         assert result[-1].name == "delta"
+
+    def test_sort_hosts_os_includes_unsupported(
+        self, mock_config, mock_diskcache, mocker
+    ):
+        """
+        Test that sorting by OS includes unsupported hosts.
+
+        Unsupported hosts report an OS, so they sort by it alongside
+        discovered hosts. Only undiscovered hosts (no OS at all) are pinned
+        to the bottom for the OS column.
+        """
+        inventory = Inventory(mock_config)
+        inventory.hosts = [
+            self._mkhost(mocker, "z-discovered", os="ubuntu"),
+            self._mkhost(mocker, "unsupported", os="arch", supported=False),
+            self._mkhost(mocker, "a-discovered", os="debian"),
+            self._mkhost(mocker, "undiscovered", os=None),
+        ]
+
+        result = inventory.sort_hosts(SortField.OS)
+
+        # arch < debian < ubuntu by OS (unsupported interleaved), then the
+        # undiscovered host (no OS) pinned last.
+        assert [h.name for h in result] == [
+            "unsupported",
+            "a-discovered",
+            "z-discovered",
+            "undiscovered",
+        ]
+
+    def test_sort_hosts_pins_undiscovered_above_unsupported(
+        self, mock_config, mock_diskcache, mocker
+    ):
+        """
+        Test the no-data hosts ordering on data columns.
+
+        Discovered hosts sort on top, then undiscovered (no platform info),
+        then unsupported, regardless of sort direction.
+        """
+        inventory = Inventory(mock_config)
+        # Update counts for undiscovered and unsupported here are
+        # intentionally high, something that would never happen in a
+        # real inventory, to ensure they are properly ignored.
+        inventory.hosts = [
+            self._mkhost(mocker, "unsupported", os="plan9", supported=False, updates=9),
+            self._mkhost(mocker, "undiscovered", os=None, updates=9),
+            self._mkhost(mocker, "alpha", updates=5),
+            self._mkhost(mocker, "bravo", updates=1),
+        ]
+
+        result = inventory.sort_hosts(SortField.UPDATES)
+        assert [h.name for h in result] == [
+            "bravo",
+            "alpha",
+            "undiscovered",
+            "unsupported",
+        ]
+
+        # Reversed: only the discovered group flips; pinned hosts stay last.
+        result = inventory.sort_hosts(SortField.UPDATES, reverse=True)
+        assert [h.name for h in result] == [
+            "alpha",
+            "bravo",
+            "undiscovered",
+            "unsupported",
+        ]
 
     def test_sort_hosts_by_status_online_first(self, view_inventory):
         """
@@ -690,6 +762,27 @@ class TestInventory:
         result = view_inventory.sort_hosts(SortField.STATUS)
         # Online (alpha, bravo) sort before offline (charlie, delta)
         assert [h.online for h in result] == [True, True, False, False]
+
+    def test_sort_hosts_status_orders_all_hosts(
+        self, mock_config, mock_diskcache, mocker
+    ):
+        """
+        Test that STATUS sorting never pins hosts.
+
+        Online state is meaningful for every host, so undiscovered and
+        unsupported hosts sort by their online state like any other.
+        """
+        inventory = Inventory(mock_config)
+        inventory.hosts = [
+            self._mkhost(mocker, "offline", os=None, online=False),
+            self._mkhost(mocker, "alpha", os="plan9", supported=False, online=True),
+            self._mkhost(mocker, "bravo", online=True),
+        ]
+
+        result = inventory.sort_hosts(SortField.STATUS)
+        # Online hosts first (unsupported included), offline (undiscovered) last
+        assert [h.online for h in result] == [True, True, False]
+        assert result[-1].name == "offline"
 
     def test_sort_hosts_stable_preserves_config_order(
         self, mock_config, mock_diskcache, mocker

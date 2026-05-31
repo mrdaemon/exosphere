@@ -201,8 +201,9 @@ class TestStatusCommand:
         assert "host1" in result.output
         assert "(unknown)" in result.output
         assert result.output.count("(unknown)") == 3
-        assert "0" in result.output  # Should show 0 updates and security updates
-        assert "*" in result.output  # Should show stale indicator out of the box
+
+        assert result.output.count("—") == 2  # No data for updates
+        assert result.output.count("*") == 1  # No stale, except legend
 
     def test_with_unsupported_host(self, create_host, mock_inventory):
         """

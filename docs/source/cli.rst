@@ -167,8 +167,10 @@ combined freely.
    within each flavor, since version numbers are not directly comparable
    across different flavors (e.g. Debian 12 versus Ubuntu 22.04).
 
-   Additionally, sorting by any value other than hostname will sort unsupported hosts
-   to the bottom of the list, since they do not have values for those columns.
+   Additionally, hosts with no meaningful data for the selected sort column
+   (Unsupported and Undiscovered hosts) always sort to the bottom of the list,
+   regardless of the requested order. Within that bottom tier, Undiscovered
+   hosts sort above Unsupported ones.
 
 Viewing Host Details and Updates
 --------------------------------
