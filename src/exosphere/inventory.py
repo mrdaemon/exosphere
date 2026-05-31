@@ -46,20 +46,24 @@ class SortField(Enum):
 
     Sorting by ``version`` is compound (flavor first, then a natural
     sort of the version) since versions are not comparable across
-    flavors.
+    flavors. Likewise, sorting by ``flavor`` is compound by OS first
+    so the OS families stay grouped together.
     """
+
     # Tuple is (token, label, sort key function, has_value predicate)
     HOST = ("host", "Host", lambda h: (h.name.lower(),), lambda h: True)
     OS = ("os", "OS", lambda h: SortField._text(h.os), lambda h: h.os is not None)
     FLAVOR = (
         "flavor",
         "Flavor",
-        lambda h: SortField._text(h.flavor),
+        # Compound sort by OS first
+        lambda h: (*SortField._text(h.os), *SortField._text(h.flavor)),
         lambda h: h.flavor is not None,
     )
     VERSION = (
         "version",
         "Version",
+        # Compound sort by flavor first
         lambda h: (*SortField._text(h.flavor), SortField._version(h.version)),
         lambda h: h.version is not None,
     )

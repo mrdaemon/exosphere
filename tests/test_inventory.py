@@ -823,6 +823,32 @@ class TestInventory:
         # debian group first (deb-9 < deb-12 naturally), then ubuntu group
         assert [h.name for h in result] == ["deb-9", "deb-12", "ubu-8", "ubu-22"]
 
+    def test_sort_hosts_by_flavor_groups_by_os(
+        self, mock_config, mock_diskcache, mocker
+    ):
+        """
+        Test that sorting by flavor groups by OS first.
+
+        Flavor is a refinement of OS, so OS families stay grouped (freebsd
+        before linux) rather than interleaving alphabetically by flavor
+        (which would wedge freebsd between debian and ubuntu).
+        """
+        inventory = Inventory(mock_config)
+        inventory.hosts = [
+            self._mkhost(mocker, "ubuntu-host", os="linux", flavor="ubuntu"),
+            self._mkhost(mocker, "freebsd-host", os="freebsd", flavor="freebsd"),
+            self._mkhost(mocker, "debian-host", os="linux", flavor="debian"),
+        ]
+
+        result = inventory.sort_hosts(SortField.FLAVOR)
+
+        # freebsd (OS) first, then the linux group sorted by flavor
+        assert [h.name for h in result] == [
+            "freebsd-host",
+            "debian-host",
+            "ubuntu-host",
+        ]
+
     @pytest.mark.parametrize(
         "earlier, later",
         [

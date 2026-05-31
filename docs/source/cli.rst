@@ -165,12 +165,21 @@ combined freely.
 
    Sorting by ``version`` groups hosts by flavor first, then orders versions
    within each flavor, since version numbers are not directly comparable
-   across different flavors (e.g. Debian 12 versus Ubuntu 22.04).
+   across different flavors (e.g. Debian 12 versus Ubuntu 22.04). Likewise,
+   sorting by ``flavor`` groups hosts by OS first, keeping OS families
+   together.
 
    Additionally, hosts with no meaningful data for the selected sort column
    (Unsupported and Undiscovered hosts) always sort to the bottom of the list,
    regardless of the requested order. Within that bottom tier, Undiscovered
    hosts sort above Unsupported ones.
+
+You can include additional columns, such as each host's description, with
+the ``--full`` flag:
+
+.. code-block:: exosphere
+
+   exosphere> inventory status --full
 
 Viewing Host Details and Updates
 --------------------------------

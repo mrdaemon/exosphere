@@ -340,6 +340,14 @@ def status(
             help="Reverse the sort order (requires --sort)",
         ),
     ] = False,
+    full: Annotated[
+        bool,
+        typer.Option(
+            "-f",
+            "--full",
+            help="Show additional columns, including host descriptions",
+        ),
+    ] = False,
     names: Annotated[
         list[str] | None,
         typer.Argument(
@@ -366,6 +374,8 @@ def status(
     When sorting by any column other than name, hosts with unknown
     or unsupported values for that column will be grouped together at the
     end.
+
+    Use --full to include extra columns, such as the host description.
 
     No matches when filtering will exit with code 3.
     """
@@ -406,10 +416,15 @@ def status(
         )
 
     # Iterates through all hosts in the inventory and render a nice
-    # Rich table with their properties and status. Column headers are
-    # driven by the SortField enum so they stay in sync with sorting.
+    # Rich table with their properties and status. The sortable column
+    # headers are driven by the SortField enum so they stay in sync with
+    # sorting; --full appends extra, display-only columns after them.
+    columns = [field.label for field in SortField]
+    if full:
+        columns.append("Description")
+
     table = Table(
-        *(field.label for field in SortField),
+        *columns,
         title=f"Host Status {table_suffix}",
         caption="* indicates stale data",
         caption_justify="right",
@@ -449,8 +464,8 @@ def status(
             else:
                 return unknown_status
 
-        # Construct table
-        table.add_row(
+        # Construct table row for host
+        row = [
             host.name,
             get_platform_info(host.os),
             get_platform_info(host.flavor),
@@ -458,7 +473,11 @@ def status(
             updates,
             security_updates,
             online_status,
-        )
+        ]
+        if full:
+            row.append(host.description or empty_placeholder)
+
+        table.add_row(*row)
 
     console.print(table)
 
