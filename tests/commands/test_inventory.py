@@ -48,6 +48,7 @@ def create_host(mocker):
         online=True,
         is_stale=False,
         supported=True,
+        description=None,
     ):
         host = mocker.create_autospec(Host, instance=True)
         host.name = name
@@ -59,6 +60,7 @@ def create_host(mocker):
         host.online = online
         host.is_stale = is_stale
         host.supported = supported
+        host.description = description
         return host
 
     return _create_host
@@ -230,6 +232,38 @@ class TestStatusCommand:
         assert "(unsupport" in result.output  # Result will be truncated in output
         assert result.output.count("(unsupport") == 2
         assert result.output.count("—") == 2
+
+    @pytest.mark.parametrize("flag", ["--full", "-f"], ids=["long", "short"])
+    def test_full_shows_description_column(self, create_host, mock_inventory, flag):
+        """
+        Test that --full adds a Description column with the host description.
+        """
+        host = create_host(name="host1", description="primary web server")
+        mock_inventory.hosts = [host]
+
+        # Widen the terminal so the extra column isn't truncated by Rich.
+        result = runner.invoke(
+            inventory_module.app,
+            ["status", flag],
+            env={"NO_COLOR": "1", "COLUMNS": "200"},
+        )
+
+        assert result.exit_code == 0
+        assert "Description" in result.output
+        assert "primary web server" in result.output
+
+    def test_description_hidden_without_full(self, create_host, mock_inventory):
+        """
+        Test that the description column is not shown without --full.
+        """
+        host = create_host(name="host1", description="primary web server")
+        mock_inventory.hosts = [host]
+
+        result = runner.invoke(inventory_module.app, ["status"])
+
+        assert result.exit_code == 0
+        assert "Description" not in result.output
+        assert "primary web server" not in result.output
 
     def test_multiple_hosts_with_different_states(self, create_host, mock_inventory):
         """

@@ -183,7 +183,8 @@ Sorting and filtering are independent and can be combined freely.
 
    Sorting by *Version* groups hosts by flavor first, then orders versions
    within each flavor, since version numbers are not directly comparable
-   across different flavors.
+   across different flavors. Likewise, sorting by *Flavor* groups hosts by
+   OS first, keeping OS families together.
 
    Additionally, hosts with no meaningful data for the selected sort column
    (Unsupported and Undiscovered hosts) always sort to the bottom of the list,
