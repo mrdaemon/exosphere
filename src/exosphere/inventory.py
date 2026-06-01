@@ -126,6 +126,33 @@ class SortField(Enum):
         )
 
 
+class HostOperation(Enum):
+    """
+    Operations that can be dispatched against a Host.
+
+    Each member's value is the name of a Host method, and doubles as
+    the stable task identifier.
+
+    The label value is a human-readable name for the operation,
+    suitable for display.
+    """
+
+    # Tuple is (Host method name, display label)
+    PING = ("ping", "Ping")
+    DISCOVER = ("discover", "Discover Platform")
+    REFRESH = ("refresh_updates", "Refresh Updates")
+    SYNC = ("sync_repos", "Sync Repositories")
+
+    # Annotation, not a member
+    label: str
+
+    def __new__(cls, method: str, label: str) -> "HostOperation":
+        member = object.__new__(cls)
+        member._value_ = method
+        member.label = label
+        return member
+
+
 class Inventory:
     """
     Inventory and state management
@@ -432,7 +459,7 @@ class Inventory:
         self.logger.info("Discovering all hosts in inventory")
 
         for host, _, exc in self.run_task(
-            "discover",
+            HostOperation.DISCOVER,
         ):
             if exc:
                 self.logger.error("Failed to discover host %s: %s", host.name, exc)
@@ -451,7 +478,7 @@ class Inventory:
         self.logger.info("Syncing repositories for all hosts")
 
         for host, _, exc in self.run_task(
-            "sync_repos",
+            HostOperation.SYNC,
         ):
             if exc:
                 self.logger.error(
@@ -473,7 +500,7 @@ class Inventory:
         self.logger.info("Refreshing updates for all hosts")
 
         for host, _, exc in self.run_task(
-            "refresh_updates",
+            HostOperation.REFRESH,
         ):
             if exc:
                 self.logger.error(
@@ -494,7 +521,7 @@ class Inventory:
         self.logger.info("Pinging all hosts in inventory")
 
         for host, online, exc in self.run_task(
-            "ping",
+            HostOperation.PING,
         ):
             if exc:
                 # This should not happen since "ping" does not raise exceptions.
@@ -508,58 +535,32 @@ class Inventory:
 
     def run_task(
         self,
-        host_method: str,
+        operation: HostOperation,
         hosts: list[Host] | None = None,
     ) -> Generator[tuple[Host, Any, Exception | None]]:
         """
-        Run a method on specified hosts in the inventory.
+        Run an operation on specified hosts in the inventory.
         If none are specified, run on all hosts.
 
-        Uses a ThreadPoolExecutor to run the provided method concurrently,
-        and returns a generator that can be safely iterated over to process
-        the results as the tasks complete.
+        Uses a ThreadPoolExecutor to run the operation's Host method
+        concurrently, and returns a generator that can be safely iterated
+        over to process the results as the tasks complete.
 
-        :param host_method: The method to run on each host
-        :param hosts: Optional list of Host objects to run the method on.
+
+        :param operation: The :class:`HostOperation` to run on each host
+        :param hosts: Optional list of Host objects to run the operation on.
                       If unspecified, runs on all hosts in the inventory.
 
         :return: A generator yielding tuples of (host, result, exception)
         """
 
+        method = operation.value
         target_hosts = hosts if hosts is not None else self.hosts
 
-        self.logger.debug(
-            "Dispatching %s to %d host(s)", host_method, len(target_hosts)
-        )
+        self.logger.debug("Dispatching %s to %d host(s)", method, len(target_hosts))
 
         if not target_hosts:
             self.logger.warning("No hosts in inventory. Nothing to run.")
-            yield from ()
-            return
-
-        # Sanity checks, these should only come in play if we have an internal
-        # programming error, not a user error.
-        #
-        # TODO: I honestly feel these checks could be removed entirely.
-        #       It is better to just let the returned exc field contain the
-        #       error and treat it like any other issue, but I'm leaving them
-        #       in since this can be difficult to debug in context.
-
-        # Ensure the host_method exists in the base class
-        if not hasattr(Host, host_method):
-            self.logger.error(
-                "Host class does not have attribute '%s', refusing to execute!",
-                host_method,
-            )
-            yield from ()
-            return
-
-        # Ensure the host_method is callable
-        if not callable(getattr(Host, host_method)):
-            self.logger.error(
-                "Host class attribute '%s' is not callable, refusing to execute!",
-                host_method,
-            )
             yield from ()
             return
 
@@ -573,12 +574,11 @@ class Inventory:
             self.logger.debug(
                 "Submitting %d tasks to executor for method '%s'",
                 len(target_hosts),
-                host_method,
+                method,
             )
 
             futures = {
-                executor.submit(getattr(host, host_method)): host
-                for host in target_hosts
+                executor.submit(getattr(host, method)): host for host in target_hosts
             }
 
             for future in as_completed(futures):
@@ -586,11 +586,11 @@ class Inventory:
                 try:
                     result = future.result()
                     self.logger.debug(
-                        "Successfully executed %s on %s", host_method, host.name
+                        "Successfully executed %s on %s", method, host.name
                     )
                     yield (host, result, None)
                 except Exception as e:
                     self.logger.error(
-                        "Failed to run %s on %s: %s", host_method, host.name, e
+                        "Failed to run %s on %s: %s", method, host.name, e
                     )
                     yield (host, None, e)

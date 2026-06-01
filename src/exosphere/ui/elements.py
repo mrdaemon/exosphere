@@ -22,7 +22,7 @@ from textual.widgets import Button, Label, ProgressBar
 from textual.worker import get_current_worker
 
 from exosphere import app_config, context
-from exosphere.inventory import Inventory
+from exosphere.inventory import HostOperation, Inventory
 from exosphere.objects import Host
 from exosphere.ui.messages import HostStatusChanged
 
@@ -60,19 +60,19 @@ class TaskRunnerScreen(Screen):
 
     def run_task(
         self,
-        taskname: str,
+        operation: HostOperation,
         message: str,
         no_hosts_message: str,
         save_state: bool = True,
         callback: Callable | None = None,
     ) -> None:
         """
-        Dispatch a task to all hosts in the inventory.
+        Dispatch an operation to all hosts in the inventory.
 
         If callback is not provided, defaults to sending HostStatusChanged
         and calling self.refresh_data_after_task().
 
-        :param taskname: Name of the task to run.
+        :param operation: The :class:`HostOperation` to run.
         :param message: Message to display in the progress screen.
         :param no_hosts_message: Message to display if no hosts are available.
         :param save_state: Whether to save the state after running the task.
@@ -85,11 +85,11 @@ class TaskRunnerScreen(Screen):
             screen_name = self.get_screen_name()
             logger.debug(
                 "Task %s completed on %s, sending status change message.",
-                taskname,
+                operation.value,
                 screen_name,
             )
             self.post_message(HostStatusChanged(screen_name))
-            self.refresh_data_after_task(taskname)
+            self.refresh_data_after_task(operation.value)
 
         inventory = context.inventory
         if not inventory:
@@ -99,12 +99,12 @@ class TaskRunnerScreen(Screen):
             return
 
         if not inventory.hosts:
-            logger.warning("No hosts available to run task '%s'.", taskname)
+            logger.warning("No hosts available to run task '%s'.", operation.value)
             self.app.push_screen(ErrorScreen(no_hosts_message))
             return
 
         self.app.push_screen(
-            ProgressScreen(message, inventory.hosts, taskname, save_state),
+            ProgressScreen(message, inventory.hosts, operation, save_state),
             callback or default_callback,
         )
 
@@ -173,12 +173,16 @@ class ProgressScreen(Screen):
     CSS_PATH = "style.tcss"
 
     def __init__(
-        self, message: str, hosts: list[Host], taskname: str, save: bool = True
+        self,
+        message: str,
+        hosts: list[Host],
+        operation: HostOperation,
+        save: bool = True,
     ) -> None:
         super().__init__()
         self.message = message
         self.hosts = hosts
-        self.taskname = taskname
+        self.operation = operation
         self.save = save
 
     def compose(self) -> ComposeResult:
@@ -239,15 +243,15 @@ class ProgressScreen(Screen):
         was_cancelled: bool = False
 
         # Dispatch task through worker pool inventory API
-        for host, _, exc in inventory.run_task(self.taskname, self.hosts):
+        for host, _, exc in inventory.run_task(self.operation, self.hosts):
             if exc:
                 exc_count += 1
                 logger.error(
-                    f"Error running {self.taskname} on host {host.name}: {str(exc)}"
+                    f"Error running {self.operation.value} on host {host.name}: {str(exc)}"
                 )
             else:
                 logger.debug(
-                    f"Successfully dispatched task {self.taskname} for host: {host.name}"
+                    f"Successfully dispatched task {self.operation.value} for host: {host.name}"
                 )
 
             self.app.call_from_thread(self.update_progress, 1)
@@ -257,7 +261,7 @@ class ProgressScreen(Screen):
                 logger.warning("Task was cancelled, stopping progress update.")
                 break
 
-        logger.info("Finished running %s on all hosts.", self.taskname)
+        logger.info("Finished running %s on all hosts.", self.operation.value)
 
         # Attempt to serialize state to database if autosave is enabled
         # Unless whatever pushed the screen requested otherwise.
@@ -292,4 +296,4 @@ class ProgressScreen(Screen):
 
         # Pop the screen and return the task name as argument to the
         # (optional) callback set when the screen was pushed.
-        self.app.call_from_thread(self.dismiss, self.taskname)
+        self.app.call_from_thread(self.dismiss, self.operation.value)

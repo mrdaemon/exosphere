@@ -3,6 +3,7 @@ import typer
 from rich.panel import Panel
 
 from exosphere.commands import utils as utils_module
+from exosphere.inventory import HostOperation
 from exosphere.objects import Host
 
 
@@ -376,12 +377,12 @@ class TestRunTaskWithProgress:
         result = utils_module.run_task_with_progress(
             inventory=mock_inventory,
             hosts=hosts,
-            task_name="test_task",
+            operation=HostOperation.PING,
             task_description="Testing task",
         )
 
         assert result == []  # No errors
-        mock_inventory.run_task.assert_called_once_with("test_task", hosts=hosts)
+        mock_inventory.run_task.assert_called_once_with(HostOperation.PING, hosts=hosts)
         mock_progress_instance.add_task.assert_called_once_with("Testing task", total=2)
         assert mock_progress_instance.update.call_count == 2
 
@@ -411,7 +412,7 @@ class TestRunTaskWithProgress:
         result = utils_module.run_task_with_progress(
             inventory=mock_inventory,
             hosts=hosts,
-            task_name="test_task",
+            operation=HostOperation.PING,
             task_description="Testing task",
         )
 
@@ -445,7 +446,7 @@ class TestRunTaskWithProgress:
         utils_module.run_task_with_progress(
             inventory=mock_inventory,
             hosts=hosts,
-            task_name="test_task",
+            operation=HostOperation.PING,
             task_description="Testing task",
             immediate_error_display=True,
         )
@@ -477,7 +478,7 @@ class TestRunTaskWithProgress:
         utils_module.run_task_with_progress(
             inventory=mock_inventory,
             hosts=hosts,
-            task_name="test_task",
+            operation=HostOperation.PING,
             task_description="Testing task",
             display_hosts=False,
         )
@@ -503,7 +504,7 @@ class TestRunTaskWithProgress:
         utils_module.run_task_with_progress(
             inventory=mock_inventory,
             hosts=hosts,
-            task_name="test_task",
+            operation=HostOperation.PING,
             task_description="Testing task",
             progress_args=custom_args,
         )

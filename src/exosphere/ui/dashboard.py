@@ -11,6 +11,7 @@ from textual.widget import Widget
 from textual.widgets import Footer, Header, Label
 
 from exosphere import context
+from exosphere.inventory import HostOperation
 from exosphere.objects import Host
 from exosphere.ui.context import screenflags
 from exosphere.ui.elements import TaskRunnerScreen
@@ -156,7 +157,7 @@ class DashboardScreen(TaskRunnerScreen):
         """Action to ping all hosts."""
 
         self.run_task(
-            taskname="ping",
+            operation=HostOperation.PING,
             message="Pinging all hosts...",
             no_hosts_message="No hosts available to ping.",
         )
@@ -165,7 +166,7 @@ class DashboardScreen(TaskRunnerScreen):
         """Action to discover all hosts."""
 
         self.run_task(
-            taskname="discover",
+            operation=HostOperation.DISCOVER,
             message="Discovering all hosts...",
             no_hosts_message="No hosts available to discover.",
         )

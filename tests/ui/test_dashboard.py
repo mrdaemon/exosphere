@@ -1,5 +1,6 @@
 import pytest
 
+from exosphere.inventory import HostOperation
 from exosphere.objects import Host
 from exosphere.ui.dashboard import DashboardScreen, HostWidget
 
@@ -411,7 +412,7 @@ def test_dashboard_action_ping_all_hosts(mocker):
     screen.action_ping_all_hosts()
 
     mock_run_task.assert_called_once_with(
-        taskname="ping",
+        operation=HostOperation.PING,
         message="Pinging all hosts...",
         no_hosts_message="No hosts available to ping.",
     )
@@ -425,7 +426,7 @@ def test_dashboard_action_discover_hosts(mocker):
     screen.action_discover_hosts()
 
     mock_run_task.assert_called_once_with(
-        taskname="discover",
+        operation=HostOperation.DISCOVER,
         message="Discovering all hosts...",
         no_hosts_message="No hosts available to discover.",
     )

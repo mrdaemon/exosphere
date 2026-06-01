@@ -26,7 +26,7 @@ from exosphere.commands.utils import (
     get_inventory,
     run_task_with_progress,
 )
-from exosphere.inventory import FilterMode, Inventory, SortField
+from exosphere.inventory import FilterMode, HostOperation, Inventory, SortField
 
 # Constants for display
 ERROR_STYLE = {
@@ -92,7 +92,7 @@ def discover(
     errors = run_task_with_progress(
         inventory=inventory,
         hosts=hosts,
-        task_name="discover",
+        operation=HostOperation.DISCOVER,
         task_description="Gathering platform information",
         display_hosts=True,
         collect_errors=True,
@@ -181,7 +181,7 @@ def refresh(
         run_task_with_progress(
             inventory=inventory,
             hosts=hosts,
-            task_name="discover",
+            operation=HostOperation.DISCOVER,
             task_description="Gathering platform information",
             display_hosts=verbose,
             collect_errors=False,
@@ -197,7 +197,7 @@ def refresh(
         run_task_with_progress(
             inventory=inventory,
             hosts=hosts,
-            task_name="sync_repos",
+            operation=HostOperation.SYNC,
             task_description="Syncing package repositories",
             display_hosts=verbose,
             collect_errors=False,
@@ -212,7 +212,7 @@ def refresh(
     errors = run_task_with_progress(
         inventory=inventory,
         hosts=hosts,
-        task_name="refresh_updates",
+        operation=HostOperation.REFRESH,
         task_description="Refreshing package updates",
         display_hosts=verbose,
         collect_errors=True,
@@ -280,7 +280,7 @@ def ping(
     ) as progress:
         error_count = 0
         task = progress.add_task("Pinging hosts", total=len(hosts))
-        for host, status, exc in inventory.run_task("ping", hosts=hosts):
+        for host, status, exc in inventory.run_task(HostOperation.PING, hosts=hosts):
             if status:
                 progress.console.print(
                     f"  Host [bold]{host.name}[/bold] is [bold green]online[/bold green]."

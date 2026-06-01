@@ -21,7 +21,7 @@ from textual.widgets import (
 )
 
 from exosphere import context
-from exosphere.inventory import FilterMode, SortField
+from exosphere.inventory import FilterMode, HostOperation, SortField
 from exosphere.objects import Host, Update
 from exosphere.ui.context import screenflags
 from exosphere.ui.elements import ErrorScreen, TaskRunnerScreen
@@ -538,7 +538,7 @@ class InventoryScreen(TaskRunnerScreen):
         """Action to refresh updates for all hosts."""
 
         self.run_task(
-            taskname="refresh_updates",
+            operation=HostOperation.REFRESH,
             message="Refreshing updates for all hosts...",
             no_hosts_message="No hosts available to refresh updates.",
             save_state=True,
@@ -552,7 +552,7 @@ class InventoryScreen(TaskRunnerScreen):
             self.action_refresh_updates_all()
 
         self.run_task(
-            taskname="sync_repos",
+            operation=HostOperation.SYNC,
             message="Syncing repositories for all hosts.\nThis may take a long time!",
             no_hosts_message="No hosts available to sync repositories.",
             save_state=False,  # Syncing repos does not affect state

@@ -21,7 +21,7 @@ from rich.progress import Progress
 from rich.table import Table
 
 from exosphere import __version__, context
-from exosphere.inventory import Inventory
+from exosphere.inventory import HostOperation, Inventory
 from exosphere.objects import Host
 
 # Constants for display formatting
@@ -260,7 +260,7 @@ def get_hosts_or_error(
 def run_task_with_progress(
     inventory: Inventory,
     hosts: list[Host],
-    task_name: str,
+    operation: HostOperation,
     task_description: str,
     display_hosts: bool = True,
     collect_errors: bool = True,
@@ -287,7 +287,7 @@ def run_task_with_progress(
 
     :param inventory: The inventory instance
     :param hosts: List of Hosts to run the task on
-    :param task_name: Name of the method to call on each host
+    :param operation: The :class:`HostOperation` to run on each host
     :param task_description: Description shown in progress bar
     :param display_hosts: Whether to show host status columns while
         running
@@ -301,19 +301,18 @@ def run_task_with_progress(
         hosts
     """
     errors: list[tuple[str, Exception]] = []
-    short_name = task_name.replace("_", " ").capitalize()
 
     with Progress(transient=transient, *progress_args) as progress:
         task = progress.add_task(task_description, total=len(hosts))
 
-        for host, _, exc in inventory.run_task(task_name, hosts=hosts):
+        for host, _, exc in inventory.run_task(operation, hosts=hosts):
             status_out = STATUS_FORMATS["failure"] if exc else STATUS_FORMATS["success"]
             host_out = f"[bold]{host.name}[/bold]"
 
             if exc:
                 if immediate_error_display:
                     progress.console.print(
-                        f"{short_name}: [red]{str(exc)}[/red]",
+                        f"{operation.label}: [red]{str(exc)}[/red]",
                     )
 
                 if collect_errors:

@@ -4,9 +4,64 @@ import pytest
 
 from exosphere.config import Configuration
 from exosphere.data import HostState
-from exosphere.inventory import FilterMode, Inventory, SortField
+from exosphere.inventory import FilterMode, HostOperation, Inventory, SortField
 from exosphere.objects import Host
 from exosphere.security import SudoPolicy
+
+
+class TestSortField:
+    """
+    Tests for the SortField enum.
+
+    Since it is a hacky Enum with custom attributes and a constructor,
+    we ensure the basic enum properties hold, and we have not broken
+    anything fundamental to its behavior, or within our custom uses.
+    """
+
+    @pytest.mark.parametrize("field", list(SortField))
+    def test_value_is_nonempty_string_token(self, field):
+        assert isinstance(field.value, str) and field.value
+
+    @pytest.mark.parametrize("field", list(SortField))
+    def test_has_label(self, field):
+        assert isinstance(field.label, str) and field.label
+
+    @pytest.mark.parametrize("field", list(SortField))
+    def test_key_and_has_value_are_callable(self, field):
+        """Test that each field has a sort key and has_value function."""
+        assert callable(field.key)
+        assert callable(field.has_value)
+
+    @pytest.mark.parametrize("field", list(SortField))
+    def test_reverse_lookup_by_value(self, field):
+        assert SortField(field.value) is field
+
+
+class TestHostOperation:
+    """
+    Tests for the HostOperation enum.
+
+    Since the enum carries extra semantics and has a constructor, we
+    ensure the basic enum properties hold and that the extra semantics
+    are valid, and correct.
+    """
+
+    @pytest.mark.parametrize("op", list(HostOperation))
+    def test_value_maps_to_callable_host_method(self, op):
+        """Test that each member's value is a callable on Host."""
+        assert callable(getattr(Host, op.value, None)), (
+            f"{op.name} -> '{op.value}' is not a callable Host method"
+        )
+
+    @pytest.mark.parametrize("op", list(HostOperation))
+    def test_has_label(self, op):
+        """Test that each member has a display label"""
+        assert isinstance(op.label, str) and op.label
+
+    @pytest.mark.parametrize("op", list(HostOperation))
+    def test_reverse_lookup_by_value(self, op):
+        """Test that each member can be looked up by its method-name value."""
+        assert HostOperation(op.value) is op
 
 
 class TestInventory:
@@ -900,7 +955,7 @@ class TestInventory:
 
         inventory.discover_all()
 
-        mock_run.assert_called_once_with("discover")
+        mock_run.assert_called_once_with(HostOperation.DISCOVER)
 
     def test_sync_repos_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
         """
@@ -915,7 +970,7 @@ class TestInventory:
 
         inventory.sync_repos_all()
 
-        mock_run.assert_called_once_with("sync_repos")
+        mock_run.assert_called_once_with(HostOperation.SYNC)
 
     def test_refresh_updates_all_calls_run_task(
         self, mocker, mock_config, mock_diskcache
@@ -932,7 +987,7 @@ class TestInventory:
 
         inventory.refresh_updates_all()
 
-        mock_run.assert_called_once_with("refresh_updates")
+        mock_run.assert_called_once_with(HostOperation.REFRESH)
 
     def test_ping_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
         """
@@ -947,7 +1002,7 @@ class TestInventory:
 
         inventory.ping_all()
 
-        mock_run.assert_called_once_with("ping")
+        mock_run.assert_called_once_with(HostOperation.PING)
 
     def test_run_task_with_custom_host_list(self, mocker, mock_config, mock_diskcache):
         """
@@ -972,7 +1027,9 @@ class TestInventory:
         mocker.patch.object(mock_host2, "ping", return_value=True)
 
         # Run task only on subset of hosts
-        results = list(inventory.run_task("ping", hosts=[mock_host1, mock_host2]))
+        results = list(
+            inventory.run_task(HostOperation.PING, hosts=[mock_host1, mock_host2])
+        )
 
         assert len(results) == 2
         assert all(result[2] is None for result in results)  # No exceptions
@@ -993,65 +1050,11 @@ class TestInventory:
 
         with caplog.at_level("WARNING"):
             task_generator = inventory.run_task(
-                "discover", hosts=None if hosts_arg is None else []
+                HostOperation.DISCOVER, hosts=None if hosts_arg is None else []
             )
             assert list(task_generator) == []
             assert any(
                 "No hosts in inventory. Nothing to run." in message
-                for message in caplog.messages
-            )
-
-    def test_run_task_method_not_exists(
-        self, mocker, mock_config, mock_diskcache, caplog
-    ):
-        """
-        Test run_task yields nothing and logs error if method does not exist on Host.
-        """
-        from exosphere.objects import Host
-
-        inventory = Inventory(mock_config)
-        mock_host = mocker.create_autospec(Host, instance=True)
-
-        inventory.hosts = [mock_host]
-
-        with caplog.at_level("ERROR"):
-            task_generator = inventory.run_task("invalid_method")
-            assert list(task_generator) == []
-            assert any(
-                "Host class does not have attribute 'invalid_method', refusing to execute!"
-                in message
-                for message in caplog.messages
-            )
-
-    def test_run_task_method_not_callable(
-        self, mocker, mock_config, mock_diskcache, caplog
-    ):
-        """
-        Test run_task yields nothing and logs error if method is not callable.
-        """
-        import exosphere.inventory
-        from exosphere.objects import Host
-
-        inventory = Inventory(mock_config)
-        mock_host = mocker.create_autospec(Host, instance=True)
-        mock_host.name = "mockhost"
-
-        # Set an attribute that is not callable
-        mocker.patch.object(
-            exosphere.inventory.Host,
-            "not_callable",
-            "Hi it's me, ur string",
-            create=True,
-        )
-
-        inventory.hosts = [mock_host]
-
-        with caplog.at_level("ERROR"):
-            task_generator = inventory.run_task("not_callable")
-            assert list(task_generator) == []
-            assert any(
-                "Host class attribute 'not_callable' is not callable, refusing to execute!"
-                in message
                 for message in caplog.messages
             )
 
@@ -1064,6 +1067,8 @@ class TestInventory:
         Test run_task behavior with success and failure cases.
         """
         from exosphere.objects import Host
+
+        operation = HostOperation(method_name)
 
         inventory = Inventory(mock_config)
 
@@ -1079,10 +1084,10 @@ class TestInventory:
 
         inventory.hosts = [mock_host1, mock_host2]
 
-        results = list(inventory.run_task(method_name))
+        results = list(inventory.run_task(operation))
 
         with caplog.at_level("DEBUG"):
-            results = list(inventory.run_task(method_name))
+            results = list(inventory.run_task(operation))
 
         assert len(results) == 2
 
@@ -1247,7 +1252,7 @@ class TestInventory:
         mocker.patch.object(mock_host, "ping", return_value=True)
 
         # Run the task
-        list(inventory.run_task("ping"))
+        list(inventory.run_task(HostOperation.PING))
 
         # Verify ThreadPoolExecutor was called with correct max_workers
         mock_executor.assert_called_once_with(max_workers=5)

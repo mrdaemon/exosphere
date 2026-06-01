@@ -4,6 +4,7 @@ from typer.testing import CliRunner
 from exosphere.commands import inventory as inventory_module
 from exosphere.commands import utils as utils_module
 from exosphere.config import Configuration
+from exosphere.inventory import HostOperation
 from exosphere.objects import Host
 
 runner = CliRunner(env={"NO_COLOR": "1"})
@@ -639,7 +640,7 @@ class TestDiscoverCommand:
         mock_run_task.assert_called_once_with(
             inventory=mock_inventory,
             hosts=mock_hosts,
-            task_name="discover",
+            operation=HostOperation.DISCOVER,
             task_description="Gathering platform information",
             display_hosts=True,
             collect_errors=True,
@@ -673,7 +674,7 @@ class TestDiscoverCommand:
         mock_run_task.assert_called_once_with(
             inventory=mock_inventory,
             hosts=mock_hosts,
-            task_name="discover",
+            operation=HostOperation.DISCOVER,
             task_description="Gathering platform information",
             display_hosts=True,
             collect_errors=True,
@@ -831,7 +832,7 @@ class TestPingCommand:
 
         assert result.exit_code == expected_exit_code
         mock_get_hosts_or_error.assert_called_once_with(expected_get_hosts_args)
-        mock_inventory.run_task.assert_called_once_with("ping", hosts=hosts)
+        mock_inventory.run_task.assert_called_once_with(HostOperation.PING, hosts=hosts)
 
     def test_no_hosts(self, mocker, mock_inventory):
         """Test ping command when no hosts are found."""
@@ -877,7 +878,9 @@ class TestPingCommand:
 
         assert result.exit_code == 0
         mock_get_hosts_or_error.assert_called_once_with(None)
-        mock_inventory.run_task.assert_called_once_with("ping", hosts=[host1])
+        mock_inventory.run_task.assert_called_once_with(
+            HostOperation.PING, hosts=[host1]
+        )
 
         if autosave_enabled:
             mock_save.assert_called_once()
@@ -913,7 +916,7 @@ class TestRefreshCommand:
         mock_run_task_with_progress.assert_called_once_with(
             inventory=mock_inventory,
             hosts=[host1],
-            task_name="refresh_updates",
+            operation=HostOperation.REFRESH,
             task_description="Refreshing package updates",
             display_hosts=False,
             collect_errors=True,
@@ -946,12 +949,12 @@ class TestRefreshCommand:
 
         # Check first call (discover)
         first_call = mock_run_task_with_progress.call_args_list[0]
-        assert first_call.kwargs["task_name"] == "discover"
+        assert first_call.kwargs["operation"] is HostOperation.DISCOVER
         assert first_call.kwargs["task_description"] == "Gathering platform information"
 
         # Check second call (refresh_updates)
         second_call = mock_run_task_with_progress.call_args_list[1]
-        assert second_call.kwargs["task_name"] == "refresh_updates"
+        assert second_call.kwargs["operation"] is HostOperation.REFRESH
         assert second_call.kwargs["task_description"] == "Refreshing package updates"
 
     def test_refresh_with_sync(self, mocker, mock_inventory, create_host):
@@ -980,12 +983,12 @@ class TestRefreshCommand:
 
         # Check first call (sync_repos)
         first_call = mock_run_task_with_progress.call_args_list[0]
-        assert first_call.kwargs["task_name"] == "sync_repos"
+        assert first_call.kwargs["operation"] is HostOperation.SYNC
         assert first_call.kwargs["task_description"] == "Syncing package repositories"
 
         # Check second call (refresh_updates)
         second_call = mock_run_task_with_progress.call_args_list[1]
-        assert second_call.kwargs["task_name"] == "refresh_updates"
+        assert second_call.kwargs["operation"] is HostOperation.REFRESH
         assert second_call.kwargs["task_description"] == "Refreshing package updates"
 
     def test_refresh_with_all_options(self, mocker, mock_inventory, create_host):
@@ -1016,9 +1019,9 @@ class TestRefreshCommand:
 
         # Check all three calls
         calls = mock_run_task_with_progress.call_args_list
-        assert calls[0].kwargs["task_name"] == "discover"
-        assert calls[1].kwargs["task_name"] == "sync_repos"
-        assert calls[2].kwargs["task_name"] == "refresh_updates"
+        assert calls[0].kwargs["operation"] is HostOperation.DISCOVER
+        assert calls[1].kwargs["operation"] is HostOperation.SYNC
+        assert calls[2].kwargs["operation"] is HostOperation.REFRESH
 
     def test_refresh_with_errors(self, mocker, mock_inventory, create_host):
         """Test refresh command when errors occur."""

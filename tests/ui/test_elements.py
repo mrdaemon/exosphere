@@ -4,6 +4,7 @@ import pytest
 from textual.app import App
 from textual.widgets import ProgressBar
 
+from exosphere.inventory import HostOperation
 from exosphere.ui.elements import ErrorScreen, ProgressScreen, TaskRunnerScreen
 from exosphere.ui.messages import HostStatusChanged
 
@@ -41,17 +42,17 @@ class TestProgressScreen:
 
     @pytest.fixture
     def progress_screen(self, mock_host):
-        return ProgressScreen("Running...", [mock_host], "test_task")
+        return ProgressScreen("Running...", [mock_host], HostOperation.PING)
 
     def test_initialization(self, mock_host):
         """Test basic ProgressScreen initialization."""
         progress_screen = ProgressScreen(
-            "Testing...", [mock_host], "test_task", save=False
+            "Testing...", [mock_host], HostOperation.PING, save=False
         )
 
         assert progress_screen.message == "Testing..."
         assert len(progress_screen.hosts) == 1
-        assert progress_screen.taskname == "test_task"
+        assert progress_screen.operation is HostOperation.PING
         assert progress_screen.save is False
 
     def test_on_mount_triggers_do_run(self, mocker, progress_screen):
@@ -118,7 +119,9 @@ class TestTaskRunnerScreen:
             return_value=mock_app,
         )
 
-        task_runner_screen.run_task("test", "Testing...", "No hosts message")
+        task_runner_screen.run_task(
+            HostOperation.PING, "Testing...", "No hosts message"
+        )
 
         mock_app.push_screen.assert_called_once()
         args = mock_app.push_screen.call_args[0][0]
@@ -137,7 +140,9 @@ class TestTaskRunnerScreen:
             return_value=mock_app,
         )
 
-        task_runner_screen.run_task("test", "Testing...", "No hosts available")
+        task_runner_screen.run_task(
+            HostOperation.PING, "Testing...", "No hosts available"
+        )
 
         mock_app.push_screen.assert_called_once()
         args = mock_app.push_screen.call_args[0][0]
@@ -158,13 +163,15 @@ class TestTaskRunnerScreen:
             return_value=mock_app,
         )
 
-        task_runner_screen.run_task("ping", "Pinging...", "No hosts message")
+        task_runner_screen.run_task(
+            HostOperation.PING, "Pinging...", "No hosts message"
+        )
 
         mock_app.push_screen.assert_called_once()
         args = mock_app.push_screen.call_args[0]
         assert "ProgressScreen" in str(type(args[0]))
         assert args[0].message == "Pinging..."
-        assert args[0].taskname == "ping"
+        assert args[0].operation is HostOperation.PING
 
     def test_run_task_default_callback(
         self, mocker, mock_context, mock_host, task_runner_screen
@@ -185,7 +192,9 @@ class TestTaskRunnerScreen:
             task_runner_screen, "refresh_data_after_task"
         )
 
-        task_runner_screen.run_task("ping", "Pinging...", "No hosts message")
+        task_runner_screen.run_task(
+            HostOperation.PING, "Pinging...", "No hosts message"
+        )
 
         # Get the callback from push_screen call
         args = mock_app.push_screen.call_args[0]
@@ -224,7 +233,10 @@ class TestTaskRunnerScreen:
         custom_callback = mocker.MagicMock()
 
         task_runner_screen.run_task(
-            "ping", "Pinging...", "No hosts message", callback=custom_callback
+            HostOperation.PING,
+            "Pinging...",
+            "No hosts message",
+            callback=custom_callback,
         )
 
         # Verify custom callback was passed to push_screen
@@ -252,7 +264,7 @@ class TestTaskRunnerScreen:
 
         # Test with save_state=False
         task_runner_screen.run_task(
-            "ping", "Pinging...", "No hosts message", save_state=False
+            HostOperation.PING, "Pinging...", "No hosts message", save_state=False
         )
 
         args = mock_app.push_screen.call_args[0]
