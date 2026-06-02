@@ -1,19 +1,11 @@
 import pytest
 
-from exosphere.ui.messages import HostStatusChanged, ScreenFlagsRegistry
+from exosphere.ui.messages import ScreenFlagsRegistry
 
 
 @pytest.fixture
 def registry():
     return ScreenFlagsRegistry()
-
-
-def test_host_status_changed_initialization():
-    """
-    Test that HostStatusChanged message initializes with the correct screen name.
-    """
-    msg = HostStatusChanged("main_screen")
-    assert msg.current_screen == "main_screen"
 
 
 def test_register_screens_adds_new_screens(registry, caplog):

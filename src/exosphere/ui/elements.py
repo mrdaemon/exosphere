@@ -11,7 +11,7 @@ The Task Dispatch logic for UI Screens is implemented here.
 """
 
 import logging
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from textual import work
 from textual.app import ComposeResult
@@ -24,95 +24,52 @@ from textual.worker import get_current_worker
 from exosphere import app_config, context
 from exosphere.inventory import HostOperation, Inventory
 from exosphere.objects import Host
-from exosphere.ui.messages import HostStatusChanged
+
+if TYPE_CHECKING:
+    from exosphere.ui.app import ExosphereUi
 
 logger = logging.getLogger("exosphere.ui.elements")
 
 
-class TaskRunnerScreen(Screen):
+class DataScreen(Screen):
     """
-    Screen class "mixin" for screens that run tasks.
+    Base class for screens that display host data and must redraw after
+    a host operation has potentially changed it.
 
-    If your screen intends to run tasks on hosts, inherit from
-    this class instead of Screen, and gain access to the run_task()
-    method.
+    Dispatch lives on the app (:meth:`ExosphereUi.run_host_task`); this
+    base only defines the *refresh protocol* the app drives after a task:
 
-    Requires subclasses to implement:
+    - get_screen_name() -> str (the screen's identifier in the
+      ``screenflags`` registry)
+    - refresh_data_after_task(taskname, notify) -> None (redraw this
+      screen's data widgets)
 
-    - get_screen_name() -> str (method returning screen identifier)
-    - refresh_data_after_task(taskname: str) -> None (public method)
-
-    refresh_data_after_task() is called automatically after task
-    completion by the default callback of run_task(), which also
-    sends a HostStatusChanged message to notify other screens of
-    potential data model changes.
-
-    Use it to call or implement any refresh method on your screen
-    to update the UI after a task has modified host data.
+    After a task, the app refreshes the currently-visible data screen via
+    refresh_data_after_task() and flags the others dirty so they redraw on
+    resume.
 
     Exosphere has a lot of widgets that are difficult to make reactive,
-    such as data tables and grid views, so this is the official
-    workaround.
+    such as data tables and grid views, especially across modal screens
+    that can be inactive at any point, so this screen-level refresh
+    protocol is the most straightforward workaround.
 
-    If you do not need it, implement it with `pass` and/or use your
-    own callback in run_task().
+    Screens dispatch with ``self.app.run_host_task(...)``; the ``app``
+    type below is narrowed so that call resolves without a cast.
     """
 
-    def run_task(
-        self,
-        operation: HostOperation,
-        message: str,
-        no_hosts_message: str,
-        save_state: bool = True,
-        callback: Callable | None = None,
-    ) -> None:
-        """
-        Dispatch an operation to all hosts in the inventory.
+    if TYPE_CHECKING:
+        # Type hint the app attribute to the module for exposed methods
+        # like run_host_task, which screens will call directly.
+        app: "ExosphereUi"
 
-        If callback is not provided, defaults to sending HostStatusChanged
-        and calling self.refresh_data_after_task().
-
-        :param operation: The :class:`HostOperation` to run.
-        :param message: Message to display in the progress screen.
-        :param no_hosts_message: Message to display if no hosts are available.
-        :param save_state: Whether to save the state after running the task.
-        :param callback: Optional callback function to execute after the task.
-                         Defaults to sending HostStatusChanged + refreshing data.
-        """
-
-        def default_callback(_):
-            """Default: send message + refresh data"""
-            screen_name = self.get_screen_name()
-            logger.debug(
-                "Task %s completed on %s, sending status change message.",
-                operation.value,
-                screen_name,
-            )
-            self.post_message(HostStatusChanged(screen_name))
-            self.refresh_data_after_task(operation.value)
-
-        inventory = context.inventory
-        if not inventory:
-            self.app.push_screen(
-                ErrorScreen("Inventory is not initialized, cannot run tasks.")
-            )
-            return
-
-        if not inventory.hosts:
-            logger.warning("No hosts available to run task '%s'.", operation.value)
-            self.app.push_screen(ErrorScreen(no_hosts_message))
-            return
-
-        self.app.push_screen(
-            ProgressScreen(message, inventory.hosts, operation, save_state),
-            callback or default_callback,
-        )
-
-    def refresh_data_after_task(self, taskname: str) -> None:
+    def refresh_data_after_task(self, taskname: str, notify: bool = True) -> None:
         """
         Refresh screen data after task completion.
 
         Subclasses must implement this to define their refresh behavior.
+
+        :param taskname: Name of the task that was completed, for context.
+        :param notify: Whether to send a UI notification after refreshing.
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement refresh_data_after_task()"

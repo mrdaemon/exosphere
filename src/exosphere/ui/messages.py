@@ -2,12 +2,16 @@
 UI Messages and Events Module
 
 This defines custom messages and events used within the Exosphere TUI
-application, as well as support classes such as the Screen Flags
-registry.
+application, as well as support classes around TUI state management.
 
-This vaguely hacky implementation allows modal screens to notify each
-other when their underlying data models have changed, so they can
-refresh their widgets whenever they come back.
+Currently contains the Screen Flags registry used to coordinate
+cross-screen refreshes within the application.
+
+Exosphere has a lot of widgets that are difficult to make reactive (data
+tables, grid views). When a host operation changes the underlying data,
+the app refreshes the currently-visible data screen in place and flags
+the other registered screens dirty here, so they redraw the next time
+they become active.
 
 This was born out of difficulty trying to consistently pass messages
 between modal screens that may or may not be active at any given time.
@@ -17,16 +21,6 @@ and firing off refresh events based on this.
 """
 
 import logging
-
-from textual.message import Message
-
-
-class HostStatusChanged(Message):
-    """Message to notify that a host's status has changed."""
-
-    def __init__(self, current_screen: str) -> None:
-        super().__init__()
-        self.current_screen = current_screen
 
 
 class ScreenFlagsRegistry:

@@ -405,13 +405,16 @@ def test_dashboard_refresh_hosts_without_task(mocker, mock_context):
 
 
 def test_dashboard_action_ping_all_hosts(mocker):
-    """Test DashboardScreen action_ping_all_hosts method."""
+    """Test DashboardScreen action_ping_all_hosts method"""
     screen = DashboardScreen()
-    mock_run_task = mocker.patch.object(screen, "run_task")
+    mock_app = mocker.MagicMock()
+    mocker.patch.object(
+        type(screen), "app", new_callable=mocker.PropertyMock, return_value=mock_app
+    )
 
     screen.action_ping_all_hosts()
 
-    mock_run_task.assert_called_once_with(
+    mock_app.run_host_task.assert_called_once_with(
         operation=HostOperation.PING,
         message="Pinging all hosts...",
         no_hosts_message="No hosts available to ping.",
@@ -419,13 +422,16 @@ def test_dashboard_action_ping_all_hosts(mocker):
 
 
 def test_dashboard_action_discover_hosts(mocker):
-    """Test DashboardScreen action_discover_hosts method."""
+    """Test DashboardScreen action_discover_hosts."""
     screen = DashboardScreen()
-    mock_run_task = mocker.patch.object(screen, "run_task")
+    mock_app = mocker.MagicMock()
+    mocker.patch.object(
+        type(screen), "app", new_callable=mocker.PropertyMock, return_value=mock_app
+    )
 
     screen.action_discover_hosts()
 
-    mock_run_task.assert_called_once_with(
+    mock_app.run_host_task.assert_called_once_with(
         operation=HostOperation.DISCOVER,
         message="Discovering all hosts...",
         no_hosts_message="No hosts available to discover.",
@@ -483,4 +489,13 @@ class TestRunTask:
 
         screen.refresh_data_after_task("ping")
 
-        mock_refresh.assert_called_once()
+        mock_refresh.assert_called_once_with("ping", notify=True)
+
+    def test_dashboard_refresh_data_after_task_quiet(self, mocker, mock_context):
+        """Test that refresh_data_after_task forwards notify=False."""
+        screen = DashboardScreen()
+        mock_refresh = mocker.patch.object(screen, "refresh_hosts")
+
+        screen.refresh_data_after_task("ping", notify=False)
+
+        mock_refresh.assert_called_once_with("ping", notify=False)

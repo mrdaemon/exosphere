@@ -1,14 +1,12 @@
-import asyncio
-import logging
-
 import pytest
 from textual.widgets import Footer, Header
 
+from exosphere.inventory import HostOperation
 from exosphere.ui.app import ExosphereUi
 from exosphere.ui.dashboard import DashboardScreen
+from exosphere.ui.elements import DataScreen, ErrorScreen, ProgressScreen
 from exosphere.ui.inventory import InventoryScreen
 from exosphere.ui.logs import LogsScreen, UILogHandler
-from exosphere.ui.messages import HostStatusChanged
 
 
 class TestExosphereUi:
@@ -205,7 +203,7 @@ class TestExosphereUi:
             "compose",
             "on_mount",
             "on_unmount",
-            "on_host_status_changed",
+            "run_host_task",
         ]
 
         for method_name in required_methods:
@@ -257,73 +255,116 @@ class TestExosphereUi:
         # Logger methods should not be called since handler is None
         mock_exosphere_logger.removeHandler.assert_not_called()
 
-    def test_on_host_status_changed_calls_flag_screen_dirty_except(
-        self, app, mock_screenflags, mocker
+    @pytest.fixture
+    def mock_context(self, mocker):
+        """Mock the app's context module to control inventory state."""
+        return mocker.patch("exosphere.ui.app.context")
+
+    def test_run_host_task_no_inventory_pushes_error(self, app, mocker, mock_context):
+        """run_host_task pushes an ErrorScreen when inventory is uninitialized."""
+        mock_context.inventory = None
+        push = mocker.patch.object(app, "push_screen")
+
+        app.run_host_task(HostOperation.PING, message="m", no_hosts_message="nh")
+
+        push.assert_called_once()
+        pushed = push.call_args[0][0]
+        assert isinstance(pushed, ErrorScreen)
+        assert "not initialized" in pushed.message.lower()
+
+    def test_run_host_task_no_hosts_pushes_error(self, app, mocker, mock_context):
+        """run_host_task pushes an ErrorScreen with the no_hosts message."""
+        mock_context.inventory = mocker.Mock(hosts=[])
+        push = mocker.patch.object(app, "push_screen")
+
+        app.run_host_task(
+            HostOperation.PING, message="m", no_hosts_message="No hosts here!"
+        )
+
+        push.assert_called_once()
+        pushed = push.call_args[0][0]
+        assert isinstance(pushed, ErrorScreen)
+        assert pushed.message == "No hosts here!"
+
+    def test_run_host_task_pushes_progress_screen(self, app, mocker, mock_context):
+        """run_host_task pushes a ProgressScreen carrying the operation."""
+        host = mocker.Mock()
+        mock_context.inventory = mocker.Mock(hosts=[host])
+        push = mocker.patch.object(app, "push_screen")
+
+        app.run_host_task(
+            HostOperation.REFRESH, message="Refreshing", no_hosts_message="nh"
+        )
+
+        push.assert_called_once()
+        pushed = push.call_args[0][0]
+        assert isinstance(pushed, ProgressScreen)
+        assert pushed.operation is HostOperation.REFRESH
+        assert pushed.message == "Refreshing"
+        assert pushed.hosts == [host]
+
+    def test_run_host_task_uses_host_subset(self, app, mocker, mock_context):
+        """An explicit hosts subset is dispatched instead of all hosts."""
+        h1, h2, h3 = mocker.Mock(), mocker.Mock(), mocker.Mock()
+        mock_context.inventory = mocker.Mock(hosts=[h1, h2, h3])
+        push = mocker.patch.object(app, "push_screen")
+
+        app.run_host_task(
+            HostOperation.PING, hosts=[h2], message="m", no_hosts_message="nh"
+        )
+
+        pushed = push.call_args[0][0]
+        assert pushed.hosts == [h2]
+
+    def test_run_host_task_passes_custom_callback(self, app, mocker, mock_context):
+        """A custom callback is forwarded to push_screen in place of the default."""
+        mock_context.inventory = mocker.Mock(hosts=[mocker.Mock()])
+        push = mocker.patch.object(app, "push_screen")
+        custom = mocker.Mock()
+
+        app.run_host_task(
+            HostOperation.PING, message="m", no_hosts_message="nh", callback=custom
+        )
+
+        assert push.call_args[0][1] is custom
+
+    def test_after_task_refreshes_active_data_screen(
+        self, app, mocker, mock_screenflags
     ):
-        """Test that on_host_status_changed calls flag_screen_dirty_except with the message's current_screen."""
-        # Set up registered screens
+        """Default callback refreshes the active data screen, flags the rest."""
         mock_screenflags.registered_screens = ["dashboard", "inventory"]
 
-        # Create message
-        message = HostStatusChanged("dashboard")
-
-        # Run the async method
-        asyncio.run(app.on_host_status_changed(message))
-
-        # Verify flag_screen_dirty_except was called with the correct screen
-        mock_screenflags.flag_screen_dirty_except.assert_called_once_with("dashboard")
-
-    def test_on_host_status_changed_with_unregistered_screen(
-        self, app, mock_screenflags, caplog
-    ):
-        """
-        Test that on_host_status_changed emits warning for unregistered screens
-            and still calls flag_screen_dirty_except.
-        """
-        # Set up registered screens (not including the sender)
-        mock_screenflags.registered_screens = ["inventory", "logs"]
-
-        # Create message from unregistered screen
-        message = HostStatusChanged("unknown_screen")
-
-        # Capture logs at WARNING level to verify the warning is emitted
-        with caplog.at_level(logging.WARNING):
-            # Run the async method
-            asyncio.run(app.on_host_status_changed(message))
-
-        # Verify flag_screen_dirty_except was still called, even for unregistered screen
-        mock_screenflags.flag_screen_dirty_except.assert_called_once_with(
-            "unknown_screen"
+        screen = mocker.Mock(spec=DataScreen)
+        screen.get_screen_name.return_value = "inventory"
+        mocker.patch.object(
+            type(app), "screen", new_callable=mocker.PropertyMock, return_value=screen
         )
 
-        # Verify warning was logged for unregistered screen
-        assert len(caplog.records) == 1
-        assert caplog.records[0].levelname == "WARNING"
-        assert (
-            "Received host status change from unregistered screen: unknown_screen"
-            in caplog.records[0].message
+        app._after_task(HostOperation.REFRESH)(None)
+
+        # Notification should not be sent when from active screen
+        screen.refresh_data_after_task.assert_called_once_with(
+            "refresh_updates", notify=False
+        )
+        mock_screenflags.flag_screen_dirty_except.assert_called_once_with("inventory")
+        mock_screenflags.flag_screen_dirty.assert_not_called()
+
+    def test_after_task_from_non_data_screen_flags_all(
+        self, app, mocker, mock_screenflags
+    ):
+        """When the active screen is not a data screen, flag all data screens."""
+        mock_screenflags.registered_screens = ["dashboard", "inventory"]
+
+        # We sub out the active screen with a plain Mock
+        # Which is definitely not a DataScreen.
+        screen = mocker.Mock()
+        mocker.patch.object(
+            type(app), "screen", new_callable=mocker.PropertyMock, return_value=screen
         )
 
-    def test_on_host_status_changed_with_registered_screen_no_warning(
-        self, app, mock_screenflags, caplog
-    ):
-        """Test that on_host_status_changed does NOT emit warning for registered screens."""
-        # Set up registered screens (including the sender)
-        mock_screenflags.registered_screens = ["dashboard", "inventory", "logs"]
+        app._after_task(HostOperation.PING)(None)
 
-        # Create message from registered screen
-        message = HostStatusChanged("dashboard")
-
-        # Capture logs at WARNING level to verify no warning is emitted
-        with caplog.at_level(logging.WARNING):
-            # Run the async method
-            asyncio.run(app.on_host_status_changed(message))
-
-        # Verify flag_screen_dirty_except was called
-        mock_screenflags.flag_screen_dirty_except.assert_called_once_with("dashboard")
-
-        # Verify NO warning was logged for registered screen
-        warning_records = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
-        assert len(warning_records) == 0
+        mock_screenflags.flag_screen_dirty.assert_called_once_with(
+            "dashboard", "inventory"
+        )
+        mock_screenflags.flag_screen_dirty_except.assert_not_called()

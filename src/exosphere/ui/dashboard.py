@@ -14,7 +14,7 @@ from exosphere import context
 from exosphere.inventory import HostOperation
 from exosphere.objects import Host
 from exosphere.ui.context import screenflags
-from exosphere.ui.elements import TaskRunnerScreen
+from exosphere.ui.elements import DataScreen
 
 logger = logging.getLogger("exosphere.ui.dashboard")
 
@@ -91,7 +91,7 @@ class HostWidget(Widget):
         return "[$text-success]Online[/]" if online else "[$text-error]Offline[/]"
 
 
-class DashboardScreen(TaskRunnerScreen):
+class DashboardScreen(DataScreen):
     """Screen for the dashboard."""
 
     CSS_PATH = "style.tcss"
@@ -137,7 +137,7 @@ class DashboardScreen(TaskRunnerScreen):
         """Return screen identifier."""
         return "dashboard"
 
-    def refresh_hosts(self, task: str | None = None) -> None:
+    def refresh_hosts(self, task: str | None = None, notify: bool = True) -> None:
         """Refresh the host widgets."""
         if task:
             logger.debug("Refreshing host widgets after task: %s", task)
@@ -147,16 +147,19 @@ class DashboardScreen(TaskRunnerScreen):
         for host_widget in self.query(HostWidget):
             host_widget.refresh_state()
 
-        self.app.notify("Host data successfully refreshed", title="Refresh Complete")
+        if notify:
+            self.app.notify(
+                "Host data successfully refreshed", title="Refresh Complete"
+            )
 
-    def refresh_data_after_task(self, taskname: str) -> None:
+    def refresh_data_after_task(self, taskname: str, notify: bool = True) -> None:
         """Callback to refresh data views after task completion."""
-        self.refresh_hosts(taskname)
+        self.refresh_hosts(taskname, notify=notify)
 
     def action_ping_all_hosts(self) -> None:
         """Action to ping all hosts."""
 
-        self.run_task(
+        self.app.run_host_task(
             operation=HostOperation.PING,
             message="Pinging all hosts...",
             no_hosts_message="No hosts available to ping.",
@@ -165,7 +168,7 @@ class DashboardScreen(TaskRunnerScreen):
     def action_discover_hosts(self) -> None:
         """Action to discover all hosts."""
 
-        self.run_task(
+        self.app.run_host_task(
             operation=HostOperation.DISCOVER,
             message="Discovering all hosts...",
             no_hosts_message="No hosts available to discover.",

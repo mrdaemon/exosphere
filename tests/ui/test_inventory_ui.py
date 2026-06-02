@@ -551,7 +551,17 @@ class TestRunTask:
 
         inventory_screen.refresh_data_after_task("test_task")
 
-        mock_refresh.assert_called_once()
+        mock_refresh.assert_called_once_with("test_task", notify=True)
+
+    def test_inventory_refresh_data_after_task_quiet(
+        self, mocker, setup_inventory_mock, inventory_screen
+    ):
+        """Test refresh_data_after_task forwards notify=False to refresh_rows."""
+        mock_refresh = mocker.patch.object(inventory_screen, "refresh_rows")
+
+        inventory_screen.refresh_data_after_task("test_task", notify=False)
+
+        mock_refresh.assert_called_once_with("test_task", notify=False)
 
 
 class TestSortScreen:

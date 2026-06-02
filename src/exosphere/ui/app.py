@@ -10,15 +10,19 @@ Acts as the entrypoint for the UI component of Exosphere.
 """
 
 import logging
+from collections.abc import Callable
 
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header
 
+from exosphere import context
+from exosphere.inventory import HostOperation
+from exosphere.objects import Host
 from exosphere.ui.context import screenflags
 from exosphere.ui.dashboard import DashboardScreen
+from exosphere.ui.elements import DataScreen, ErrorScreen, ProgressScreen
 from exosphere.ui.inventory import InventoryScreen
 from exosphere.ui.logs import LogsScreen, RichLogFormatter, UILogHandler
-from exosphere.ui.messages import HostStatusChanged
 
 
 class ExosphereUi(App):
@@ -51,19 +55,88 @@ class ExosphereUi(App):
         "logs": LogsScreen,
     }
 
-    async def on_host_status_changed(self, message: HostStatusChanged) -> None:
+    def run_host_task(
+        self,
+        operation: HostOperation,
+        hosts: list[Host] | None = None,
+        *,
+        message: str,
+        no_hosts_message: str,
+        save_state: bool = True,
+        callback: Callable | None = None,
+    ) -> None:
         """
-        Handle host status change messages to refresh screens.
-        """
-        logging.debug("Received host status change message, refreshing screens.")
-        # Refresh all screens that are registered
-        if message.current_screen not in screenflags.registered_screens:
-            logging.warning(
-                f"Received host status change from unregistered screen: {message.current_screen}"
-            )
+        Dispatch a host operation off the UI thread, refresh screens.
 
-        # Flag all screens as dirty except the one who sent the message
-        screenflags.flag_screen_dirty_except(message.current_screen)
+        Handles pushing a :class:`ProgressScreen` to run the the
+        ``operation`` on the given hosts (or all hosts, when unspecified).
+
+        On completion, unless a custom ``callback`` is specified, runs
+        the default post-task bookkeeping:
+
+        - Refresh the currently visible data screen in place (if active)
+        - Flag all other registered data screens dirty so they redraw on
+          resume.
+
+        This is intended to be called from within the TUI, and is the
+        canonical way to run hosts tasks from UI threads.
+
+        :param operation: The :class:`HostOperation` to run.
+        :param hosts: Hosts to target, defaults to all hosts.
+        :param message: Message to display in the progress screen.
+        :param no_hosts_message: Message shown if no hosts are available.
+        :param save_state: Whether to save state after the task completes.
+        :param callback: Optional callback to run after the task instead of
+                         the default refresh bookkeeping.
+        """
+        inventory = context.inventory
+        if inventory is None:
+            self.push_screen(
+                ErrorScreen("Inventory is not initialized, cannot run tasks.")
+            )
+            return
+
+        target_hosts = hosts if hosts is not None else inventory.hosts
+        if not target_hosts:
+            logging.warning("No hosts available to run task '%s'.", operation.value)
+            self.push_screen(ErrorScreen(no_hosts_message))
+            return
+
+        self.push_screen(
+            ProgressScreen(message, target_hosts, operation, save_state),
+            callback or self._after_task(operation),
+        )
+
+    def _after_task(self, operation: HostOperation) -> Callable:
+        """
+        Helper function that generates the default callback for the
+        task runner in the TUI, which handles the bookkeeping
+        described above in :meth:`run_host_task`.
+        """
+
+        def callback(_) -> None:
+            screen = self.screen
+
+            if isinstance(screen, DataScreen):
+                name = screen.get_screen_name()
+                if name in screenflags.registered_screens:
+                    logging.debug(
+                        "Task %s done; refreshing active screen %s, flagging others.",
+                        operation.value,
+                        name,
+                    )
+                    # Task was dispatched from this screen, skip notification
+                    screen.refresh_data_after_task(operation.value, notify=False)
+                    screenflags.flag_screen_dirty_except(name)
+                    return
+
+            logging.debug(
+                "Task %s done from non-data screen; flagging all data screens.",
+                operation.value,
+            )
+            screenflags.flag_screen_dirty(*screenflags.registered_screens)
+
+        return callback
 
     def compose(self) -> ComposeResult:
         """Compose the common application layout."""

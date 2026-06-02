@@ -24,7 +24,7 @@ from exosphere import context
 from exosphere.inventory import FilterMode, HostOperation, SortField
 from exosphere.objects import Host, Update
 from exosphere.ui.context import screenflags
-from exosphere.ui.elements import ErrorScreen, TaskRunnerScreen
+from exosphere.ui.elements import DataScreen, ErrorScreen
 
 logger = logging.getLogger("exosphere.ui.inventory")
 
@@ -373,7 +373,7 @@ class UpdateDetailsPanel(Screen):
             self.dismiss()
 
 
-class InventoryScreen(TaskRunnerScreen):
+class InventoryScreen(DataScreen):
     """Screen for the inventory."""
 
     CSS_PATH = "style.tcss"
@@ -476,7 +476,7 @@ class InventoryScreen(TaskRunnerScreen):
             self.refresh_rows()
             screenflags.flag_screen_clean("inventory")
 
-    def refresh_rows(self, task: str | None = None) -> None:
+    def refresh_rows(self, task: str | None = None, notify: bool = True) -> None:
         """Repopulate all rows in the data table from the inventory."""
 
         if not context.inventory:
@@ -519,7 +519,10 @@ class InventoryScreen(TaskRunnerScreen):
         else:
             logger.debug("Updated data table.")
 
-        # Customize notification based on filter
+        # Customize notification based on filter, unless suppressed
+        if not notify:
+            return
+
         if self.current_filter == FilterMode.NONE:
             self.app.notify(
                 "Table data refreshed successfully.", title="Refresh Complete"
@@ -530,14 +533,14 @@ class InventoryScreen(TaskRunnerScreen):
                 title="Refresh Complete",
             )
 
-    def refresh_data_after_task(self, taskname: str) -> None:
+    def refresh_data_after_task(self, taskname: str, notify: bool = True) -> None:
         """Callback to refresh data views after task completion."""
-        self.refresh_rows(taskname)
+        self.refresh_rows(taskname, notify=notify)
 
     def action_refresh_updates_all(self) -> None:
         """Action to refresh updates for all hosts."""
 
-        self.run_task(
+        self.app.run_host_task(
             operation=HostOperation.REFRESH,
             message="Refreshing updates for all hosts...",
             no_hosts_message="No hosts available to refresh updates.",
@@ -551,7 +554,7 @@ class InventoryScreen(TaskRunnerScreen):
             """Callback to refresh updates after sync is complete"""
             self.action_refresh_updates_all()
 
-        self.run_task(
+        self.app.run_host_task(
             operation=HostOperation.SYNC,
             message="Syncing repositories for all hosts.\nThis may take a long time!",
             no_hosts_message="No hosts available to sync repositories.",
