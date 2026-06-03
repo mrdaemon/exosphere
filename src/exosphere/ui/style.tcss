@@ -236,7 +236,7 @@ SortScreen {
 # Progress bar box
 .progress-message {
     background: $panel;
-    padding: 2;
+    padding: 1;
     border: hkey $primary-darken-1;
     width: auto;
     height: auto;
