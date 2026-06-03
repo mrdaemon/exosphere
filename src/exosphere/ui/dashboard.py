@@ -158,21 +158,11 @@ class DashboardScreen(DataScreen):
 
     def action_ping_all_hosts(self) -> None:
         """Action to ping all hosts."""
-
-        self.app.run_host_task(
-            operation=HostOperation.PING,
-            message="Pinging all hosts...",
-            no_hosts_message="No hosts available to ping.",
-        )
+        self.app.run_host_operation_all(HostOperation.PING)
 
     def action_discover_hosts(self) -> None:
         """Action to discover all hosts."""
-
-        self.app.run_host_task(
-            operation=HostOperation.DISCOVER,
-            message="Discovering all hosts...",
-            no_hosts_message="No hosts available to discover.",
-        )
+        self.app.run_host_operation_all(HostOperation.DISCOVER)
 
     def on_screen_resume(self) -> None:
         """Handle resume event to refresh host widgets."""

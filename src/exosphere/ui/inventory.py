@@ -25,6 +25,7 @@ from exosphere.inventory import FilterMode, HostOperation, SortField
 from exosphere.objects import Host, Update
 from exosphere.ui.context import screenflags
 from exosphere.ui.elements import DataScreen, ErrorScreen
+from exosphere.ui.palette import HostCommandProvider
 
 logger = logging.getLogger("exosphere.ui.inventory")
 
@@ -378,6 +379,9 @@ class InventoryScreen(DataScreen):
 
     CSS_PATH = "style.tcss"
 
+    # Register command palette provider for the inventory screen
+    COMMANDS = {HostCommandProvider}
+
     BINDINGS = [
         Binding("i", "app.none", show=False),
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
@@ -440,6 +444,35 @@ class InventoryScreen(DataScreen):
     def get_screen_name(self) -> str:
         """Return screen identifier."""
         return "inventory"
+
+    def get_selected_host(self) -> Host | None:
+        """
+        Get the currently selected host under the data table's cursor
+
+        Returns None if no host is selected or if the inventory is not
+        initialized.
+        """
+        if not context.inventory:
+            return None
+
+        try:
+            table = self.query_one(DataTable)
+        except Exception as e:
+            logger.debug("Couldn't fetch data table from screen: %s", str(e))
+            return None
+
+        if table.row_count == 0:
+            logger.debug("Data table is empty, no host to select.")
+            return None
+
+        try:
+            row = table.get_row_at(table.cursor_row)
+        except Exception as e:
+            logger.debug("Couldn't get row at cursor position: %s", str(e))
+            return None
+
+        # First column is the (plain, unmarked) host name.
+        return context.inventory.get_host(str(row[0]))
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the data table."""
@@ -539,28 +572,11 @@ class InventoryScreen(DataScreen):
 
     def action_refresh_updates_all(self) -> None:
         """Action to refresh updates for all hosts."""
-
-        self.app.run_host_task(
-            operation=HostOperation.REFRESH,
-            message="Refreshing updates for all hosts...",
-            no_hosts_message="No hosts available to refresh updates.",
-            save_state=True,
-        )
+        self.app.run_host_operation_all(HostOperation.REFRESH)
 
     def action_sync_and_refresh_all(self) -> None:
         """Action to sync repositories and refresh updates for all hosts."""
-
-        def sync_callback(_):
-            """Callback to refresh updates after sync is complete"""
-            self.action_refresh_updates_all()
-
-        self.app.run_host_task(
-            operation=HostOperation.SYNC,
-            message="Syncing repositories for all hosts.\nThis may take a long time!",
-            no_hosts_message="No hosts available to sync repositories.",
-            save_state=False,  # Syncing repos does not affect state
-            callback=sync_callback,
-        )
+        self.app.run_sync_refresh_all()
 
     def action_filter_view(self) -> None:
         """Action to filter the inventory view."""

@@ -246,6 +246,13 @@ SortScreen {
     layout: vertical;
 }
 
+# Wrap progress message labels instead of overflowing the box
+.progress-message Label {
+    width: 100%;
+    text-align: center;
+    text-wrap: wrap;
+}
+
 # Abort line in progress bar box
 #abort-message {
     text-align: center;
@@ -348,6 +355,9 @@ SortScreen {
 .error-message Center Label {
     margin-top: 1;
     padding-bottom: 1;
+    width: 100%;
+    text-align: center;
+    text-wrap: wrap;
 }
 
 .error-message Center Button {

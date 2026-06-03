@@ -135,21 +135,28 @@ class HostOperation(Enum):
 
     The label value is a human-readable name for the operation,
     suitable for display.
+
+    The modifies_state boolean indicates whether or not the operation
+    modifies the host's state (e.g. by making change to HostData).
+    If the operation does not (for instance, syncing repositories),
+    this should be set to False.
     """
 
-    # Tuple is (Host method name, display label)
-    PING = ("ping", "Ping")
-    DISCOVER = ("discover", "Discover Platform")
-    REFRESH = ("refresh_updates", "Refresh Updates")
-    SYNC = ("sync_repos", "Sync Repositories")
+    # Tuple is (Host method name, display label, modifies local state)
+    PING = ("ping", "Ping", True)
+    DISCOVER = ("discover", "Discover", True)
+    REFRESH = ("refresh_updates", "Refresh Updates", True)
+    SYNC = ("sync_repos", "Sync Repositories", False)
 
-    # Annotation, not a member
+    # Annotations, not members
     label: str
+    modifies_state: bool
 
-    def __new__(cls, method: str, label: str) -> "HostOperation":
+    def __new__(cls, method: str, label: str, modifies_state: bool) -> "HostOperation":
         member = object.__new__(cls)
         member._value_ = method
         member.label = label
+        member.modifies_state = modifies_state
         return member
 
 

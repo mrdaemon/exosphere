@@ -414,11 +414,7 @@ def test_dashboard_action_ping_all_hosts(mocker):
 
     screen.action_ping_all_hosts()
 
-    mock_app.run_host_task.assert_called_once_with(
-        operation=HostOperation.PING,
-        message="Pinging all hosts...",
-        no_hosts_message="No hosts available to ping.",
-    )
+    mock_app.run_host_operation_all.assert_called_once_with(HostOperation.PING)
 
 
 def test_dashboard_action_discover_hosts(mocker):
@@ -431,11 +427,7 @@ def test_dashboard_action_discover_hosts(mocker):
 
     screen.action_discover_hosts()
 
-    mock_app.run_host_task.assert_called_once_with(
-        operation=HostOperation.DISCOVER,
-        message="Discovering all hosts...",
-        no_hosts_message="No hosts available to discover.",
-    )
+    mock_app.run_host_operation_all.assert_called_once_with(HostOperation.DISCOVER)
 
 
 def test_dashboard_on_screen_resume_dirty(mocker):

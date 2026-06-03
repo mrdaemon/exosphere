@@ -4,7 +4,7 @@ from textual.widgets import Footer, Header
 from exosphere.inventory import HostOperation
 from exosphere.ui.app import ExosphereUi
 from exosphere.ui.dashboard import DashboardScreen
-from exosphere.ui.elements import DataScreen, ErrorScreen, ProgressScreen
+from exosphere.ui.elements import DataScreen, ErrorScreen, ProgressScreen, TaskOutcome
 from exosphere.ui.inventory import InventoryScreen
 from exosphere.ui.logs import LogsScreen, UILogHandler
 
@@ -316,8 +316,10 @@ class TestExosphereUi:
         pushed = push.call_args[0][0]
         assert pushed.hosts == [h2]
 
-    def test_run_host_task_passes_custom_callback(self, app, mocker, mock_context):
-        """A custom callback is forwarded to push_screen in place of the default."""
+    def test_run_host_task_invokes_custom_callback_on_complete(
+        self, app, mocker, mock_context
+    ):
+        """The custom callback runs when the ProgressScreen completes."""
         mock_context.inventory = mocker.Mock(hosts=[mocker.Mock()])
         push = mocker.patch.object(app, "push_screen")
         custom = mocker.Mock()
@@ -326,7 +328,210 @@ class TestExosphereUi:
             HostOperation.PING, message="m", no_hosts_message="nh", callback=custom
         )
 
-        assert push.call_args[0][1] is custom
+        # push_screen gets a wrapper; invoking it with an outcome runs the
+        # custom callback (after rendering feedback).
+        on_complete = push.call_args[0][1]
+        outcome = TaskOutcome(operation=HostOperation.PING, host_count=1)
+        on_complete(outcome)
+
+        custom.assert_called_once_with(outcome)
+
+    def test_run_host_task_forwards_report_result(self, app, mocker, mock_context):
+        """report_result is forwarded to the ProgressScreen."""
+        mock_context.inventory = mocker.Mock(hosts=[mocker.Mock()])
+        push = mocker.patch.object(app, "push_screen")
+
+        app.run_host_task(
+            HostOperation.REFRESH,
+            message="a message",
+            no_hosts_message="no boys here",
+            report_result=False,
+        )
+
+        assert push.call_args[0][0].report_result is False
+
+    def test_run_host_operation_targets_single_host(self, app, mocker):
+        """run_host_operation dispatches the op against just the one host."""
+        run_task = mocker.patch.object(app, "run_host_task")
+        host = mocker.Mock()
+        host.name = "web1"
+
+        app.run_host_operation(HostOperation.REFRESH, host)
+
+        run_task.assert_called_once()
+        kwargs = run_task.call_args.kwargs
+        assert kwargs["operation"] is HostOperation.REFRESH
+        assert kwargs["hosts"] == [host]
+
+    def test_run_host_sync_refresh_chains_sync_then_refresh(self, app, mocker):
+        """Sync runs first (quiet) with a callback that triggers refresh."""
+        run_task = mocker.patch.object(app, "run_host_task")
+        host = mocker.Mock()
+        host.name = "web1"
+
+        app.run_host_sync_refresh(host)
+
+        # First dispatch is the sync, intermediate (no result reporting).
+        run_task.assert_called_once()
+        sync_kwargs = run_task.call_args.kwargs
+        assert sync_kwargs["operation"] is HostOperation.SYNC
+        assert sync_kwargs["hosts"] == [host]
+        assert sync_kwargs["report_result"] is False
+
+        # Invoking the sync callback triggers the refresh step.
+        sync_kwargs["callback"](None)
+
+        assert run_task.call_count == 2
+        refresh_kwargs = run_task.call_args.kwargs
+        assert refresh_kwargs["operation"] is HostOperation.REFRESH
+        assert refresh_kwargs["hosts"] == [host]
+
+    def test_run_host_operation_all_targets_all_hosts(self, app, mocker):
+        """run_host_operation_all dispatches with no host subset (all hosts)."""
+        run_task = mocker.patch.object(app, "run_host_task")
+
+        app.run_host_operation_all(HostOperation.PING)
+
+        run_task.assert_called_once()
+        kwargs = run_task.call_args.kwargs
+        assert kwargs["operation"] is HostOperation.PING
+        assert "hosts" not in kwargs or kwargs["hosts"] is None
+
+    def test_run_sync_refresh_all_chains_sync_then_refresh(self, app, mocker):
+        """The all-hosts sync runs first with a callback that refreshes all."""
+        run_task = mocker.patch.object(app, "run_host_task")
+
+        app.run_sync_refresh_all()
+
+        run_task.assert_called_once()
+        sync_kwargs = run_task.call_args.kwargs
+        assert sync_kwargs["operation"] is HostOperation.SYNC
+        assert sync_kwargs["report_result"] is False
+
+        sync_kwargs["callback"](None)
+
+        assert run_task.call_count == 2
+        assert run_task.call_args.kwargs["operation"] is HostOperation.REFRESH
+
+    def test_success_message(self, app, mocker):
+        """Ping reports Online/Offline; other ops report completion."""
+        host = mocker.Mock()
+        host.name = "web1"
+        assert app._success_message(HostOperation.PING, host, True) == "web1 is Online"
+        assert (
+            app._success_message(HostOperation.PING, host, False) == "web1 is Offline"
+        )
+        assert (
+            app._success_message(HostOperation.REFRESH, host, None)
+            == "Refresh Updates complete on web1"
+        )
+
+    def test_render_feedback_single_host_success_notifies(self, app, mocker):
+        """A single-host success surfaces a result notification."""
+        notify = mocker.patch.object(app, "notify")
+        host = mocker.Mock()
+        host.name = "web1"
+
+        app._render_task_feedback(
+            TaskOutcome(
+                operation=HostOperation.REFRESH,
+                results=[(host, None, None)],
+                host_count=1,
+            )
+        )
+
+        notify.assert_called_once()
+        assert "Refresh Updates complete on web1" in notify.call_args[0][0]
+
+    def test_render_feedback_single_host_failure_pushes_error(self, app, mocker):
+        """A single-host failure pushes a titled ErrorScreen with the exception."""
+        push = mocker.patch.object(app, "push_screen")
+        host = mocker.Mock()
+        host.name = "web1"
+
+        app._render_task_feedback(
+            TaskOutcome(
+                operation=HostOperation.REFRESH,
+                results=[(host, None, RuntimeError("boom"))],
+                exc_count=1,
+                host_count=1,
+            )
+        )
+
+        push.assert_called_once()
+        screen = push.call_args[0][0]
+        assert isinstance(screen, ErrorScreen)
+        assert "Refresh Updates failed on web1" in screen.message
+        assert "boom" in screen.message
+
+    def test_render_feedback_bulk_errors_notify_only(self, app, mocker):
+        """Bulk errors get an aggregate notify, no modal."""
+        notify = mocker.patch.object(app, "notify")
+        push = mocker.patch.object(app, "push_screen")
+        h1, h2 = mocker.Mock(), mocker.Mock()
+
+        app._render_task_feedback(
+            TaskOutcome(
+                operation=HostOperation.REFRESH,
+                results=[(h1, None, None), (h2, None, RuntimeError())],
+                exc_count=1,
+                host_count=2,
+            )
+        )
+
+        push.assert_not_called()
+        assert "1 error" in notify.call_args[0][0]
+
+    def test_render_feedback_report_result_false_falls_back_to_aggregate(
+        self, app, mocker
+    ):
+        """With report_result False, even a single host uses the aggregate path."""
+        notify = mocker.patch.object(app, "notify")
+        push = mocker.patch.object(app, "push_screen")
+        host = mocker.Mock()
+        host.name = "web1"
+
+        app._render_task_feedback(
+            TaskOutcome(
+                operation=HostOperation.SYNC,
+                results=[(host, None, RuntimeError("x"))],
+                exc_count=1,
+                host_count=1,
+                report_result=False,
+            )
+        )
+
+        push.assert_not_called()  # no modal for the intermediate step
+        assert "1 error" in notify.call_args[0][0]
+
+    def test_render_feedback_cancelled_notifies(self, app, mocker):
+        """A cancelled task notifies and renders nothing else."""
+        notify = mocker.patch.object(app, "notify")
+        push = mocker.patch.object(app, "push_screen")
+
+        app._render_task_feedback(
+            TaskOutcome(
+                operation=HostOperation.REFRESH, was_cancelled=True, host_count=1
+            )
+        )
+
+        push.assert_not_called()
+        assert "cancelled" in notify.call_args[0][0].lower()
+
+    def test_render_feedback_save_error_pushes_error(self, app, mocker):
+        """A save failure surfaces an ErrorScreen."""
+        push = mocker.patch.object(app, "push_screen")
+
+        app._render_task_feedback(
+            TaskOutcome(
+                operation=HostOperation.REFRESH,
+                save_error=RuntimeError("disk full"),
+                host_count=1,
+            )
+        )
+
+        push.assert_called_once()
+        assert "disk full" in push.call_args[0][0].message
 
     def test_after_task_refreshes_active_data_screen(
         self, app, mocker, mock_screenflags

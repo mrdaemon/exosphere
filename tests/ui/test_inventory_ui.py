@@ -759,3 +759,45 @@ class TestActionSortView:
         text = mock_label.update.call_args[0][0]
         assert "Filtered: Updates" in text
         assert "Sorted: OS ↑" in text
+
+
+class TestSelectedHost:
+    """Resolution of the host under the inventory table cursor."""
+
+    def test_get_selected_host_resolves_cursor_row(
+        self, mocker, setup_inventory_mock, inventory_screen
+    ):
+        """The host under the row cursor is resolved from the inventory."""
+        mock_table = mocker.Mock()
+        mock_table.row_count = 3
+        mock_table.cursor_row = 1
+        mock_table.get_row_at.return_value = ["testserver2", "linux", "debian"]
+        mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
+
+        host = inventory_screen.get_selected_host()
+
+        assert host is setup_inventory_mock.get_host("testserver2")
+        mock_table.get_row_at.assert_called_once_with(1)
+
+    def test_get_selected_host_no_inventory(self, mocker, inventory_screen):
+        """No inventory yields None."""
+        mocker.patch.object(context, "inventory", None)
+        assert inventory_screen.get_selected_host() is None
+
+    def test_get_selected_host_empty_table(
+        self, mocker, setup_inventory_mock, inventory_screen
+    ):
+        """An empty table yields None."""
+        mock_table = mocker.Mock()
+        mock_table.row_count = 0
+        mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
+        assert inventory_screen.get_selected_host() is None
+
+    def test_get_selected_host_no_table(
+        self, mocker, setup_inventory_mock, inventory_screen
+    ):
+        """A missing DataTable (e.g. empty inventory view) yields None."""
+        mocker.patch.object(
+            inventory_screen, "query_one", side_effect=Exception("no table")
+        )
+        assert inventory_screen.get_selected_host() is None

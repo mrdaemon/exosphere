@@ -63,6 +63,15 @@ class TestHostOperation:
         """Test that each member can be looked up by its method-name value."""
         assert HostOperation(op.value) is op
 
+    @pytest.mark.parametrize("op", list(HostOperation))
+    def test_modifies_state_is_bool(self, op):
+        """Each member exposes a boolean modifies_state flag."""
+        assert isinstance(op.modifies_state, bool)
+
+    def test_sync_does_not_modify_state(self):
+        """Sync should be stateless always"""
+        assert HostOperation.SYNC.modifies_state is False
+
 
 class TestInventory:
     @pytest.fixture

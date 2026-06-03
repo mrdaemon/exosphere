@@ -11,6 +11,7 @@ The Task Dispatch logic for UI Screens is implemented here.
 """
 
 import logging
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from textual import work
@@ -29,6 +30,36 @@ if TYPE_CHECKING:
     from exosphere.ui.app import ExosphereUi
 
 logger = logging.getLogger("exosphere.ui.elements")
+
+
+@dataclass(frozen=True)
+class TaskOutcome:
+    """
+    The outcome of a host task, returned by :class:`ProgressScreen`
+
+    The screen returns this on dismissal, and it serves to standardize
+    the information a caller can expect after a task completes.
+
+    The ProgressScreen runs tasks on a worker thread, so it cannot push
+    screens or interact with the UI meaningfully due to the abrupt way
+    in which it gets dismissed. Anything it pushes would end up behind
+    the still-present ProgressScreen, which then would not be able to
+    dismiss.
+
+    This is intended to be handled by a dismiss callback on the main
+    thread, which can then handle how to present that information
+    *after* the ProgressScreen is gone.
+
+    See :meth:`ExosphereUi.run_host_task` for details.
+    """
+
+    operation: HostOperation
+    results: list[tuple[Host, object, Exception | None]] = field(default_factory=list)
+    exc_count: int = 0
+    was_cancelled: bool = False
+    report_result: bool = True
+    host_count: int = 0
+    save_error: Exception | None = None
 
 
 class DataScreen(Screen):
@@ -113,16 +144,12 @@ class ErrorScreen(Screen):
         event.stop()
 
 
-class ProgressScreen(Screen):
+class ProgressScreen(Screen[TaskOutcome]):
     """
     Screen for displaying progress of operations
 
     Also handles running the host tasks in a separate thread and
     updating the progress bar accordingly.
-
-    The save parameter controls whether the inventory state will be
-    serialized to disk after the task completes, if autosave is enabled
-    in the application configuration. Defaults to True.
 
     Mostly wraps inventory.run_task to provide a UI for it.
     """
@@ -134,13 +161,13 @@ class ProgressScreen(Screen):
         message: str,
         hosts: list[Host],
         operation: HostOperation,
-        save: bool = True,
+        report_result: bool = True,
     ) -> None:
         super().__init__()
         self.message = message
         self.hosts = hosts
         self.operation = operation
-        self.save = save
+        self.report_result = report_result
 
     def compose(self) -> ComposeResult:
         yield Vertical(
@@ -183,74 +210,76 @@ class ProgressScreen(Screen):
 
         Runs in a separate, exclusive thread to avoid blocking the UI
         while the ThreadPoolExecutor runs the task on all hosts.
-        """
-        inventory: Inventory | None = context.inventory
 
+        UI feedback is handled delicately here due to the threading
+        model: we dismiss with a :class:`TaskOutcome`, and the dismiss
+        callback handles pushing any modal or feedback screens once the
+        ProgressScreen is gone. This avoids trying to push a screen
+        from the worker thread.
+        """
+        app = self.app  # capture; valid for call_from_thread after dismiss
         worker = get_current_worker()
 
-        if inventory is None:
-            logger.error("Inventory is not initialized, cannot run tasks.")
-            self.app.call_from_thread(
-                self.app.push_screen, ErrorScreen("Inventory is not initialized.")
-            )
-            return
-
-        # Keep track of exception count, for later UI notify
         exc_count: int = 0
         was_cancelled: bool = False
+        save_error: Exception | None = None
+        results: list[tuple[Host, object, Exception | None]] = []
 
-        # Dispatch task through worker pool inventory API
-        for host, _, exc in inventory.run_task(self.operation, self.hosts):
-            if exc:
-                exc_count += 1
-                logger.error(
-                    f"Error running {self.operation.value} on host {host.name}: {str(exc)}"
-                )
-            else:
-                logger.debug(
-                    f"Successfully dispatched task {self.operation.value} for host: {host.name}"
-                )
+        inventory: Inventory | None = context.inventory
 
-            self.app.call_from_thread(self.update_progress, 1)
+        try:
+            if inventory is None:
+                logger.error("Inventory is not initialized, cannot run tasks.")
+                save_error = RuntimeError("Inventory is not initialized.")
+                return
 
-            if worker.is_cancelled:
-                was_cancelled = True
-                logger.warning("Task was cancelled, stopping progress update.")
-                break
+            # Dispatch task through worker pool inventory API
+            for host, result, exc in inventory.run_task(self.operation, self.hosts):
+                results.append((host, result, exc))
+                if exc:
+                    exc_count += 1
+                    logger.error(
+                        f"Error running {self.operation.value} on host "
+                        f"{host.name}: {str(exc)}"
+                    )
+                else:
+                    logger.debug(
+                        f"Successfully dispatched task {self.operation.value} "
+                        f"for host: {host.name}"
+                    )
 
-        logger.info("Finished running %s on all hosts.", self.operation.value)
+                app.call_from_thread(self.update_progress, 1)
 
-        # Attempt to serialize state to database if autosave is enabled
-        # Unless whatever pushed the screen requested otherwise.
-        if self.save and app_config["options"]["cache_autosave"]:
-            try:
-                inventory.save_state()
-                logger.debug("Inventory state saved successfully.")
-            except Exception as e:
-                logger.error("Failed to save inventory state: %s", str(e))
-                self.app.call_from_thread(
-                    self.app.push_screen,
-                    ErrorScreen(f"Failed to save inventory state:\n{str(e)}"),
-                )
+                if worker.is_cancelled:
+                    was_cancelled = True
+                    logger.warning("Task was cancelled, stopping progress update.")
+                    break
 
-        # Send notification if task was cancelled
-        if was_cancelled:
-            self.app.call_from_thread(
-                self.app.notify,
-                "Task cancelled by user.",
-                title="Cancelled",
-                severity="error",
+            logger.info("Finished running %s.", self.operation.value)
+
+            # Attempt to serialize state if autosave is enabled, unless
+            # the operation is stateless or states otherwise
+            if (
+                self.operation.modifies_state
+                and app_config["options"]["cache_autosave"]
+            ):
+                try:
+                    inventory.save_state()
+                    logger.debug("Inventory state saved successfully.")
+                except Exception as e:
+                    logger.error("Failed to save inventory state: %s", str(e))
+                    save_error = e
+        finally:
+            outcome = TaskOutcome(
+                operation=self.operation,
+                results=results,
+                exc_count=exc_count,
+                was_cancelled=was_cancelled,
+                report_result=self.report_result,
+                host_count=len(self.hosts),
+                save_error=save_error,
             )
 
-        # Send a notification if task completed with errors
-        if exc_count > 0:
-            self.app.call_from_thread(
-                self.app.notify,
-                f"Task completed with {exc_count} error(s).\nSee logs panel for details.",
-                title="Task Errors",
-                severity="error",
-            )
-
-        # Pop the screen and return the task name as argument to the
-        # (optional) callback set when the screen was pushed.
-        self.app.call_from_thread(self.dismiss, self.operation.value)
+            # Pop the screen and return the outcome for the callback
+            # to handle, back on the main thread.
+            app.call_from_thread(self.dismiss, outcome)

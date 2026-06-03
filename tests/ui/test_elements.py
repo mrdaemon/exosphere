@@ -45,14 +45,11 @@ class TestProgressScreen:
 
     def test_initialization(self, mock_host):
         """Test basic ProgressScreen initialization."""
-        progress_screen = ProgressScreen(
-            "Testing...", [mock_host], HostOperation.PING, save=False
-        )
+        progress_screen = ProgressScreen("Testing...", [mock_host], HostOperation.PING)
 
         assert progress_screen.message == "Testing..."
         assert len(progress_screen.hosts) == 1
         assert progress_screen.operation is HostOperation.PING
-        assert progress_screen.save is False
 
     def test_on_mount_triggers_do_run(self, mocker, progress_screen):
         """Ensure that the task is ran once the screen is mounted."""
@@ -67,6 +64,18 @@ class TestProgressScreen:
         progress_screen.update_progress(2)
         progress_screen.query_one.assert_called_with("#task-progress-bar", ProgressBar)
         progress_bar.advance.assert_called_with(2)
+
+    def test_report_result_defaults_true(self, mock_host):
+        """report_result defaults to True and can be disabled."""
+        assert (
+            ProgressScreen("m", [mock_host], HostOperation.PING).report_result is True
+        )
+        assert (
+            ProgressScreen(
+                "m", [mock_host], HostOperation.PING, report_result=False
+            ).report_result
+            is False
+        )
 
 
 class TestDataScreen:
