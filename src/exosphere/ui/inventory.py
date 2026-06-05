@@ -8,6 +8,7 @@ import re
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Center, Container, Grid, Vertical
+from textual.css.query import NoMatches
 from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import (
@@ -19,6 +20,7 @@ from textual.widgets import (
     ListItem,
     ListView,
 )
+from textual.widgets.data_table import RowDoesNotExist
 
 from exosphere import context
 from exosphere.inventory import FilterMode, SortField
@@ -453,12 +455,13 @@ class InventoryScreen(DataScreen):
         initialized.
         """
         if not context.inventory:
+            logger.debug("Inventory is not initialized, cannot get selected host.")
             return None
 
         try:
             table = self.query_one(DataTable)
-        except Exception as e:
-            logger.debug("Couldn't fetch data table from screen: %s", str(e))
+        except NoMatches:
+            logger.debug("No inventory data table on screen, no host to select.")
             return None
 
         if table.row_count == 0:
@@ -467,8 +470,10 @@ class InventoryScreen(DataScreen):
 
         try:
             row = table.get_row_at(table.cursor_row)
-        except Exception as e:
-            logger.debug("Couldn't get row at cursor position: %s", str(e))
+        except RowDoesNotExist:
+            logger.debug(
+                "Cursor row %s is not valid, no host to select.", table.cursor_row
+            )
             return None
 
         # First column is the (plain, unmarked) host name.

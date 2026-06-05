@@ -820,7 +820,23 @@ class TestSelectedHost:
         self, mocker, setup_inventory_mock, inventory_screen
     ):
         """A missing DataTable (e.g. empty inventory view) yields None."""
+        from textual.css.query import NoMatches
+
         mocker.patch.object(
-            inventory_screen, "query_one", side_effect=Exception("no table")
+            inventory_screen, "query_one", side_effect=NoMatches("no table")
         )
+        assert inventory_screen.get_selected_host() is None
+
+    def test_get_selected_host_invalid_cursor_row(
+        self, mocker, setup_inventory_mock, inventory_screen
+    ):
+        """An out-of-range cursor row yields None rather than raising."""
+        from textual.widgets.data_table import RowDoesNotExist
+
+        mock_table = mocker.Mock()
+        mock_table.row_count = 3
+        mock_table.cursor_row = 99
+        mock_table.get_row_at.side_effect = RowDoesNotExist("bad row")
+        mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
+
         assert inventory_screen.get_selected_host() is None
