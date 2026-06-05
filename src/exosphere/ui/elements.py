@@ -23,8 +23,8 @@ from textual.widgets import Button, Label, ProgressBar
 from textual.worker import get_current_worker
 
 from exosphere import app_config, context
-from exosphere.inventory import HostOperation, Inventory
-from exosphere.objects import Host
+from exosphere.inventory import Inventory
+from exosphere.objects import Host, HostOperation
 
 if TYPE_CHECKING:
     from exosphere.ui.app import ExosphereUi

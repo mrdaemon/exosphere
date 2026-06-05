@@ -1,6 +1,7 @@
 import logging
 import time
 from datetime import datetime, timezone
+from enum import Enum
 from threading import RLock
 from typing import TypeAlias
 
@@ -23,6 +24,40 @@ from exosphere.setup import detect
 # Define a type alias for timezone-aware UTC datetime
 # This is to help communicate intent better in type hints
 UtcDateTime: TypeAlias = datetime
+
+
+class HostOperation(Enum):
+    """
+    Operations that can be dispatched against a Host.
+
+    Each member's value is the name of a Host method, and doubles as
+    the stable task identifier.
+
+    The label value is a human-readable name for the operation,
+    suitable for display.
+
+    The modifies_state boolean indicates whether or not the operation
+    modifies the host's state (e.g. by making change to HostData).
+    If the operation does not (for instance, syncing repositories),
+    this should be set to False.
+    """
+
+    # Tuple is (Host method name, display label, modifies local state)
+    PING = ("ping", "Ping", True)
+    DISCOVER = ("discover", "Discover", True)
+    REFRESH = ("refresh_updates", "Refresh Updates", True)
+    SYNC = ("sync_repos", "Sync Repositories", False)
+
+    # Annotations, not members
+    label: str
+    modifies_state: bool
+
+    def __new__(cls, method: str, label: str, modifies_state: bool) -> "HostOperation":
+        member = object.__new__(cls)
+        member._value_ = method
+        member.label = label
+        member.modifies_state = modifies_state
+        return member
 
 
 class Host:

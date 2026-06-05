@@ -21,8 +21,8 @@ from textual.widgets import (
 )
 
 from exosphere import context
-from exosphere.inventory import FilterMode, HostOperation, SortField
-from exosphere.objects import Host, Update
+from exosphere.inventory import FilterMode, SortField
+from exosphere.objects import Host, HostOperation, Update
 from exosphere.ui.context import screenflags
 from exosphere.ui.elements import DataScreen, ErrorScreen
 from exosphere.ui.palette import HostCommandProvider

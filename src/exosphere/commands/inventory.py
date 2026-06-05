@@ -26,7 +26,8 @@ from exosphere.commands.utils import (
     get_inventory,
     run_task_with_progress,
 )
-from exosphere.inventory import FilterMode, HostOperation, Inventory, SortField
+from exosphere.inventory import FilterMode, Inventory, SortField
+from exosphere.objects import HostOperation
 
 # Constants for display
 ERROR_STYLE = {

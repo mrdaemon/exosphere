@@ -16,8 +16,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header
 
 from exosphere import context
-from exosphere.inventory import HostOperation
-from exosphere.objects import Host
+from exosphere.objects import Host, HostOperation
 from exosphere.ui.context import screenflags
 from exosphere.ui.dashboard import DashboardScreen
 from exosphere.ui.elements import (

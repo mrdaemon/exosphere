@@ -21,8 +21,8 @@ from rich.progress import Progress
 from rich.table import Table
 
 from exosphere import __version__, context
-from exosphere.inventory import HostOperation, Inventory
-from exosphere.objects import Host
+from exosphere.inventory import Inventory
+from exosphere.objects import Host, HostOperation
 
 # Constants for display formatting
 STATUS_FORMATS = {

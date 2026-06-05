@@ -25,8 +25,7 @@ from typing import TYPE_CHECKING, ClassVar, cast
 from textual.command import CommandPalette, DiscoveryHit, Hit, Hits, Provider
 
 from exosphere import context
-from exosphere.inventory import HostOperation
-from exosphere.objects import Host
+from exosphere.objects import Host, HostOperation
 
 if TYPE_CHECKING:
     from exosphere.ui.app import ExosphereUi

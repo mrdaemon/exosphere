@@ -1,7 +1,7 @@
 import pytest
 from textual.widgets import Footer, Header
 
-from exosphere.inventory import HostOperation
+from exosphere.objects import HostOperation
 from exosphere.ui.app import ExosphereUi
 from exosphere.ui.dashboard import DashboardScreen
 from exosphere.ui.elements import DataScreen, ErrorScreen, ProgressScreen, TaskOutcome

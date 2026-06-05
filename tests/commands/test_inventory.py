@@ -4,8 +4,7 @@ from typer.testing import CliRunner
 from exosphere.commands import inventory as inventory_module
 from exosphere.commands import utils as utils_module
 from exosphere.config import Configuration
-from exosphere.inventory import HostOperation
-from exosphere.objects import Host
+from exosphere.objects import Host, HostOperation
 
 runner = CliRunner(env={"NO_COLOR": "1"})
 

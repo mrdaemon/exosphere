@@ -9,7 +9,7 @@ import pytest
 from textual.command import CommandPalette
 
 from exosphere import context
-from exosphere.inventory import HostOperation
+from exosphere.objects import HostOperation
 from exosphere.ui.palette import (
     PICKERS,
     GlobalAllHostsProvider,

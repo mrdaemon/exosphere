@@ -4,7 +4,7 @@ import pytest
 from textual.app import App
 from textual.widgets import ProgressBar
 
-from exosphere.inventory import HostOperation
+from exosphere.objects import HostOperation
 from exosphere.ui.elements import DataScreen, ErrorScreen, ProgressScreen
 
 

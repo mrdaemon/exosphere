@@ -1,7 +1,6 @@
 import pytest
 
-from exosphere.inventory import HostOperation
-from exosphere.objects import Host
+from exosphere.objects import Host, HostOperation
 from exosphere.ui.dashboard import DashboardScreen, HostWidget
 
 

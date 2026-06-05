@@ -10,7 +10,7 @@ from exosphere import migrations
 from exosphere.config import Configuration
 from exosphere.data import HostState
 from exosphere.database import DiskCache
-from exosphere.objects import Host
+from exosphere.objects import Host, HostOperation
 
 
 class FilterMode(StrEnum):
@@ -124,40 +124,6 @@ class SortField(Enum):
             (0, int(part)) if part.isdigit() else (1, part.lower())
             for part in re.findall(r"\d+|[^\d]+", value)
         )
-
-
-class HostOperation(Enum):
-    """
-    Operations that can be dispatched against a Host.
-
-    Each member's value is the name of a Host method, and doubles as
-    the stable task identifier.
-
-    The label value is a human-readable name for the operation,
-    suitable for display.
-
-    The modifies_state boolean indicates whether or not the operation
-    modifies the host's state (e.g. by making change to HostData).
-    If the operation does not (for instance, syncing repositories),
-    this should be set to False.
-    """
-
-    # Tuple is (Host method name, display label, modifies local state)
-    PING = ("ping", "Ping", True)
-    DISCOVER = ("discover", "Discover", True)
-    REFRESH = ("refresh_updates", "Refresh Updates", True)
-    SYNC = ("sync_repos", "Sync Repositories", False)
-
-    # Annotations, not members
-    label: str
-    modifies_state: bool
-
-    def __new__(cls, method: str, label: str, modifies_state: bool) -> "HostOperation":
-        member = object.__new__(cls)
-        member._value_ = method
-        member.label = label
-        member.modifies_state = modifies_state
-        return member
 
 
 class Inventory:

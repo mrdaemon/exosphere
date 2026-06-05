@@ -3,8 +3,7 @@ import typer
 from rich.panel import Panel
 
 from exosphere.commands import utils as utils_module
-from exosphere.inventory import HostOperation
-from exosphere.objects import Host
+from exosphere.objects import Host, HostOperation
 
 
 @pytest.fixture

@@ -11,8 +11,7 @@ from textual.widget import Widget
 from textual.widgets import Footer, Header, Label
 
 from exosphere import context
-from exosphere.inventory import HostOperation
-from exosphere.objects import Host
+from exosphere.objects import Host, HostOperation
 from exosphere.ui.context import screenflags
 from exosphere.ui.elements import DataScreen
 
