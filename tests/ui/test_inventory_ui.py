@@ -448,6 +448,29 @@ class TestRefreshRows:
         # Should notify
         mock_app.notify.assert_called_once()
 
+    def test_refresh_rows_empty_result_notify_does_not_leak(
+        self, inventory_screen, setup_inventory_mock, mocker
+    ):
+        """The empty-result toast respects notify (silent on a quiet refresh)."""
+        mock_table = mocker.Mock(spec=DataTable)
+        mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
+        mock_app = mocker.Mock()
+        mocker.patch.object(
+            type(inventory_screen),
+            "app",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_app,
+        )
+        mocker.patch.object(inventory_screen, "_get_display_hosts", return_value=[])
+
+        # Quiet post-task refresh: no toast even though the view is empty.
+        inventory_screen.refresh_rows(notify=False)
+        mock_app.notify.assert_not_called()
+
+        # Announced refresh (filter change / resume): empty-result toast fires.
+        inventory_screen.refresh_rows(notify=True)
+        mock_app.notify.assert_called_once()
+
     def test_refresh_rows_with_filter(
         self, inventory_screen, setup_inventory_mock, mocker
     ):

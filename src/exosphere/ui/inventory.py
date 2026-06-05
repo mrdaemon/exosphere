@@ -528,15 +528,18 @@ class InventoryScreen(DataScreen):
             table = self.query_one(DataTable)
             table.clear(columns=False)
 
-            filter_msg = ""
-            if self.current_filter != FilterMode.NONE:
-                filter_msg = f" (filter: {self.current_filter})"
+            # Suppress notification on a quiet refresh
+            # This is shown on filter changes and on resume
+            if notify:
+                filter_msg = ""
+                if self.current_filter != FilterMode.NONE:
+                    filter_msg = f" (filter: {self.current_filter})"
 
-            self.app.notify(
-                f"No hosts match current filter{filter_msg}.",
-                title="No Results",
-                severity="error",
-            )
+                self.app.notify(
+                    f"No hosts match current filter{filter_msg}.",
+                    title="No Results",
+                    severity="error",
+                )
             return
 
         table = self.query_one(DataTable)
