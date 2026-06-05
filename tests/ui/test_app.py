@@ -379,12 +379,29 @@ class TestExosphereUi:
         assert sync_kwargs["report_result"] is False
 
         # Invoking the sync callback triggers the refresh step.
-        sync_kwargs["callback"](None)
+        # (Sync was NOT cancelled here)
+        sync_kwargs["callback"](TaskOutcome(operation=HostOperation.SYNC))
 
         assert run_task.call_count == 2
         refresh_kwargs = run_task.call_args.kwargs
         assert refresh_kwargs["operation"] is HostOperation.REFRESH
         assert refresh_kwargs["hosts"] == [host]
+
+    def test_run_host_sync_refresh_aborts_on_cancel(self, app, mocker):
+        """Cancelling the sync step does not chain into the refresh."""
+        run_task = mocker.patch.object(app, "run_host_task")
+        host = mocker.Mock()
+        host.name = "web1"
+
+        app.run_host_sync_refresh(host)
+        sync_kwargs = run_task.call_args.kwargs
+
+        sync_kwargs["callback"](
+            TaskOutcome(operation=HostOperation.SYNC, was_cancelled=True)
+        )
+
+        # No refresh step was dispatched.
+        run_task.assert_called_once()
 
     def test_run_host_operation_all_targets_all_hosts(self, app, mocker):
         """run_host_operation_all dispatches with no host subset (all hosts)."""
@@ -408,10 +425,23 @@ class TestExosphereUi:
         assert sync_kwargs["operation"] is HostOperation.SYNC
         assert sync_kwargs["report_result"] is False
 
-        sync_kwargs["callback"](None)
+        sync_kwargs["callback"](TaskOutcome(operation=HostOperation.SYNC))
 
         assert run_task.call_count == 2
         assert run_task.call_args.kwargs["operation"] is HostOperation.REFRESH
+
+    def test_run_sync_refresh_all_aborts_on_cancel(self, app, mocker):
+        """Cancelling the all-hosts sync does not chain into the refresh."""
+        run_task = mocker.patch.object(app, "run_host_task")
+
+        app.run_sync_refresh_all()
+        sync_kwargs = run_task.call_args.kwargs
+
+        sync_kwargs["callback"](
+            TaskOutcome(operation=HostOperation.SYNC, was_cancelled=True)
+        )
+
+        run_task.assert_called_once()
 
     def test_success_message(self, app, mocker):
         """Ping reports Online/Offline; other ops report completion."""

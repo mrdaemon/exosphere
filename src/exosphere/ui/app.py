@@ -248,7 +248,10 @@ class ExosphereUi(App):
         Callable from anywhere within the TUI
         """
 
-        def after_sync(_) -> None:
+        def after_sync(outcome: TaskOutcome) -> None:
+            # Don't chain refresh if sync was cancelled
+            if outcome.was_cancelled:
+                return
             self.run_host_operation(HostOperation.REFRESH, host)
 
         self.run_host_task(
@@ -277,7 +280,10 @@ class ExosphereUi(App):
         second step after the first one completes.
         """
 
-        def after_sync(_) -> None:
+        def after_sync(outcome: TaskOutcome) -> None:
+            # Don't chain refresh if sync was cancelled
+            if outcome.was_cancelled:
+                return
             self.run_host_operation_all(HostOperation.REFRESH)
 
         self.run_host_task(
