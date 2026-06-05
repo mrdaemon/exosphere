@@ -37,9 +37,11 @@ class HostOperation(Enum):
     suitable for display.
 
     The modifies_state boolean indicates whether or not the operation
-    modifies the host's state (e.g. by making change to HostData).
+    modifies the local Host object state (e.g. anything that round
+    trips through HostData from and to the cache).
     If the operation does not (for instance, syncing repositories),
-    this should be set to False.
+    this should be set to False, which allows operations to skip the
+    cache writeout steps after completion.
     """
 
     # Tuple is (Host method name, display label, modifies local state)
