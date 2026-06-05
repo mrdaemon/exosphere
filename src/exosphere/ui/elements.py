@@ -229,8 +229,8 @@ class ProgressScreen(Screen[TaskOutcome]):
 
         try:
             if inventory is None:
-                logger.error("Inventory is not initialized, cannot run tasks.")
-                save_error = RuntimeError("Inventory is not initialized.")
+                # This should never happen, but best effort guard
+                logger.error("Inventory not initialized; aborting task.")
                 return
 
             # Dispatch task through worker pool inventory API
