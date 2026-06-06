@@ -4,13 +4,13 @@ Tests for the REPL module
 
 from typing import Annotated
 
-import click
 import pytest
+import typer
 from prompt_toolkit.history import FileHistory, InMemoryHistory
 from typer import Context
 
 from exosphere.commands.utils import HostArgument, HostOption
-from exosphere.repl import ExosphereCompleter, ExosphereREPL
+from exosphere.repl import ExosphereCompleter, ExosphereREPL, _NoArgsIsHelpError
 
 
 @pytest.fixture
@@ -247,13 +247,19 @@ class TestExosphereCompleter:
         """
         Test completion of values for a fixed-choice (Enum) option (e.g. --sort).
         """
-        import click
         from prompt_toolkit.completion import CompleteEvent
         from prompt_toolkit.document import Document
 
+        # We duck type ourselves a choice-like Mock since Typer no
+        # longer lets you use click.Choice directly.
+        # This matches how the REPL checks for it anyways.
+        choice_type = mocker.Mock()
+        choice_type.name = "choice"
+        choice_type.choices = ["host", "os", "flavor", "status"]
+
         param = mocker.Mock()
         param.opts = ["-o", "--sort"]
-        param.type = click.Choice(["host", "os", "flavor", "status"])
+        param.type = choice_type
         subsub = mocker.Mock()
         subsub.params = [param]
         sub = mocker.Mock()
@@ -1292,7 +1298,7 @@ class TestExosphereREPL:
         # Mock context manager for fake typer command
         # Ensure it raises NoArgsIsHelpError
         dummy_ctx = mocker.Mock()
-        mock_sub.invoke.side_effect = click.exceptions.NoArgsIsHelpError(dummy_ctx)
+        mock_sub.invoke.side_effect = _NoArgsIsHelpError(dummy_ctx)
 
         mock_command = mocker.Mock()
         mock_command.commands = {"foo": mock_sub}
@@ -1503,7 +1509,7 @@ class TestExosphereREPL:
         hidden_cmd.hidden = True
         hidden_cmd.commands = {}
 
-        hidden_cmd.make_context.side_effect = click.exceptions.Exit(0)
+        hidden_cmd.make_context.side_effect = typer.Exit(0)
 
         # Setup root command containing the hidden command
         root_cmd = mocker.MagicMock()
@@ -1533,7 +1539,7 @@ class TestExosphereREPL:
         parent_cmd.hidden = False
         parent_cmd.commands = {"save": hidden_subcmd}
 
-        parent_cmd.make_context.side_effect = click.exceptions.Exit(0)
+        parent_cmd.make_context.side_effect = typer.Exit(0)
 
         # Set up root command
         root_cmd = mocker.MagicMock()

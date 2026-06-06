@@ -9,11 +9,12 @@ maintaining Rich output formatting.
 import inspect
 import logging
 import shlex
+import sys
 from collections.abc import Generator
 from enum import Enum
-from typing import Annotated, get_args, get_origin
+from typing import Annotated, cast, get_args, get_origin
 
-import click
+import typer
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
@@ -23,12 +24,34 @@ from prompt_toolkit.shortcuts import CompleteStyle
 from rich.console import Console
 from rich.panel import Panel
 from typer import Context
+from typer.core import TyperCommand, TyperGroup
 
 from exosphere import app_config
 from exosphere import context as app_context
 from exosphere.commands.utils import HostArgument, HostOption
 
 logger = logging.getLogger(__name__)
+
+
+class _NoArgsIsHelpUnavailable(BaseException):
+    """
+    Sentinel exception for missing NoArgsIsHelpError
+
+    This exists as a fallback in case a future version of Typer, post
+    0.26, stops exposing NoArgsIsHelpError in the same module as typer.Exit.
+
+    It is never raised directly, but allows the module to import cleanly.
+    """
+
+
+# Typer 0.26+ vendored Click, and doesn't re-export NoArgsIsHelpError.
+# It however still lives in the same module as Exit. Since I don't love
+# relying on this kind of behavior too hard, we anchor off the public
+# symbol to resolve the class name, but we fallback to a sentinel to
+# degrade gracefully and catch this in CI if it ever changes.
+_NoArgsIsHelpError: type[BaseException] = getattr(
+    sys.modules[typer.Exit.__module__], "NoArgsIsHelpError", _NoArgsIsHelpUnavailable
+)
 
 
 class HostMatchMode(Enum):
@@ -48,6 +71,7 @@ type SubcommandHostMode = dict[str, HostMatchMode]
 type HostArgMetadata = dict[str, SubcommandHostMode]
 type SubcommandOptionNames = dict[str, list[str]]
 type HostOptionMetadata = dict[str, SubcommandOptionNames]
+type CommandNode = TyperGroup | TyperCommand
 
 
 class ExosphereCompleter(Completer):
@@ -67,7 +91,7 @@ class ExosphereCompleter(Completer):
     annotations (HostArgument and HostOption) at initialization time.
     """
 
-    def __init__(self, root_command: click.Command | None) -> None:
+    def __init__(self, root_command: TyperGroup | None) -> None:
         self.root_command = root_command
         self.commands = ["clear", "help", "exit", "quit"]
         if root_command:
@@ -80,7 +104,7 @@ class ExosphereCompleter(Completer):
         self.HOST_OPTION_COMMANDS = option_commands
 
     def _extract_host_metadata(
-        self, root_command: click.Command | None
+        self, root_command: TyperGroup | None
     ) -> tuple[HostArgMetadata, HostOptionMetadata]:
         """
         Extract host completion metadata from command annotations.
@@ -106,7 +130,7 @@ class ExosphereCompleter(Completer):
     def _extract_from_group(
         self,
         group_name: str,
-        group_cmd: click.Command,
+        group_cmd: TyperGroup,
         host_args: HostArgMetadata,
         host_options: HostOptionMetadata,
     ) -> None:
@@ -121,7 +145,7 @@ class ExosphereCompleter(Completer):
         self,
         group_name: str,
         cmd_name: str,
-        cmd: click.Command,
+        cmd: TyperCommand,
         host_args: HostArgMetadata,
         host_options: HostOptionMetadata,
     ) -> None:
@@ -139,7 +163,7 @@ class ExosphereCompleter(Completer):
         self,
         group_name: str,
         cmd_name: str,
-        cmd: click.Command,
+        cmd: TyperCommand,
         param: inspect.Parameter,
         host_args: HostArgMetadata,
         host_options: HostOptionMetadata,
@@ -171,7 +195,7 @@ class ExosphereCompleter(Completer):
                     host_options[group_name][cmd_name] = option_names
 
     def _get_option_names_from_param(
-        self, cmd: click.Command, param_name: str
+        self, cmd: TyperCommand, param_name: str
     ) -> list[str]:
         """Extract option names from Click command param."""
         for click_param in getattr(cmd, "params", []):
@@ -312,7 +336,7 @@ class ExosphereCompleter(Completer):
 
             yield from self._complete_host_names(current, sp, exclude=exclude)
 
-    def _is_flag_option(self, subsub: click.Command, option_name: str) -> bool:
+    def _is_flag_option(self, subsub: TyperCommand, option_name: str) -> bool:
         """
         Check if an option is a flag (doesn't take a value).
 
@@ -338,7 +362,7 @@ class ExosphereCompleter(Completer):
         return False
 
     def _get_choice_option_values(
-        self, subsub: click.Command, option_name: str
+        self, subsub: TyperCommand, option_name: str
     ) -> list[str] | None:
         """
         Return the valid values for a fixed-choice option, or None.
@@ -352,8 +376,10 @@ class ExosphereCompleter(Completer):
         for param in getattr(subsub, "params", []):
             if option_name in getattr(param, "opts", []):
                 param_type = getattr(param, "type", None)
-                if isinstance(param_type, click.Choice):
-                    return list(param_type.choices)
+                # Best effort check for Choice types, since Typer
+                # 0.26 vendors click, and doesn't export click.Choice
+                if getattr(param_type, "name", None) == "choice":
+                    return list(getattr(param_type, "choices", []))
                 return None
 
         return None
@@ -512,8 +538,12 @@ class ExosphereREPL:
         # Setup persistent history
         self.history = self._setup_history()
 
-        # Get the root command for executing subcommands
-        self.root_command = ctx.command if ctx.command else None
+        # Get the root command for executing subcommands.
+        # Typer statically types ctx.command as the base Command, but
+        # for a Typer app the root is always the TyperGroup it built.
+        self.root_command: TyperGroup | None = (
+            cast(TyperGroup, ctx.command) if ctx.command else None
+        )
 
         # Setup the specialized completer
         self.completer = ExosphereCompleter(self.root_command)
@@ -614,7 +644,7 @@ class ExosphereREPL:
 
         except ValueError as e:
             self.console.print(f"[red]Error parsing command: {e}[/red]")
-        except (SystemExit, click.exceptions.Exit):
+        except (SystemExit, typer.Exit):
             # Commands may exit, this is expected
             pass
         except EOFError:
@@ -666,11 +696,11 @@ class ExosphereREPL:
             with subcommand.make_context(command_name, args[1:]) as sub_ctx:
                 subcommand.invoke(sub_ctx)
 
-        except click.exceptions.Exit:
+        except typer.Exit:
             # Commands (including help) may exit, this is expected
             pass
 
-        except click.exceptions.NoArgsIsHelpError:
+        except _NoArgsIsHelpError:
             # Command was invoked with no arguments and displayed help
             self.console.print(f"[red]Command {command_name} requires arguments[/red]")
 
@@ -688,7 +718,7 @@ class ExosphereREPL:
             self.console.print(f"[red]Error executing {command_name}: {e}[/red]")
             logger.exception(f"Error executing command '{command_name}': {e}")
 
-    def _unhide_commands(self, command: click.Command) -> None:
+    def _unhide_commands(self, command: CommandNode) -> None:
         """
         Recursively unhide all subcommands for interactive mode.
 
