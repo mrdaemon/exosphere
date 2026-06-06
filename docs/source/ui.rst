@@ -13,8 +13,10 @@ and allows you perform actions such as:
 - Viewing runtime logs in a nice colored panel.
 
 While the TUI does not provide *all* the features of the CLI, it is often more
-convenient for overviews and at-a-glance status checks. It can also easily be used
-in conjunction with the :doc:`cli` for more advanced operations.
+convenient for overviews and at-a-glance status checks. It does provide most
+of the same host operation features through screen actions as well as the
+command palette, and it can also easily be used in conjunction with the
+:doc:`cli` for more advanced operations.
 
 Launching the UI
 ----------------
@@ -64,8 +66,8 @@ Keys are shown as they should be typed, so ``shift+p`` will trigger Ping All,
 and ``ctrl+d`` will trigger Discover All.
 
 Universally, in every screen, you can press ``ctrl+p`` to access the command
-palette, which you can use to show more detailed help, change the display theme,
-or perform other miscellaneous actions.
+palette, which you can use to get keybind help, change the color theme, or run
+operations against all or specific hosts.
 
 **On Any Screen**, you can press ``ctrl+q`` to Quit the UI.
 
@@ -86,6 +88,69 @@ The UI will present a modal progress bar whenever this is occurring:
     While you can press ESC to cancel the operation, it will not abort already
     executing tasks in the Thread Pool, only prevent new tasks from being
     started past this point.
+
+The Command Palette
+-------------------
+
+Pressing ``ctrl+p`` from any screen will open the Command Palette, which allows you
+to select and fuzzy search through commands that can be invoked. This includes
+some built-in ones like **Keys** and **Theme**, but also Exosphere specific commands
+allowing you to perform operations on hosts in your inventory.
+
+The palette can be invoked from any screen, and the available commands will be
+contextual to the screen you are on, if applicable.
+
+.. image:: /_static/palette_sample.png
+   :alt: Example of Exosphere TUI Command Palette
+
+Host operations come in three flavors:
+
+**On All Hosts**
+
+.. image:: /_static/palette_all_sample.png
+   :alt: Example of Exosphere TUI Command Palette with global host operations
+
+These include operations like **Ping all hosts**, **Discover all hosts**,
+**Refresh all hosts** etc. Invoking these will perform the action immediately,
+displaying the progress screen, as described in the previous section.
+These can be invoked from any screen.
+
+**On Any Host**
+
+These commands allow you to select a specific host from your inventory and perform an
+operation on it, such as **Ping...**, **Discover...**, **Refresh...**, etc.
+
+.. image:: /_static/palette_any_sample.png
+   :alt: Example of Exosphere TUI Command Palette with host-specific operations
+
+Invoking these will open a second prompt with a list of hosts available in your
+inventory, allowing you to either select one with the arrow keys and ``Enter``, or
+to fuzzy search for it by typing its name, completely or partially.
+
+.. image:: /_static/palette_fuzzy_select_sample.png
+   :alt: Example of Exosphere TUI Command Palette with host selection
+
+These commands can also be invoked from any screen.
+
+**On the currently selected host**
+
+When the palette is opened from the Inventory screen, each operation will also
+propose a variant that applies to the currently selected host in the inventory table.
+
+.. image:: /_static/palette_selected_host_sample.png
+   :alt: Example of Exosphere TUI Command Palette with current host operations
+
+Selecting it will let you run that operation immediately on whichever host is
+currently under the cursor in the inventory. These options will also sort above
+the global ones in the palette, making them quick to access.
+
+These can only be invoked from the Inventory screen.
+
+.. tip::
+
+   All palettes are fuzzy-searched, so you rarely need to scroll. In any of
+   the pickers, just type part of the command or host, and the list will
+   narrow down immediately.
 
 The Dashboard
 -------------

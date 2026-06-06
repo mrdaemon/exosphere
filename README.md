@@ -209,6 +209,7 @@ Paths below are relative to `src/exosphere/` unless otherwise noted.
 | `ui/inventory.py` | Inventory view implementation |
 | `ui/logs.py` | Logs view implementation |
 | `ui/messages.py` | Screen refresh and message passing system |
+| `ui/palette.py` | Command palette providers and implementations |
 
 The TCSS for all of it is in a single file under `ui/style.tcss`.
 
