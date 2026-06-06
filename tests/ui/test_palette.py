@@ -112,7 +112,7 @@ class TestGlobalHostCommandProvider:
 
     def test_discover_offers_each_operation(self, provider):
         hits = _collect(provider.discover())
-        assert [str(h.display) for h in hits] == [
+        assert [str(h.prompt) for h in hits] == [
             "Ping…",
             "Discover…",
             "Refresh…",
@@ -142,7 +142,7 @@ class TestGlobalAllHostsProvider:
 
     def test_discover_offers_all_hosts_operations(self, provider):
         hits = _collect(provider.discover())
-        assert [str(h.display) for h in hits] == [
+        assert [str(h.prompt) for h in hits] == [
             "Ping all hosts",
             "Discover all hosts",
             "Refresh all hosts",
@@ -181,7 +181,7 @@ class TestHostPickerProvider:
     def test_discover_lists_all_hosts(self, mock_screen, two_hosts):
         picker = PICKERS["Ping"](mock_screen)
         hits = _collect(picker.discover())
-        assert [str(h.display) for h in hits] == ["web1", "db2"]
+        assert [str(h.prompt) for h in hits] == ["web1", "db2"]
 
     def test_search_fuzzy_matches_host(self, mock_screen, two_hosts):
         picker = PICKERS["Ping"](mock_screen)

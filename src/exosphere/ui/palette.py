@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import TYPE_CHECKING, ClassVar, cast
 
-from textual.command import CommandPalette, DiscoveryHit, Hit, Hits, Provider
+from textual.command import CommandPalette, Hit, Hits, Provider
 
 from exosphere import context
 from exosphere.objects import Host, HostOperation
@@ -67,76 +67,88 @@ _COMMANDS: tuple[_PaletteCommand, ...] = (
 )
 
 
-class HostCommandProvider(Provider):
+class _PaletteProvider(Provider):
+    """
+    Common base for palette providers exposing host operations
+
+    Palette providers just implement `_items` and return a list of
+    ``(display, runner, help)`` triples, which this renders as palette
+    hits for both Discover and Typed search views, so all the matcher
+    boilerplate lives in one place.
+
+    Hits carry the BOOST score from this base class, so a subclass can
+    float results above others, since textual palettes sort purely by
+    hit score.
+    """
+
+    # Score added to provider hits - zero is default
+    # Increase to float results above others
+    BOOST: ClassVar[float] = 0.0
+
+    def _items(self) -> list[tuple[str, Callable[[], None], str]]:
+        """Return ``(display, runner, help)`` triples."""
+        raise NotImplementedError
+
+    async def discover(self) -> Hits:
+        for display, runner, help_text in self._items():
+            yield Hit(self.BOOST, display, runner, text=display, help=help_text)
+
+    async def search(self, query: str) -> Hits:
+        matcher = self.matcher(query)
+        for display, runner, help_text in self._items():
+            score = matcher.match(display)
+            if score > 0:
+                yield Hit(
+                    score + self.BOOST,
+                    matcher.highlight(display),
+                    runner,
+                    text=display,
+                    help=help_text,
+                )
+
+
+class HostCommandProvider(_PaletteProvider):
     """
     Inventory-scoped provider: operations on the selected host.
 
-    Registered on InventoryScreen, and makes use of the screen's
+    Registered on InventoryScreen and makes use of the screen's
     get_selected_host() method to target the currently highlighted
     host in the inventory data table.
 
-    These hits are score-boosted so they appear above the global
-    providers' entries (so the selected-host shortcut is at the top,
-    not buried at the bottom of the palette).
+    Hits are score-boosted so they appear above the global
+    providers' entries (so the selected host shortcut is at the top
+    of the results, but burried at the bottom of the palette).
     """
 
-    # Palette sorts hits purely by score (descending).
-    # Usually fixed at zero, so we boost it to float above the global
-    # application level commands.
-    SELECTED_HOST_BOOST = 100.0
+    BOOST = 100.0
 
-    def _selected_items(self) -> list[tuple[str, Callable[[], None], str, str]]:
-        """Build ``(display, runner, label, host_name)`` for the selected host."""
+    def _items(self) -> list[tuple[str, Callable[[], None], str]]:
         screen = cast("InventoryScreen", self.screen)
         host = screen.get_selected_host()
         if host is None:
             return []
 
         app = cast("ExosphereUi", self.app)
+
         return [
             (
                 f"{cmd.label} selected ({host.name})",
                 partial(cmd.run, app, host),
-                cmd.label,
-                host.name,
+                f"{cmd.label} on host '{host.name}'",
             )
             for cmd in _COMMANDS
         ]
 
-    async def discover(self) -> Hits:
-        # Yield an artifically weighted hit
-        for display, runner, label, host_name in self._selected_items():
-            yield Hit(
-                self.SELECTED_HOST_BOOST,
-                display,
-                runner,
-                text=display,
-                help=f"{label} on host '{host_name}'",
-            )
 
-    async def search(self, query: str) -> Hits:
-        matcher = self.matcher(query)
-        for display, runner, label, host_name in self._selected_items():
-            score = matcher.match(display)
-            if score > 0:
-                yield Hit(
-                    score + self.SELECTED_HOST_BOOST,
-                    matcher.highlight(display),
-                    runner,
-                    text=display,
-                    help=f"{label} on host '{host_name}'",
-                )
-
-
-class GlobalHostCommandProvider(Provider):
+class GlobalHostCommandProvider(_PaletteProvider):
     """
-    Global provider: All operations, with a secondary host picker.
+    Global provider: All operations,i with a secondary host picker.
 
-    Opens a secondary host picker palette that can be fuzzy searched.
+    The secondary host picker palette can be fuzzy searched.
     """
 
     def _open_picker(self, command: _PaletteCommand) -> None:
-        """Push a second palette to choose a host from"""
+        """Push a second palette to fuzzy pick the target host."""
         self.app.push_screen(
             CommandPalette(
                 providers=[PICKERS[command.label]],
@@ -146,41 +158,26 @@ class GlobalHostCommandProvider(Provider):
 
     def _items(self) -> list[tuple[str, Callable[[], None], str]]:
         return [
-            (f"{cmd.label}…", partial(self._open_picker, cmd), cmd.label)
+            (
+                f"{cmd.label}…",
+                partial(self._open_picker, cmd),
+                f"Select a host to {cmd.label.lower()}",
+            )
             for cmd in _COMMANDS
         ]
 
-    async def discover(self) -> Hits:
-        for display, runner, label in self._items():
-            yield DiscoveryHit(
-                display, runner, help=f"Select a host to {label.lower()}"
-            )
 
-    async def search(self, query: str) -> Hits:
-        matcher = self.matcher(query)
-        for display, runner, label in self._items():
-            score = matcher.match(display)
-            if score > 0:
-                yield Hit(
-                    score,
-                    matcher.highlight(display),
-                    runner,
-                    help=f"Select a host to {label.lower()}",
-                )
-
-
-class GlobalAllHostsProvider(Provider):
+class GlobalAllHostsProvider(_PaletteProvider):
     """
-    Global provider: batch operations on all hosts
+    Global provider: batch operations targeting all hosts at once.
 
-    Target is always all hosts, surfaces the same operations as
-    the rest of Exosphere, through the same mechanisms as the rest of
-    the TUI, ensuring consistency.
+    Surfaces the same operations as the rest of the TUI through the same
+    dispatch mechanisms, for consistency.
     """
 
-    def _items(self) -> list[tuple[str, Callable[[], None]]]:
+    def _items(self) -> list[tuple[str, Callable[[], None], str]]:
         app = cast("ExosphereUi", self.app)
-        return [
+        items: list[tuple[str, Callable[[], None]]] = [
             ("Ping all hosts", partial(app.run_host_operation_all, HostOperation.PING)),
             (
                 "Discover all hosts",
@@ -193,56 +190,37 @@ class GlobalAllHostsProvider(Provider):
             ("Sync & Refresh all hosts", app.run_sync_refresh_all),
         ]
 
-    async def discover(self) -> Hits:
-        for display, runner in self._items():
-            yield DiscoveryHit(display, runner, help=display)
-
-    async def search(self, query: str) -> Hits:
-        matcher = self.matcher(query)
-        for display, runner in self._items():
-            score = matcher.match(display)
-            if score > 0:
-                yield Hit(score, matcher.highlight(display), runner, help=display)
+        return [(display, runner, display) for display, runner in items]
 
 
-class HostPickerProvider(Provider):
+class HostPickerProvider(_PaletteProvider):
     """
-    Secondary Host Picker provider: host selection for single commands
+    Secondary Host Picker: host selection for single commands.
 
-    The operation is carried out through ``palette_command`` on the
-    concrete subclass, since Textual instantiates providers itself and
-    we can't really inject per-instance state. It's a bit of a hack,
-    but it works.
+    The operation is carried out through ``palette_command`` on a
+    concrete subclass (built by :func:`_make_picker`), since Textual
+    instantiates providers itself and we can't really inject
+    per-instance state. A bit of a hack, but it works.
     """
 
     palette_command: ClassVar[_PaletteCommand]
 
-    def _host_items(self) -> list[tuple[str, Callable[[], None]]]:
+    def _items(self) -> list[tuple[str, Callable[[], None], str]]:
         inventory = context.inventory
         if inventory is None:
             return []
 
         app = cast("ExosphereUi", self.app)
-        run = self.palette_command.run
-        return [(host.name, partial(run, app, host)) for host in inventory.hosts]
+        cmd = self.palette_command
 
-    async def discover(self) -> Hits:
-        label = self.palette_command.label
-        for name, runner in self._host_items():
-            yield DiscoveryHit(name, runner, help=f"{label} on host '{name}'")
-
-    async def search(self, query: str) -> Hits:
-        label = self.palette_command.label
-        matcher = self.matcher(query)
-        for name, runner in self._host_items():
-            score = matcher.match(name)
-            if score > 0:
-                yield Hit(
-                    score,
-                    matcher.highlight(name),
-                    runner,
-                    help=f"{label} on host '{name}'",
-                )
+        return [
+            (
+                host.name,
+                partial(cmd.run, app, host),
+                f"{cmd.label} on host '{host.name}'",
+            )
+            for host in inventory.hosts
+        ]
 
 
 def _make_picker(command: _PaletteCommand) -> type[HostPickerProvider]:
