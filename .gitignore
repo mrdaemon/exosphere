@@ -51,6 +51,9 @@ docs/source/_static/reports/
 /tmp/
 /temp/
 
+# Throwaway Proof of Concepts
+/poc/
+
 # Agentic LLM Garbage
 # Please refer to the AI policy in the README for more details
 CLAUDE.md
