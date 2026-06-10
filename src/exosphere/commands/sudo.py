@@ -169,10 +169,11 @@ def check(host: HostArg, /) -> int:
     host_pkg_manager_name = host.package_manager
     if not host_pkg_manager_name:
         err_console.print(
-            f"Host '{host.name}' does not have a package manager defined in the inventory."
-            " Ensure discovery has been run on the host at least once!"
+            f"Host '{host.name}' has not been discovered yet, so its "
+            "package manager is unknown.\n"
+            "Run 'discover' on the host first."
         )
-        return 2  # Application error
+        return 2  # Application error: host not discovered
 
     # Get the package manager class from the factory registry
     # We get the raw class to inspect, and do not need/want an instance
@@ -338,12 +339,12 @@ def generate(
         target_provider_name = host.package_manager
         if not target_provider_name:
             err_console.print(
-                f"Host '{host.name}' does not have a package manager "
-                "defined in the inventory.\n"
-                "Ensure discovery has been run on the host at least once, "
-                "or specify [cyan]--provider[/cyan]."
+                f"Host '{host.name}' has not been discovered yet, so its "
+                "package manager is unknown.\n"
+                "Run 'discover' on the host first, or specify "
+                "[cyan]--provider[/cyan] explicitly."
             )
-            return 1  # Input error
+            return 2  # Application error: host not discovered
 
         target_provider_info = provider_infos.get(target_provider_name)
         target_user = _get_username(user, host)

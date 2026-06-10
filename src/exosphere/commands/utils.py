@@ -158,7 +158,7 @@ def get_inventory() -> Inventory:
         err_console.print(
             "Inventory is not initialized, are you running this module directly?"
         )
-        raise SystemExit(2)  # Execution error
+        raise SystemExit(2)  # Application error
 
     return context.inventory
 

@@ -229,10 +229,7 @@ class TestCheckCommand:
         code = sudo.app(["check", "dummy_host"], result_action="return_value")
 
         assert code == 2  # Application error
-        assert (
-            "Host 'dummy_host' does not have a package manager defined"
-            in capsys.readouterr().err
-        )
+        assert "has not been discovered yet" in capsys.readouterr().err
 
     def test_with_unsupported_host(self, mock_inventory, dummy_host, capsys):
         """
@@ -402,11 +399,8 @@ class TestGenerateCommand:
             ["generate", "--host", "dummy_host"], result_action="return_value"
         )
 
-        assert code == 1  # Input error
-        assert (
-            "Host 'dummy_host' does not have a package manager"
-            in capsys.readouterr().err
-        )
+        assert code == 2  # Application error
+        assert "has not been discovered yet" in capsys.readouterr().err
 
     def test_with_host_unsupported(
         self, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
