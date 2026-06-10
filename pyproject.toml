@@ -97,6 +97,7 @@ coverage = "pytest --cov-report term-missing --cov-report html --cov=src tests/"
 docs-build = "sphinx-build -b html docs/source docs/build/html" 
 docs-lint = "sphinx-lint docs/source"
 docs-spellcheck = "sphinx-build -b spelling docs/source docs/build"
+docs-linkcheck = "sphinx-build -b linkcheck docs/source docs/build/linkcheck"
 docs = ['docs-lint', 'docs-spellcheck', 'docs-build']
 docs-serve = "sphinx-autobuild -b html docs/source docs/build/html --port 8000 --open-browser"
 docs-mkreports = "python scripts/generate_example_reports.py"
