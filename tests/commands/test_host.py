@@ -198,9 +198,6 @@ class TestShowCommand:
     def test_unsupported_host_display(self, mock_host, capsys):
         """
         Test host show with an unsupported host.
-
-        The panel is displayed, but updates cannot be shown for an
-        unsupported host, so the command exits with an application error.
         """
         # Mark host as unsupported but online
         mock_host.supported = False
@@ -212,7 +209,7 @@ class TestShowCommand:
 
         code = host_module.app(["show", mock_host.name], result_action="return_value")
 
-        assert code == 2  # App error: cannot show updates for unsupported host
+        assert code == 0
         assert "irix (Unsupported OS)" in capsys.readouterr().out
 
     def test_unsupported_host_no_updates_display(self, mock_host, capsys):
@@ -228,10 +225,10 @@ class TestShowCommand:
             ["show", mock_host.name, "--updates"], result_action="return_value"
         )
 
-        assert code == 2  # App error: cannot show updates for unsupported host
+        assert code == 0
         assert (
             "Update info is not available for unsupported hosts."
-            in capsys.readouterr().out
+            in capsys.readouterr().err
         )
 
 

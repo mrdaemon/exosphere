@@ -191,11 +191,12 @@ def show(
         return 0
 
     # Handle unsupported hosts
+    # We have no update information to show, note a warning
     if not host.supported:
-        console.print(
+        err_console.print(
             "[yellow]Update info is not available for unsupported hosts.[/yellow]"
         )
-        return 2  # App error - technically.
+        return 0
 
     # Display updates table
     _display_updates_table(host, security_only)
