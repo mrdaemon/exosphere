@@ -1,1553 +1,585 @@
 """
-Tests for the REPL module
+Tests for the Exosphere REPL (Cyclopts-based).
+
+A small Cyclopts app shaped like Exosphere (groups, a leaf with a
+positional, host + flags, a variadic-host leaf, an enum option,
+and a couple of leaves that raise) stands in for the real command tree.
 """
 
+import enum
+import logging
 from typing import Annotated
 
 import pytest
-import typer
+from cyclopts import App, Parameter
+from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory, InMemoryHistory
-from typer import Context
 
-from exosphere.commands.utils import HostArgument, HostOption
-from exosphere.repl import ExosphereCompleter, ExosphereREPL, _NoArgsIsHelpError
+from exosphere import context as app_context
+from exosphere.commands.utils import HOST_PARAMETER, HostArg
+from exosphere.objects import Host
+from exosphere.repl import ExosphereCompleter, ExosphereREPL
+
+HOST_NAMES = ["web01", "web02", "db01"]
 
 
-@pytest.fixture
-def mock_host_arg_command(mocker):
-    """
-    Factory fixture for creating mock Typer/Click commands with HostArgument annotations.
-    """
+class SortField(str, enum.Enum):
+    """Cheap stand-in enum for a Choice option."""
 
-    def _make(multiple=False):
-        if multiple:
-
-            def callback_multi(
-                hosts: Annotated[list[str], HostArgument(multiple=True)],
-            ):
-                pass
-
-            callback = callback_multi
-        else:
-
-            def callback_single(host: Annotated[str, HostArgument()]):
-                pass
-
-            callback = callback_single
-
-        click_param = mocker.Mock()
-        click_param.name = "hosts" if multiple else "host"
-        click_param.opts = []
-
-        cmd = mocker.Mock()
-        cmd.callback = callback
-        cmd.params = [click_param]
-        return cmd
-
-    return _make
+    host = "host"
+    os = "os"
+    flavor = "flavor"
+    status = "status"
 
 
 @pytest.fixture
-def mock_host_option_command(mocker):
+def fake_exosphere(rich_console):
     """
-    Factory fixture for creating mock Typer/Click commands with HostOption annotations.
+    A sample App shaped vaguely like Exosphere for testing the REPL.
+
+    - Three visible groups (host, inventory, sudo) and one hidden group
+      (connections)
+    - host.show: positional host + bool flag + int value option
+    - host.ping: variadic host
+    - inventory.status: enum option
+    - inventory.boom / inventory.explode: raise to exercise error
+      handling through commands
+    - sudo.generate: host-typed *option* (--host)
+    - connections.close: variadic host (hidden group)
+
+    Every app is bound to color-free consoles so framework output (help
+    and error panels) is deterministic.
+
+    Returns (root, recorder) where "recorder" collects leaf invocations.
     """
+    recorder: list = []
+    out, err = rich_console(), rich_console(stderr=True)
 
-    def _make(option_names=None):
-        if option_names is None:
-            option_names = ["--host", "-h"]
-
-        def callback(host: Annotated[str | None, HostOption()] = None):
-            pass
-
-        click_param = mocker.Mock()
-        click_param.name = "host"
-        click_param.opts = option_names
-
-        cmd = mocker.Mock()
-        cmd.callback = callback
-        cmd.params = [click_param]
-        return cmd
-
-    return _make
-
-
-class TestExosphereCompleter:
-    @pytest.mark.parametrize(
-        "input_text,expected",
-        [
-            ("", {"help", "exit", "quit", "clear"}),
-            ("he", {"help "}),
-            ("ex", {"exit "}),
-            ("qu", {"quit "}),
-            ("cle", {"clear "}),
-        ],
-        ids=["all", "help", "exit", "quit", "clear"],
-    )
-    def test_get_completions_builtin_commands(self, input_text, expected):
-        """
-        Test completion of built-in commands (no root_command)
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        completer = ExosphereCompleter(None)
-        completions = set(
-            c.text
-            for c in completer.get_completions(Document(input_text), CompleteEvent())
-        )
-        assert completions == expected or expected.issubset(completions)
-
-    def test_get_completions_limit_matches(self, mocker):
-        """
-        Test that more than 8 matches returns nothing (limit logic)
-        """
-        from prompt_toolkit.document import Document
-
-        many = [f"cmd{i}" for i in range(10)]
-        mock_root = mocker.Mock()
-        mock_root.commands = {n: mocker.Mock() for n in many}
-
-        completer = ExosphereCompleter(mock_root)
-
-        # Patch commands to be >8 and all start with 'cmd'
-        completer.commands = many + ["help", "exit", "quit", "clear"]
-
-        from prompt_toolkit.completion import CompleteEvent
-
-        completions = list(completer.get_completions(Document("cmd"), CompleteEvent()))
-
-        assert completions == []
-
-    def test_get_completions_root_subcommands(self, mocker):
-        """
-        Test completion of subcommands from root_command
-        """
-        from prompt_toolkit.document import Document
-
-        mock_root = mocker.Mock()
-        mock_root.commands = {"foo": mocker.Mock(), "bar": mocker.Mock()}
-        completer = ExosphereCompleter(mock_root)
-        from prompt_toolkit.completion import CompleteEvent
-
-        completions = set(
-            c.text for c in completer.get_completions(Document("f"), CompleteEvent())
+    def _app(name, help_text="", show=True):
+        return App(
+            name=name,
+            help=help_text,
+            help_flags=["--help"],
+            version_flags=[],
+            show=show,
+            console=out,
+            error_console=err,
         )
 
-        assert "foo " in completions
-        assert "bar" not in completions
-        assert "bar " not in completions
+    root = _app("exosphere")
+    host_app = _app("host", "Host management commands")
+    inv_app = _app("inventory", "Inventory commands")
+    sudo_app = _app("sudo", "Sudo policy commands")
+    conn_app = _app("connections", "Connection commands", show=False)
 
-    def test_get_completions_help_subcommands(self, mocker):
-        """
-        Test that 'help ' suggests subcommands from root_command
-        """
-        from prompt_toolkit.document import Document
+    # Setup subcommand structure
+    root.command(host_app)
+    root.command(inv_app)
+    root.command(sudo_app)
+    root.command(conn_app)
 
-        mock_root = mocker.Mock()
-        mock_root.commands = {"foo": mocker.Mock(), "bar": mocker.Mock()}
-        completer = ExosphereCompleter(mock_root)
-        doc = Document("help f")
-        from prompt_toolkit.completion import CompleteEvent
+    # Crappy stand in implementations
+    @host_app.command
+    def show(host: HostArg, /, *, updates: bool = False, port: int = 22) -> None:
+        recorder.append(("show", host, updates, port))
 
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
+    @host_app.command
+    def ping(*names: HostArg) -> None:
+        recorder.append(("ping", names))
+
+    @inv_app.command
+    def status(*, sort: SortField = SortField.host) -> None:
+        recorder.append(("status", sort))
+
+    @inv_app.command
+    def boom() -> None:
+        raise SystemExit(2)
+
+    @inv_app.command
+    def explode() -> None:
+        raise RuntimeError("Out of entropy, next shipment in 3 days")
+
+    @sudo_app.command
+    def generate(
+        *,
+        host: Annotated[
+            Host | None, HOST_PARAMETER, Parameter(name=["--host", "-h"])
+        ] = None,
+    ) -> None:
+        recorder.append(("generate", host))
+
+    @conn_app.command
+    def close(*names: HostArg) -> None:
+        recorder.append(("close", names))
+
+    return root, recorder
+
+
+@pytest.fixture
+def completer(fake_exosphere):
+    """A completer bound to the sample app with a fixed host list."""
+    root, _ = fake_exosphere
+    return ExosphereCompleter(root, lambda: list(HOST_NAMES))
+
+
+@pytest.fixture
+def repl(fake_exosphere, mocker, rich_console):
+    """
+    An instance of the Exosphere REPL bound to the sample app.
+
+    History is subbed out to in-memory to avoid filesystem I/O, and the
+    console is made deterministic for output assertions.
+
+    Returns (instance, recorder) where recorder collects leaf invocations.
+    """
+    root, recorder = fake_exosphere
+    mocker.patch.object(ExosphereREPL, "_setup_history", return_value=InMemoryHistory())
+    instance = ExosphereREPL(root)
+    instance.console = rich_console()
+    return instance, recorder
+
+
+def _raw_completions(completer, text: str) -> list:
+    """Return the raw Completion objects for the given input."""
+    document = Document(text, cursor_position=len(text))
+    return list(completer.get_completions(document, None))
+
+
+def _completions(completer, text: str) -> list[str]:
+    """Return sorted completion texts (trailing space stripped) for input."""
+    return sorted(c.text.strip() for c in _raw_completions(completer, text))
+
+
+class TestReplInit:
+    """REPL initialization and setup test suite"""
+
+    def test_history_uses_configured_file(self, fake_exosphere, mocker, tmp_path):
+        """History should be setup with file from config"""
+        root, _ = fake_exosphere
+        history_file = tmp_path / "history.txt"
+
+        mocker.patch(
+            "exosphere.repl.app_config",
+            {"options": {"history_file": str(history_file)}},
         )
 
-        assert "foo " in completions
-        assert "bar" not in completions
-        assert "bar " not in completions
+        instance = ExosphereREPL(root)
 
-    def test_get_completions_help_correct_start_position_after_space(self, mocker):
-        """
-        Test that help completion has correct start_position when text ends with space.
+        assert isinstance(instance.history, FileHistory)
 
-        Regression test: 'help config ' followed by Tab should not produce
-        'help cconfig ' by trying to replace 'config' again. The completions
-        should have start_position=0 (insert at cursor) not negative (replace).
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
+    def test_history_falls_back_to_memory(self, fake_exosphere, mocker, caplog):
+        root, _ = fake_exosphere
 
-        mock_root = mocker.Mock()
-        mock_root.commands = {"config": mocker.Mock(), "host": mocker.Mock()}
-        completer = ExosphereCompleter(mock_root)
-
-        # Simulate completed state: 'help config ' (note trailing space)
-        doc = Document("help config ")
-        completions = list(completer.get_completions(doc, CompleteEvent()))
-
-        # Completions can be returned, but they should not have negative
-        # start_position which would replace existing text
-        for completion in completions:
-            assert completion.start_position == 0, (
-                f"Completion '{completion.text}' has start_position="
-                f"{completion.start_position}, should be 0 to avoid replacing text"
-            )
-
-    def test_get_completions_subcommand_options(self, mocker):
-        """
-        Test completion of options for sub-subcommands
-        """
-        from prompt_toolkit.document import Document
-
-        # Mock subsubcommand with params
-        param = mocker.Mock()
-        param.opts = ["--opt1", "--opt2", "-o"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
-        sub = mocker.Mock()
-        sub.commands = {"baz": subsub}
-        root = mocker.Mock()
-        root.commands = {"foo": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Should suggest --opt1, --opt2, --help
-        doc = Document("foo baz --")
-        from prompt_toolkit.completion import CompleteEvent
-
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
+        # Ensure history file is configured
+        mocker.patch(
+            "exosphere.repl.app_config",
+            {"options": {"history_file": "/some/path"}},
         )
 
-        assert "--opt1" in completions
-        assert "--opt2" in completions
-        assert "--help" in completions
-        assert "-o" not in completions  # flags/options should not be suggested
-
-    def test_get_completions_subcommand_options_no_repeat(self, mocker):
-        """
-        Test that options already present in the input are not repeated in completions
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        param = mocker.Mock()
-        param.opts = ["--opt1", "--opt2", "-o"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
-        sub = mocker.Mock()
-        sub.commands = {"baz": subsub}
-        root = mocker.Mock()
-        root.commands = {"foo": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # --opt1 is already present, should not be suggested again
-        doc = Document("foo baz --opt1 --")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-        assert "--opt1" not in completions
-        assert "--opt2" in completions
-        assert "--help" in completions
-
-    def test_get_completions_choice_option_value(self, mocker):
-        """
-        Test completion of values for a fixed-choice (Enum) option (e.g. --sort).
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # We duck type ourselves a choice-like Mock since Typer no
-        # longer lets you use click.Choice directly.
-        # This matches how the REPL checks for it anyways.
-        choice_type = mocker.Mock()
-        choice_type.name = "choice"
-        choice_type.choices = ["host", "os", "flavor", "status"]
-
-        param = mocker.Mock()
-        param.opts = ["-o", "--sort"]
-        param.type = choice_type
-        subsub = mocker.Mock()
-        subsub.params = [param]
-        sub = mocker.Mock()
-        sub.commands = {"status": subsub}
-        root = mocker.Mock()
-        root.commands = {"inventory": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # A trailing space offers every choice (no trailing space on multiples)
-        doc = Document("inventory status --sort ")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-        assert completions == {"host", "os", "flavor", "status"}
-
-        # A prefix filters down; a single match gets a trailing space
-        doc = Document("inventory status --sort fl")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-        assert completions == {"flavor "}
-
-        # The short option form completes the same way
-        doc = Document("inventory status -o o")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-        assert completions == {"os "}
-
-    @pytest.mark.parametrize(
-        "completion_type,input_text,expected_single,expected_multiple",
-        [
-            (
-                "command",
-                "inv",
-                {"inventory "},
-                None,
-            ),
-            (
-                "command",
-                "h",
-                None,  # Multiple matches
-                {"help", "host"},
-            ),
-            (
-                "option",
-                "foo baz --uni",
-                {"--unique "},
-                None,
-            ),
-            (
-                "option",
-                "foo baz --opt",
-                None,
-                {"--opt1", "--opt2"},
-            ),
-            (
-                "host",
-                "host show dbs",
-                {"dbserver "},
-                None,
-            ),
-            (
-                "host",
-                "host show web",
-                None,
-                {"webserver", "web-staging"},
-            ),
-        ],
-        ids=[
-            "command-single",
-            "command-multiple",
-            "option-single",
-            "option-multiple",
-            "host-single",
-            "host-multiple",
-        ],
-    )
-    def test_completion_space_behavior(
-        self,
-        mocker,
-        mock_host_arg_command,
-        completion_type,
-        input_text,
-        expected_single,
-        expected_multiple,
-    ):
-        """
-        Test that completions add space for single match, no space for multiple.
-        This unified test covers the behavior across all completion types.
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Setup for host completions
-        if completion_type == "host":
-            mock_host1 = mocker.Mock()
-            mock_host1.name = "webserver"
-            mock_host2 = mocker.Mock()
-            mock_host2.name = "web-staging"
-            mock_host3 = mocker.Mock()
-            mock_host3.name = "dbserver"
-            mock_inventory = mocker.Mock()
-            mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
-            mocker.patch("exosphere.repl.app_context")
-            from exosphere import repl
-
-            repl.app_context.inventory = mock_inventory
-
-        # Setup command structure
-        param = mocker.Mock()
-        param.opts = ["--unique", "--opt1", "--opt2", "--help"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
-        sub = mocker.Mock()
-        sub.commands = {"baz": subsub}
-        if completion_type == "host":
-            # For host completions, create a command with HostArgument annotation
-            show_cmd = mock_host_arg_command(multiple=False)
-            sub.commands["show"] = show_cmd
-        root = mocker.Mock()
-        root.commands = {"foo": sub, "host": sub, "inventory": sub}
-
-        completer = ExosphereCompleter(root)
-
-        doc = Document(input_text)
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
+        # Oh no! FileHistory died somehow!
+        mocker.patch(
+            "exosphere.repl.FileHistory",
+            side_effect=OSError("Disk write super died or whatever"),
         )
 
-        if expected_single:
-            # Single match should have space appended
-            assert completions == expected_single
-        else:
-            # Multiple matches should NOT have space appended
-            assert completions == expected_multiple
-            # Verify none have trailing space
-            for completion in completions:
-                assert not completion.endswith(" ")
+        caplog.set_level(logging.WARNING, logger="exosphere.repl")
 
-    def test_get_completions_simple_command_help(self, mocker):
-        """
-        Test that --help is suggested for simple commands
-        """
-        from prompt_toolkit.document import Document
+        instance = ExosphereREPL(root)
 
-        sub = mocker.Mock()
-        sub.commands = {}
-        root = mocker.Mock()
-        root.commands = {"foo": sub}
-        completer = ExosphereCompleter(root)
-        doc = Document("foo --")
-        from prompt_toolkit.completion import CompleteEvent
+        assert isinstance(instance.history, InMemoryHistory)
+        assert "falling back to in-memory history" in caplog.text
 
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-        assert "--help" in completions
+    def test_host_completion_reflects_inventory(self, fake_exosphere, mocker):
+        root, _ = fake_exosphere
 
-    def test_get_completions_no_root_command(self):
-        """
-        Test that no completions are returned if no root_command and not builtin
-        """
-        from prompt_toolkit.document import Document
-
-        completer = ExosphereCompleter(None)
-        doc = Document("unknown ")
-        from prompt_toolkit.completion import CompleteEvent
-
-        completions = list(completer.get_completions(doc, CompleteEvent()))
-        assert completions == []
-
-    def test_completer_init_no_root_command(self):
-        """
-        Test that the completer initializes with default commands
-        """
-        completer = ExosphereCompleter(None)
-        assert set(["help", "exit", "quit"]).issubset(set(completer.commands))
-
-    def test_completer_init_with_root_command(self, mocker):
-        """
-        Test that the completer initializes with the root command's subcommands
-        """
-        mock_command = mocker.Mock()
-        mock_command.commands = {"test": mocker.Mock(), "example": mocker.Mock()}
-
-        completer = ExosphereCompleter(mock_command)
-
-        assert "test" in completer.commands
-        assert "example" in completer.commands
-
-    def test_get_completions_host_positional_arg(self, mocker, mock_host_arg_command):
-        """
-        Test completion of host names for positional arguments
-        (e.g., 'host show <TAB>')
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Mock the inventory context
-        mock_host1 = mocker.Mock()
-        mock_host1.name = "webserver"
-        mock_host2 = mocker.Mock()
-        mock_host2.name = "dbserver"
-        mock_host3 = mocker.Mock()
-        mock_host3.name = "appserver"
-
-        mock_inventory = mocker.Mock()
-        mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
-
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
-
-        repl.app_context.inventory = mock_inventory
-
-        # Mock command structure with HostArgument annotation
-        show_cmd = mock_host_arg_command(multiple=False)
-        sub = mocker.Mock()
-        sub.commands = {"show": show_cmd}
-        root = mocker.Mock()
-        root.commands = {"host": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Test completing host names after "host show "
-        doc = Document("host show ")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
+        mocker.patch.object(
+            ExosphereREPL, "_setup_history", return_value=InMemoryHistory()
         )
 
-        assert "webserver" in completions
-        assert "dbserver" in completions
-        assert "appserver" in completions
+        fake_inventory = mocker.Mock()
+        host1, host2 = mocker.Mock(), mocker.Mock()
+        host1.name, host2.name = "alpha", "bravo"
+        fake_inventory.hosts = [host1, host2]
 
-    def test_get_completions_host_positional_arg_prefix(
-        self, mocker, mock_host_arg_command
-    ):
-        """
-        Test completion of host names with prefix matching
-        (e.g., 'host show web<TAB>')
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
+        mocker.patch.object(app_context, "inventory", fake_inventory)
 
-        # Mock the inventory context
-        mock_host1 = mocker.Mock()
-        mock_host1.name = "webserver"
-        mock_host2 = mocker.Mock()
-        mock_host2.name = "web-staging"
-        mock_host3 = mocker.Mock()
-        mock_host3.name = "dbserver"
+        instance = ExosphereREPL(root)
 
-        mock_inventory = mocker.Mock()
-        mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
+        result = _completions(instance.completer, "host show ")
 
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
+        assert "alpha" in result
+        assert "bravo" in result
 
-        repl.app_context.inventory = mock_inventory
+    def test_no_inventory_yields_no_host_completion(self, fake_exosphere, mocker):
+        root, _ = fake_exosphere
 
-        # Mock command structure with HostArgument annotation
-        show_cmd = mock_host_arg_command(multiple=False)
-        sub = mocker.Mock()
-        sub.commands = {"show": show_cmd}
-        root = mocker.Mock()
-        root.commands = {"host": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Test completing host names with "web" prefix
-        doc = Document("host show web")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
+        mocker.patch.object(
+            ExosphereREPL, "_setup_history", return_value=InMemoryHistory()
         )
+        mocker.patch.object(app_context, "inventory", None)
 
-        assert "webserver" in completions
-        assert "web-staging" in completions
-        assert "dbserver" not in completions
+        instance = ExosphereREPL(root)
 
-    @pytest.mark.parametrize(
-        "option_flag,expected_hosts",
-        [
-            ("--host", {"server1", "server2"}),
-            ("-h", {"server1", "server2"}),
-        ],
-        ids=["long-form", "short-form"],
-    )
-    def test_get_completions_host_option_value(
-        self, mocker, mock_host_option_command, option_flag, expected_hosts
-    ):
+        assert _completions(instance.completer, "host show ") == []
+
+
+class TestCompleterContent:
+    """Test suite for the Completer content, specifically"""
+
+    def test_top_level_commands_and_builtins(self, completer):
+        result = _completions(completer, "")
+
+        assert "host" in result
+        assert "inventory" in result
+        assert "exit" in result
+        assert "quit" in result
+        assert "clear" in result
+
+    def test_prefix_filters_commands(self, completer):
+        assert _completions(completer, "inv") == ["inventory"]
+
+    def test_help_completes_command_names(self, completer):
+        result = _completions(completer, "help ")
+
+        assert "host" in result
+        assert "inventory" in result
+
+    @pytest.mark.parametrize("builtin", ["exit", "quit", "clear"])
+    def test_builtins_take_no_arguments(self, completer, builtin):
+        """Built-in commands should not offer any completions"""
+        assert _completions(completer, f"{builtin} ") == []
+
+    def test_group_subcommands(self, completer):
+        result = _completions(completer, "host ")
+
+        assert "show" in result
+        assert "ping" in result
+
+    def test_options_only_after_dash(self, completer):
+        # Without a dash, no options are offered (only host positionals)
+        assert "--updates" not in _completions(completer, "host show ")
+
+        # With a dash, options are offered
+        with_dash = _completions(completer, "host show -")
+        assert "--updates" in with_dash
+        assert "--port" in with_dash
+        assert "--help" in with_dash
+
+    def test_enum_option_values(self, completer):
+        """Enum options should offer their values"""
+        result = _completions(completer, "inventory status --sort ")
+
+        # We use our SortField stand-in here
+        # See the local class in this file
+        assert SortField.host in result
+        assert SortField.os in result
+        assert SortField.flavor in result
+        assert SortField.status in result
+
+    def test_positional_host_completion(self, completer):
+        result = _completions(completer, "host show ")
+
+        assert "web01" in result
+        assert "web02" in result
+        assert "db01" in result
+
+    def test_host_completion_excludes_used_hosts(self, completer):
+        result = _completions(completer, "host ping web01 ")
+
+        assert "web01" not in result
+        assert "web02" in result
+        assert "db01" in result
+
+    def test_host_option_value_completion(self, completer):
+        """The value of a host-typed option completes to host names."""
+        result = _completions(completer, "sudo generate --host ")
+
+        assert "web01" in result
+        assert "web02" in result
+        assert "db01" in result
+
+    def test_non_flag_option_value_offers_nothing(self, completer):
+        """Options that aren't flags should not offer completions."""
+        assert _completions(completer, "host show --port ") == []
+
+    def test_host_completion_continues_after_a_bool_flag(self, completer):
         """
-        Test completion of host names for option values
-        (e.g., 'sudo generate --host <TAB>' or 'sudo generate -h <TAB>')
+        A bool flag consumes no value, so completion falls through to the
+        command's positional host argument.
         """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Mock the inventory context
-        mock_host1 = mocker.Mock()
-        mock_host1.name = "server1"
-        mock_host2 = mocker.Mock()
-        mock_host2.name = "server2"
-
-        mock_inventory = mocker.Mock()
-        mock_inventory.hosts = [mock_host1, mock_host2]
-
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
-
-        repl.app_context.inventory = mock_inventory
-
-        # Mock command structure with HostOption annotation
-        generate_cmd = mock_host_option_command(option_names=["--host", "-h"])
-        sub = mocker.Mock()
-        sub.commands = {"generate": generate_cmd}
-        root = mocker.Mock()
-        root.commands = {"sudo": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Test completing host names after option flag
-        doc = Document(f"sudo generate {option_flag} ")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-
-        assert completions == expected_hosts
-
-    def test_get_completions_no_hosts_in_inventory(self, mocker):
-        """
-        Test that completion works gracefully when inventory is empty
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Mock empty inventory
-        mock_inventory = mocker.Mock()
-        mock_inventory.hosts = []
-
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
-
-        repl.app_context.inventory = mock_inventory
-
-        # Mock command structure
-        param = mocker.Mock()
-        param.opts = ["--help"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
-        sub = mocker.Mock()
-        sub.commands = {"show": subsub}
-        root = mocker.Mock()
-        root.commands = {"host": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Should return no completions but not crash
-        doc = Document("host show ")
-        completions = list(completer.get_completions(doc, CompleteEvent()))
-
-        assert completions == []
-
-    def test_get_completions_no_inventory_context(self, mocker):
-        """
-        Test that completion works gracefully when inventory context is None
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Mock None inventory
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
-
-        repl.app_context.inventory = None
-
-        # Mock command structure
-        param = mocker.Mock()
-        param.opts = ["--help"]
-        subsub = mocker.Mock()
-        subsub.params = [param]
-        sub = mocker.Mock()
-        sub.commands = {"show": subsub}
-        root = mocker.Mock()
-        root.commands = {"host": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Should return no completions but not crash
-        doc = Document("host show ")
-        completions = list(completer.get_completions(doc, CompleteEvent()))
-
-        assert completions == []
-
-    def test_get_completions_no_host_completion_for_unknown_options(self, mocker):
-        """
-        Ensure we do not complete hosts for options that don't expect them.
-        For example, 'report generate --format <TAB>' should not suggest hosts,
-        even though it takes them as positionals later.
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Mock the inventory context with some hosts
-        mock_host1 = mocker.Mock()
-        mock_host1.name = "server1"
-        mock_host2 = mocker.Mock()
-        mock_host2.name = "server2"
-
-        mock_inventory = mocker.Mock()
-        mock_inventory.hosts = [mock_host1, mock_host2]
-
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
-
-        repl.app_context.inventory = mock_inventory
-
-        # Mock command structure for 'report generate' with --format option
-        # that takes a value (not a flag)
-        param = mocker.Mock()
-        param.opts = ["--format", "-f", "--help"]
-        param.is_flag = False  # Explicitly not a flag
-        param.count = False
-        subsub = mocker.Mock()
-        subsub.params = [param]
-        sub = mocker.Mock()
-        sub.commands = {"generate": subsub}
-        root = mocker.Mock()
-        root.commands = {"report": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Test that after "--format " we don't get host completions
-        doc = Document("report generate --format ")
-        completions = list(completer.get_completions(doc, CompleteEvent()))
-
-        # Should return no completions (we don't know what --format expects)
-        assert completions == []
-
-        # Verify we're not accidentally suggesting hosts
-        completion_texts = [c.text for c in completions]
-        assert "server1" not in completion_texts
-        assert "server2" not in completion_texts
-
-    @pytest.mark.parametrize(
-        "flag_type,is_flag_value,count_value,type_name",
-        [
-            ("is_flag", True, False, None),
-            ("count", False, True, None),
-            ("bool_type", False, False, "BOOL"),
-        ],
-        ids=["is_flag", "count", "bool_type"],
-    )
-    def test_get_completions_host_completion_after_flag_option(
-        self, mocker, flag_type, is_flag_value, count_value, type_name
-    ):
-        """
-        Test that host names ARE completed after boolean flag options.
-        For example, 'host show --updates-only <TAB>' should suggest hosts
-        because --updates-only is a flag that doesn't take a value.
-
-        Tests all three ways Click/Typer defines flags:
-        1. is_flag=True
-        2. count=True
-        3. type.name="BOOL"
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Mock the inventory context with some hosts
-        mock_host1 = mocker.Mock()
-        mock_host1.name = "webserver"
-        mock_host2 = mocker.Mock()
-        mock_host2.name = "dbserver"
-
-        mock_inventory = mocker.Mock()
-        mock_inventory.hosts = [mock_host1, mock_host2]
-
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
-
-        repl.app_context.inventory = mock_inventory
-
-        # Mock command structure for 'host show' with flag option
-        # Create a function with HostArgument for positional completion
-        def callback(
-            host: Annotated[str, HostArgument()],
-            updates_only: bool = False,
-        ):
-            pass
-
-        flag_param = mocker.Mock()
-        flag_param.name = "updates_only"
-        flag_param.opts = ["--updates-only", "-u"]
-        flag_param.is_flag = is_flag_value
-        flag_param.count = count_value
-
-        # For bool_type test, add a type with name="BOOL"
-        if type_name:
-            mock_type = mocker.Mock()
-            mock_type.name = type_name
-            flag_param.type = mock_type
-        else:
-            # Ensure type doesn't exist or doesn't have BOOL name
-            flag_param.type = mocker.Mock()
-            flag_param.type.name = "STRING"
-
-        # Create host param for the positional argument
-        host_param = mocker.Mock()
-        host_param.name = "host"
-        host_param.opts = []  # Positional args have no opts
-
-        show_cmd = mocker.Mock()
-        show_cmd.callback = callback
-        show_cmd.params = [host_param, flag_param]
-        sub = mocker.Mock()
-        sub.commands = {"show": show_cmd}
-        root = mocker.Mock()
-        root.commands = {"host": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Test that after "--updates-only " we DO get host completions
-        doc = Document("host show --updates-only ")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-
-        # Should suggest hosts because --updates-only is a flag
-        assert "webserver" in completions
-        assert "dbserver" in completions
-
-    def test_get_completions_excludes_used_hosts(self, mocker, mock_host_arg_command):
-        """
-        Test that host completions exclude already-specified hosts.
-        Hosts already part of the command line should not be suggested again.
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Mock the inventory with three hosts
-        mock_host1 = mocker.Mock()
-        mock_host1.name = "webserver"
-        mock_host2 = mocker.Mock()
-        mock_host2.name = "dbserver"
-        mock_host3 = mocker.Mock()
-        mock_host3.name = "mailserver"
-
-        mock_inventory = mocker.Mock()
-        mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
-
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
-
-        repl.app_context.inventory = mock_inventory
-
-        # Mock command structure with HostArgument(multiple=True) annotation
-        ping_cmd = mock_host_arg_command(multiple=True)
-        sub = mocker.Mock()
-        sub.commands = {"ping": ping_cmd}
-        root = mocker.Mock()
-        root.commands = {"inventory": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Test: After specifying one host, it should not appear in next completion
-        doc = Document("inventory ping webserver ")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-
-        # Should NOT suggest webserver again (with or without space)
-        assert not any(
-            "webserver" == c or c.startswith("webserver ")
-            for c in completions
-            if c.strip() == "webserver"
-        )
-        # But should suggest the others
-        assert any("dbserver" in c for c in completions)
-        assert any("mailserver" in c for c in completions)
-
-        # Test: After specifying two hosts, both should be excluded
-        doc = Document("inventory ping webserver dbserver ")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-
-        # Should NOT suggest webserver or dbserver
-        assert not any(c.strip() == "webserver" for c in completions)
-        assert not any(c.strip() == "dbserver" for c in completions)
-        # But should still suggest mailserver
-        assert any("mailserver" in c for c in completions)
-
-        # Test: While typing a partial match, should exclude already-used hosts
-        doc = Document("inventory ping webserver d")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-
-        # Should only suggest dbserver (matches prefix "d" and not already used)
-        assert any("dbserver" in c for c in completions)
-        # Should NOT suggest webserver (already used)
-        assert not any(c.strip() == "webserver" for c in completions)
-        # Should NOT suggest mailserver (doesn't match prefix "d")
-        assert not any(c.strip() == "mailserver" for c in completions)
-
-    def test_single_host_command_stops_after_one(self, mocker):
-        """
-        Test that commands accepting only a single host do NOT continue
-        completing after the first host is specified.
-        For example, 'host show webserver <TAB>' should not suggest more hosts.
-        """
-        from prompt_toolkit.completion import CompleteEvent
-        from prompt_toolkit.document import Document
-
-        # Mock the inventory with three hosts
-        mock_host1 = mocker.Mock()
-        mock_host1.name = "webserver"
-        mock_host2 = mocker.Mock()
-        mock_host2.name = "dbserver"
-        mock_host3 = mocker.Mock()
-        mock_host3.name = "mailserver"
-
-        mock_inventory = mocker.Mock()
-        mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
-
-        mocker.patch("exosphere.repl.app_context")
-        from exosphere import repl
-
-        repl.app_context.inventory = mock_inventory
-
-        # Mock command structure for 'host show' (single host command)
-        param = mocker.Mock()
-        param.opts = ["--help", "--updates", "--no-updates", "--security-only"]
-        param.is_flag = False
-        subsub = mocker.Mock()
-        subsub.params = [param]
-        sub = mocker.Mock()
-        sub.commands = {"show": subsub}
-        root = mocker.Mock()
-        root.commands = {"host": sub}
-
-        completer = ExosphereCompleter(root)
-
-        # Test: After specifying one host, should NOT suggest more hosts
-        doc = Document("host show webserver ")
-        completions = set(
-            c.text for c in completer.get_completions(doc, CompleteEvent())
-        )
-
-        # Should NOT suggest any hosts (single host command, position filled)
-        assert not any("webserver" in c for c in completions)
-        assert not any("dbserver" in c for c in completions)
-        assert not any("mailserver" in c for c in completions)
-
-        # Test same for other single-host commands like 'sudo check'
-        sub2 = mocker.Mock()
-        sub2.commands = {"check": subsub}
-        root2 = mocker.Mock()
-        root2.commands = {"sudo": sub2}
-
-        completer2 = ExosphereCompleter(root2)
-
-        doc2 = Document("sudo check webserver ")
-        completions2 = set(
-            c.text for c in completer2.get_completions(doc2, CompleteEvent())
-        )
-
-        # Should NOT suggest hosts
-        assert not any("webserver" in c for c in completions2)
-        assert not any("dbserver" in c for c in completions2)
-        assert not any("mailserver" in c for c in completions2)
-
-
-class TestExosphereREPL:
-    def test_repl_init_defaults(self, mocker):
-        """
-        Test that the REPL initializes with default values
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        repl = ExosphereREPL(ctx)
-
-        assert repl.ctx == ctx
-        assert repl.prompt_text == "exosphere> "
-        assert repl.console is not None
-        assert repl.history is not None
-        assert repl.completer is not None
-
-    def test_repl_init_custom_prompt(self, mocker):
-        """
-        Test that the REPL can eat a custom prompt
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        repl = ExosphereREPL(ctx, "custom> ")
-
-        assert repl.prompt_text == "custom> "
-
-    def test_setup_history_fallback(self, mocker, caplog):
-        """
-        Test that the REPL falls back to in-memory history on failure
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        mocker.patch("exosphere.repl.FileHistory", side_effect=Exception("fail"))
-
-        with caplog.at_level("WARNING", logger="exosphere.repl"):
-            repl = ExosphereREPL(ctx)
-
-        assert isinstance(repl.history, InMemoryHistory)
-        assert any("Could not setup persistent history" in m for m in caplog.messages)
-
-    def test_setup_history_from_config(self, mocker, tmp_path):
-        """
-        Test that the REPL initializes with history path from config
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        from exosphere.config import Configuration
-
-        config = Configuration()
-
-        test_history_file = str(tmp_path / "test_history_path")
-
-        conf_data = {
-            "options": {
-                "history_file": test_history_file,
-            }
-        }
-
-        config.update_from_mapping(conf_data)
-        mocker.patch("exosphere.repl.app_config", config)
-
-        repl = ExosphereREPL(ctx)
-
-        assert isinstance(repl.history, FileHistory)
-        assert repl.history.filename == test_history_file
-
-    @pytest.mark.parametrize("cmd", ["exit", "quit"])
-    def test_execute_command_exit(self, mocker, cmd):
-        """
-        Test the various exit commands.
-        They all raise EOFError.
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        repl = ExosphereREPL(ctx)
+        result = _completions(completer, "host show --updates ")
 
+        assert "web01" in result
+        assert "web02" in result
+        assert "db01" in result
+
+    def test_unknown_command_offers_nothing(self, completer):
+        """Unknown commands should not yield completions"""
+        assert _completions(completer, "bogus ") == []
+
+
+class TestCompleterBehavior:
+    """Test the readline-like behavior of the completer"""
+
+    def test_unique_match_appends_trailing_space(self, completer):
+        """A unique match should have a trailing space for tab completion"""
+        raw = _raw_completions(completer, "inv")
+
+        assert len(raw) == 1
+        assert raw[0].text == "inventory "
+
+    def test_ambiguous_match_has_no_trailing_space(self, completer):
+        """Multiple candidates must not append a space"""
+        raw = _raw_completions(completer, "")
+
+        assert len(raw) > 1
+        assert all(not c.text.endswith(" ") for c in raw)
+
+    def test_completion_replaces_only_typed_prefix(self, completer):
+        """Replace typed prefix, not whole line"""
+        raw = _raw_completions(completer, "inv")
+
+        assert raw[0].start_position == -len("inv")
+
+    def test_used_option_is_not_offered_again(self, completer):
+        """An option already present on the line is not offered a second time."""
+        result = _completions(completer, "host show --updates -")
+
+        assert "--updates" not in result
+        assert "--port" in result
+
+
+class TestReplCommands:
+    """REPL behavior during execution of commands"""
+
+    @pytest.mark.parametrize("command", ["exit", "quit"])
+    def test_exit_commands_leave_the_loop(self, repl, command):
+        """exit and quit should signal the REPL to stop looping."""
+        instance, _ = repl
+
+        # exit/quit signal the loop to stop by raising EOFError.
         with pytest.raises(EOFError):
-            repl.execute_command(cmd)
+            instance.execute_command(command)
 
-    def test_execute_command_help(self, mocker):
+    def test_clear_clears_the_console(self, repl, mocker):
+        instance, _ = repl
+        mock_clear = mocker.patch.object(instance.console, "clear")
+
+        instance.execute_command("clear")
+
+        mock_clear.assert_called_once()
+
+    def test_parse_error_is_reported(self, repl, capsys):
+        instance, _ = repl
+
+        # Unterminated quotes will make shlex raise.
+        # We expect this to be displayed, not crash the REPL
+        instance.execute_command('host show "unterminated')
+
+        assert "Error parsing command" in capsys.readouterr().out
+
+    def test_known_command_is_dispatched(self, repl):
+        instance, recorder = repl
+
+        instance.execute_command("inventory status")
+
+        assert ("status", SortField.host) in recorder
+
+    def test_help_lists_commands_including_hidden_groups(self, repl, capsys):
+        instance, _ = repl
+
+        instance.execute_command("help")
+        out = capsys.readouterr().out
+
+        assert "host" in out
+        assert "inventory" in out
+        assert "connections" in out  # hidden group
+
+    def test_command_help_flag_shows_usage(self, repl, capsys):
+        instance, _ = repl
+
+        instance.execute_command("host show --help")
+
+        out = capsys.readouterr().out
+
+        assert "show" in out
+        assert "--updates" in out
+
+    def test_bare_group_shows_its_subcommands(self, repl, capsys):
+        instance, _ = repl
+
+        instance.execute_command("host")
+        out = capsys.readouterr().out
+
+        assert "show" in out
+        assert "ping" in out
+
+    def test_help_for_builtin_shows_its_description(self, repl, capsys):
+        """Builtins describe themselves rather than a CLI command."""
+        instance, _ = repl
+
+        instance.execute_command("help exit")
+        out = capsys.readouterr().out
+
+        assert "Built-in" in out
+        assert instance.builtins["exit"] in out
+
+    def test_help_help_easter_egg(self, repl, capsys):
+        """help help does not recurse"""
+        instance, _ = repl
+
+        instance.execute_command("help help")
+
+        assert "that is indeed how that works" in capsys.readouterr().out
+
+    def test_help_for_command_is_scoped_to_the_command(self, repl, capsys):
+        """help for subcommands route to scoped help."""
+        instance, _ = repl
+
+        instance.execute_command("help host")
+        out = capsys.readouterr().out
+
+        assert "show" in out  # it is the host group's help
+        assert "exosphere" not in out  # root command is stripped
+
+    def test_help_for_unknown_command_falls_back_to_root(self, repl, capsys):
+        """Unknown commands show help for root command"""
+        instance, _ = repl
+
+        instance.execute_command("help defenestrate")
+        out = capsys.readouterr().out
+
+        assert "host" in out
+        assert "inventory" in out
+
+    def test_empty_line_is_noop(self, repl, capsys):
+        """A blank line dispatches nothing and prints nothing."""
+        instance, recorder = repl
+
+        instance.execute_command("   ")
+
+        assert recorder == []
+        assert capsys.readouterr().out == ""
+
+    def test_command_exit_code_does_not_leave_the_repl(self, repl):
+        """SystemExit must not raise out of the REPL loop"""
+        instance, _ = repl
+
+        instance.execute_command("inventory boom")
+
+    def test_unexpected_exception_is_reported(self, repl, capsys):
+        """Unexpected exceptions must not raise out of the REPL loop"""
+        instance, _ = repl
+
+        # This command in fake_exosphere raises a RuntimeError
+        instance.execute_command("inventory explode")
+
+        assert "Error executing" in capsys.readouterr().out
+
+    def test_internal_error_in_builtin_is_reported(self, repl, mocker, capsys):
         """
-        Test the built-in help command
+        The execute_command catch-all reports unexpected failures in the
+        built-in handling paths (here, clearing the screen) rather than
+        letting them escape the REPL.
         """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        repl = ExosphereREPL(ctx)
-
-        print_spy = mocker.spy(repl.console, "print")
-
-        repl.execute_command("help")
-
-        assert any(
-            any(
-                s
-                and (
-                    "Available modules during interactive use" in str(s)
-                    or "for help on a specific command." in str(s)
-                )
-                for s in call.args
-            )
-            for call in print_spy.call_args_list
+        instance, _ = repl
+        mocker.patch.object(
+            instance.console, "clear", side_effect=RuntimeError("SOMEHOW that failed")
         )
 
-    def test_execute_command_help_general(self, mocker):
+        instance.execute_command("clear")
+
+        assert "Error executing command" in capsys.readouterr().out
+
+    def test_unknown_command_suggests_alternatives(self, repl, capsys):
         """
-        Test that 'help' with no arguments prints general help and builtins.
+        Unknown commands should yield a helpful message and suggestions.
+
+        This is built-in Cyclopts functionality, but we want to ensure
+        it's correctly wired up through the REPL and not swallowed by
+        our own error handling.
         """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
+        instance, _ = repl
 
-        print_spy = mocker.spy(repl.console, "print")
-        repl.execute_command("help")
+        instance.execute_command("hsot")
 
-        # Should mention built-in commands and usage
-        assert any(
-            call.args and "built-in commands" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-        assert any(
-            call.args and "use '<command> --help'" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
+        captured = capsys.readouterr()
+        output = captured.out + captured.err
+        assert "Did you mean" in output
+        assert "host" in output
 
-    def test_execute_command_help_general_with_commands(self, mocker):
-        """
-        Test that 'help' with no arguments lists available commands on root
-        """
-        ctx = mocker.Mock(spec=Context)
 
-        # Mock commands with help text
-        mock_cmd1 = mocker.Mock()
-        mock_cmd1.help = "Manage host configurations"
-        mock_cmd1.hidden = False
+class TestReplLoop:
+    """Test the interactive loop UX"""
 
-        mock_cmd2 = mocker.Mock()
-        mock_cmd2.help = "Display inventory information"
-        mock_cmd2.hidden = False
-
-        mock_cmd3 = mocker.Mock()
-        mock_cmd3.help = "Hidden command"
-        mock_cmd3.hidden = True
-
-        ctx.command = mocker.Mock()
-        ctx.command.commands = {
-            "host": mock_cmd1,
-            "inventory": mock_cmd2,
-            "hidden": mock_cmd3,
-        }
-
-        repl = ExosphereREPL(ctx)
-        print_spy = mocker.spy(repl.console, "print")
-
-        repl.execute_command("help")
-
-        # Should print available modules header
-        assert any(
-            call.args and "available modules" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-        # Should show usage instructions
-        assert any(
-            call.args and "use '<command> --help'" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-        # Verify that a Panel was printed (contains the commands)
-        from rich.panel import Panel
-
-        assert any(
-            isinstance(call.args[0], Panel)
-            for call in print_spy.call_args_list
-            if call.args
-        )
-
-    @pytest.mark.parametrize(
-        "cmd,expected_help",
-        [
-            ("clear", "clear the console"),
-            ("quit", "exit the interactive shell"),
-            ("exit", "exit the interactive shell"),
-        ],
-        ids=["clear", "quit", "exit"],
-    )
-    def test_execute_command_help_builtin(self, mocker, cmd, expected_help):
-        """
-        Test that 'help <builtin>' prints the builtin help for each builtin command.
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
-
-        print_spy = mocker.spy(repl.console, "print")
-        repl.execute_command(f"help {cmd}")
-
-        assert any(
-            "built-in" in str(call.args[0]).lower()
-            and expected_help in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_help_typer_command(self, mocker):
-        """
-        Test help for Typer Commands
-        The repl is expected to just wrap the command with '--help' and
-        its very specific context to delegate this to the Typer help system.
-        """
-        ctx = mocker.Mock(spec=Context)
-        mock_sub = mocker.MagicMock()  # Must be iterable
-        mock_sub.commands = {}  # Empty dict for subcommands
-        ctx.command = mocker.Mock()
-        ctx.command.commands = {"test_command": mock_sub}
-        repl = ExosphereREPL(ctx)
-
-        # Patch make_context to yield a context manager that returns a dummy context
-        dummy_ctx_mgr = mocker.MagicMock()
-        dummy_ctx_mgr.__enter__.return_value = mocker.Mock()
-        dummy_ctx_mgr.__exit__.return_value = False
-        mock_sub.make_context.return_value = dummy_ctx_mgr
-
-        repl.execute_command("help test_command")
-
-        mock_sub.make_context.assert_called_once_with("test_command", ["--help"])
-        mock_sub.invoke.assert_called_once_with(dummy_ctx_mgr.__enter__.return_value)
-
-    def test_help_help(self, mocker):
-        """
-        Test that the help command provides help for itself
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        repl = ExosphereREPL(ctx)
-
-        print_spy = mocker.spy(repl.console, "print")
-
-        repl.execute_command("help help")
-
-        assert any(
-            "Use 'help' without arguments for general help." in str(call.args[0])
-            for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_empty(self, mocker):
-        """
-        Test that empty commands are handled gracefully
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        repl = ExosphereREPL(ctx)
-
-        try:
-            repl.execute_command("")
-            repl.execute_command("   ")
-        except Exception as e:
-            pytest.fail(f"Empty command raised an exception: {e}")
-
-    def test_execute_command_unknown(self, mocker):
-        """
-        Test that unknown commands are handled gracefully
-        """
-        mock_command = mocker.Mock()
-        mock_command.commands = {"known": mocker.Mock(), "another": mocker.Mock()}
-
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = mock_command
-
-        repl = ExosphereREPL(ctx)
-
-        print_spy = mocker.spy(repl.console, "print")
-
-        repl.execute_command("unknown")
-
-        assert any(
-            "Unknown command" in str(call.args[0]) for call in print_spy.call_args_list
-        )
-
-        # Should also list available commands
-        assert any(
-            "available commands" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_no_root(self, mocker):
-        """
-        Test that whatever happens when the root command is unset is not a disaster
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-
-        repl = ExosphereREPL(ctx)
-
-        print_spy = mocker.spy(repl.console, "print")
-
-        repl.execute_command("foobar")
-
-        assert any(
-            "No root command" in str(call.args[0]) for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_no_args_with_root(self, mocker):
-        """
-        Test that calling _execute_typer_command with empty args prints an error.
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = mocker.Mock()
-        ctx.command.commands = {"foo": mocker.Mock()}
-
-        repl = ExosphereREPL(ctx)
-        print_spy = mocker.spy(repl.console, "print")
-
-        # Call _execute_typer_command directly with empty list
-        repl._execute_typer_command([])
-
-        assert any(
-            "no command specified" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_known(self, mocker):
-        """
-        Test that a command executes
-        """
-        # Simulate a known command with a subcommand that runs without error
-        mock_sub = mocker.MagicMock()
-        mock_sub.invoke.return_value = None
-        mock_command = mocker.Mock()
-        mock_command.commands = {"foo": mock_sub}
-
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = mock_command
-
-        repl = ExosphereREPL(ctx)
-
-        try:
-            repl.execute_command("foo")
-        except Exception as e:
-            pytest.fail(f"Known command raised an exception: {e}")
-
-    def test_execute_command_typer_noargs_is_help(self, mocker):
-        """
-        Test handling of NoArgsIsHelpError in typer commands
-        Typer commands that are invoked without args are mostly all configured
-        to show help, but also raise a NoArgsIsHelpError.
-        """
-        mock_sub = mocker.MagicMock()  # Must be iterable
-        mock_sub.commands = {}  # Empty dict for subcommands
-
-        # Simulate the NoArgsIsHelpError being raised when invoking a command
-        dummy_ctx_mgr = mocker.MagicMock()
-        dummy_ctx_mgr.__enter__.return_value = mocker.Mock()
-        dummy_ctx_mgr.__exit__.return_value = False
-        mock_sub.make_context.return_value = dummy_ctx_mgr
-
-        # Mock context manager for fake typer command
-        # Ensure it raises NoArgsIsHelpError
-        dummy_ctx = mocker.Mock()
-        mock_sub.invoke.side_effect = _NoArgsIsHelpError(dummy_ctx)
-
-        mock_command = mocker.Mock()
-        mock_command.commands = {"foo": mock_sub}
-
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = mock_command
-
-        repl = ExosphereREPL(ctx)
-
-        print_spy = mocker.spy(repl.console, "print")
-        repl.execute_command("foo")
-
-        assert any(
-            "requires arguments" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_systemexit(self, mocker):
-        """
-        Test that a command that raises SystemExit is handled gracefully
-        Normally commands should raise a typer exit exception, but we should
-        handle when they don't gracefully.
-        """
-        mock_sub = mocker.MagicMock()
-        mock_sub.invoke.side_effect = SystemExit(1)
-        mock_command = mocker.Mock()
-        mock_command.commands = {"foo": mock_sub}
-
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = mock_command
-
-        repl = ExosphereREPL(ctx)
-
-        print_spy = mocker.spy(repl.console, "print")
-
-        try:
-            repl.execute_command("foo")
-        except Exception:
-            pytest.fail("execute_command raised an exception unexpectedly")
-
-        assert any(
-            "Command exited with code" in str(call.args[0])
-            for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_unexpected_exception(self, mocker):
-        """
-        Test unexpected exceptions during command execution
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
-
-        # Patch shlex.split to raise an unexpected exception
-        mocker.patch("shlex.split", side_effect=RuntimeError("unexpected error yo"))
-        print_spy = mocker.spy(repl.console, "print")
-
-        try:
-            repl.execute_command("foo")
-        except Exception:
-            pytest.fail("execute_command raised an exception unexpectedly")
-
-        assert any(
-            "unexpected error yo" in str(call.args[0]).lower()
-            or "error" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_parsing_error(self, mocker):
-        """
-        Test that parsing errors are handled gracefully
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
-
-        # Patch shlex.split to raise a ValueError
-        mocker.patch("shlex.split", side_effect=ValueError("Megafailure Event"))
-
-        print_spy = mocker.spy(repl.console, "print")
-
-        try:
-            repl.execute_command("foo")
-        except Exception:
-            pytest.fail("execute_command raised an exception unexpectedly")
-
-        assert any(
-            "error parsing command" in str(call.args[0]).lower()
-            and "megafailure event" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-    def test_execute_command_general_exception(self, mocker):
-        """
-        Test that general exceptions during command execution are handled gracefully.
-        """
-        ctx = mocker.Mock(spec=Context)
-        mock_sub = mocker.MagicMock()  # Must be iterable
-        mock_sub.commands = {}  # Empty dict for subcommands
-        ctx.command = mocker.Mock()
-        ctx.command.commands = {"failing_cmd": mock_sub}
-
-        repl = ExosphereREPL(ctx)
-
-        # Mock make_context to raise a general exception
-        mock_sub.make_context.side_effect = RuntimeError(
-            "Something went horribly wrong"
-        )
-
-        print_spy = mocker.spy(repl.console, "print")
-
-        # Should not raise, should handle gracefully
-        try:
-            repl.execute_command("failing_cmd")
-        except Exception:
-            pytest.fail("execute_command raised an exception unexpectedly")
-
-        # Should print error message
-        assert any(
-            "error executing failing_cmd" in str(call.args[0]).lower()
-            and "something went horribly wrong" in str(call.args[0]).lower()
-            for call in print_spy.call_args_list
-        )
-
-    @pytest.mark.parametrize(
-        "side_effect,expected",
-        [
-            ([KeyboardInterrupt, EOFError], "Aborted"),
-            ([EOFError], "Exiting Interactive mode"),
-            ([Exception("fail"), EOFError], "Unexpected error in REPL"),
-        ],
-    )
-    def test_cmdloop_exceptions(self, mocker, side_effect, expected):
-        """
-        Test cmdloop handles various expected and unexpected exceptions
-        And also always exits.
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
-
-        mocker.patch("exosphere.repl.prompt", side_effect=side_effect)
-        print_spy = mocker.spy(repl.console, "print")
-
-        repl.cmdloop()
-        assert any(expected in str(call.args[0]) for call in print_spy.call_args_list)
-
-    def test_cmdloop_ignores_whitespace_only_input(self, mocker):
-        """
-        Test that whitespace-only input is ignored and does not call execute_command
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
-
-        # Simulate whitespace input, then EOFError to exit
-        mocker.patch("exosphere.repl.prompt", side_effect=["   ", EOFError])
-        exec_mock = mocker.patch.object(repl, "execute_command")
-
-        repl.cmdloop()
-
-        # execute_command should not be called for whitespace input
-        exec_mock.assert_not_called()
-
-    def test_cmdloop_intro_message(self, mocker):
-        """
-        Test that the intro message is displayed at the start of the REPL loop
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
-
-        # Simulate an EOFError input to exit the loop immediately
+    def test_intro_is_printed(self, repl, mocker, capsys):
+        instance, _ = repl
         mocker.patch("exosphere.repl.prompt", side_effect=EOFError)
-        print_spy = mocker.spy(repl.console, "print")
 
-        repl.cmdloop(intro="Welcome to Exosphere!")
-        assert any(
-            "Welcome to Exosphere!" in str(call.args[0])
-            for call in print_spy.call_args_list
+        instance.cmdloop(intro="Sup, nerds?")
+
+        assert "Sup, nerds?" in capsys.readouterr().out
+
+    def test_blank_input_is_skipped(self, repl, mocker):
+        instance, _ = repl
+        mocker.patch("exosphere.repl.prompt", side_effect=["   ", EOFError])
+        spy = mocker.patch.object(instance, "execute_command")
+
+        instance.cmdloop()
+
+        spy.assert_not_called()
+
+    def test_loop_dispatches_typed_commands(self, repl, mocker):
+        """A line entered at the prompt is executed."""
+        instance, recorder = repl
+        mocker.patch(
+            "exosphere.repl.prompt", side_effect=["inventory status", EOFError]
         )
 
-    def test_cmdloop_clear_command_clears_console(self, mocker):
+        instance.cmdloop()
+
+        assert ("status", SortField.host) in recorder
+
+    def test_loop_recovers_from_unexpected_error(self, repl, mocker, capsys):
         """
-        Test that entering 'clear' in the REPL loop calls console.clear()
+        An unexpected error during a loop iteration (here from the prompt
+        itself) is caught and reported; the loop keeps going rather than
+        crashing out.
         """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
+        instance, _ = repl
+        mocker.patch(
+            "exosphere.repl.prompt", side_effect=[RuntimeError("OHNOES"), EOFError]
+        )
 
-        # Patch prompt to return 'clear' then EOFError to exit
-        mocker.patch("exosphere.repl.prompt", side_effect=["clear", EOFError])
-        clear_mock = mocker.patch.object(repl.console, "clear")
+        instance.cmdloop()
 
-        repl.cmdloop()
-        clear_mock.assert_called_once()
+        out = capsys.readouterr().out
+        assert "Unexpected error in REPL" in out
+        # Reaching the EOF message proves the loop continued past the error.
+        assert "Exiting" in out
 
-    def test_hidden_commands_shown_in_interactive_help(self, mocker):
+    @pytest.mark.parametrize(
+        "inputs, expected_message",
+        [
+            ([EOFError], "Exiting"),
+            ([KeyboardInterrupt, EOFError], "Aborted"),  # Exit after ^C
+        ],
+        ids=["ctrl_d_exits", "ctrl_c_aborts"],
+    )
+    def test_control_signal_is_handled(
+        self, repl, mocker, capsys, inputs, expected_message
+    ):
         """
-        Test that hidden commands are shown when help is invoked in interactive mode.
+        Signals like ^C and ^D should be handled properly
+
+        All tests rely on raising EOFError to exit the loop after the
+        command is sent, so that may be slightly Extra(tm) here, but
+        this test also validates the presentation of it (displayed
+        message, no unexpected tracebacks, etc).
         """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
+        instance, _ = repl
+        mocker.patch("exosphere.repl.prompt", side_effect=inputs)
 
-        # Setup generalized hidden subcommand
-        hidden_cmd = mocker.MagicMock()
-        hidden_cmd.hidden = True
-        hidden_cmd.commands = {}
+        instance.cmdloop()
 
-        hidden_cmd.make_context.side_effect = typer.Exit(0)
-
-        # Setup root command containing the hidden command
-        root_cmd = mocker.MagicMock()
-        root_cmd.commands = {"connections": hidden_cmd}
-        repl.root_command = root_cmd
-
-        repl.execute_command("connections --help")
-
-        # The command should now be unhidden
-        assert hidden_cmd.hidden is False
-
-    def test_hidden_subcommands_shown_in_interactive_help(self, mocker):
-        """
-        Test that hidden subcommands are recursively shown when parent help is invoked.
-        """
-        ctx = mocker.Mock(spec=Context)
-        ctx.command = None
-        repl = ExosphereREPL(ctx)
-
-        # Generalized mock of a subcommand
-        hidden_subcmd = mocker.MagicMock()
-        hidden_subcmd.hidden = True
-        hidden_subcmd.commands = {}
-
-        # Setup parent containing hidden subcommand
-        parent_cmd = mocker.MagicMock()
-        parent_cmd.hidden = False
-        parent_cmd.commands = {"save": hidden_subcmd}
-
-        parent_cmd.make_context.side_effect = typer.Exit(0)
-
-        # Set up root command
-        root_cmd = mocker.MagicMock()
-        root_cmd.commands = {"inventory": parent_cmd}
-        repl.root_command = root_cmd
-
-        # Execute help command
-        repl.execute_command("inventory --help")
-
-        # The subcommand should now be unhidden
-        assert hidden_subcmd.hidden is False
+        assert expected_message in capsys.readouterr().out

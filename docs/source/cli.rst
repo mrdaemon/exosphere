@@ -30,9 +30,9 @@ Getting help
 You can explore the root commands available by running ``exosphere --help`` or typing ``help``
 in the interactive shell. This will show you a list of available commands and their descriptions.
 
-.. typer:: exosphere.cli:app
-   :prog: exosphere
-   :theme: dimmed_monokai
+.. exosphere-help:: exosphere.cli:app
+   :title: exosphere --help
+   :width: 80
 
 For a complete list of commands and options, see the :doc:`command_reference` page.
 
@@ -208,7 +208,7 @@ refrain from showing the table entirely.
 
    The ``host`` command is quite versatile and also lets you perform operations
    such as ``refresh`` on a specific host. See the
-   `host commands <command_reference.html#exosphere-host>`_ for more details.
+   :ref:`host commands <command-ref-host>` for more details.
 
 Online Checks
 -------------
@@ -331,9 +331,11 @@ Exosphere uses specific return codes to indicate the outcome of commands.
 Key return codes are typically:
 
 - **0**: Success - The command completed successfully without any issues.
-- **1**: Execution Error - An error occurred during the execution of the command.
-- **2**: Argument Error - There was an issue with the provided arguments or options.
-- **3**: Special - A condition was met, not necessarily an error
+- **1**: Input Error - The problem is in what you asked: invalid arguments or
+  options, an unknown host name, or a declined confirmation prompt.
+- **2**: Application Error - We couldn't do what you asked: an operation failed
+  while running, such as a host that could not be reached or refreshed.
+- **3**: Special - A condition was met, not necessarily an error.
 
 The special return code (3) is used very deliberately and is intended to
 assist with scripting and automation, where you need to differentiate between
@@ -341,10 +343,18 @@ errors and specific conditions.
 
 For instance, ``exosphere version check`` will return 3 if updates are available,
 and the various ``--updates-only`` filters on ``inventory status`` will also
-return 3 if no hosts matched what you requested.
+return 3 if no hosts matched what you requested, and lastly, ``sudo generate``
+will return it as well if no sudoers snippets need generated for that host/provider.
 
 Commands returning 3 will typically inform you of the meaning in their
 help text.
+
+.. admonition:: Note
+
+   In versions of Exosphere prior to **3.0**, the "input" and "application" return
+   codes were the other way around, with input errors returning 2 and application
+   errors returning 1. This was in fact the major breaking change that justified
+   the version bump.
 
 Beyond the Basics
 -----------------

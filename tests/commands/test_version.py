@@ -6,12 +6,15 @@ import json
 from urllib.error import URLError
 
 import pytest
-from typer.testing import CliRunner
 
 from exosphere.commands import version
 from exosphere.config import Configuration
 
-runner = CliRunner(env={"NO_COLOR": "1"})
+
+@pytest.fixture(autouse=True)
+def _console(patch_console):
+    """Install deterministic consoles for the version command module."""
+    patch_console(version)
 
 
 @pytest.fixture
@@ -73,49 +76,50 @@ def create_pypi_response(mocker):
 class TestVersionDefault:
     """Tests for the default version command (no subcommand)."""
 
-    def test_version_default_displays_version(self):
+    def test_version_default_displays_version(self, capsys):
         """Test that the default version command displays the version."""
-        result = runner.invoke(version.app, [])
+        version.app([], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Exosphere version" in result.output
+        assert "Exosphere version" in capsys.readouterr().out
 
-    def test_version_help(self):
+    def test_version_help(self, capsys):
         """
         Test that version --help shows the help message.
 
         Additionally, default command should not fire off
         """
-        result = runner.invoke(version.app, ["--help"])
+        with pytest.raises(SystemExit) as exc_info:
+            version.app(["--help"])
 
-        assert result.exit_code == 0
-        assert "Version and Update Check Commands" in result.output
-        assert "check" in result.output
+        assert exc_info.value.code == 0
+        out = capsys.readouterr().out
+        assert "Version and Update Check Commands" in out
+        assert "check" in out
 
 
 class TestVersionDetails:
     """Tests for the 'version details' command."""
 
-    def test_details_command_displays_environment_table(self):
+    def test_details_command_displays_environment_table(self, capsys):
         """
         Test that 'details' command displays environment information table.
 
-        Verifies that the command exits successfully and displays the expected
-        categories in the output.
+        Verifies that the command displays the expected categories in the
+        output.
         """
-        result = runner.invoke(version.app, ["details"])
+        version.app(["details"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Python" in result.output
-        assert "System" in result.output
-        assert "Exosphere" in result.output
+        out = capsys.readouterr().out
+        assert "Python" in out
+        assert "System" in out
+        assert "Exosphere" in out
 
 
 class TestVersionCheck:
     """Tests for the 'version check' command."""
 
     def test_check_update_available(
-        self, mock_urlopen, app_config, mocker, create_pypi_response
+        self, mock_urlopen, app_config, mocker, create_pypi_response, capsys
     ):
         """Test check when an update is available."""
         # Mock current version as older version
@@ -124,26 +128,27 @@ class TestVersionCheck:
         # Mock PyPI response with newer version
         mock_urlopen.return_value = create_pypi_response("1.5.0")
 
-        result = runner.invoke(version.app, ["check"])
+        code = version.app(["check"], result_action="return_value")
 
-        assert "new version is available" in result.output
-        assert "1.5.0" in result.output
-        assert result.exit_code == 3
+        out = capsys.readouterr().out
+        assert "new version is available" in out
+        assert "1.5.0" in out
+        assert code == 3  # Update available (scripting signal)
 
     def test_check_latest_version(
-        self, mock_urlopen, mock_version, app_config, create_pypi_response
+        self, mock_urlopen, mock_version, app_config, create_pypi_response, capsys
     ):
         """Test check when using the latest version."""
         # Mock PyPI response with same version
         mock_urlopen.return_value = create_pypi_response("1.5.0")
 
-        result = runner.invoke(version.app, ["check"])
+        code = version.app(["check"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "latest version" in result.output
+        assert code == 0
+        assert "latest version" in capsys.readouterr().out
 
     def test_check_development_version(
-        self, mock_urlopen, app_config, mocker, create_pypi_response
+        self, mock_urlopen, app_config, mocker, create_pypi_response, capsys
     ):
         """Test check when using a development version."""
         # Mock current version as development version (newer than stable)
@@ -152,37 +157,45 @@ class TestVersionCheck:
         # Mock PyPI response with older stable version
         mock_urlopen.return_value = create_pypi_response("1.5.0")
 
-        result = runner.invoke(version.app, ["check"])
+        code = version.app(["check"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "development version" in result.output
+        assert code == 0
+        assert "development version" in capsys.readouterr().out
 
     @pytest.mark.parametrize("verbose_flag", ["--verbose", "-v"], ids=["long", "short"])
     def test_check_verbose(
-        self, mock_urlopen, mock_version, app_config, verbose_flag, create_pypi_response
+        self,
+        mock_urlopen,
+        mock_version,
+        app_config,
+        verbose_flag,
+        create_pypi_response,
+        capsys,
     ):
         """Test check with verbose flag."""
         # Mock PyPI response
         mock_urlopen.return_value = create_pypi_response("1.5.0")
 
-        result = runner.invoke(version.app, ["check", verbose_flag])
+        code = version.app(["check", verbose_flag], result_action="return_value")
 
-        assert result.exit_code == 0
+        assert code == 0
         # Verbose should print current version and checking message
-        assert "Current version" in result.output or "Checking PyPI" in result.output
+        out = capsys.readouterr().out
+        assert "Current version" in out or "Checking PyPI" in out
 
-    def test_check_network_error(self, mock_urlopen, mock_version, app_config):
+    def test_check_network_error(self, mock_urlopen, mock_version, app_config, capsys):
         """Test check with network error."""
         # Mock urlopen to raise URLError
         mock_urlopen.side_effect = URLError("Network unreachable")
 
-        result = runner.invoke(version.app, ["check"])
+        code = version.app(["check"], result_action="return_value")
 
-        assert result.exit_code == 1
-        assert "Error" in result.output or "Failed" in result.output
+        assert code == 2  # Application error
+        err = capsys.readouterr().err
+        assert "Error" in err or "Failed" in err
 
     def test_check_malformed_pypi_response(
-        self, mock_urlopen, mock_version, app_config, mocker
+        self, mock_urlopen, mock_version, app_config, mocker, capsys
     ):
         """Test check with malformed PyPI response (missing version key)."""
         # Mock PyPI response with missing 'version' key
@@ -193,13 +206,14 @@ class TestVersionCheck:
         mock_response.read.return_value = json.dumps(response_data).encode("utf-8")
         mock_urlopen.return_value = mock_response
 
-        result = runner.invoke(version.app, ["check"])
+        code = version.app(["check"], result_action="return_value")
 
-        assert result.exit_code == 1
-        assert "Error" in result.output or "Unexpected" in result.output
+        assert code == 2  # Application error
+        err = capsys.readouterr().err
+        assert "Error" in err or "Unexpected" in err
 
     def test_check_invalid_json_response(
-        self, mock_urlopen, mock_version, app_config, mocker
+        self, mock_urlopen, mock_version, app_config, mocker, capsys
     ):
         """Test check with invalid JSON response from PyPI."""
         # Mock PyPI response with invalid JSON
@@ -209,18 +223,19 @@ class TestVersionCheck:
         mock_response.read.return_value = b"Not valid JSON"
         mock_urlopen.return_value = mock_response
 
-        result = runner.invoke(version.app, ["check"])
+        code = version.app(["check"], result_action="return_value")
 
-        assert result.exit_code == 1
-        assert "Error" in result.output or "Failed" in result.output
+        assert code == 2  # Application error
+        err = capsys.readouterr().err
+        assert "Error" in err or "Failed" in err
 
-    def test_check_pypi_disabled(self, mock_urlopen, app_config_pypi_disabled):
+    def test_check_pypi_disabled(self, mock_urlopen, app_config_pypi_disabled, capsys):
         """Test check when PyPI checks are disabled via configuration."""
-        result = runner.invoke(version.app, ["check"])
+        code = version.app(["check"], result_action="return_value")
 
         mock_urlopen.assert_not_called()
-        assert "disabled" in result.output.lower()
-        assert result.exit_code == 1
+        assert "disabled" in capsys.readouterr().err.lower()
+        assert code == 2  # Application error: checks disabled
 
     def test_check_timeout(
         self, mock_urlopen, mock_version, app_config, create_pypi_response
@@ -229,7 +244,7 @@ class TestVersionCheck:
         # Mock PyPI response
         mock_urlopen.return_value = create_pypi_response("1.5.0")
 
-        runner.invoke(version.app, ["check"])
+        version.app(["check"], result_action="return_value")
 
         # Verify urlopen was called with timeout parameter
         mock_urlopen.assert_called_once()

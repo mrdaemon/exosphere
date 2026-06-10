@@ -1,10 +1,7 @@
 import pytest
-from typer.testing import CliRunner
 
 from exosphere.commands import config
 from exosphere.config import Configuration
-
-runner = CliRunner(env={"NO_COLOR": "1"})
 
 
 class DummyContext:
@@ -14,6 +11,12 @@ class DummyContext:
 
     def __init__(self, confpath: str | None = "/fake/path/config.yaml"):
         self.confpath: str | None = confpath
+
+
+@pytest.fixture(autouse=True)
+def _console(patch_console):
+    """Install deterministic consoles for the config command module."""
+    patch_console(config)
 
 
 @pytest.fixture(autouse=True)
@@ -75,63 +78,66 @@ def app_config_with_changes(mocker):
 class TestShowCommand:
     """Tests for the 'config show' command."""
 
-    def test_all_options(self, app_config):
+    def test_all_options(self, app_config, capsys):
         """
         Test the 'show' command with no specific option.
         """
-        result = runner.invoke(config.app, ["show"])
+        code = config.app(["show"], result_action="return_value")
 
-        assert result.exit_code == 0
-
+        out = capsys.readouterr().out
+        assert code == 0
         for key in Configuration.DEFAULTS["options"]:
-            assert key in result.output
+            assert key in out
 
-    def test_specific_option(self, app_config):
+    def test_specific_option(self, app_config, capsys):
         """
         Test the 'show' command with a specific option.
         """
         # We pick the first one from defaults
         option = next(iter(Configuration.DEFAULTS["options"]))
 
-        result = runner.invoke(config.app, ["show", option])
+        code = config.app(["show", option], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert str(Configuration.DEFAULTS["options"][option]) in result.output
+        assert code == 0
+        assert str(Configuration.DEFAULTS["options"][option]) in capsys.readouterr().out
 
-    def test_option_not_found(self, app_config):
+    def test_option_not_found(self, app_config, capsys):
         """
         Test the 'show' command with an invalid option.
         """
-        result = runner.invoke(config.app, ["show", "non_existent_option"])
+        code = config.app(["show", "non_existent_option"], result_action="return_value")
 
-        assert result.exit_code != 0  # Expecting a non-zero exit code
-        assert "not found in configuration" in result.output
+        assert code == 1  # Input error: unknown option
+        assert "not found in configuration" in capsys.readouterr().err
 
-    def test_full_config(self, app_config):
+    def test_full_config(self, app_config, capsys):
         """
         Test the 'show' command with the --full option.
         """
-        result = runner.invoke(config.app, ["show", "--full"])
+        code = config.app(["show", "--full"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "hosts" in result.output
-        assert "localhost" in result.output
-        assert "127.0.0.1" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "hosts" in out
+        assert "localhost" in out
+        assert "127.0.0.1" in out
 
-    def test_full_config_with_option_warns(self, app_config):
+    def test_full_config_with_option_warns(self, app_config, capsys):
         """
         Tests that 'show' with option name gives a warning when --full is used.
         """
-        result = runner.invoke(config.app, ["show", "some_option", "--full"])
+        code = config.app(
+            ["show", "some_option", "--full"], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
-        assert "ignoring option name" in result.output
+        assert code == 0
+        assert "ignoring option name" in capsys.readouterr().err
 
 
 class TestSourceCommand:
     """Tests for the 'config source' command."""
 
-    def test_shows_config_path(self, mocker, app_config):
+    def test_shows_config_path(self, mocker, app_config, capsys):
         """
         Test that 'source' command shows the current configuration.
         """
@@ -140,12 +146,11 @@ class TestSourceCommand:
             DummyContext(confpath="/tmp/config.yaml"),
         )
 
-        result = runner.invoke(config.app, ["source"])
+        config.app(["source"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "/tmp/config.yaml" in result.output
+        assert "/tmp/config.yaml" in capsys.readouterr().out
 
-    def test_with_env(self, monkeypatch, app_config):
+    def test_with_env(self, monkeypatch, app_config, capsys):
         """
         Test that 'source' command shows environment variable overrides.
         """
@@ -154,27 +159,25 @@ class TestSourceCommand:
             "testvalue",
         )
 
-        result = runner.invoke(config.app, ["source"])
+        config.app(["source"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Environment variable overrides" in result.output
+        assert "Environment variable overrides" in capsys.readouterr().out
 
-    def test_no_config(self, mocker, app_config):
+    def test_no_config(self, mocker, app_config, capsys):
         """
         Test that 'source' command shows a message when no configuration is loaded.
         """
         mocker.patch("exosphere.commands.config.context", DummyContext(confpath=None))
 
-        result = runner.invoke(config.app, ["source"])
+        config.app(["source"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "No configuration loaded" in result.output
+        assert "No configuration loaded" in capsys.readouterr().err
 
 
 class TestPathsCommand:
     """Tests for the 'config paths' command."""
 
-    def test_shows_directories(self, mocker, app_config):
+    def test_shows_directories(self, mocker, app_config, capsys):
         """
         Test that 'paths' command shows application directories.
         """
@@ -187,70 +190,64 @@ class TestPathsCommand:
                 "state": "/tmp/state",
             },
         )
-        result = runner.invoke(config.app, ["paths"])
+        config.app(["paths"], result_action="return_value")
 
-        assert result.exit_code == 0
+        out = capsys.readouterr().out
+        assert "Application directories" in out
+        assert "Config: /tmp/config" in out
+        assert "Cache: /tmp/cache" in out
+        assert "Logs: /tmp/logs" in out
+        assert "State: /tmp/state" in out
 
-        assert "Application directories" in result.output
-        assert "Config: /tmp/config" in result.output
-        assert "Cache: /tmp/cache" in result.output
-        assert "Logs: /tmp/logs" in result.output
-        assert "State: /tmp/state" in result.output
-
-    def test_no_config(self, mocker, app_config):
+    def test_no_config(self, mocker, app_config, capsys):
         """
         Test that 'paths' command shows a message when no configuration is loaded.
         """
         mocker.patch("exosphere.commands.config.context", DummyContext(confpath=None))
 
-        result = runner.invoke(config.app, ["paths"])
+        config.app(["paths"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "No configuration file loaded" in result.output
+        assert "No configuration file loaded" in capsys.readouterr().err
 
 
 class TestDiffCommand:
     """Tests for the 'config diff' command."""
 
-    def test_no_difference(self, app_config):
+    def test_no_difference(self, app_config, capsys):
         """
         Assert that 'diff' command shows no differences when no changes are made.
         """
-        result = runner.invoke(config.app, ["diff"])
-
-        assert result.exit_code == 0
+        config.app(["diff"], result_action="return_value")
 
         # Should not show any differences if no changes are made
-        assert "No differences found" in result.output
+        assert "No differences found" in capsys.readouterr().out
 
-    def test_with_changes(self, app_config_with_changes):
+    def test_with_changes(self, app_config_with_changes, capsys):
         """
         Assert that 'diff' command shows changes when configuration is modified.
         """
-        result = runner.invoke(config.app, ["diff"])
-
-        assert result.exit_code == 0
+        config.app(["diff"], result_action="return_value")
 
         # Should show changed options in green and mention the default value in yellow
-        assert "'debug': True" in result.output
-        assert "# default: False" in result.output
-        assert "'log_level': 'DEBUG'" in result.output
-        assert "# default: 'INFO'" in result.output
-        assert "'default_timeout': 30" in result.output
+        out = capsys.readouterr().out
+        assert "'debug': True" in out
+        assert "# default: False" in out
+        assert "'log_level': 'DEBUG'" in out
+        assert "# default: 'INFO'" in out
+        assert "'default_timeout': 30" in out
 
-    def test_full_with_changes(self, app_config_with_changes):
+    def test_full_with_changes(self, app_config_with_changes, capsys):
         """
         Assert that full 'diff' command shows defaults
         """
-        result = runner.invoke(config.app, ["diff", "--full"])
-
-        assert result.exit_code == 0
+        config.app(["diff", "--full"], result_action="return_value")
 
         # Should show all options, changed in green, unchanged in dim
-        assert "'debug': True" in result.output
-        assert "'log_level': 'DEBUG'" in result.output
-        assert "'default_timeout': 30" in result.output
+        out = capsys.readouterr().out
+        assert "'debug': True" in out
+        assert "'log_level': 'DEBUG'" in out
+        assert "'default_timeout': 30" in out
 
         # Unchanged options should also appear (dim style, but we check presence)
         for key in Configuration.DEFAULTS["options"]:
-            assert repr(key) in result.output
+            assert repr(key) in out

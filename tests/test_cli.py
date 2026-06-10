@@ -1,97 +1,84 @@
+import logging
 import sys
 import types
 
-from typer.testing import CliRunner
+import pytest
 
-from exosphere import __version__
+from exosphere import __version__, cli
 from exosphere.config import Configuration
 
-runner = CliRunner()
+
+@pytest.fixture(autouse=True)
+def _console(patch_console):
+    """Deterministic console for CLI tests."""
+    patch_console(cli)
 
 
-def test_repl_root(mocker, caplog) -> None:
-    """Test that the root command starts the REPL"""
-    import logging
+def test_repl_root(mocker, caplog, capsys) -> None:
+    """Interactive entrypoint prints the banner and starts the REPL."""
+    from exosphere import cli
 
-    from exosphere.cli import app as repl_cli
-
-    logging.getLogger("exosphere.cli").setLevel(logging.INFO)
-    logging.getLogger("exopshere.cli").addHandler(caplog.handler)
-
+    caplog.set_level(logging.INFO, logger="exosphere.cli")
     mock_repl = mocker.patch("exosphere.cli.start_repl")
-    result = runner.invoke(repl_cli, [])
 
-    assert result.exit_code == 0
+    cli.start_interactive()
+
     mock_repl.assert_called_once()
     assert "Starting Exosphere REPL" in caplog.text
-    assert f"v{__version__}" in result.output
+    assert f"v{__version__}" in capsys.readouterr().out
 
 
-def test_repl_root_no_banner(mocker, caplog) -> None:
-    """Test the root command with banner disabled"""
-    import logging
+def test_repl_root_no_banner(mocker, capsys) -> None:
+    """Interactive entrypoint omits the banner when disabled."""
+    from exosphere import cli
 
     # Prepare configuration with no_banner set to True
     config = Configuration()
     config.update_from_mapping({"options": {"no_banner": True}})
     mocker.patch("exosphere.cli.app_config", config)
 
-    from exosphere.cli import app as repl_cli
-
-    logging.getLogger("exosphere.cli").setLevel(logging.INFO)
-    logging.getLogger("exopshere.cli").addHandler(caplog.handler)
-
     mock_repl = mocker.patch("exosphere.cli.start_repl")
-    result = runner.invoke(repl_cli, [])
 
-    assert result.exit_code == 0
+    cli.start_interactive()
+
     mock_repl.assert_called_once()
-    assert "Starting Exosphere REPL" in caplog.text
-    assert f"v{__version__}" not in result.output
+    assert f"v{__version__}" not in capsys.readouterr().out
 
 
-def test_repl_version(mocker) -> None:
+def test_repl_version(capsys) -> None:
     """
-    Test that --version as an argument to the REPL
-    prints the version of Exosphere.
+    --version prints the version of Exosphere.
 
-    This is intended to work from command line, but it is handled as a
-    special case inside the REPL hooks.
+    Should be handled by Cyclopts, but the string should be stable
     """
-    from exosphere.cli import app as repl_cli
+    from exosphere import cli
 
-    mocker.patch("exosphere.cli.start_repl")
-    result = runner.invoke(repl_cli, ["--version"])
-    assert result.exit_code == 0
+    with pytest.raises(SystemExit) as exc_info:
+        cli.app(["--version"])
 
-    # Should mention the version of Exosphere
-    assert "Exosphere version" in result.output
+    assert exc_info.value.code == 0
+    assert "Exosphere version" in capsys.readouterr().out
 
 
 def test_ui_start(mocker, caplog) -> None:
-    import logging
+    """UI entrypoint starts the UI"""
+    from exosphere.commands import ui
 
-    from exosphere.commands.ui import app as sub_ui_cli
-
-    logging.getLogger("exosphere.commands.ui").setLevel(logging.INFO)
-    logging.getLogger("exopshere.commands.ui").addHandler(caplog.handler)
+    caplog.set_level(logging.INFO, logger="exosphere.commands.ui")
     mock_ui = mocker.patch("exosphere.commands.ui.ExosphereUi")
 
-    result = runner.invoke(sub_ui_cli, ["start"])
+    code = ui.app(["start"], result_action="return_value")
 
-    assert result.exit_code == 0
+    assert code is None
     mock_ui.return_value.run.assert_called_once()
-
     assert "Starting Exosphere UI" in caplog.text
 
 
 def test_ui_webstart(mocker, caplog, monkeypatch) -> None:
-    import logging
+    """Webstart entrypoints starts the web UI when extras are installed"""
+    from exosphere.commands import ui
 
-    from exosphere.commands.ui import app as sub_ui_cli
-
-    logging.getLogger("exosphere.commands.ui").setLevel(logging.INFO)
-    logging.getLogger("exopshere.commands.ui").addHandler(caplog.handler)
+    caplog.set_level(logging.INFO, logger="exosphere.commands.ui")
 
     # Mock textual_serve and patch it to simulate extras being installed
     fake_server_mod = types.ModuleType("textual_serve.server")
@@ -99,30 +86,24 @@ def test_ui_webstart(mocker, caplog, monkeypatch) -> None:
     setattr(fake_server_mod, "Server", mock_server_class)
     monkeypatch.setitem(sys.modules, "textual_serve.server", fake_server_mod)
 
-    result = runner.invoke(sub_ui_cli, ["webstart"])
+    code = ui.app(["webstart"], result_action="return_value")
 
-    assert result.exit_code == 0
+    assert code == 0
     mock_server_class.return_value.serve.assert_called_once()
     assert "Starting Exosphere Web UI Server" in caplog.text
 
 
-def test_ui_webstart_without_extras(mocker, caplog, monkeypatch) -> None:
-    import logging
-
-    from exosphere.commands.ui import app as sub_ui_cli
-
-    logging.getLogger("exosphere.commands.ui").setLevel(logging.INFO)
-    logging.getLogger("exopshere.commands.ui").addHandler(caplog.handler)
+def test_ui_webstart_without_extras(mocker, caplog, monkeypatch, capsys) -> None:
+    """Webstart entrypoint handles missing extras gracefully."""
+    from exosphere.commands import ui
 
     # Patch textual_serve.server to simulate it not being installed
     monkeypatch.setitem(sys.modules, "textual_serve.server", None)
-    mock_console = mocker.patch("exosphere.commands.ui.Console")
 
-    result = runner.invoke(sub_ui_cli, ["webstart"])
+    code = ui.app(["webstart"], result_action="return_value")
 
-    assert result.exit_code == 2
-    mock_console.assert_called_with(stderr=True)
+    assert code == 2
     assert (
-        "not installed" in result.output.lower()
+        "not installed" in capsys.readouterr().err.lower()
         or "not installed" in caplog.text.lower()
     )

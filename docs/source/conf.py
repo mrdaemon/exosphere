@@ -31,8 +31,9 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
     'sphinxcontrib.spelling',
-    'sphinxcontrib.typer',
+    'cyclopts.sphinx_ext',
     'exosphere_lexer',  # Custom Exosphere CLI lexer
+    'exosphere_help',  # Custom Exosphere CLI help SVG renderer
     'exosphere_artifacts',  # Custom extension to copy artifacts to _static
     'jsonschema_doc',  # Custom extension for JSON Schema documentation
 ]
@@ -42,6 +43,13 @@ exclude_patterns = []
 
 # Use a dark-friendly Pygments token palette to match dark code blocks.
 pygments_style = 'nord-darker'
+
+# -- Link checking ------------------------------------------------------------
+# The WebUI is documented as being served locally, so the example address is
+# not a real link to validate.
+linkcheck_ignore = [
+    r'^https?://localhost(:\d+)?',
+]
 
 # -- Spell checking configuration ---------------------------------------------
 # https://sphinxcontrib-spelling.readthedocs.io/en/stable/customize.html

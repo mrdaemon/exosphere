@@ -3,17 +3,17 @@ Connections command module
 """
 
 import time
+from typing import Annotated
 
-import typer
+from cyclopts import App, Parameter
 from rich.table import Table
-from typing_extensions import Annotated
 
 from exosphere import app_config
 from exosphere.commands.utils import (
-    HostArgument,
+    HostArg,
     console,
     err_console,
-    get_hosts_or_error,
+    get_hosts_or_all,
 )
 
 ROOT_HELP = """
@@ -27,9 +27,16 @@ Only useful from Interactive Mode, as connections are not maintained
 between separate CLI invocations.
 """
 
-app = typer.Typer(
+# Interactive-only group: hidden from normal CLI help
+# It can still be invoked directly, but won't show up in the main help
+# Interactive Mode (the REPL) will unhide it at runtime.
+app = App(
+    name="connections",
     help=ROOT_HELP,
-    no_args_is_help=True,
+    help_flags=["--help"],
+    show=False,
+    console=console,
+    error_console=err_console,
 )
 
 
@@ -49,25 +56,13 @@ def _format_duration(seconds: int) -> str:
         return f"{hours}h {remaining_minutes}m" if remaining_minutes else f"{hours}h"
 
 
-@app.command()
+@app.command
 def show(
-    names: Annotated[
-        list[str] | None,
-        typer.Argument(
-            help="Hosts to show connection state for. If omitted, shows all hosts.",
-            metavar="[HOSTS]...",
-        ),
-        HostArgument(multiple=True),
-    ] = None,
+    *names: HostArg,
     active_only: Annotated[
-        bool,
-        typer.Option(
-            "--active",
-            "-a",
-            help="Show only hosts with active connections.",
-        ),
+        bool, Parameter(name=["--active", "-a"], negative="")
     ] = False,
-) -> None:
+) -> int:
     """
     Show SSH connection state for inventory hosts.
 
@@ -78,26 +73,33 @@ def show(
     maximum age will be marked as "Expiring".
 
     Only useful when SSH Pipelining is enabled.
-    """
 
+    Parameters
+    ----------
+    names
+        Hosts to show connection state for. If omitted, shows all hosts.
+    active_only
+        Show only hosts with active connections.
+    """
     if not app_config["options"]["ssh_pipelining"]:
         err_console.print("[yellow]SSH Pipelining is currently disabled.[/yellow]")
         err_console.print("No persistent connections to hosts are maintained.")
-        raise typer.Exit(1)
+        return 2  # Application error: feature disabled
 
     pipelining_max_age = app_config["options"]["ssh_pipelining_lifetime"]
     pipelining_interval = app_config["options"]["ssh_pipelining_reap_interval"]
 
-    hosts = get_hosts_or_error(names)
+    hosts = get_hosts_or_all(names)
+
     if hosts is None:
-        raise typer.Exit(code=2)  # Argument error
+        return 1  # Input error, no host to operate on
 
     # Filter for active connections if requested
     if active_only:
         hosts = [h for h in hosts if h.is_connected]
         if not hosts:
             console.print("No active connections.")
-            raise typer.Exit(code=0)
+            return 0
 
     table_title = "SSH Connections"
 
@@ -145,41 +147,36 @@ def show(
 
     console.print(table)
 
+    return 0
 
-@app.command()
+
+@app.command
 def close(
-    names: Annotated[
-        list[str] | None,
-        typer.Argument(
-            help="Hosts to close connections for. If omitted, close all connections.",
-            metavar="[HOSTS]...",
-        ),
-        HostArgument(multiple=True),
-    ] = None,
-    verbose: Annotated[
-        bool,
-        typer.Option(
-            "--verbose",
-            "-v",
-            help="Show detailed output of closed connections.",
-        ),
-    ] = False,
-) -> None:
+    *names: HostArg,
+    verbose: Annotated[bool, Parameter(name=["--verbose", "-v"], negative="")] = False,
+) -> int:
     """
     Close SSH connections explicitly
 
     Close SSH connections to specified hosts, or all hosts if none are specified.
     Only useful when SSH Pipelining is enabled.
-    """
 
+    Parameters
+    ----------
+    names
+        Hosts to close connections for. If omitted, close all connections.
+    verbose
+        Show detailed output of closed connections.
+    """
     if not app_config["options"]["ssh_pipelining"]:
         err_console.print("[yellow]SSH Pipelining is currently disabled.[/yellow]")
         err_console.print("No persistent connections to hosts are maintained.")
-        raise typer.Exit(1)
+        return 2  # Application error
 
-    hosts = get_hosts_or_error(names)
+    hosts = get_hosts_or_all(names)
+
     if hosts is None:
-        raise typer.Exit(code=2)  # Argument error
+        return 1  # Input error, no host to operate on
 
     closed_count = 0
     inactive_count = 0
@@ -202,3 +199,5 @@ def close(
         console.print(
             f"[dim]Skipped {inactive_count} host(s) with no active connections.[/dim]"
         )
+
+    return 0

@@ -9,7 +9,7 @@ import urllib.request
 from typing import Annotated
 from urllib.error import URLError
 
-import typer
+from cyclopts import App, Parameter
 from packaging.version import parse
 
 from exosphere import __version__, app_config
@@ -22,9 +22,12 @@ Version and Update Check Commands
 Show current version, check for updates.
 """
 
-app = typer.Typer(
+app = App(
+    name="version",
     help=ROOT_HELP,
-    no_args_is_help=False,
+    help_flags=["--help"],
+    console=console,
+    error_console=err_console,
 )
 
 PACKAGE_NAME = "exosphere-cli"
@@ -35,20 +38,18 @@ DOCS_URL = (
 )
 
 
-@app.callback(invoke_without_command=True)
-def version_default(ctx: typer.Context) -> None:
+@app.default
+def version_default() -> None:
     """
     Show the current version of Exosphere.
 
     Displays the currently installed version. Use 'version check' to check
     for updates on PyPI.
     """
-    if ctx.invoked_subcommand is None:
-        print_version()
-        raise typer.Exit(0)
+    print_version()
 
 
-@app.command()
+@app.command
 def details() -> None:
     """
     Show detailed version and environment information
@@ -57,16 +58,13 @@ def details() -> None:
     virtual environment status, and operating system details.
     """
     print_environment()
-    raise typer.Exit(0)
 
 
-@app.command()
+@app.command
 def check(
-    verbose: Annotated[
-        bool,
-        typer.Option("--verbose", "-v", help="Show verbose output for check"),
-    ] = False,
-) -> None:
+    *,
+    verbose: Annotated[bool, Parameter(name=["--verbose", "-v"], negative="")] = False,
+) -> int:
     """
     Check for exosphere updates
 
@@ -74,6 +72,11 @@ def check(
     on PyPI and reports if an update is available.
 
     Exits with code 3 if an update is available.
+
+    Parameters
+    ----------
+    verbose
+        Show verbose output for check
     """
     current_version = __version__
     if not app_config["options"]["update_checks"]:
@@ -81,7 +84,7 @@ def check(
             "[yellow]Update checks are disabled via configuration.[/yellow]\n"
             "Updates may be managed by your package manager or system administrator."
         )
-        raise typer.Exit(1)
+        return 2  # Application error: checks disabled
 
     if verbose:
         console.print(f"Current version: [cyan]{current_version}[/cyan]")
@@ -110,34 +113,30 @@ def check(
                 f"{RELEASE_URL}v{latest_version}\n"
                 f"{DOCS_URL}"
             )
-
-            # Exit with nonzero to indicate update available
-            raise typer.Exit(3)
+            return 3  # Update available (scripting signal)
         elif current > latest:
             console.print(
                 f"[blue]*[/blue] You are using a development version: "
                 f"[blue]{current_version}[/blue] "
                 f"(latest stable: [dim]{latest_version}[/dim])"
             )
-            raise typer.Exit(0)
+            return 0
         else:
             console.print(
                 f"You are using the latest version: "
                 f"[bold green]{current_version}[/bold green]"
             )
-            raise typer.Exit(0)
+            return 0
 
-    except typer.Exit:
-        raise
     except URLError as e:
         err_console.print(f"[red]Error:[/red] Failed to check for updates: {e}")
         err_console.print("[yellow]Please check internet connectivity.[/yellow]")
-        raise typer.Exit(1)  # Execution error
+        return 2  # Application error
     except KeyError as e:
         err_console.print(
             f"[red]Error:[/red] Unexpected response from PyPI API (missing key: {e})"
         )
-        raise typer.Exit(1)  # Execution error
+        return 2  # Application error
     except Exception as e:
         err_console.print(f"[red]Error:[/red] Failed to check for updates: {e}")
-        raise typer.Exit(1)  # Execution error
+        return 2  # Application error

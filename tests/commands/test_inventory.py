@@ -1,25 +1,36 @@
 import pytest
-from typer.testing import CliRunner
 
 from exosphere.commands import inventory as inventory_module
 from exosphere.commands import utils as utils_module
 from exosphere.config import Configuration
 from exosphere.objects import Host, HostOperation
 
-runner = CliRunner(env={"NO_COLOR": "1"})
+
+@pytest.fixture(autouse=True)
+def _console(patch_console):
+    """Install deterministic consoles for the inventory command module."""
+    patch_console(inventory_module)
 
 
 @pytest.fixture(autouse=True)
 def mock_inventory(mocker):
     """
-    Patch context inventory for all tests
+    Patch context inventory for all tests.
+
+    The fake inventory resolves host names off its own ``hosts`` list (so the
+    HostArg converter works for commands invoked with specific names) and
+    delegates filtering/sorting to the real implementations so the status
+    command returns actual host lists rather than bare Mocks.
     """
     fake_inventory = mocker.create_autospec(inventory_module.Inventory, instance=True)
     fake_inventory.hosts = []
 
-    # The status command delegates filtering and sorting to the inventory.
-    # Wire the autospec mock to the real implementations so it returns
-    # actual host lists rather than bare Mocks.
+    # Resolve names off the current hosts list so the HostArg converter
+    # (which calls get_host) works for commands invoked with explicit names.
+    fake_inventory.get_host.side_effect = lambda name: next(
+        (h for h in fake_inventory.hosts if h.name == name), None
+    )
+
     real = inventory_module.Inventory
     fake_inventory.filter_hosts.side_effect = lambda mode, hosts=None: (
         real.filter_hosts(fake_inventory, mode, hosts)
@@ -69,7 +80,7 @@ def create_host(mocker):
 class TestStatusCommand:
     """Tests for the status command"""
 
-    def test_shows_table(self, create_host, mock_inventory):
+    def test_shows_table(self, create_host, mock_inventory, capsys):
         """
         Basic test for the status command to ensure it shows a table with host information.
         This is meant to be a somewhat comprehensive catch-all as first test.
@@ -78,22 +89,23 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host]
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Host Status Overview" in result.output
-        assert "host1" in result.output
-        assert "linux" in result.output
-        assert "debian" in result.output
-        assert "12" in result.output
-        assert "4" in result.output
-        assert "1" in result.output
-        assert "4 *" not in result.output  # No stale hosts
-        assert "1 *" not in result.output  # No stale hosts
-        assert "Online" in result.output
-        assert "Offline" not in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Host Status Overview" in out
+        assert "host1" in out
+        assert "linux" in out
+        assert "debian" in out
+        assert "12" in out
+        assert "4" in out
+        assert "1" in out
+        assert "4 *" not in out  # No stale hosts
+        assert "1 *" not in out  # No stale hosts
+        assert "Online" in out
+        assert "Offline" not in out
 
-    def test_with_stale_hosts(self, create_host, mock_inventory):
+    def test_with_stale_hosts(self, create_host, mock_inventory, capsys):
         """
         Test the status command to ensure it correctly identifies stale hosts.
         """
@@ -103,25 +115,28 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host]
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "4 *" in result.output  # Stale hosts marked with *
-        assert "1 *" in result.output  # Stale hosts marked with *
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "4 *" in out  # Stale hosts marked with *
+        assert "1 *" in out  # Stale hosts marked with *
 
-    def test_no_hosts(self, mocker, mock_inventory):
+    def test_no_hosts(self, mock_inventory, capsys):
         """
-        Test the status command when get_hosts_or_error returns None.
-        Should exit with code 1 and display error message.
+        Test the status command with an empty inventory.
+
+        get_hosts_or_all returns None for an empty inventory, so the command
+        exits with an input error (exit 1).
         """
-        mocker.patch.object(utils_module, "get_hosts_or_error", return_value=None)
+        mock_inventory.hosts = []
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert "No hosts found in inventory." in result.output
-        assert result.exit_code == 2
+        assert code == 1
+        assert "No hosts found in inventory." in capsys.readouterr().err
 
-    def test_with_specific_hosts(self, create_host, mock_inventory):
+    def test_with_specific_hosts(self, create_host, mock_inventory, capsys):
         """
         Test the status command with specific host names.
         """
@@ -131,14 +146,15 @@ class TestStatusCommand:
         # Mock inventory.hosts to contain the hosts
         mock_inventory.hosts = [host1, host2]
 
-        result = runner.invoke(inventory_module.app, ["status", "host1"])
+        code = inventory_module.app(["status", "host1"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Host Status Overview" in result.output
-        assert "host1" in result.output
-        assert "host2" not in result.output  # Should not show host2
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Host Status Overview" in out
+        assert "host1" in out
+        assert "host2" not in out  # Should not show host2
 
-    def test_with_no_updates(self, create_host, mock_inventory):
+    def test_with_no_updates(self, create_host, mock_inventory, capsys):
         """
         Test the status command with a host that has no updates.
         """
@@ -146,15 +162,14 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host]
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "host1" in result.output
-        assert (
-            result.output.count("0") == 2
-        )  # Should show 0 updates and security updates
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "host1" in out
+        assert out.count("0") == 2  # Should show 0 updates and security updates
 
-    def test_with_security_updates(self, create_host, mock_inventory):
+    def test_with_security_updates(self, create_host, mock_inventory, capsys):
         """
         Test the status command displays security updates in red when present.
         """
@@ -162,12 +177,13 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host]
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "2" in result.output  # Should show security update count
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "2" in out  # Should show security update count
 
-    def test_with_offline_host(self, create_host, mock_inventory):
+    def test_with_offline_host(self, create_host, mock_inventory, capsys):
         """
         Test the status command with an offline host.
         """
@@ -177,12 +193,13 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host]
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Offline" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Offline" in out
 
-    def test_with_undiscovered_host(self, create_host, mock_inventory):
+    def test_with_undiscovered_host(self, create_host, mock_inventory, capsys):
         """
         Test the status command with unknown host properties.
         """
@@ -197,20 +214,18 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host]
 
-        # Widen the terminal so the "(undiscovered)" labels aren't truncated.
-        result = runner.invoke(
-            inventory_module.app, ["status"], env={"NO_COLOR": "1", "COLUMNS": "200"}
-        )
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "host1" in result.output
-        assert "(undiscovered)" in result.output
-        assert result.output.count("(undiscovered)") == 3
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "host1" in out
+        assert "(undiscovered)" in out
+        assert out.count("(undiscovered)") == 3
 
-        assert result.output.count("—") == 2  # No data for updates
-        assert result.output.count("*") == 1  # No stale, except legend
+        assert out.count("—") == 2  # No data for updates
+        assert out.count("*") == 1  # No stale, except legend
 
-    def test_with_unsupported_host(self, create_host, mock_inventory):
+    def test_with_unsupported_host(self, create_host, mock_inventory, capsys):
         """
         Test the status command with unsupported hosts
         """
@@ -227,17 +242,20 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host]
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "host8" in result.output
-        assert "exotic-os" in result.output
-        assert "(unsupport" in result.output  # Result will be truncated in output
-        assert result.output.count("(unsupport") == 2
-        assert result.output.count("—") == 2
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "host8" in out
+        assert "exotic-os" in out
+        assert "(unsupport" in out  # May be truncated depending on width
+        assert out.count("(unsupport") == 2
+        assert out.count("—") == 2
 
     @pytest.mark.parametrize("flag", ["--full", "-f"], ids=["long", "short"])
-    def test_full_shows_description_column(self, create_host, mock_inventory, flag):
+    def test_full_shows_description_column(
+        self, create_host, mock_inventory, flag, capsys
+    ):
         """
         Test that --full adds a Description column with the host description.
         """
@@ -246,32 +264,31 @@ class TestStatusCommand:
         host2 = create_host(name="host2", description=None)
         mock_inventory.hosts = [host1, host2]
 
-        # Widen the terminal so the extra column isn't truncated by Rich.
-        result = runner.invoke(
-            inventory_module.app,
-            ["status", flag],
-            env={"NO_COLOR": "1", "COLUMNS": "200"},
-        )
+        code = inventory_module.app(["status", flag], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Description" in result.output  # Column present
-        assert "primary web server" in result.output  # one description
-        assert result.output.count("—") == 1  # one placeholder
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Description" in out  # Column present
+        assert "primary web server" in out  # one description
+        assert out.count("—") == 1  # one placeholder
 
-    def test_description_hidden_without_full(self, create_host, mock_inventory):
+    def test_description_hidden_without_full(self, create_host, mock_inventory, capsys):
         """
         Test that the description column is not shown without --full.
         """
         host = create_host(name="host1", description="primary web server")
         mock_inventory.hosts = [host]
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Description" not in result.output
-        assert "primary web server" not in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Description" not in out
+        assert "primary web server" not in out
 
-    def test_multiple_hosts_with_different_states(self, create_host, mock_inventory):
+    def test_multiple_hosts_with_different_states(
+        self, create_host, mock_inventory, capsys
+    ):
         """
         Test status command with multiple hosts having different online/stale states.
         """
@@ -323,26 +340,27 @@ class TestStatusCommand:
 
         mock_inventory.hosts = hosts
 
-        result = runner.invoke(inventory_module.app, ["status"])
+        code = inventory_module.app(["status"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "server1" in result.output
-        assert "server2" in result.output
-        assert "server3" in result.output
-        assert "ubuntu" in result.output
-        assert "centos" in result.output
-        assert "exotic-os" in result.output
-        assert result.output.count("Online") == 3
-        assert result.output.count("Offline") == 1
-        assert "2 *" in result.output  # Stale updates for server2
-        assert result.output.count("—") == 2  # Unsupported update counts
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "server1" in out
+        assert "server2" in out
+        assert "server3" in out
+        assert "ubuntu" in out
+        assert "centos" in out
+        assert "exotic-os" in out
+        assert out.count("Online") == 3
+        assert out.count("Offline") == 1
+        assert "2 *" in out  # Stale updates for server2
+        assert out.count("—") == 2  # Unsupported update counts
 
     @pytest.mark.parametrize(
         "flag",
         ["--updates-only", "-u"],
         ids=["long", "short"],
     )
-    def test_updates_only_filter(self, create_host, mock_inventory, flag):
+    def test_updates_only_filter(self, create_host, mock_inventory, flag, capsys):
         """
         Test status command with --updates-only flag filters out hosts without updates.
         """
@@ -355,19 +373,20 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host_with_updates, host_without_updates]
 
-        result = runner.invoke(inventory_module.app, ["status", flag])
+        code = inventory_module.app(["status", flag], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "host1" in result.output
-        assert "host2" not in result.output
-        assert "Host Status (updates only)" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "host1" in out
+        assert "host2" not in out
+        assert "Host Status (updates only)" in out
 
     @pytest.mark.parametrize(
         "flag",
         ["--security-only", "-s"],
         ids=["long", "short"],
     )
-    def test_security_only_filter(self, create_host, mock_inventory, flag):
+    def test_security_only_filter(self, create_host, mock_inventory, flag, capsys):
         """
         Test status command with --security-only flag filters to only hosts with security updates.
         """
@@ -385,15 +404,16 @@ class TestStatusCommand:
             host_no_updates,
         ]
 
-        result = runner.invoke(inventory_module.app, ["status", flag])
+        code = inventory_module.app(["status", flag], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "host1" in result.output
-        assert "host2" not in result.output
-        assert "host3" not in result.output
-        assert "Host Status (security updates only)" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "host1" in out
+        assert "host2" not in out
+        assert "host3" not in out
+        assert "Host Status (security updates only)" in out
 
-    def test_both_filters_combined(self, create_host, mock_inventory):
+    def test_both_filters_combined(self, create_host, mock_inventory, capsys):
         """
         Test status command with both --updates-only and --security-only flags.
         Since --security-only takes precedence, it should behave exactly like --security-only alone.
@@ -408,19 +428,21 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host_with_both, host_updates_only, host_no_updates]
 
-        result = runner.invoke(
-            inventory_module.app, ["status", "--updates-only", "--security-only"]
+        code = inventory_module.app(
+            ["status", "--updates-only", "--security-only"],
+            result_action="return_value",
         )
 
-        assert result.exit_code == 0
-        assert "host1" in result.output
-        assert "host2" not in result.output
-        assert "host3" not in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "host1" in out
+        assert "host2" not in out
+        assert "host3" not in out
         # Verify that security-only takes precedence in the title
-        assert "(security updates only)" in result.output
-        assert "(updates only)" not in result.output
+        assert "(security updates only)" in out
+        assert "(updates only)" not in out
 
-    def test_no_hosts_matching_criteria(self, create_host, mock_inventory):
+    def test_no_hosts_matching_criteria(self, create_host, mock_inventory, capsys):
         """
         Test status command when filters result in no matching hosts.
         Should show a message and exit with code 3.
@@ -429,13 +451,18 @@ class TestStatusCommand:
 
         mock_inventory.hosts = [host_no_updates]
 
-        result = runner.invoke(inventory_module.app, ["status", "--updates-only"])
+        code = inventory_module.app(
+            ["status", "--updates-only"], result_action="return_value"
+        )
 
-        assert result.exit_code == 3
-        assert "No hosts matching requested criteria" in result.output
-        assert "host1" not in result.output
+        out = capsys.readouterr().out
+        assert code == 3
+        assert "No hosts matching requested criteria" in out
+        assert "host1" not in out
 
-    def test_filters_with_specific_host_names(self, create_host, mock_inventory):
+    def test_filters_with_specific_host_names(
+        self, create_host, mock_inventory, capsys
+    ):
         """
         Test status command with filters combined with specific host names.
         """
@@ -453,16 +480,18 @@ class TestStatusCommand:
             host3_with_updates,
         ]
 
-        result = runner.invoke(
-            inventory_module.app, ["status", "--updates-only", "host1", "host2"]
+        code = inventory_module.app(
+            ["status", "--updates-only", "host1", "host2"],
+            result_action="return_value",
         )
 
-        assert result.exit_code == 0
-        assert "host1" in result.output
-        assert "host2" not in result.output
-        assert "host3" not in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "host1" in out
+        assert "host2" not in out
+        assert "host3" not in out
 
-    def test_sort_by_host(self, create_host, mock_inventory):
+    def test_sort_by_host(self, create_host, mock_inventory, capsys):
         """
         Test status command with --sort host orders rows alphabetically.
         """
@@ -472,13 +501,15 @@ class TestStatusCommand:
             create_host(name="bravo"),
         ]
 
-        result = runner.invoke(inventory_module.app, ["status", "--sort", "host"])
+        code = inventory_module.app(
+            ["status", "--sort", "host"], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
-        out = result.output
+        out = capsys.readouterr().out
+        assert code == 0
         assert out.index("alpha") < out.index("bravo") < out.index("charlie")
 
-    def test_sort_reverse(self, create_host, mock_inventory):
+    def test_sort_reverse(self, create_host, mock_inventory, capsys):
         """
         Test status command with --sort host --reverse orders rows descending.
         """
@@ -488,39 +519,46 @@ class TestStatusCommand:
             create_host(name="charlie"),
         ]
 
-        result = runner.invoke(
-            inventory_module.app, ["status", "--sort", "host", "--reverse"]
+        code = inventory_module.app(
+            ["status", "--sort", "host", "--reverse"], result_action="return_value"
         )
 
-        assert result.exit_code == 0
-        out = result.output
+        out = capsys.readouterr().out
+        assert code == 0
         assert out.index("charlie") < out.index("bravo") < out.index("alpha")
 
     def test_sort_invalid_field_errors(self, create_host, mock_inventory):
         """
         Test status command with an invalid --sort value is rejected.
+
+        An invalid enum value is a coercion (input) error raised during
+        argument binding.
         """
         mock_inventory.hosts = [create_host(name="host1")]
 
-        result = runner.invoke(inventory_module.app, ["status", "--sort", "bogus"])
+        with pytest.raises(SystemExit) as exc_info:
+            inventory_module.app(["status", "--sort", "bogus"])
 
-        assert result.exit_code != 0
+        assert exc_info.value.code != 0
 
-    def test_reverse_without_sort_warns(self, create_host, mock_inventory, caplog):
+    def test_reverse_without_sort_warns(self, create_host, mock_inventory, capsys):
         """
-        Test --reverse without --sort is a no-op (logs a warning, still succeeds).
+        Test --reverse without --sort is a no-op (warns, still succeeds).
         """
         mock_inventory.hosts = [
             create_host(name="bravo"),
             create_host(name="alpha"),
         ]
 
-        result = runner.invoke(inventory_module.app, ["status", "--reverse"])
+        code = inventory_module.app(
+            ["status", "--reverse"], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
+        captured = capsys.readouterr()
+        assert code == 0
         # Order should be unchanged (config order preserved)
-        out = result.output
-        assert out.index("bravo") < out.index("alpha")
+        assert captured.out.index("bravo") < captured.out.index("alpha")
+        assert "--reverse has no effect without --sort" in captured.err
 
 
 class TestSaveCommand:
@@ -532,12 +570,12 @@ class TestSaveCommand:
         """
         mock_inventory.save_state = mocker.Mock()
 
-        result = runner.invoke(inventory_module.app, ["save"])
+        code = inventory_module.app(["save"], result_action="return_value")
 
-        assert result.exit_code == 0
+        assert code is None  # save returns None on success
         mock_inventory.save_state.assert_called_once()
 
-    def test_failure(self, mocker, mock_inventory):
+    def test_failure(self, mocker, mock_inventory, capsys):
         """
         Test the save command to ensure it handles exceptions raised by save_state.
         """
@@ -545,72 +583,81 @@ class TestSaveCommand:
             side_effect=Exception("Some write problem")
         )
 
-        result = runner.invoke(inventory_module.app, ["save"])
+        with pytest.raises(SystemExit) as exc_info:
+            inventory_module.app(["save"])
 
-        assert result.exit_code != 0
-        assert "Error saving inventory state" in result.output
-        assert "Some write problem" in result.output
+        out = capsys.readouterr().out
+        assert exc_info.value.code == 2  # Application error
+        assert "Error saving inventory state" in out
+        assert "Some write problem" in out
 
 
 class TestClearCommand:
     """Tests for the clear command"""
 
-    def test_success(self, mocker, mock_inventory):
+    def test_success(self, mocker, mock_inventory, capsys):
         """
         Test the clear command to ensure it clears the inventory.
         """
         mock_clear = mock_inventory.clear_state = mocker.Mock()
 
-        result = runner.invoke(inventory_module.app, ["clear", "--force"])
+        code = inventory_module.app(["clear", "--force"], result_action="return_value")
 
-        assert result.exit_code == 0
+        assert code == 0
         mock_clear.assert_called_once()
-        assert "Inventory state has been cleared" in result.output
+        assert "Inventory state has been cleared" in capsys.readouterr().out
 
     def test_no_force(self, mocker, mock_inventory):
         """
-        Test the clear command to ensure it prompts for confirmation when --force is not used.
+        Test the clear command prompts for confirmation when --force is not used.
         """
-        result = runner.invoke(inventory_module.app, ["clear"])
+        mock_ask = mocker.patch(
+            "exosphere.commands.inventory.Confirm.ask", return_value=False
+        )
 
-        assert result.exit_code != 0
-        assert "Clear inventory state? [y/n]" in result.output
+        code = inventory_module.app(["clear"], result_action="return_value")
 
-    def test_confirmation(self, mocker, mock_inventory):
+        assert code == 1  # Input error: not confirmed
+        mock_ask.assert_called_once()
+
+    def test_confirmation(self, mocker, mock_inventory, capsys):
         """
-        Test the clear command to ensure it clears the inventory when confirmed.
+        Test the clear command clears the inventory when confirmed.
         """
+        mocker.patch("exosphere.commands.inventory.Confirm.ask", return_value=True)
         mock_inventory.clear_state = mocker.Mock()
 
-        result = runner.invoke(inventory_module.app, ["clear"], input="y\n")
+        code = inventory_module.app(["clear"], result_action="return_value")
 
-        assert result.exit_code == 0
+        assert code == 0
         mock_inventory.clear_state.assert_called_once()
-        assert "Inventory state has been cleared" in result.output
+        assert "Inventory state has been cleared" in capsys.readouterr().out
 
-    def test_cancelled(self, mocker, mock_inventory):
+    def test_cancelled(self, mocker, mock_inventory, capsys):
         """
-        Test the clear command to ensure it does not clear the inventory when cancelled.
+        Test the clear command does not clear the inventory when cancelled.
         """
+        mocker.patch("exosphere.commands.inventory.Confirm.ask", return_value=False)
         mock_inventory.clear_state = mocker.Mock()
 
-        result = runner.invoke(inventory_module.app, ["clear"], input="n\n")
+        code = inventory_module.app(["clear"], result_action="return_value")
 
-        assert result.exit_code != 0
+        assert code == 1
         mock_inventory.clear_state.assert_not_called()
-        assert "Inventory state has not been cleared" in result.output
+        assert "Inventory state has not been cleared" in capsys.readouterr().out
 
-    def test_failure(self, mocker, mock_inventory):
+    def test_failure(self, mocker, mock_inventory, capsys):
         """
-        Test the clear command to ensure it handles exceptions raised by clear_state.
+        Test the clear command handles exceptions raised by clear_state.
         """
         mock_inventory.clear_state = mocker.Mock(side_effect=Exception("beefed it"))
 
-        result = runner.invoke(inventory_module.app, ["clear", "--force"])
+        code = inventory_module.app(["clear", "--force"], result_action="return_value")
 
-        assert result.exit_code != 0
-        assert "Error clearing inventory state" in result.output
-        assert "beefed it" in result.output
+        err = capsys.readouterr().err
+        assert code == 2  # Application error
+        assert "Error clearing inventory state" in err
+        assert "beefed it" in err
 
 
 class TestDiscoverCommand:
@@ -620,20 +667,17 @@ class TestDiscoverCommand:
         """
         Test the discover command success - run_task_with_progress returns no errors.
         """
-        # Mock get_hosts_or_error to return a list of hosts
         mock_hosts = [mocker.Mock(name="host1"), mocker.Mock(name="host2")]
-        mocker.patch.object(
-            inventory_module, "get_hosts_or_error", return_value=mock_hosts
-        )
+        mock_inventory.hosts = mock_hosts
 
         # Mock run_task_with_progress to return no errors (success case)
         mock_run_task = mocker.patch.object(
             inventory_module, "run_task_with_progress", return_value=[]
         )
 
-        result = runner.invoke(inventory_module.app, ["discover"])
+        code = inventory_module.app(["discover"], result_action="return_value")
 
-        assert result.exit_code == 0
+        assert code == 0
 
         # Verify run_task_with_progress was called with correct parameters
         mock_run_task.assert_called_once_with(
@@ -646,15 +690,12 @@ class TestDiscoverCommand:
             immediate_error_display=False,
         )
 
-    def test_failure(self, mocker, mock_inventory):
+    def test_failure(self, mocker, mock_inventory, capsys):
         """
         Test the discover command failure - run_task_with_progress returns error tuples.
         """
-        # Mock get_hosts_or_error to return a list of hosts
         mock_hosts = [mocker.Mock(name="host1"), mocker.Mock(name="host2")]
-        mocker.patch.object(
-            inventory_module, "get_hosts_or_error", return_value=mock_hosts
-        )
+        mock_inventory.hosts = mock_hosts
 
         # Mock run_task_with_progress to return errors (failure case)
         errors = [
@@ -665,9 +706,9 @@ class TestDiscoverCommand:
             inventory_module, "run_task_with_progress", return_value=errors
         )
 
-        result = runner.invoke(inventory_module.app, ["discover"])
+        code = inventory_module.app(["discover"], result_action="return_value")
 
-        assert result.exit_code == 1  # Should exit with error code
+        assert code == 2  # Application error
 
         # Verify run_task_with_progress was called with correct parameters
         mock_run_task.assert_called_once_with(
@@ -681,25 +722,23 @@ class TestDiscoverCommand:
         )
 
         # Should display error messages
-        assert (
-            "The following hosts could not be discovered due to errors:"
-            in result.output
-        )
-        assert "host1" in result.output
-        assert "Connection timeout" in result.output
-        assert "host2" in result.output
-        assert "Authentication failed" in result.output
+        out = capsys.readouterr().out
+        assert "The following hosts could not be discovered due to errors:" in out
+        assert "host1" in out
+        assert "Connection timeout" in out
+        assert "host2" in out
+        assert "Authentication failed" in out
 
-    def test_no_hosts(self, mocker, mock_inventory):
+    def test_no_hosts(self, mock_inventory, capsys):
         """
-        Test the discover command when get_hosts_or_error returns None.
+        Test the discover command with an empty inventory.
         """
-        mocker.patch.object(utils_module, "get_hosts_or_error", return_value=None)
+        mock_inventory.hosts = []
 
-        result = runner.invoke(inventory_module.app, ["discover"])
+        code = inventory_module.app(["discover"], result_action="return_value")
 
-        assert result.exit_code == 2
-        assert "No hosts found in inventory." in result.output
+        assert code == 1  # Input error: no hosts
+        assert "No hosts found in inventory." in capsys.readouterr().err
 
     @pytest.mark.parametrize(
         "cache_autosave,should_save",
@@ -715,11 +754,7 @@ class TestDiscoverCommand:
         """
         Test the discover command autosave behavior based on configuration.
         """
-        # Mock get_hosts_or_error to return a list of hosts
-        mock_hosts = [mocker.Mock(name="host1")]
-        mocker.patch.object(
-            inventory_module, "get_hosts_or_error", return_value=mock_hosts
-        )
+        mock_inventory.hosts = [mocker.Mock(name="host1")]
 
         # Mock run_task_with_progress to return no errors
         mocker.patch.object(inventory_module, "run_task_with_progress", return_value=[])
@@ -733,9 +768,9 @@ class TestDiscoverCommand:
         # Mock save function
         mock_save = mocker.patch.object(inventory_module, "save")
 
-        result = runner.invoke(inventory_module.app, ["discover"])
+        code = inventory_module.app(["discover"], result_action="return_value")
 
-        assert result.exit_code == 0
+        assert code == 0
 
         # Check if save was called based on the should_save parameter
         if should_save:
@@ -761,14 +796,14 @@ class TestPingCommand:
             (
                 ["host1", "host2"],
                 [(True, None), (False, Exception("Connection failed"))],
-                1,
+                2,
                 [],
             ),
             # All hosts offline - single host fails without exception
             (
                 ["host1"],
                 [(False, None)],
-                1,
+                2,
                 [],
             ),
             # Single host success with specific host argument
@@ -782,7 +817,7 @@ class TestPingCommand:
             (
                 ["host1", "host2", "host3"],
                 [(True, None), (False, None), (False, Exception("Timeout"))],
-                1,
+                2,
                 [],
             ),
         ],
@@ -805,13 +840,10 @@ class TestPingCommand:
         command_args,
     ):
         """Test various ping command scenarios."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
-
-        # Create hosts based on test data
+        # Create hosts based on test data and expose them on the inventory so
+        # the HostArg converter can resolve any explicit names.
         hosts = [create_host(name) for name in hosts_data]
-        mock_get_hosts_or_error.return_value = hosts
+        mock_inventory.hosts = hosts
 
         # Build run_task return value - combine host with result
         run_task_return = [
@@ -820,30 +852,26 @@ class TestPingCommand:
         ]
         mock_inventory.run_task.return_value = run_task_return
 
-        mock_app_config = mocker.patch.object(inventory_module, "app_config")
-        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+        # Disable autosave to keep the test focused
+        test_config = Configuration()
+        test_config.update_from_mapping({"options": {"cache_autosave": False}})
+        mocker.patch.object(inventory_module, "app_config", test_config)
 
-        # Build command arguments
-        cmd_args = ["ping"] + command_args
-        expected_get_hosts_args = command_args if command_args else None
+        code = inventory_module.app(
+            ["ping"] + command_args, result_action="return_value"
+        )
 
-        result = runner.invoke(inventory_module.app, cmd_args)
-
-        assert result.exit_code == expected_exit_code
-        mock_get_hosts_or_error.assert_called_once_with(expected_get_hosts_args)
+        assert code == expected_exit_code
         mock_inventory.run_task.assert_called_once_with(HostOperation.PING, hosts=hosts)
 
-    def test_no_hosts(self, mocker, mock_inventory):
-        """Test ping command when no hosts are found."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
-        mock_get_hosts_or_error.return_value = None
+    def test_no_hosts(self, mock_inventory, capsys):
+        """Test ping command with an empty inventory."""
+        mock_inventory.hosts = []
 
-        result = runner.invoke(inventory_module.app, ["ping"])
+        code = inventory_module.app(["ping"], result_action="return_value")
 
-        assert result.exit_code == 2
-        mock_get_hosts_or_error.assert_called_once_with(None)
+        assert code == 1  # Input error: no hosts
+        assert "No hosts found in inventory." in capsys.readouterr().err
         mock_inventory.run_task.assert_not_called()
 
     @pytest.mark.parametrize(
@@ -855,11 +883,8 @@ class TestPingCommand:
         self, mocker, mock_inventory, create_host, autosave_enabled
     ):
         """Test ping command autosave behavior."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
         host1 = create_host("host1")
-        mock_get_hosts_or_error.return_value = [host1]
+        mock_inventory.hosts = [host1]
 
         mock_inventory.run_task.return_value = [
             (host1, True, None),
@@ -873,10 +898,9 @@ class TestPingCommand:
         test_config.update_from_mapping(config)
         mocker.patch.object(inventory_module, "app_config", test_config)
 
-        result = runner.invoke(inventory_module.app, ["ping"])
+        code = inventory_module.app(["ping"], result_action="return_value")
 
-        assert result.exit_code == 0
-        mock_get_hosts_or_error.assert_called_once_with(None)
+        assert code == 0
         mock_inventory.run_task.assert_called_once_with(
             HostOperation.PING, hosts=[host1]
         )
@@ -892,24 +916,22 @@ class TestRefreshCommand:
 
     def test_basic_refresh(self, mocker, mock_inventory, create_host):
         """Test basic refresh command without options."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
         host1 = create_host("host1")
-        mock_get_hosts_or_error.return_value = [host1]
+        mock_inventory.hosts = [host1]
 
         mock_run_task_with_progress = mocker.patch.object(
             inventory_module, "run_task_with_progress"
         )
         mock_run_task_with_progress.return_value = []  # No errors
 
-        mock_app_config = mocker.patch.object(inventory_module, "app_config")
-        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+        config = {"options": {"cache_autosave": False}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
 
-        result = runner.invoke(inventory_module.app, ["refresh"])
+        code = inventory_module.app(["refresh"], result_action="return_value")
 
-        assert result.exit_code == 0
-        mock_get_hosts_or_error.assert_called_once_with(None)
+        assert code == 0
 
         # Should only call run_task_with_progress once for refresh_updates
         mock_run_task_with_progress.assert_called_once_with(
@@ -924,24 +946,24 @@ class TestRefreshCommand:
 
     def test_refresh_with_discover(self, mocker, mock_inventory, create_host):
         """Test refresh command with --discover option."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
         host1 = create_host("host1")
-        mock_get_hosts_or_error.return_value = [host1]
+        mock_inventory.hosts = [host1]
 
         mock_run_task_with_progress = mocker.patch.object(
             inventory_module, "run_task_with_progress"
         )
         mock_run_task_with_progress.return_value = []  # No errors
 
-        mock_app_config = mocker.patch.object(inventory_module, "app_config")
-        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+        config = {"options": {"cache_autosave": False}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
 
-        result = runner.invoke(inventory_module.app, ["refresh", "--discover"])
+        code = inventory_module.app(
+            ["refresh", "--discover"], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
-        mock_get_hosts_or_error.assert_called_once_with(None)
+        assert code == 0
 
         # Should call run_task_with_progress twice: discover + refresh_updates
         assert mock_run_task_with_progress.call_count == 2
@@ -958,24 +980,22 @@ class TestRefreshCommand:
 
     def test_refresh_with_sync(self, mocker, mock_inventory, create_host):
         """Test refresh command with --sync option."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
         host1 = create_host("host1")
-        mock_get_hosts_or_error.return_value = [host1]
+        mock_inventory.hosts = [host1]
 
         mock_run_task_with_progress = mocker.patch.object(
             inventory_module, "run_task_with_progress"
         )
         mock_run_task_with_progress.return_value = []  # No errors
 
-        mock_app_config = mocker.patch.object(inventory_module, "app_config")
-        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+        config = {"options": {"cache_autosave": False}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
 
-        result = runner.invoke(inventory_module.app, ["refresh", "--sync"])
+        code = inventory_module.app(["refresh", "--sync"], result_action="return_value")
 
-        assert result.exit_code == 0
-        mock_get_hosts_or_error.assert_called_once_with(None)
+        assert code == 0
 
         # Should call run_task_with_progress twice: sync_repos + refresh_updates
         assert mock_run_task_with_progress.call_count == 2
@@ -992,26 +1012,24 @@ class TestRefreshCommand:
 
     def test_refresh_with_all_options(self, mocker, mock_inventory, create_host):
         """Test refresh command with both --discover and --sync options."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
         host1 = create_host("host1")
-        mock_get_hosts_or_error.return_value = [host1]
+        mock_inventory.hosts = [host1]
 
         mock_run_task_with_progress = mocker.patch.object(
             inventory_module, "run_task_with_progress"
         )
         mock_run_task_with_progress.return_value = []  # No errors
 
-        mock_app_config = mocker.patch.object(inventory_module, "app_config")
-        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+        config = {"options": {"cache_autosave": False}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
 
-        result = runner.invoke(
-            inventory_module.app, ["refresh", "--discover", "--sync"]
+        code = inventory_module.app(
+            ["refresh", "--discover", "--sync"], result_action="return_value"
         )
 
-        assert result.exit_code == 0
-        mock_get_hosts_or_error.assert_called_once_with(None)
+        assert code == 0
 
         # Should call run_task_with_progress three times: discover + sync_repos + refresh_updates
         assert mock_run_task_with_progress.call_count == 3
@@ -1022,14 +1040,11 @@ class TestRefreshCommand:
         assert calls[1].kwargs["operation"] is HostOperation.SYNC
         assert calls[2].kwargs["operation"] is HostOperation.REFRESH
 
-    def test_refresh_with_errors(self, mocker, mock_inventory, create_host):
+    def test_refresh_with_errors(self, mocker, mock_inventory, create_host, capsys):
         """Test refresh command when errors occur."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
         host1 = create_host("host1")
         host2 = create_host("host2")
-        mock_get_hosts_or_error.return_value = [host1, host2]
+        mock_inventory.hosts = [host1, host2]
 
         # Mock run_task_with_progress to return errors
         errors = [("host1", "Update failed"), ("host2", "Network timeout")]
@@ -1037,59 +1052,55 @@ class TestRefreshCommand:
             inventory_module, "run_task_with_progress", return_value=errors
         )
 
-        mock_app_config = mocker.patch.object(inventory_module, "app_config")
-        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+        config = {"options": {"cache_autosave": False}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
 
-        result = runner.invoke(inventory_module.app, ["refresh"])
+        code = inventory_module.app(["refresh"], result_action="return_value")
 
-        assert result.exit_code == 1  # Should exit with error code
-        mock_get_hosts_or_error.assert_called_once_with(None)
+        assert code == 2  # Application error
         mock_run_task_with_progress.assert_called_once()
 
         # Should display error messages
-        assert "host1" in result.output
-        assert "Update failed" in result.output
-        assert "host2" in result.output
-        assert "Network timeout" in result.output
+        out = capsys.readouterr().out
+        assert "host1" in out
+        assert "Update failed" in out
+        assert "host2" in out
+        assert "Network timeout" in out
 
     def test_refresh_with_specific_hosts(self, mocker, mock_inventory, create_host):
         """Test refresh command with specific host names."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
         host1 = create_host("host1")
-        mock_get_hosts_or_error.return_value = [host1]
+        host2 = create_host("host2")
+        mock_inventory.hosts = [host1, host2]
 
         mock_run_task_with_progress = mocker.patch.object(
             inventory_module, "run_task_with_progress"
         )
         mock_run_task_with_progress.return_value = []  # No errors
 
-        mock_app_config = mocker.patch.object(inventory_module, "app_config")
-        mock_app_config.__getitem__.return_value = {"cache_autosave": False}
+        config = {"options": {"cache_autosave": False}}
+        test_config = Configuration()
+        test_config.update_from_mapping(config)
+        mocker.patch.object(inventory_module, "app_config", test_config)
 
-        result = runner.invoke(inventory_module.app, ["refresh", "host1", "host2"])
+        code = inventory_module.app(
+            ["refresh", "host1", "host2"], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
-        mock_get_hosts_or_error.assert_called_once_with(["host1", "host2"])
+        assert code == 0
         mock_run_task_with_progress.assert_called_once()
+        assert mock_run_task_with_progress.call_args.kwargs["hosts"] == [host1, host2]
 
-    def test_refresh_no_hosts(self, mocker, mock_inventory):
-        """Test refresh command when no hosts are found."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
-        mock_get_hosts_or_error.return_value = None
+    def test_refresh_no_hosts(self, mock_inventory, capsys):
+        """Test refresh command with an empty inventory."""
+        mock_inventory.hosts = []
 
-        mock_run_task_with_progress = mocker.patch.object(
-            inventory_module, "run_task_with_progress"
-        )
+        code = inventory_module.app(["refresh"], result_action="return_value")
 
-        result = runner.invoke(inventory_module.app, ["refresh"])
-
-        assert result.exit_code == 2
-        mock_get_hosts_or_error.assert_called_once_with(None)
-        mock_run_task_with_progress.assert_not_called()
+        assert code == 1  # Input error: no hosts
+        assert "No hosts found in inventory." in capsys.readouterr().err
 
     @pytest.mark.parametrize(
         "autosave_enabled",
@@ -1100,11 +1111,8 @@ class TestRefreshCommand:
         self, mocker, mock_inventory, create_host, autosave_enabled
     ):
         """Test refresh command autosave behavior."""
-        mock_get_hosts_or_error = mocker.patch.object(
-            inventory_module, "get_hosts_or_error"
-        )
         host1 = create_host("host1")
-        mock_get_hosts_or_error.return_value = [host1]
+        mock_inventory.hosts = [host1]
 
         mock_run_task_with_progress = mocker.patch.object(
             inventory_module, "run_task_with_progress"
@@ -1119,10 +1127,9 @@ class TestRefreshCommand:
         test_config.update_from_mapping(config)
         mocker.patch.object(inventory_module, "app_config", test_config)
 
-        result = runner.invoke(inventory_module.app, ["refresh"])
+        code = inventory_module.app(["refresh"], result_action="return_value")
 
-        assert result.exit_code == 0
-        mock_get_hosts_or_error.assert_called_once_with(None)
+        assert code == 0
         mock_run_task_with_progress.assert_called_once()
 
         if autosave_enabled:

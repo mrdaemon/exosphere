@@ -2,17 +2,16 @@
 Sudo command module
 """
 
+from typing import Annotated
+
 import fabric
 import fabric.util
-import typer
-from rich.console import Console
+from cyclopts import App, Parameter
 from rich.table import Table
-from typing_extensions import Annotated
 
-from exosphere import app_config, context
-from exosphere.commands.utils import HostArgument, HostOption
+from exosphere import app_config
+from exosphere.commands.utils import HOST_PARAMETER, HostArg, console, err_console
 from exosphere.data import ProviderInfo
-from exosphere.inventory import Inventory
 from exosphere.objects import Host
 from exosphere.providers.factory import PkgManagerFactory
 from exosphere.security import SudoPolicy, check_sudo_policy, has_sudo_flag
@@ -24,27 +23,13 @@ Commands to view Sudo Policies, check resultant host policies,
 list provider requirements, and generate sudoers snippets.
 """
 
-app = typer.Typer(
+app = App(
+    name="sudo",
     help=ROOT_HELP,
-    no_args_is_help=True,
+    help_flags=["--help"],
+    console=console,
+    error_console=err_console,
 )
-
-console = Console()
-err_console = Console(stderr=True)
-
-
-def _get_inventory() -> Inventory:
-    """
-    Get the inventory from context
-    A convenience wrapper that bails if the inventory is not initialized
-    """
-    if context.inventory is None:
-        err_console.print(
-            "[red]Inventory is not initialized! Are you running this module directly?[/red]"
-        )
-        raise typer.Exit(1)  # Execution error
-
-    return context.inventory
 
 
 def _get_global_policy() -> SudoPolicy:
@@ -134,7 +119,7 @@ def _get_username(user: str | None, host: Host | None = None) -> str:
             "[red]No username could be selected. "
             "Please provide --user or ensure host configuration is correct.[/red]"
         )
-        raise typer.Exit(2)  # Argument error
+        raise SystemExit(1)  # Input error
 
     # Validate username
     if not result.replace("-", "").replace("_", "").isalnum():
@@ -142,12 +127,12 @@ def _get_username(user: str | None, host: Host | None = None) -> str:
             f"[red]Invalid username '{result}'. "
             "Username must contain only alphanumeric characters, hyphens, and underscores.[/red]"
         )
-        raise typer.Exit(2)  # Argument error
+        raise SystemExit(1)  # Input error
 
     return result
 
 
-@app.command()
+@app.command
 def policy() -> None:
     """
     Show the current global Sudo Policy.
@@ -158,63 +143,59 @@ def policy() -> None:
     console.print(f"Global SudoPolicy: {_get_global_policy()}")
 
 
-@app.command()
-def check(
-    host: Annotated[
-        str, typer.Argument(help="Host to check security policies for"), HostArgument()
-    ],
-) -> None:
+@app.command
+def check(host: HostArg, /) -> int:
     """
     Check the effective Sudo Policies for a given host.
 
     The command will take in consideration the current global Sudo Policy and the
     host-specific Sudo Policy (if defined) to determine if the host can execute
     all of its Package Manager provider operations.
-    """
 
+    Parameters
+    ----------
+    host
+        Host to check security policies for
+    """
     # Collect data and sources
     global_policy = _get_global_policy()
-    inventory = _get_inventory()
-    target_host = inventory.get_host(host)
-
-    if not target_host:
-        err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
-        raise typer.Exit(2)  # Argument error
 
     # We cannot check unsupported hosts, as they don't have providers.
-    if not target_host.supported:
-        err_console.print(f"[red]Host '{host}' is not running a supported OS.[/red]")
-        raise typer.Exit(2)  # Argument error
+    if not host.supported:
+        err_console.print(
+            f"[red]Host '{host.name}' is not running a supported OS.[/red]"
+        )
+        return 1  # Input error
 
     # Collect sudo policies
-    host_policy: SudoPolicy = target_host.sudo_policy
+    host_policy: SudoPolicy = host.sudo_policy
     policy_is_local = host_policy != global_policy
 
     # Collect package manager from host
-    host_pkg_manager_name = target_host.package_manager
+    host_pkg_manager_name = host.package_manager
     if not host_pkg_manager_name:
         err_console.print(
-            f"Host '{host}' does not have a package manager defined in the inventory."
+            f"Host '{host.name}' does not have a package manager defined in the inventory."
             " Ensure discovery has been run on the host at least once!"
         )
-        raise typer.Exit(1)  # Execution error
+        return 2  # Application error
 
     # Get the package manager class from the factory registry
     # We get the raw class to inspect, and do not need/want an instance
     host_pkg_manager = PkgManagerFactory.get_registry().get(host_pkg_manager_name)
     if not host_pkg_manager:
         err_console.print(
-            f"[red]Host '{host}' has an unknown package manager: {host_pkg_manager_name}[/red]"
+            f"[red]Host '{host.name}' has an unknown package manager: {host_pkg_manager_name}[/red]"
             " This is likely a bug and should be reported."
         )
-        raise typer.Exit(1)  # Execution error
+        return 2  # Application error
 
     # Gather sudo policy checks
     can_reposync = check_sudo_policy(host_pkg_manager.reposync, host_policy)
     can_get_updates = check_sudo_policy(host_pkg_manager.get_updates, host_policy)
 
     # Output data to console
-    console.print(f"[bold]Sudo Policy for {host}[/bold]")
+    console.print(f"[bold]Sudo Policy for {host.name}[/bold]")
     console.print()
 
     # Prepare a Rich table to display the security policies
@@ -261,20 +242,22 @@ def check(
             "Some functionality may be limited.[/yellow]"
         )
 
+    return 0
 
-@app.command()
-def providers(
-    name: Annotated[
-        str | None, typer.Argument(help="Provider to display. All if not specified.")
-    ] = None,
-) -> None:
+
+@app.command
+def providers(name: str | None = None, /) -> int:
     """
     Show Sudo Policy requirements for available providers.
 
     Some providers require sudo privileges to execute certain operations.
     You can use this command to what they are, if applicable.
-    """
 
+    Parameters
+    ----------
+    name
+        Provider to display. All if not specified.
+    """
     # prepare a nice rich Table for providers
     providers_table = Table(
         "Provider",
@@ -288,7 +271,7 @@ def providers(
 
     if name and name not in provider_infos:
         err_console.print(f"[red]No such provider: {name}")
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error
 
     target_providers = [provider_infos[name]] if name else list(provider_infos.values())
 
@@ -302,41 +285,18 @@ def providers(
 
     console.print(providers_table)
 
+    return 0
 
-@app.command()
+
+@app.command
 def generate(
+    *,
     host: Annotated[
-        str | None,
-        typer.Option(
-            "--host",
-            "-h",
-            help="Generate sudoers snippet based on host configuration",
-            rich_help_panel="Mandatory Options (mutually exclusive)",
-            show_default=False,
-        ),
-        HostOption(),
+        Host | None, HOST_PARAMETER, Parameter(name=["--host", "-h"])
     ] = None,
-    provider: Annotated[
-        str | None,
-        typer.Option(
-            "--provider",
-            "-p",
-            help="Generate sudoers snippet for a specific provider",
-            rich_help_panel="Mandatory Options (mutually exclusive)",
-            show_default=False,
-        ),
-    ] = None,
-    user: Annotated[
-        str | None,
-        typer.Option(
-            "--user",
-            "-u",
-            help="Override the username for the sudoers snippet",
-            rich_help_panel="Optional",
-            show_default="Host username OR default username OR Current user, in that order",
-        ),
-    ] = None,
-) -> None:
+    provider: Annotated[str | None, Parameter(name=["--provider", "-p"])] = None,
+    user: Annotated[str | None, Parameter(name=["--user", "-u"])] = None,
+) -> int:
     """
     Generate a sudoers configuration for passwordless operations.
 
@@ -346,19 +306,27 @@ def generate(
     or current user if not specified.
 
     Outputs to stdout, can be redirected to a file.
+
+    Parameters
+    ----------
+    host
+        Generate sudoers snippet based on host configuration
+    provider
+        Generate sudoers snippet for a specific provider
+    user
+        Override the username for the sudoers snippet
     """
     if not host and not provider:
         err_console.print(
             "[red]You must specify either --host or --provider.[/red]\n"
             "Use --help for more information."
         )
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error
 
     if host and provider:
         err_console.print("[red]--host and --provider are mutually exclusive.[/red]")
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error
 
-    inventory = _get_inventory()
     provider_infos = _get_provider_infos()
 
     target_user: str
@@ -366,33 +334,25 @@ def generate(
     target_provider_info: ProviderInfo | None = None
 
     if host:
-        target_host = inventory.get_host(host)
-        if not target_host:
-            err_console.print(f"[red]Host '{host}' not found in inventory![/red]")
-            raise typer.Exit(2)  # Argument error
-
         # We can't generate anything for unsupported hosts.
-        if not target_host.supported:
+        if not host.supported:
             err_console.print(
-                f"[red]Host '{host}' is not running a supported OS.[/red]"
+                f"[red]Host '{host.name}' is not running a supported OS.[/red]"
             )
-            raise typer.Exit(2)  # Argument error
+            return 1  # Input error
 
-        target_provider_name = target_host.package_manager
+        target_provider_name = host.package_manager
         if not target_provider_name:
             err_console.print(
-                f"Host '{host}' does not have a package manager "
+                f"Host '{host.name}' does not have a package manager "
                 "defined in the inventory.\n"
                 "Ensure discovery has been run on the host at least once, "
                 "or specify [cyan]--provider[/cyan]."
             )
-            raise typer.Exit(2)  # Argument error
+            return 1  # Input error
 
         target_provider_info = provider_infos.get(target_provider_name)
-        target_user = _get_username(
-            user,
-            target_host,
-        )
+        target_user = _get_username(user, host)
     elif provider:
         target_provider_name = provider.lower()
         target_provider_info = provider_infos.get(target_provider_name)
@@ -402,20 +362,20 @@ def generate(
 
     if not target_provider_info:
         err_console.print(f"[red]No such provider: {target_provider_name}[/red]")
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error
 
     something_requires_sudo = (
         target_provider_info.reposync_requires_sudo
         or target_provider_info.get_updates_requires_sudo
     )
 
-    # Abort with success if nothing requires sudo
+    # Nothing to generate: provider needs no sudo. "Nothing to do" signal.
     if not something_requires_sudo:
         err_console.print(
             f"Provider '{target_provider_name}' does not require any sudo commands.\n"
             "No additional configuration needed - all operations can run as-is."
         )
-        raise typer.Exit(2)  # Argument error
+        return 3  # Nothing to do
 
     # Abort with failure if provider does not define any sudo commands
     if not target_provider_info.sudo_commands:
@@ -423,7 +383,7 @@ def generate(
             f"[red]Provider '{target_provider_name}' does not define any sudo commands![/red]\n"
             "Can't generate: This is a bug in the provider and should be reported."
         )
-        raise typer.Exit(1)  # Execution error, technically
+        return 2  # Application error
 
     # generate the sudoers config snippet with the commands from provider.SUDOERS_COMMANDS
     # and the target username
@@ -436,3 +396,5 @@ def generate(
     # Do not use rich console for this output, as it is meant to be
     # potentially redirected to a file or copy pasted
     print(sudoers_snippet)
+
+    return 0

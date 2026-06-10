@@ -1,4 +1,5 @@
 autoescaping
+autosave
 boolean
 booleans
 callee
@@ -35,6 +36,7 @@ lstrip
 misconfiguration
 nopasswd
 nullable
+passwordless
 pre
 quickstart
 repo
@@ -45,6 +47,7 @@ scrollable
 serializable
 solaris
 sshd
+stdout
 subclass
 subclasses
 subcommand

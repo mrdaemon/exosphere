@@ -114,15 +114,6 @@ wheels = [
 ]
 
 [[package]]
-name = "annotated-doc"
-version = "0.0.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/57/ba/046ceea27344560984e26a590f90bc7f4a75b06701f653222458922b558c/annotated_doc-0.0.4.tar.gz", hash = "sha256:fbcda96e87e9c92ad167c2e53839e57503ecfda18804ea28102353485033faa4", size = 7288, upload-time = "2025-11-10T22:07:42.062Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/d3/26bf1008eb3d2daa8ef4cacc7f3bfdc11818d111f7e2d0201bc6e3b49d45/annotated_doc-0.0.4-py3-none-any.whl", hash = "sha256:571ac1dc6991c450b25a9c2d84a3705e2ae7a53467b5d111c24fa8baabbed320", size = 5303, upload-time = "2025-11-10T22:07:40.673Z" },
-]
-
-[[package]]
 name = "anyio"
 version = "4.13.0"
 source = { registry = "https://pypi.org/simple" }
@@ -473,6 +464,21 @@ wheels = [
 ]
 
 [[package]]
+name = "cyclopts"
+version = "4.16.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "docstring-parser" },
+    { name = "rich" },
+    { name = "rich-rst" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/34/07/bf61d13de86d96a4c46aff00c9ca0eced44bcc8c3e16280605c1253e5720/cyclopts-4.16.1.tar.gz", hash = "sha256:8aa47bf92a5fb33abca5af05e576eecdb0d2f79893ad29238046df78370fc4a8", size = 181196, upload-time = "2026-05-25T15:29:08.518Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/8d/7f362c2fb8ef4decd2160bc24d4292c6ca658cc6d9a161b89ca5122bbdbf/cyclopts-4.16.1-py3-none-any.whl", hash = "sha256:617795392c4113a2c2cc7af716f20244900e87f23daa05442d1268d81472a592", size = 219020, upload-time = "2026-05-25T15:29:09.646Z" },
+]
+
+[[package]]
 name = "decorator"
 version = "5.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -494,6 +500,15 @@ wheels = [
 ]
 
 [[package]]
+name = "docstring-parser"
+version = "0.18.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/4d/f332313098c1de1b2d2ff91cf2674415cc7cddab2ca1b01ae29774bd5fdf/docstring_parser-0.18.0.tar.gz", hash = "sha256:292510982205c12b1248696f44959db3cdd1740237a968ea1e2e7a900eeb2015", size = 29341, upload-time = "2026-04-14T04:09:19.867Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a7/5f/ed01f9a3cdffbd5a008556fc7b2a08ddb1cc6ace7effa7340604b1d16699/docstring_parser-0.18.0-py3-none-any.whl", hash = "sha256:b3fcbed555c47d8479be0796ef7e19c2670d428d72e96da63f3a40122860374b", size = 22484, upload-time = "2026-04-14T04:09:18.638Z" },
+]
+
+[[package]]
 name = "docutils"
 version = "0.22.4"
 source = { registry = "https://pypi.org/simple" }
@@ -504,9 +519,10 @@ wheels = [
 
 [[package]]
 name = "exosphere-cli"
-version = "2.5.0.dev4"
+version = "3.0.0.dev0"
 source = { editable = "." }
 dependencies = [
+    { name = "cyclopts" },
     { name = "fabric" },
     { name = "jinja2" },
     { name = "packaging" },
@@ -515,7 +531,6 @@ dependencies = [
     { name = "pyyaml" },
     { name = "rich" },
     { name = "textual" },
-    { name = "typer" },
 ]
 
 [package.optional-dependencies]
@@ -541,12 +556,12 @@ dev = [
     { name = "sphinx-rtd-theme" },
     { name = "sphinx-tabs" },
     { name = "sphinxcontrib-spelling" },
-    { name = "sphinxcontrib-typer" },
     { name = "textual-dev" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "cyclopts", specifier = ">=4.16.1" },
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "packaging", specifier = ">=24.0" },
@@ -556,7 +571,6 @@ requires-dist = [
     { name = "rich", specifier = ">=14.1.0" },
     { name = "textual", specifier = ">=6.7.0" },
     { name = "textual-serve", marker = "extra == 'web'", specifier = ">=1.1.3" },
-    { name = "typer", specifier = ">=0.20.0" },
 ]
 provides-extras = ["web"]
 
@@ -578,7 +592,6 @@ dev = [
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
     { name = "sphinx-tabs", specifier = ">=3.4.7" },
     { name = "sphinxcontrib-spelling", specifier = ">=8.0.1" },
-    { name = "sphinxcontrib-typer", specifier = ">=0.7.2" },
     { name = "textual-dev", specifier = ">=1.7.0" },
 ]
 
@@ -1441,6 +1454,19 @@ wheels = [
 ]
 
 [[package]]
+name = "rich-rst"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pygments" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/57/56/3191bae66b08ccc637ea8120426068bcb361cc323c96404c310886937067/rich_rst-2.0.1.tar.gz", hash = "sha256:cbe236ed0901d1ec8427cc6a50bf0a34353ba28ad014dc24def68bfe7f3b9e68", size = 300570, upload-time = "2026-05-16T00:47:57.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/3d/55c17d3ebdf3cd81356002afe5bef9bb8af631db2819785b6eac845b925b/rich_rst-2.0.1-py3-none-any.whl", hash = "sha256:7ee15f345ce25fa02b582c272a6cdbaf0c21243e38061cea273cff659bf3ef61", size = 272922, upload-time = "2026-05-16T00:47:55.508Z" },
+]
+
+[[package]]
 name = "roman-numerals"
 version = "4.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1538,15 +1564,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/74/0d/f2cd247ad32633a5c36e97141a2c21b11c6279f7957bc2ff360b1e08fddd/ruff-0.15.16-py3-none-win32.whl", hash = "sha256:580378f7bd4aa25f72e74aa54948a9622f142b1e509521dd10902e886681cc1e", size = 10735541, upload-time = "2026-06-04T16:32:30.145Z" },
     { url = "https://files.pythonhosted.org/packages/8b/9e/02e845ef151b1dee585e55c4739f8e1734ae1d9f1221dff65761c162208b/ruff-0.15.16-py3-none-win_amd64.whl", hash = "sha256:408256017284eddf98fff77b29aa4fb30f586042d535b2d9befc6512f400aaec", size = 11843403, upload-time = "2026-06-04T16:32:39.76Z" },
     { url = "https://files.pythonhosted.org/packages/15/19/016553f86f207450aebebc2b2b5088d086b901cc8186c02ac4284db3bd88/ruff-0.15.16-py3-none-win_arm64.whl", hash = "sha256:8cd61783afb39638a7133ef0d2dfb1e91277593962f81b5a8423eb0b888a6121", size = 11134555, upload-time = "2026-06-04T16:33:00.136Z" },
-]
-
-[[package]]
-name = "shellingham"
-version = "1.5.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/58/15/8b3609fd3830ef7b27b655beb4b4e9c62313a4e8da8c676e142cc210d58e/shellingham-1.5.4.tar.gz", hash = "sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de", size = 10310, upload-time = "2023-10-24T04:13:40.426Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686", size = 9755, upload-time = "2023-10-24T04:13:38.866Z" },
 ]
 
 [[package]]
@@ -1725,19 +1742,6 @@ wheels = [
 ]
 
 [[package]]
-name = "sphinxcontrib-typer"
-version = "0.9.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "sphinx" },
-    { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/98/e5/a3463123d69ae431ce8708cab92de0434012bd3d1f4d8e3ea82fc1a5ed82/sphinxcontrib_typer-0.9.0.tar.gz", hash = "sha256:480175de4f0ee280cde438f830996cbc7f1f5d8838157bbe9f5dc7894615a002", size = 168792, upload-time = "2026-06-02T00:01:04.857Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/1e/eca6d5b3bc072a8c02cd1ccdd558e75aec7f19f70e91d87fdd93a46ab904/sphinxcontrib_typer-0.9.0-py3-none-any.whl", hash = "sha256:f171000b4000f392517735855e5915ffc08afaf6b6d127116f239c4715a75f5c", size = 14821, upload-time = "2026-06-02T00:01:03.431Z" },
-]
-
-[[package]]
 name = "starlette"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1797,21 +1801,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c2/7e/62fecc552853ec6a178cb1faa2d6f73b34d5512924770e7b08b58ff14148/textual_serve-1.1.3.tar.gz", hash = "sha256:f8f636ae2f5fd651b79d965473c3e9383d3521cdf896f9bc289709185da3f683", size = 448340, upload-time = "2025-11-01T16:22:36.723Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/fe/108e7773349d500cf363328c3d0b7123e03feda51e310a3a5b136ac8ca71/textual_serve-1.1.3-py3-none-any.whl", hash = "sha256:207a472bc6604e725b1adab4ab8bf12f4c4dc25b04eea31e4d04731d8bf30f18", size = 447339, upload-time = "2025-11-01T16:22:35.209Z" },
-]
-
-[[package]]
-name = "typer"
-version = "0.26.7"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "annotated-doc" },
-    { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "rich" },
-    { name = "shellingham" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/ed/ef06584ccdd5c410df0837951ecd7e15d9a6144ea1bd4c73cecab1a89891/typer-0.26.7.tar.gz", hash = "sha256:e314a34c617e419c091b2830dda3ea1f257134ff593061a8f5b9717ab8dddb3a", size = 201709, upload-time = "2026-06-03T07:18:06.843Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/24/25/2201973529af2c954de0bb725323c3aaed6d7f0ceee8f550dec9185df013/typer-0.26.7-py3-none-any.whl", hash = "sha256:5c87cfbc5d34491c5346ebf49c23e18d56ccb863268d3a8d592b26087c2f5e58", size = 122456, upload-time = "2026-06-03T07:18:05.732Z" },
 ]
 
 [[package]]

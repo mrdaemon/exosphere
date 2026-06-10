@@ -13,10 +13,46 @@ find what you need quickly.
    You can get help for any specific command by running ``exosphere <command> --help``
    or ``help <command>`` in interactive mode.
 
-.. typer:: exosphere.cli:app
-   :prog: exosphere
-   :theme: dimmed_monokai
-   :show-nested:
-   :make-sections:
-   :preferred: text
-   :width: 80
+inventory
+---------
+
+.. cyclopts:: exosphere.commands.inventory:app
+   :include-hidden:
+
+.. _command-ref-host:
+
+host
+----
+
+.. cyclopts:: exosphere.commands.host:app
+
+connections
+-----------
+
+.. cyclopts:: exosphere.commands.connections:app
+   :include-hidden:
+
+ui
+--
+
+.. cyclopts:: exosphere.commands.ui:app
+
+configuration
+-------------
+
+.. cyclopts:: exosphere.commands.config:app
+
+report
+------
+
+.. cyclopts:: exosphere.commands.report:app
+
+sudo
+----
+
+.. cyclopts:: exosphere.commands.sudo:app
+
+version
+-------
+
+.. cyclopts:: exosphere.commands.version:app

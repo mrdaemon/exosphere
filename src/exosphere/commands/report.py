@@ -3,16 +3,16 @@ Reporting command module
 """
 
 from pathlib import Path
+from typing import Annotated
 
-import typer
+from cyclopts import App, Parameter, validators
 from rich.json import JSON
-from typing_extensions import Annotated
 
 from exosphere.commands.utils import (
-    HostArgument,
+    HostArg,
     console,
     err_console,
-    get_hosts_or_error,
+    get_hosts_or_all,
 )
 from exosphere.reporting import OutputFormat, ReportRenderer, ReportScope, ReportType
 
@@ -24,78 +24,35 @@ Allows exporting the state of the inventory to various formats, including
 JSON for use in other tools or custom reporting.
 """
 
-app = typer.Typer(
+app = App(
+    name="report",
     help=ROOT_HELP,
-    no_args_is_help=True,
+    help_flags=["--help"],
+    console=console,
+    error_console=err_console,
 )
 
 
-@app.command()
+@app.command
 def generate(
+    *hosts: HostArg,
     format: Annotated[
-        OutputFormat,
-        typer.Option(
-            "--format",
-            "-f",
-            help="Output format for the report",
-        ),
+        OutputFormat, Parameter(name=["--format", "-f"])
     ] = OutputFormat.text,
     output: Annotated[
         Path | None,
-        typer.Option(
-            "--output",
-            "-o",
-            help="Write report to file (defaults to stdout)",
-            file_okay=True,
-            dir_okay=False,
-        ),
+        Parameter(name=["--output", "-o"], validator=validators.Path(dir_okay=False)),
     ] = None,
     updates_only: Annotated[
-        bool,
-        typer.Option(
-            "--updates-only",
-            "-u",
-            help="Only include hosts with available updates",
-        ),
+        bool, Parameter(name=["--updates-only", "-u"], negative="")
     ] = False,
     security_only: Annotated[
-        bool,
-        typer.Option(
-            "--security-updates-only",
-            "-s",
-            help="Only report security updates",
-        ),
+        bool, Parameter(name=["--security-updates-only", "-s"], negative="")
     ] = False,
-    tee: Annotated[
-        bool,
-        typer.Option(
-            "--tee",
-            help="Also print report to stdout when using --output",
-        ),
-    ] = False,
-    quiet: Annotated[
-        bool,
-        typer.Option(
-            "--quiet",
-            "-q",
-            help="Suppress informational messages",
-        ),
-    ] = False,
-    navigation: Annotated[
-        bool,
-        typer.Option(
-            help="Include navigation section (html only)",
-        ),
-    ] = True,
-    hosts: Annotated[
-        list[str] | None,
-        typer.Argument(
-            help="One or more hosts to include (all if not specified)",
-            metavar="[HOST]...",
-        ),
-        HostArgument(multiple=True),
-    ] = None,
-) -> None:
+    tee: Annotated[bool, Parameter(name=["--tee"], negative="")] = False,
+    quiet: Annotated[bool, Parameter(name=["--quiet", "-q"], negative="")] = False,
+    navigation: bool = True,
+) -> int:
     """
     Generate a report of the current inventory state.
 
@@ -108,15 +65,33 @@ def generate(
     the report will include all hosts in the inventory.
 
     Note: Undiscovered or unsupported hosts are excluded from the report.
-    """
 
+    Parameters
+    ----------
+    hosts
+        One or more hosts to include (all if not specified)
+    format
+        Output format for the report
+    output
+        Write report to file (defaults to stdout)
+    updates_only
+        Only include hosts with available updates
+    security_only
+        Only report security updates
+    tee
+        Also print report to stdout when using --output
+    quiet
+        Suppress informational messages
+    navigation
+        Include navigation section (html only)
+    """
     # Default state is a full report of all hosts
     report_type = ReportType.full
     report_scope = ReportScope.complete
 
-    selected_hosts = get_hosts_or_error(hosts, supported_only=True)
+    selected_hosts = get_hosts_or_all(hosts, supported_only=True)
     if selected_hosts is None:
-        raise typer.Exit(code=2)  # Argument error
+        return 1  # Input error: no hosts to report on
 
     # Record count of hosts involved in the report before
     # any kind of filtering. This is used by the report to
@@ -133,7 +108,7 @@ def generate(
             err_console.print(
                 "No hosts with available updates found, nothing to report."
             )
-            raise typer.Exit(code=0)
+            return 0  # Success: nothing to report
 
         report_type = ReportType.updates_only
 
@@ -143,7 +118,7 @@ def generate(
             err_console.print(
                 "No hosts with security updates found, nothing to report."
             )
-            raise typer.Exit(code=0)
+            return 0  # Success: nothing to report
 
         report_type = ReportType.security_only
 
@@ -164,7 +139,7 @@ def generate(
         # This should never happen due to early validation
         err_console.print(f"[red]Internal Error: Unsupported format: {format}[/red]")
         err_console.print("This is a bug and should be reported.")
-        raise typer.Exit(code=1)  # Execution error, technically
+        return 2  # Application error
 
     content = render_method(
         selected_hosts,
@@ -180,7 +155,7 @@ def generate(
             output.write_text(content, encoding="utf-8")
         except Exception as e:
             err_console.print(f"[red]Failed to write to {output}: {e}[/red]")
-            raise typer.Exit(code=1)  # Execution error
+            return 2  # Application error
 
         if not tee and not quiet:
             err_console.print(
@@ -201,3 +176,5 @@ def generate(
             # Rich will write to stderr anyways to notify of the error,
             # this just prevents the humongous backtrace.
             pass
+
+    return 0

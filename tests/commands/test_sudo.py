@@ -1,14 +1,18 @@
 from unittest.mock import MagicMock
 
 import pytest
-from typer.testing import CliRunner
 
 from exosphere.commands import sudo
+from exosphere.commands import utils as utils_module
 from exosphere.config import Configuration
 from exosphere.objects import Host
 from exosphere.security import SudoPolicy
 
-runner = CliRunner(env={"NO_COLOR": "1"})
+
+@pytest.fixture(autouse=True)
+def _console(patch_console):
+    """Install deterministic consoles for the sudo command module."""
+    patch_console(sudo)
 
 
 @pytest.fixture(autouse=True)
@@ -29,7 +33,7 @@ def mock_inventory(mocker):
     """
     mock_inventory = mocker.MagicMock()
     mock_inventory.get_host.return_value = None
-    mocker.patch("exosphere.commands.sudo.context.inventory", mock_inventory)
+    mocker.patch.object(utils_module.context, "inventory", mock_inventory)
     return mock_inventory
 
 
@@ -134,47 +138,54 @@ def patch_local_user(mocker):
 class TestPolicyCommand:
     """Tests for the 'sudo policy' command."""
 
-    def test_shows_global_policy(self):
+    def test_shows_global_policy(self, capsys):
         """
         Test that the sudo policy command returns the global sudo policy
         from the configuration.
         """
         expected_policy = Configuration.DEFAULTS["options"]["default_sudo_policy"]
 
-        result = runner.invoke(sudo.app, ["policy"])
-        assert result.exit_code == 0
-        assert f"Global SudoPolicy: {expected_policy}" in result.output
+        code = sudo.app(["policy"], result_action="return_value")
+        assert code is None  # FIXME: policy returns None?
+        assert f"Global SudoPolicy: {expected_policy}" in capsys.readouterr().out
 
 
 class TestCheckCommand:
     """Tests for the 'sudo check' command."""
 
-    def test_with_invalid_host(self):
+    def test_with_invalid_host(self, capsys):
         """
-        Test that help is displayed when no host is specified.
-        """
-        result = runner.invoke(sudo.app, ["check", "testhost"])
-        assert result.exit_code == 2
-        assert "Host 'testhost' not found in inventory!" in result.output
+        Test that an unknown host is rejected by the converter.
 
-    def test_basic_check(self, mock_inventory, dummy_host):
+        Host resolution happens in a converter, so an unknown name is an
+        input error (exit 1) raised during argument binding.
+        """
+        with pytest.raises(SystemExit) as exc_info:
+            sudo.app(["check", "testhost"])
+
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "Host 'testhost' not found in inventory" in captured.out + captured.err
+
+    def test_basic_check(self, mock_inventory, dummy_host, capsys):
         """
         Test the sudo check command with a dummy host.
         """
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+        code = sudo.app(["check", "dummy_host"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Sudo Policy for dummy_host" in result.output
-        assert "Host Policy:" in result.output
-        assert "skip (global)" in result.output
-        assert "Can Sync Repositories:  No" in result.output
-        assert "Can Refresh Updates:    Yes" in result.output
-        assert "operations require sudo privileges" in result.output
+        captured = capsys.readouterr()
+        assert code == 0
+        assert "Sudo Policy for dummy_host" in captured.out
+        assert "Host Policy:" in captured.out
+        assert "skip (global)" in captured.out
+        assert "Can Sync Repositories:  No" in captured.out
+        assert "Can Refresh Updates:    Yes" in captured.out
+        assert "operations require sudo privileges" in captured.err
 
-    def test_with_local_policy(self, mock_inventory, dummy_host):
+    def test_with_local_policy(self, mock_inventory, dummy_host, capsys):
         """
         Test the sudo check command with a local policy set on the host.
         """
@@ -182,15 +193,16 @@ class TestCheckCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+        code = sudo.app(["check", "dummy_host"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "nopasswd (local)" in result.output
-        assert "Can Sync Repositories:  Yes" in result.output
-        assert "Can Refresh Updates:    Yes" in result.output
-        assert "operations require sudo privileges" not in result.output
+        captured = capsys.readouterr()
+        assert code == 0
+        assert "nopasswd (local)" in captured.out
+        assert "Can Sync Repositories:  Yes" in captured.out
+        assert "Can Refresh Updates:    Yes" in captured.out
+        assert "operations require sudo privileges" not in captured.err
 
-    def test_with_unknown_package_manager(self, mock_inventory, dummy_host):
+    def test_with_unknown_package_manager(self, mock_inventory, dummy_host, capsys):
         """
         Test the sudo check command with a host that has an unknown package manager.
         """
@@ -198,15 +210,15 @@ class TestCheckCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+        code = sudo.app(["check", "dummy_host"], result_action="return_value")
 
-        assert result.exit_code == 1
+        assert code == 2  # Application error
         assert (
             "Host 'dummy_host' has an unknown package manager: TOTALLY_UNKNOWN_PROVIDER"
-            in result.output
+            in capsys.readouterr().err
         )
 
-    def test_with_no_package_manager(self, mock_inventory, dummy_host):
+    def test_with_no_package_manager(self, mock_inventory, dummy_host, capsys):
         """
         Test the sudo check command with a host that has no package manager.
         """
@@ -214,14 +226,15 @@ class TestCheckCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+        code = sudo.app(["check", "dummy_host"], result_action="return_value")
 
-        assert result.exit_code == 1
+        assert code == 2  # Application error
         assert (
-            "Host 'dummy_host' does not have a package manager defined" in result.output
+            "Host 'dummy_host' does not have a package manager defined"
+            in capsys.readouterr().err
         )
 
-    def test_with_unsupported_host(self, mock_inventory, dummy_host):
+    def test_with_unsupported_host(self, mock_inventory, dummy_host, capsys):
         """
         Test the sudo check command with a host that is unsupported.
         """
@@ -229,46 +242,50 @@ class TestCheckCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["check", "dummy_host"])
+        code = sudo.app(["check", "dummy_host"], result_action="return_value")
 
-        assert result.exit_code == 2
-        assert "Host 'dummy_host' is not running a supported OS." in result.output
+        assert code == 1  # Input error
+        assert (
+            "Host 'dummy_host' is not running a supported OS."
+            in capsys.readouterr().err
+        )
 
 
 class TestProvidersCommand:
     """Tests for the 'sudo providers' command."""
 
-    def test_lists_all_providers(self, mock_pkgmanager_factory):
+    def test_lists_all_providers(self, mock_pkgmanager_factory, capsys):
         """
         Test that the sudo providers command lists all available sudo providers.
         """
-        result = runner.invoke(sudo.app, ["providers"])
+        code = sudo.app(["providers"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "Providers Requirements" in result.output
-        assert "Apt" in result.output
-        assert "Dnf" in result.output
-        assert "Yum" in result.output
-        assert "Pkg" in result.output
-        assert "TestGuy" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Providers Requirements" in out
+        assert "Apt" in out
+        assert "Dnf" in out
+        assert "Yum" in out
+        assert "Pkg" in out
+        assert "TestGuy" in out
 
-        assert "Debian/Ubuntu Derivatives" in result.output
-        assert "Fedora/RHEL/CentOS" in result.output
-        assert "FreeBSD" in result.output
-        assert "RHEL/CentOS 7 and earlier" in result.output
-        assert "testguy" in result.output  # Match for no Description in map
+        assert "Debian/Ubuntu Derivatives" in out
+        assert "Fedora/RHEL/CentOS" in out
+        assert "FreeBSD" in out
+        assert "RHEL/CentOS 7 and earlier" in out
+        assert "testguy" in out  # Match for no Description in map
 
-        assert result.output.count("Requires Sudo") == 3
-        assert result.output.count("No Privileges") == 7
+        assert out.count("Requires Sudo") == 3
+        assert out.count("No Privileges") == 7
 
-    def test_with_unknown_provider(self, mock_pkgmanager_factory):
+    def test_with_unknown_provider(self, mock_pkgmanager_factory, capsys):
         """
         Ensure the program returns an error on invalid providers
         """
-        result = runner.invoke(sudo.app, ["providers", "unknown_provider"])
+        code = sudo.app(["providers", "unknown_provider"], result_action="return_value")
 
-        assert result.exit_code == 2
-        assert "No such provider: unknown_provider" in result.output
+        assert code == 1  # Input error
+        assert "No such provider: unknown_provider" in capsys.readouterr().err
 
     @pytest.mark.parametrize(
         "missing_method",
@@ -276,7 +293,7 @@ class TestProvidersCommand:
         ids=["missing_reposync", "missing_get_updates"],
     )
     def test_with_non_conforming_provider(
-        self, mocker, mock_pkgmanager_factory, missing_method
+        self, mocker, mock_pkgmanager_factory, missing_method, capsys
     ):
         """
         Ensure the program returns non-zero and an error when the
@@ -297,29 +314,30 @@ class TestProvidersCommand:
         registry = mock_pkgmanager_factory.get_registry.return_value
         registry["badprovider"] = bad_provider
 
-        result = runner.invoke(sudo.app, ["providers"])
+        code = sudo.app(["providers"], result_action="return_value")
 
-        assert result.exit_code == 0  # Command should still succeed but show warning
+        captured = capsys.readouterr()
+        assert code == 0  # Command should still succeed but show warning
         assert (
-            "Provider badprovider does not implement required methods!" in result.output
+            "Provider badprovider does not implement required methods!" in captured.err
         )
-        assert "This is likely a bug." in result.output
+        assert "This is likely a bug." in captured.err
 
 
 class TestGenerateCommand:
     """Tests for the 'sudo generate' command."""
 
-    def test_no_arguments(self):
+    def test_no_arguments(self, capsys):
         """
         Test that we handle no arguments gracefully
         """
-        result = runner.invoke(sudo.app, ["generate"])
+        code = sudo.app(["generate"], result_action="return_value")
 
-        assert result.exit_code == 2
-        assert "You must specify either --host or --provider" in result.output
+        assert code == 1  # Input error
+        assert "You must specify either --host or --provider" in capsys.readouterr().err
 
     def test_host_and_provider_mutually_exclusive(
-        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
     ):
         """
         Test the sudo generate command with both host and provider specified.
@@ -328,40 +346,50 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(
-            sudo.app, ["generate", "--host", "dummy_host", "--provider", "apt"]
+        code = sudo.app(
+            ["generate", "--host", "dummy_host", "--provider", "apt"],
+            result_action="return_value",
         )
 
-        assert result.exit_code == 2
-        assert "--host and --provider are mutually exclusive" in result.output
+        assert code == 1  # Input error
+        assert "--host and --provider are mutually exclusive" in capsys.readouterr().err
 
-    def test_with_host(self, mock_inventory, dummy_host, mock_pkgmanager_factory):
+    def test_with_host(
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
+    ):
         """
         Test the sudo generate command with a standard host with username
         """
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
+        code = sudo.app(
+            ["generate", "--host", "dummy_host"], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
-        assert "Generated for Debian" in result.output
-        assert "Cmnd_Alias EXOSPHERE_CMDS = /bin/test-command" in result.output
-        assert "testuser ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Generated for Debian" in out
+        assert "Cmnd_Alias EXOSPHERE_CMDS = /bin/test-command" in out
+        assert "testuser ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in out
 
-    def test_with_invalid_host(self, mock_inventory, mock_pkgmanager_factory):
+    def test_with_invalid_host(self, mock_inventory, mock_pkgmanager_factory, capsys):
         """
         Test the sudo generate command with an invalid host.
         """
         mock_inventory.get_host.return_value = None
 
-        result = runner.invoke(sudo.app, ["generate", "--host", "invalid_host"])
+        with pytest.raises(SystemExit) as exc_info:
+            sudo.app(["generate", "--host", "invalid_host"])
 
-        assert result.exit_code == 2
-        assert "Host 'invalid_host' not found in inventory!" in result.output
+        assert exc_info.value.code == 1  # Input error from converter
+        captured = capsys.readouterr()
+        assert (
+            "Host 'invalid_host' not found in inventory" in captured.out + captured.err
+        )
 
     def test_with_host_undiscovered(
-        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
     ):
         """
         Test the sudo generate command with a host that is not discovered.
@@ -370,13 +398,18 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
+        code = sudo.app(
+            ["generate", "--host", "dummy_host"], result_action="return_value"
+        )
 
-        assert result.exit_code == 2
-        assert "Host 'dummy_host' does not have a package manager" in result.output
+        assert code == 1  # Input error
+        assert (
+            "Host 'dummy_host' does not have a package manager"
+            in capsys.readouterr().err
+        )
 
     def test_with_host_unsupported(
-        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
     ):
         """
         Test the sudo generate command with a host that is unsupported.
@@ -385,13 +418,18 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
+        code = sudo.app(
+            ["generate", "--host", "dummy_host"], result_action="return_value"
+        )
 
-        assert result.exit_code == 2
-        assert "Host 'dummy_host' is not running a supported OS." in result.output
+        assert code == 1  # Input error
+        assert (
+            "Host 'dummy_host' is not running a supported OS."
+            in capsys.readouterr().err
+        )
 
     def test_with_host_no_username_fallback(
-        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
     ):
         """
         Test the sudo generate command with a standard host without username
@@ -401,14 +439,17 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
+        code = sudo.app(
+            ["generate", "--host", "dummy_host"], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
-        assert "Generated for Debian" in result.output
-        assert "current_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Generated for Debian" in out
+        assert "current_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in out
 
     def test_with_host_global_username_fallback(
-        self, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
+        self, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
     ):
         """
         Test the sudo generate command with a standard host without username
@@ -420,15 +461,18 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
+        code = sudo.app(
+            ["generate", "--host", "dummy_host"], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
-        assert "Generated for Debian" in result.output
-        assert "current_user" not in result.output
-        assert "global_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Generated for Debian" in out
+        assert "current_user" not in out
+        assert "global_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in out
 
     def test_with_host_username_precedence(
-        self, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
+        self, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
     ):
         """
         Test the sudo generate command with a host and a specified username.
@@ -439,18 +483,26 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(
-            sudo.app, ["generate", "--host", "dummy_host", "--user", "specified_user"]
+        code = sudo.app(
+            ["generate", "--host", "dummy_host", "--user", "specified_user"],
+            result_action="return_value",
         )
 
-        assert result.exit_code == 0
-        assert "Generated for Debian" in result.output
-        assert "global_user" not in result.output
-        assert "host_user" not in result.output
-        assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Generated for Debian" in out
+        assert "global_user" not in out
+        assert "host_user" not in out
+        assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in out
 
     def test_with_host_no_username_fallback_fails(
-        self, mocker, app_config, mock_inventory, dummy_host, mock_pkgmanager_factory
+        self,
+        mocker,
+        app_config,
+        mock_inventory,
+        dummy_host,
+        mock_pkgmanager_factory,
+        capsys,
     ):
         """
         Test the sudo generate command with a host that has no username fallback.
@@ -462,13 +514,14 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(sudo.app, ["generate", "--host", "dummy_host"])
+        with pytest.raises(SystemExit) as exc_info:
+            sudo.app(["generate", "--host", "dummy_host"])
 
-        assert result.exit_code == 2
-        assert "No username could be selected" in result.output
+        assert exc_info.value.code == 1  # Input error from _get_username
+        assert "No username could be selected" in capsys.readouterr().err
 
     def test_with_username_provided_but_invalid(
-        self, mock_inventory, dummy_host, mock_pkgmanager_factory
+        self, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys
     ):
         """
         Test the sudo generate command with an invalid username.
@@ -477,12 +530,11 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        result = runner.invoke(
-            sudo.app, ["generate", "--host", "dummy_host", "--user", "invalid\\;;user!"]
-        )
+        with pytest.raises(SystemExit) as exc_info:
+            sudo.app(["generate", "--host", "dummy_host", "--user", "invalid\\;;user!"])
 
-        assert result.exit_code == 2
-        assert "Invalid username 'invalid\\;;user!'" in result.output
+        assert exc_info.value.code == 1  # Input error from _get_username
+        assert "Invalid username 'invalid\\;;user!'" in capsys.readouterr().err
 
     @pytest.mark.parametrize(
         "provider_name, provider_desc, expected_commands",
@@ -496,56 +548,76 @@ class TestGenerateCommand:
         ],
     )
     def test_with_provider(
-        self, mock_pkgmanager_factory, provider_name, provider_desc, expected_commands
+        self,
+        mock_pkgmanager_factory,
+        provider_name,
+        provider_desc,
+        expected_commands,
+        capsys,
     ):
         """
         Test the sudo generate command with a specific provider.
         """
-        result = runner.invoke(sudo.app, ["generate", "--provider", provider_name])
+        code = sudo.app(
+            ["generate", "--provider", provider_name], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
-        assert f"Generated for {provider_desc}" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert f"Generated for {provider_desc}" in out
         assert (
             f"Cmnd_Alias EXOSPHERE_CMDS = {', '.join(expected_commands) if len(expected_commands) > 1 else expected_commands[0]}"
-            in result.output
+            in out
         )
-        assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
+        assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in out
 
-    def test_with_unknown_provider(self):
+    def test_with_unknown_provider(self, capsys):
         """
         Ensure that we handle unknown providers gracefully.
         """
-        result = runner.invoke(sudo.app, ["generate", "--provider", "unknown_provider"])
+        code = sudo.app(
+            ["generate", "--provider", "unknown_provider"],
+            result_action="return_value",
+        )
 
-        assert result.exit_code == 2
-        assert "No such provider: unknown_provider" in result.output
+        assert code == 1  # Input error
+        assert "No such provider: unknown_provider" in capsys.readouterr().err
 
-    def test_with_provider_and_username(self, app_config, mock_pkgmanager_factory):
+    def test_with_provider_and_username(
+        self, app_config, mock_pkgmanager_factory, capsys
+    ):
         """
         Test the sudo generate command with a specific provider and a specified username.
         """
         app_config["options"]["default_username"] = "global_user"
 
-        result = runner.invoke(
-            sudo.app, ["generate", "--provider", "apt", "--user", "specified_user"]
+        code = sudo.app(
+            ["generate", "--provider", "apt", "--user", "specified_user"],
+            result_action="return_value",
         )
 
-        assert result.exit_code == 0
-        assert "Generated for Debian" in result.output
-        assert "global_user" not in result.output
-        assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in result.output
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Generated for Debian" in out
+        assert "global_user" not in out
+        assert "specified_user ALL=(root) NOPASSWD: EXOSPHERE_CMDS" in out
 
-    def test_with_provider_no_sudo_required(self, mock_pkgmanager_factory):
+    def test_with_provider_no_sudo_required(self, mock_pkgmanager_factory, capsys):
         """
         Test the sudo generate command with a specific provider but
         it does not require sudo
         """
-        result = runner.invoke(sudo.app, ["generate", "--provider", "dnf"])
+        code = sudo.app(["generate", "--provider", "dnf"], result_action="return_value")
 
-        assert result.exit_code == 2
-        assert "Provider 'dnf' does not require any sudo commands" in result.output
+        assert code == 3  # Nothing to do
+        assert (
+            "Provider 'dnf' does not require any sudo commands"
+            in capsys.readouterr().err
+        )
 
-    def test_with_provider_no_sudo_commands_defined(self, mock_pkgmanager_factory):
+    def test_with_provider_no_sudo_commands_defined(
+        self, mock_pkgmanager_factory, capsys
+    ):
         """
         Test the sudo generate command with a specific provider but
         it does not have any sudo commands defined.
@@ -562,11 +634,14 @@ class TestGenerateCommand:
 
         mock_pkgmanager_factory.get_registry.return_value["fucky"] = FuckyProvider
 
-        result = runner.invoke(sudo.app, ["generate", "--provider", "fucky"])
+        code = sudo.app(
+            ["generate", "--provider", "fucky"], result_action="return_value"
+        )
 
-        assert result.exit_code == 1
-        assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" not in result.output
-        assert "Provider 'fucky' does not define any sudo commands!" in result.output
+        captured = capsys.readouterr()
+        assert code == 2  # Application error
+        assert "ALL=(root) NOPASSWD: EXOSPHERE_CMDS" not in captured.out
+        assert "Provider 'fucky' does not define any sudo commands!" in captured.err
 
 
 class TestSudoCommands:
@@ -580,14 +655,22 @@ class TestSudoCommands:
         ],
         ids=["check", "generate"],
     )
-    def test_commands_bail_with_uninitialized_inventory(self, mocker, command, args):
+    def test_commands_bail_with_uninitialized_inventory(
+        self, mocker, command, args, capsys
+    ):
         """
         Test that sudo commands bail out with an uninitialized inventory.
+
+        Host resolution runs through get_inventory() in the converter, so an
+        uninitialized inventory aborts during binding with an application
+        error (exit 2).
         """
         # Patch the inventory to simulate it being uninitialized
-        mocker.patch("exosphere.commands.sudo.context.inventory", None)
+        mocker.patch.object(utils_module.context, "inventory", None)
 
-        result = runner.invoke(sudo.app, [command] + args)
+        with pytest.raises(SystemExit) as exc_info:
+            sudo.app([command] + args)
 
-        assert result.exit_code == 1
-        assert "Inventory is not initialized" in result.output
+        assert exc_info.value.code == 2  # Application error
+        captured = capsys.readouterr()
+        assert "Inventory is not initialized" in captured.out + captured.err

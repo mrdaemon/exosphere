@@ -3,8 +3,9 @@ Inventory command module
 """
 
 import logging
+from typing import Annotated
 
-import typer
+from cyclopts import App, Parameter
 from rich import box
 from rich.panel import Panel
 from rich.progress import (
@@ -14,15 +15,15 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
+from rich.prompt import Confirm
 from rich.table import Table
-from typing_extensions import Annotated
 
 from exosphere import app_config
 from exosphere.commands.utils import (
-    HostArgument,
+    HostArg,
     console,
     err_console,
-    get_hosts_or_error,
+    get_hosts_or_all,
     get_inventory,
     run_task_with_progress,
 )
@@ -48,25 +49,20 @@ ROOT_HELP = """
 Inventory and Bulk Management Commands
 
 Commands to bulk query, discover and refresh hosts in the inventory.
-Most commands acccept an optional list of host names to operate on.
+Most commands accept an optional list of host names to operate on.
 """
 
-app = typer.Typer(
+app = App(
+    name="inventory",
     help=ROOT_HELP,
-    no_args_is_help=True,
+    help_flags=["--help"],
+    console=console,
+    error_console=err_console,
 )
 
 
-@app.command()
-def discover(
-    names: Annotated[
-        list[str] | None,
-        typer.Argument(
-            help="Host(s) to discover, all if not specified", metavar="[HOST]..."
-        ),
-        HostArgument(multiple=True),
-    ] = None,
-) -> None:
+@app.command
+def discover(*names: HostArg) -> int:
     """
     Gather platform information for hosts
 
@@ -79,16 +75,20 @@ def discover(
     and gather their current state, including Operating System, flavor,
     version and pick a Package Manager implementation for further
     operations.
+
+    Parameters
+    ----------
+    names
+        Host(s) to discover, all if not specified
     """
     logger = logging.getLogger(__name__)
     logger.info("Gathering platform information for hosts")
 
     inventory: Inventory = get_inventory()
 
-    hosts = get_hosts_or_error(names)
-
+    hosts = get_hosts_or_all(names)
     if hosts is None:
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error: no hosts to operate on
 
     errors = run_task_with_progress(
         inventory=inventory,
@@ -104,8 +104,6 @@ def discover(
         "Host", "Error", show_header=False, show_lines=False, box=box.SIMPLE_HEAD
     )
 
-    exit_code = 0
-
     if errors:
         console.print()
         console.print("The following hosts could not be discovered due to errors:")
@@ -113,37 +111,22 @@ def discover(
             errors_table.add_row(host, f"[bold red]{error}[/bold red]")
 
         console.print(errors_table)
-        exit_code = 1  # Execution error
 
     if app_config["options"]["cache_autosave"]:
         save()
 
-    raise typer.Exit(code=exit_code)
+    return 2 if errors else 0  # Application error if any host failed
 
 
-@app.command()
+@app.command(synonym="sync")
 def refresh(
+    *names: HostArg,
     discover: Annotated[
-        bool, typer.Option("-d", "--discover", help="Also refresh platform information")
+        bool, Parameter(name=["--discover", "-d"], negative="")
     ] = False,
-    sync: Annotated[
-        bool,
-        typer.Option(
-            "-s", "--sync", help="Sync the package repositories as well as updates"
-        ),
-    ] = False,
-    verbose: Annotated[
-        bool,
-        typer.Option("-v", "--verbose", help="Show verbose output during operations"),
-    ] = False,
-    names: Annotated[
-        list[str] | None,
-        typer.Argument(
-            help="Host(s) to refresh, all if not specified", metavar="[HOST]..."
-        ),
-        HostArgument(multiple=True),
-    ] = None,
-) -> None:
+    sync: Annotated[bool, Parameter(name=["--sync", "-s"], negative="")] = False,
+    verbose: Annotated[bool, Parameter(name=["--verbose", "-v"], negative="")] = False,
+) -> int:
     """
     Refresh the update data for all hosts
 
@@ -164,16 +147,26 @@ def refresh(
     By default, only the progress bar is shown during the operation.
     If --verbose is specified, the name and completion status of each host
     will be shown in real time.
+
+    Parameters
+    ----------
+    names
+        Host(s) to refresh, all if not specified
+    discover
+        Also refresh platform information
+    sync
+        Sync the package repositories as well as updates
+    verbose
+        Show verbose output during operations
     """
     logger = logging.getLogger(__name__)
     logger.info("Refreshing inventory data")
 
     inventory: Inventory = get_inventory()
 
-    hosts = get_hosts_or_error(names)
-
+    hosts = get_hosts_or_all(names)
     if hosts is None:
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error: no hosts to operate on
 
     # Start with discovery, if requested.
     # Displays a simple spinner with no ETA, and no progress bar.
@@ -239,19 +232,13 @@ def refresh(
 
         console.print(errors_table)
 
-        raise typer.Exit(code=1)  # Execution error
+        return 2  # Application error
+
+    return 0
 
 
-@app.command()
-def ping(
-    names: Annotated[
-        list[str] | None,
-        typer.Argument(
-            help="Host(s) to ping, all if not specified", metavar="[HOST]..."
-        ),
-        HostArgument(multiple=True),
-    ] = None,
-) -> None:
+@app.command
+def ping(*names: HostArg) -> int:
     """
     Ping all hosts in the inventory
 
@@ -264,17 +251,21 @@ def ping(
     Invoke this to update the online status of hosts if
     any have gone offline and exosphere refuses to run
     an operation on them.
+
+    Parameters
+    ----------
+    names
+        Host(s) to ping, all if not specified
     """
     logger = logging.getLogger(__name__)
     logger.info("Pinging all hosts in the inventory")
 
     inventory: Inventory = get_inventory()
 
-    hosts = get_hosts_or_error(names)
-
+    hosts = get_hosts_or_all(names)
     if hosts is None:
         logger.error("No host(s) found, aborting")
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error: no hosts to operate on
 
     with Progress(
         transient=True,
@@ -303,60 +294,24 @@ def ping(
         save()
 
     if error_count > 0:
-        raise typer.Exit(code=1)  # Execution error
+        return 2  # Application error
+
+    return 0
 
 
-@app.command()
+@app.command(synonym=["list", "show"])
 def status(
+    *names: HostArg,
     updates_only: Annotated[
-        bool,
-        typer.Option(
-            "-u",
-            "--updates-only",
-            help="Show only hosts with pending updates",
-        ),
+        bool, Parameter(name=["--updates-only", "-u"], negative="")
     ] = False,
     security_only: Annotated[
-        bool,
-        typer.Option(
-            "-s",
-            "--security-only",
-            help="Show only hosts with pending security updates (implies --updates-only)",
-        ),
+        bool, Parameter(name=["--security-only", "-s"], negative="")
     ] = False,
-    sort: Annotated[
-        SortField | None,
-        typer.Option(
-            "-o",
-            "--sort",
-            metavar="COLUMN",
-            help=f"Sort the table by the given column: {SORT_COLUMNS}",
-        ),
-    ] = None,
-    reverse: Annotated[
-        bool,
-        typer.Option(
-            "-r",
-            "--reverse",
-            help="Reverse the sort order (requires --sort)",
-        ),
-    ] = False,
-    full: Annotated[
-        bool,
-        typer.Option(
-            "-f",
-            "--full",
-            help="Show additional columns, including host descriptions",
-        ),
-    ] = False,
-    names: Annotated[
-        list[str] | None,
-        typer.Argument(
-            help="Host(s) to show status for, all if not specified", metavar="[HOST]..."
-        ),
-        HostArgument(multiple=True),
-    ] = None,
-) -> None:
+    sort: Annotated[SortField | None, Parameter(name=["--sort", "-o"])] = None,
+    reverse: Annotated[bool, Parameter(name=["--reverse", "-r"], negative="")] = False,
+    full: Annotated[bool, Parameter(name=["--full", "-f"], negative="")] = False,
+) -> int:
     """
     Show hosts and their status
 
@@ -379,15 +334,30 @@ def status(
     Use --full to include extra columns, such as the host description.
 
     No matches when filtering will exit with code 3.
+
+    Parameters
+    ----------
+    names
+        Host(s) to show status for, all if not specified
+    updates_only
+        Show only hosts with pending updates
+    security_only
+        Show only hosts with pending security updates (implies --updates-only)
+    sort
+        Sort the table by the given column
+    reverse
+        Reverse the sort order (requires --sort)
+    full
+        Show additional columns, including host descriptions
     """
     logger = logging.getLogger(__name__)
     logger.info("Showing status of all hosts")
 
     inventory: Inventory = get_inventory()
 
-    hosts = get_hosts_or_error(names)
+    hosts = get_hosts_or_all(names)
     if hosts is None:
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error: no hosts to operate on
 
     # Map the active flags to a FilterMode and table title.
     # Note: security_only implies updates_only as they're a subset,
@@ -407,7 +377,7 @@ def status(
 
     if not hosts:
         console.print(Panel.fit("No hosts matching requested criteria."))
-        raise typer.Exit(3)  # No matches for filtering
+        return 3  # No matches for filtering
 
     if sort is not None:
         hosts = inventory.sort_hosts(sort, hosts=hosts, reverse=reverse)
@@ -483,8 +453,10 @@ def status(
 
     console.print(table)
 
+    return 0
 
-@app.command(hidden=True)  # Interactive-only command
+
+@app.command(show=False)  # Interactive-only command (hidden)
 def save() -> None:
     """
     Save the current inventory state to disk
@@ -494,7 +466,7 @@ def save() -> None:
 
     The data is compressed using LZMA.
 
-    If options.cache_autosave is enabled, this will will be automatically
+    If options.cache_autosave is enabled, this will be automatically
     invoked after every discovery or refresh operation.
 
     Since this is enabled by default, you will rarely need to invoke this
@@ -527,23 +499,16 @@ def save() -> None:
                     style="bold red",
                 ),
             )
-            raise typer.Exit(1)  # Execution error
+            raise SystemExit(2)  # Application error
 
     logger.debug("Inventory save operation completed")
 
 
-@app.command()
+@app.command(synonym="reset")
 def clear(
-    confirm: Annotated[
-        bool,
-        typer.Option(
-            "--force",
-            "-f",
-            help="Do not prompt for confirmation",
-            prompt="Clear inventory state?",
-        ),
-    ],
-) -> None:
+    *,
+    force: Annotated[bool, Parameter(name=["--force", "-f"], negative="")] = False,
+) -> int:
     """
     Clear the inventory state and cache file
 
@@ -556,11 +521,16 @@ def clear(
     Note that this will remove all cached host data, so you will
     need to re-discover the entire inventory after this operation.
 
+    Parameters
+    ----------
+    force
+        Do not prompt for confirmation
     """
     inventory: Inventory = get_inventory()
-    if not confirm:
+
+    if not force and not Confirm.ask("Clear inventory state?", default=False):
         console.print("Inventory state has [bold]not[/bold] been cleared.")
-        raise typer.Exit(2)  # Argument error
+        return 1  # Input error: not confirmed
 
     try:
         inventory.clear_state()
@@ -571,7 +541,7 @@ def clear(
                 style="bold red",
             )
         )
-        raise typer.Exit(1)  # Execution error
+        return 2  # Application error
     else:
         console.print(
             Panel.fit(
@@ -580,3 +550,5 @@ def clear(
                 title="Cache Cleared",
             )
         )
+
+    return 0

@@ -1,16 +1,23 @@
 import pytest
-from typer.testing import CliRunner
 
 from exosphere.commands import connections as connections_module
+from exosphere.commands import utils as utils_module
 from exosphere.config import Configuration
 
-runner = CliRunner(env={"NO_COLOR": "1"})
+
+@pytest.fixture(autouse=True)
+def _console(patch_console):
+    """Install deterministic consoles for the connections command module."""
+    patch_console(connections_module)
 
 
 @pytest.fixture
 def mock_inventory(mocker):
     """
-    Create a mock inventory with test hosts.
+    Create a fake inventory with test hosts wired into the context.
+
+    The fake inventory resolves host names off its own ``hosts`` list so the
+    HostArg converter works for commands invoked with specific names.
     """
     mock_host1 = mocker.Mock()
     mock_host1.name = "webserver"
@@ -35,26 +42,31 @@ def mock_inventory(mocker):
 
     mock_inventory = mocker.Mock()
     mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
+    mock_inventory.get_host.side_effect = lambda name: next(
+        (h for h in mock_inventory.hosts if h.name == name), None
+    )
 
+    mocker.patch.object(utils_module.context, "inventory", mock_inventory)
     return mock_inventory
 
 
 class TestShowCommand:
     """Tests for connections show command."""
 
-    def test_show_with_pipelining_disabled(self, mocker):
+    def test_show_with_pipelining_disabled(self, mocker, capsys):
         """Test that show command fails when pipelining is disabled."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = False
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        result = runner.invoke(connections_module.app, ["show"])
+        code = connections_module.app(["show"], result_action="return_value")
 
-        assert result.exit_code == 1
-        assert "SSH Pipelining is currently disabled" in result.stderr
-        assert "No persistent connections" in result.stderr
+        err = capsys.readouterr().err
+        assert code == 2  # Application error: feature disabled
+        assert "SSH Pipelining is currently disabled" in err
+        assert "No persistent connections" in err
 
-    def test_show_all_hosts(self, mocker, mock_inventory):
+    def test_show_all_hosts(self, mocker, mock_inventory, capsys):
         """Test showing connection state for all hosts."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
@@ -67,34 +79,29 @@ class TestShowCommand:
             "exosphere.commands.connections.time.time", return_value=1234567900.0
         )
 
-        # Mock get_hosts_or_error to return all hosts
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=mock_inventory.hosts,
-        )
+        code = connections_module.app(["show"], result_action="return_value")
 
-        result = runner.invoke(connections_module.app, ["show"])
-
-        assert result.exit_code == 0
+        out = capsys.readouterr().out
+        assert code == 0
 
         # Table headers
-        assert "Host" in result.stdout
-        assert "IP" in result.stdout
-        assert "Port" in result.stdout
-        assert "Idle" in result.stdout
-        assert "State" in result.stdout
+        assert "Host" in out
+        assert "IP" in out
+        assert "Port" in out
+        assert "Idle" in out
+        assert "State" in out
 
         # Hosts
-        assert "webserver" in result.stdout
-        assert "192.168.1.10" in result.stdout
-        assert "dbserver" in result.stdout
-        assert "appserver" in result.stdout
+        assert "webserver" in out
+        assert "192.168.1.10" in out
+        assert "dbserver" in out
+        assert "appserver" in out
 
         # States
-        assert "Connected" in result.stdout
-        assert "Inactive" in result.stdout
+        assert "Connected" in out
+        assert "Inactive" in out
 
-    def test_show_specific_hosts(self, mocker, mock_inventory):
+    def test_show_specific_hosts(self, mocker, mock_inventory, capsys):
         """Test showing connection state for specific hosts."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
@@ -106,35 +113,31 @@ class TestShowCommand:
             "exosphere.commands.connections.time.time", return_value=1234567900.0
         )
 
-        # Mock get_hosts_or_error to return specific hosts
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=[mock_inventory.hosts[0]],
+        code = connections_module.app(
+            ["show", "webserver"], result_action="return_value"
         )
 
-        result = runner.invoke(connections_module.app, ["show", "webserver"])
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "webserver" in out
+        assert "192.168.1.10" in out
+        assert "dbserver" not in out
+        assert "appserver" not in out
 
-        assert result.exit_code == 0
-        assert "webserver" in result.stdout
-        assert "192.168.1.10" in result.stdout
-        assert "dbserver" not in result.stdout
-        assert "appserver" not in result.stdout
-
-    def test_show_no_hosts(self, mocker):
-        """Test show command when get_hosts_or_error returns None."""
+    def test_show_no_hosts(self, mocker, mock_inventory, capsys):
+        """Test show command with an empty inventory."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error", return_value=None
-        )
+        mock_inventory.hosts = []
 
-        result = runner.invoke(connections_module.app, ["show"])
+        code = connections_module.app(["show"], result_action="return_value")
 
-        assert result.exit_code == 2  # Argument error
+        assert code == 1  # Input error: no hosts
+        assert "No hosts found in inventory." in capsys.readouterr().err
 
-    def test_show_expiring_connection(self, mocker, mock_inventory):
+    def test_show_expiring_connection(self, mocker, mock_inventory, capsys):
         """Test that connections exceeding lifetime are marked as expiring."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
@@ -147,19 +150,17 @@ class TestShowCommand:
             "exosphere.commands.connections.time.time", return_value=1234567900.0
         )
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=[mock_inventory.hosts[0]],
-        )
+        mock_inventory.hosts = [mock_inventory.hosts[0]]
 
-        result = runner.invoke(connections_module.app, ["show"])
+        code = connections_module.app(["show"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "webserver" in result.stdout
-        assert "Expiring" in result.stdout
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "webserver" in out
+        assert "Expiring" in out
 
     @pytest.mark.parametrize("option", ["--active", "-a"], ids=["long", "short"])
-    def test_show_active_only_flag(self, mocker, mock_inventory, option):
+    def test_show_active_only_flag(self, mocker, mock_inventory, option, capsys):
         """Test show command with --active flag."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
@@ -171,115 +172,98 @@ class TestShowCommand:
             "exosphere.commands.connections.time.time", return_value=1234567900.0
         )
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=mock_inventory.hosts,
-        )
+        code = connections_module.app(["show", option], result_action="return_value")
 
-        result = runner.invoke(connections_module.app, ["show", option])
+        out = capsys.readouterr().out
+        assert code == 0
 
-        assert result.exit_code == 0
-
-        assert "webserver" in result.stdout
-        assert "appserver" in result.stdout
-        assert "dbserver" not in result.stdout  # No active connection
+        assert "webserver" in out
+        assert "appserver" in out
+        assert "dbserver" not in out  # No active connection
 
         # Table title
-        assert "(Active Only)" in result.stdout
+        assert "(Active Only)" in out
 
     @pytest.mark.parametrize("option", ["--active", "-a"], ids=["long", "short"])
     def test_show_active_only_no_active_connections(
-        self, mocker, mock_inventory, option
+        self, mocker, mock_inventory, option, capsys
     ):
         """Test show --active when no hosts have active connections."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=[mock_inventory.hosts[1]],  # host with no connection
-        )
+        # Only the host with no active connection
+        mock_inventory.hosts = [mock_inventory.hosts[1]]
 
-        result = runner.invoke(connections_module.app, ["show", option])
+        code = connections_module.app(["show", option], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert "No active connections" in result.stdout
+        assert code == 0
+        assert "No active connections" in capsys.readouterr().out
 
 
 class TestCloseCommand:
     """Tests for connections close command."""
 
-    def test_close_with_pipelining_disabled(self, mocker):
+    def test_close_with_pipelining_disabled(self, mocker, capsys):
         """Test that close command fails when pipelining is disabled."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = False
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        result = runner.invoke(connections_module.app, ["close"])
+        code = connections_module.app(["close"], result_action="return_value")
 
-        assert result.exit_code == 1
-        assert "SSH Pipelining is currently disabled" in result.stderr
-        assert "No persistent connections" in result.stderr
+        err = capsys.readouterr().err
+        assert code == 2  # Application error: feature disabled
+        assert "SSH Pipelining is currently disabled" in err
+        assert "No persistent connections" in err
 
-    def test_close_all_connections(self, mocker, mock_inventory):
+    def test_close_all_connections(self, mocker, mock_inventory, capsys):
         """Test closing all active connections."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=mock_inventory.hosts,
-        )
+        code = connections_module.app(["close"], result_action="return_value")
 
-        result = runner.invoke(connections_module.app, ["close"])
-
-        assert result.exit_code == 0
+        assert code == 0
         assert mock_inventory.hosts[0].close.called
         assert not mock_inventory.hosts[1].close.called  # No active connection
         assert mock_inventory.hosts[2].close.called
-        assert "Closed 2 active connection(s)" in result.stdout
+        assert "Closed 2 active connection(s)" in capsys.readouterr().out
 
-    def test_close_specific_host(self, mocker, mock_inventory):
+    def test_close_specific_host(self, mocker, mock_inventory, capsys):
         """Test closing connection for a specific host."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=[mock_inventory.hosts[0]],  # webserver only
+        code = connections_module.app(
+            ["close", "webserver"], result_action="return_value"
         )
 
-        result = runner.invoke(connections_module.app, ["close", "webserver"])
-
-        assert result.exit_code == 0
+        assert code == 0
         assert mock_inventory.hosts[0].close.called
-        assert "Closed 1 active connection(s)" in result.stdout
+        assert "Closed 1 active connection(s)" in capsys.readouterr().out
 
     @pytest.mark.parametrize("option", ["--verbose", "-v"], ids=["long", "short"])
-    def test_close_verbose_mode(self, mocker, mock_inventory, option):
+    def test_close_verbose_mode(self, mocker, mock_inventory, option, capsys):
         """Test close command in verbose mode."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=mock_inventory.hosts,
-        )
+        code = connections_module.app(["close", option], result_action="return_value")
 
-        result = runner.invoke(connections_module.app, ["close", option])
-
-        assert result.exit_code == 0
+        out = capsys.readouterr().out
+        assert code == 0
 
         assert mock_inventory.hosts[0].close.called
         assert mock_inventory.hosts[2].close.called
 
-        # Names shuold be displayed
-        assert "webserver" in result.stdout
-        assert "appserver" in result.stdout
+        # Names should be displayed
+        assert "webserver" in out
+        assert "appserver" in out
 
     def test_close_no_active_connections(self, mocker, mock_inventory):
         """Test closing when no hosts have active connections."""
@@ -287,71 +271,64 @@ class TestCloseCommand:
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        # Return only the host with no active connection
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=[mock_inventory.hosts[1]],  # dbserver with no connection
-        )
+        # Only the host with no active connection
+        mock_inventory.hosts = [mock_inventory.hosts[1]]
 
-        result = runner.invoke(connections_module.app, ["close"])
+        code = connections_module.app(["close"], result_action="return_value")
 
-        assert result.exit_code == 0
-        assert not mock_inventory.hosts[1].close.called
+        assert code == 0
+        assert not mock_inventory.hosts[0].close.called
 
-    def test_close_no_hosts(self, mocker):
-        """Test close command when get_hosts_or_error returns None."""
+    def test_close_no_hosts(self, mocker, mock_inventory, capsys):
+        """Test close command with an empty inventory."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error", return_value=None
-        )
+        mock_inventory.hosts = []
 
-        result = runner.invoke(connections_module.app, ["close"])
+        code = connections_module.app(["close"], result_action="return_value")
 
-        assert result.exit_code == 2  # Argument error
+        assert code == 1  # Input error: no hosts
+        assert "No hosts found in inventory." in capsys.readouterr().err
 
     @pytest.mark.parametrize("option", ["--verbose", "-v"], ids=["long", "short"])
-    def test_close_verbose_with_inactive_hosts(self, mocker, mock_inventory, option):
+    def test_close_verbose_with_inactive_hosts(
+        self, mocker, mock_inventory, option, capsys
+    ):
         """Test verbose mode with mix of active and inactive hosts."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error",
-            return_value=mock_inventory.hosts,  # Mix of active and inactive
-        )
+        code = connections_module.app(["close", option], result_action="return_value")
 
-        result = runner.invoke(connections_module.app, ["close", option])
-
-        assert result.exit_code == 0
+        out = capsys.readouterr().out
+        assert code == 0
 
         assert mock_inventory.hosts[0].close.called
         assert not mock_inventory.hosts[1].close.called  # No active connection
         assert mock_inventory.hosts[2].close.called
 
         # Skipped message shows up in verbose mode
-        assert "Skipped 1 host(s)" in result.stdout
+        assert "Skipped 1 host(s)" in out
 
 
 class TestConnectionsCommands:
     """Integration tests for connections commands."""
 
-    def test_commands_bail_with_uninitialized_inventory(self, mocker):
-        """Test that commands handle uninitialized inventory gracefully."""
+    @pytest.mark.parametrize("command", ["show", "close"], ids=["show", "close"])
+    def test_commands_bail_with_uninitialized_inventory(self, mocker, command, capsys):
+        """Test that commands bail out with an uninitialized inventory."""
         config = Configuration()
         config["options"]["ssh_pipelining"] = True
         mocker.patch("exosphere.commands.connections.app_config", config)
 
-        # get_hosts_or_error should handle this and exit
-        mocker.patch(
-            "exosphere.commands.connections.get_hosts_or_error", return_value=None
-        )
+        # Uninitialized inventory: get_hosts_or_all -> get_inventory() aborts
+        mocker.patch.object(utils_module.context, "inventory", None)
 
-        result_show = runner.invoke(connections_module.app, ["show"])
-        result_close = runner.invoke(connections_module.app, ["close"])
+        with pytest.raises(SystemExit) as exc_info:
+            connections_module.app([command])
 
-        assert result_show.exit_code == 2
-        assert result_close.exit_code == 2
+        assert exc_info.value.code == 2  # Application error
+        assert "Inventory is not initialized" in capsys.readouterr().err

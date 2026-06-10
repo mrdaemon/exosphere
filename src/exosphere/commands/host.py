@@ -2,7 +2,9 @@
 Host command module
 """
 
-import typer
+from typing import Annotated
+
+from cyclopts import App, Parameter
 from rich.panel import Panel
 from rich.progress import (
     Progress,
@@ -12,14 +14,12 @@ from rich.progress import (
 )
 from rich.table import Table
 from rich.text import Text
-from typing_extensions import Annotated
 
 from exosphere import app_config
 from exosphere.commands.utils import (
-    HostArgument,
+    HostArg,
     console,
     err_console,
-    get_host_or_error,
 )
 from exosphere.objects import Host
 
@@ -39,9 +39,12 @@ Host Management Commands
 Commands to query, refresh and discover individual hosts.
 """
 
-app = typer.Typer(
+app = App(
+    name="host",
     help=ROOT_HELP,
-    no_args_is_help=True,
+    help_flags=["--help"],
+    console=console,
+    error_console=err_console,
 )
 
 
@@ -146,44 +149,39 @@ def _display_updates_table(host: Host, security_only: bool) -> None:
     console.print(updates_table)
 
 
-@app.command()
+@app.command(synonym="status")
 def show(
-    name: Annotated[
-        str, typer.Argument(help="Host from inventory to show"), HostArgument()
-    ],
+    host: HostArg,
+    /,
+    *,
     include_updates: Annotated[
-        bool,
-        typer.Option(
-            "--updates/--no-updates",
-            "-u/-n",
-            help="Show update details for the host",
-        ),
+        bool, Parameter(name=["--updates", "-u"], negative=["--no-updates", "-n"])
     ] = True,
     security_only: Annotated[
-        bool,
-        typer.Option(
-            "--security-only",
-            "-s",
-            help="Show only security updates for the host when displaying updates",
-        ),
+        bool, Parameter(name=["--security-only", "-s"], negative="")
     ] = False,
-) -> None:
+) -> int:
     """
     Show details of a specific host.
 
     This command retrieves the host by name from the inventory
     and displays its details in a rich format.
-    """
-    host = get_host_or_error(name)
-    if host is None:
-        raise typer.Exit(code=2)  # Argument error
 
+    Parameters
+    ----------
+    host
+        Host from inventory to show
+    include_updates
+        Show update details for the host
+    security_only
+        Show only security updates for the host when displaying updates
+    """
     # Validate options
     if not include_updates and security_only:
         err_console.print(
             "[red]Error: --security-only option is only valid with --updates.[/red]"
         )
-        raise typer.Exit(code=2)  # Argument error
+        return 1  # Input error
 
     # Display main host information panel
     panel_content = _make_host_panel_content(host)
@@ -196,37 +194,35 @@ def show(
 
     # Exit early if updates not requested
     if not include_updates:
-        raise typer.Exit(code=0)
+        return 0
 
     # Handle unsupported hosts
     if not host.supported:
         console.print(
             "[yellow]Update info is not available for unsupported hosts.[/yellow]"
         )
-        raise typer.Exit(code=0)
+        return 2  # App error - technically.
 
     # Display updates table
     _display_updates_table(host, security_only)
 
+    return 0
 
-@app.command()
-def discover(
-    name: Annotated[
-        str, typer.Argument(help="Host from inventory to discover"), HostArgument()
-    ],
-) -> None:
+
+@app.command
+def discover(host: HostArg, /) -> int:
     """
     Gather platform data for host.
 
     This command retrieves the host by name from the inventory
     and synchronizes its platform data, such as OS, version and
     package manager.
+
+    Parameters
+    ----------
+    host
+        Host from inventory to discover
     """
-    host = get_host_or_error(name)
-
-    if host is None:
-        raise typer.Exit(code=2)  # Argument error
-
     with Progress(*SPINNER_PROGRESS_ARGS) as progress:
         progress.add_task(f"Discovering platform for '{host.name}'", total=None)
         try:
@@ -240,35 +236,39 @@ def discover(
                     title_align="left",
                 )
             )
-            raise typer.Exit(code=1)  # Execution error
+            return 2  # Application error
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()
 
+    return 0
 
-@app.command()
+
+@app.command(synonym="sync")
 def refresh(
-    name: Annotated[
-        str, typer.Argument(help="Host from inventory to refresh"), HostArgument()
-    ],
-    full: Annotated[
-        bool, typer.Option("--sync", "-s", help="Also sync package repositories")
-    ] = False,
+    host: HostArg,
+    /,
+    *,
+    full: Annotated[bool, Parameter(name=["--sync", "-s"], negative="")] = False,
     discover: Annotated[
-        bool, typer.Option("--discover", "-d", help="Also refresh platform information")
+        bool, Parameter(name=["--discover", "-d"], negative="")
     ] = False,
-) -> None:
+) -> int:
     """
     Refresh the updates for a specific host.
 
     This command retrieves the host by name from the inventory
     and refreshes its available updates.
+
+    Parameters
+    ----------
+    host
+        Host from inventory to refresh
+    full
+        Also sync package repositories
+    discover
+        Also refresh platform information
     """
-    host = get_host_or_error(name)
-
-    if host is None:
-        raise typer.Exit(code=2)  # Argument error
-
     with Progress(transient=True, *SPINNER_PROGRESS_ARGS) as progress:
         if discover:
             task = progress.add_task(
@@ -286,7 +286,7 @@ def refresh(
                     )
                 )
                 progress.stop_task(task)
-                raise typer.Exit(code=1)  # Execution error
+                return 2  # Application error
 
             progress.stop_task(task)
 
@@ -306,7 +306,7 @@ def refresh(
                     )
                 )
                 progress.stop_task(task)
-                raise typer.Exit(code=1)  # Execution error
+                return 2  # Application error
 
             progress.stop_task(task)
 
@@ -323,18 +323,16 @@ def refresh(
                 )
             )
             progress.stop_task(task)
-            raise typer.Exit(code=1)  # Execution error
+            return 2  # Application error
 
     if app_config["options"]["cache_autosave"]:
         save_inventory()
 
+    return 0
 
-@app.command()
-def ping(
-    name: Annotated[
-        str, typer.Argument(help="Host from inventory to ping"), HostArgument()
-    ],
-) -> None:
+
+@app.command
+def ping(host: HostArg, /) -> None:
     """
     Ping a specific host to check its reachability.
 
@@ -342,12 +340,12 @@ def ping(
     based on the ping result.
 
     The ping status is based on ssh connectivity.
+
+    Parameters
+    ----------
+    host
+        Host from inventory to ping
     """
-    host = get_host_or_error(name)
-
-    if host is None:
-        raise typer.Exit(code=2)  # Argument error
-
     if host.ping():
         console.print(
             f"Host [bold]{host.name}[/bold] is [bold green]Online[/bold green]."

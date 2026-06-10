@@ -1,6 +1,6 @@
+import types
+
 import pytest
-import typer
-from rich.panel import Panel
 
 from exosphere.commands import utils as utils_module
 from exosphere.objects import Host, HostOperation
@@ -39,6 +39,17 @@ def mock_console(mocker):
     return console_mock, err_console_mock
 
 
+@pytest.fixture
+def wide_console(patch_console):
+    """Install deterministic, wide consoles for utils' own output."""
+    patch_console(utils_module)
+
+
+def _token(value: str):
+    """Build a minimal Cyclopts-like token carrying a value."""
+    return types.SimpleNamespace(value=value)
+
+
 class TestGetInventory:
     """Test the get_inventory function."""
 
@@ -51,183 +62,122 @@ class TestGetInventory:
         assert result is mock_inventory
 
     def test_get_inventory_none_raises_exit(self, mock_context):
-        """Test that None inventory raises typer.Exit."""
+        """Test that an uninitialized inventory raises SystemExit (app error)."""
         mock_context.inventory = None
 
-        with pytest.raises(typer.Exit) as exc_info:
+        with pytest.raises(SystemExit) as exc_info:
             utils_module.get_inventory()
 
-        assert exc_info.value.exit_code == 1
+        assert exc_info.value.code == 2  # Application error
 
     def test_get_inventory_none_prints_error(self, mock_context, capsys):
         """Test that None inventory prints error message."""
         mock_context.inventory = None
 
-        with pytest.raises(typer.Exit):
+        with pytest.raises(SystemExit):
             utils_module.get_inventory()
 
         captured = capsys.readouterr()
         assert "Inventory is not initialized" in captured.err
 
 
-class TestGetHostOrError:
-    """Test the get_host_or_error function."""
+class TestResolveHost:
+    """Test the resolve_host argument converter."""
 
-    def test_get_host_success(
-        self, mock_context, mock_inventory, mock_host, mock_console
-    ):
-        """Test successful host retrieval."""
+    def test_resolve_host_success(self, mock_context, mock_inventory, mock_host):
+        """A known host name resolves to the Host object."""
         mock_context.inventory = mock_inventory
         mock_inventory.get_host.return_value = mock_host
-        console_mock, err_console_mock = mock_console
 
-        result = utils_module.get_host_or_error("test-host")
+        result = utils_module.resolve_host(Host, [_token("test-host")])
 
         assert result is mock_host
         mock_inventory.get_host.assert_called_once_with("test-host")
-        err_console_mock.print.assert_not_called()
 
-    def test_get_host_not_found(self, mock_context, mock_inventory, mock_console):
-        """Test host not found scenario."""
+    def test_resolve_host_not_found_raises(self, mock_context, mock_inventory):
+        """An unknown host name raises ValueError (surfaced as an input error)."""
         mock_context.inventory = mock_inventory
         mock_inventory.get_host.return_value = None
-        console_mock, err_console_mock = mock_console
 
-        result = utils_module.get_host_or_error("nonexistent-host")
+        with pytest.raises(ValueError, match="not found in inventory"):
+            utils_module.resolve_host(Host, [_token("nonexistent")])
 
-        assert result is None
-        mock_inventory.get_host.assert_called_once_with("nonexistent-host")
-        err_console_mock.print.assert_called_once()
-
-        # Check that error panel was created with correct message
-        call_args = err_console_mock.print.call_args[0][0]
-        assert isinstance(call_args, Panel)
-        assert "Host 'nonexistent-host' not found in inventory" in str(
-            call_args.renderable
-        )
-
-    def test_get_host_inventory_none(self, mock_context):
-        """Test behavior when inventory is None."""
+    def test_resolve_host_uninitialized_inventory(self, mock_context):
+        """An uninitialized inventory aborts via get_inventory (app error)."""
         mock_context.inventory = None
 
-        with pytest.raises(typer.Exit):
-            utils_module.get_host_or_error("test-host")
+        with pytest.raises(SystemExit) as exc_info:
+            utils_module.resolve_host(Host, [_token("test-host")])
+
+        assert exc_info.value.code == 2
 
 
-class TestGetHostsOrError:
-    """Test the get_hosts_or_error function."""
+class TestGetHostsOrAll:
+    """Test the get_hosts_or_all helper."""
 
-    def test_get_hosts_with_names_success(
-        self, mock_context, mock_inventory, mock_console, mocker
-    ):
-        """Test successful retrieval of specific hosts."""
-        mock_context.inventory = mock_inventory
+    def test_all_hosts_when_none_given(self, mock_context, mock_inventory, mocker):
+        """An empty selection returns all inventory hosts."""
         host1 = mocker.Mock()
         host1.name = "host1"
         host2 = mocker.Mock()
         host2.name = "host2"
         mock_inventory.hosts = [host1, host2]
-        console_mock, err_console_mock = mock_console
+        mock_context.inventory = mock_inventory
 
-        result = utils_module.get_hosts_or_error(["host1", "host2"])
+        result = utils_module.get_hosts_or_all(())
 
         assert result == [host1, host2]
-        err_console_mock.print.assert_not_called()
 
-    def test_get_hosts_with_names_partial_match(
-        self, mock_context, mock_inventory, mock_console, mocker
-    ):
-        """Test partial match scenario with some hosts not found."""
-        mock_context.inventory = mock_inventory
-        host1 = mocker.Mock()
-        host1.name = "host1"
-        mock_inventory.hosts = [host1]
-        console_mock, err_console_mock = mock_console
-
-        result = utils_module.get_hosts_or_error(["host1", "nonexistent"])
-
-        assert result is None
-        err_console_mock.print.assert_called_once()
-
-        # Check error message contains unmatched hosts
-        call_args = err_console_mock.print.call_args[0][0]
-        assert isinstance(call_args, Panel)
-        assert "nonexistent" in str(call_args.renderable)
-
-    def test_get_hosts_all_hosts_success(
-        self, mock_context, mock_inventory, mock_console, mocker
-    ):
-        """Test retrieval of all hosts when no names specified."""
+    def test_explicit_hosts_returned(self, mock_context, mock_inventory, mocker):
+        """Explicitly provided (already-resolved) hosts are returned as-is."""
         mock_context.inventory = mock_inventory
         host1 = mocker.Mock()
         host1.name = "host1"
         host2 = mocker.Mock()
         host2.name = "host2"
-        mock_inventory.hosts = [host1, host2]
-        console_mock, err_console_mock = mock_console
 
-        result = utils_module.get_hosts_or_error(None)
+        result = utils_module.get_hosts_or_all((host1, host2))
 
         assert result == [host1, host2]
-        err_console_mock.print.assert_not_called()
 
-    def test_get_hosts_all_hosts_empty(
-        self, mock_context, mock_inventory, mock_console
+    def test_empty_inventory_returns_none(
+        self, mock_context, mock_inventory, wide_console, capsys
     ):
-        """Test behavior when inventory has no hosts."""
-        mock_context.inventory = mock_inventory
+        """An empty inventory yields None with an error message."""
         mock_inventory.hosts = []
-        console_mock, err_console_mock = mock_console
+        mock_context.inventory = mock_inventory
 
-        result = utils_module.get_hosts_or_error(None)
+        result = utils_module.get_hosts_or_all(())
 
         assert result is None
-        err_console_mock.print.assert_called_once()
-
-        # Check error message
-        call_args = err_console_mock.print.call_args[0][0]
-        assert isinstance(call_args, Panel)
-        assert "No hosts found in inventory" in str(call_args.renderable)
-
-    def test_get_hosts_inventory_none(self, mock_context):
-        """Test behavior when inventory is None."""
-        mock_context.inventory = None
-
-        with pytest.raises(typer.Exit):
-            utils_module.get_hosts_or_error(["host1"])
+        assert "No hosts found in inventory" in capsys.readouterr().err
 
     @pytest.mark.parametrize(
-        "supported_hosts_count,unsupported_hosts_count,expected_count",
+        "supported_count,unsupported_count,expected_count",
         [
             (2, 0, 2),  # All supported
-            (2, 1, 2),  # Mix of supported/unsupported
+            (2, 1, 2),  # Mix of supported/unsupported (from full inventory)
         ],
-        ids=["supported only", "mixed"],
+        ids=["supported_only", "mixed"],
     )
-    def test_get_hosts_supported_only_success(
+    def test_supported_only_filters(
         self,
         mock_context,
         mock_inventory,
-        mock_console,
         mocker,
-        supported_hosts_count,
-        unsupported_hosts_count,
+        supported_count,
+        unsupported_count,
         expected_count,
     ):
-        """Test that supported_only returns only supported hosts."""
-        mock_context.inventory = mock_inventory
-        console_mock, err_console_mock = mock_console
-
-        # Generate crappy host mocks
+        """supported_only returns only supported hosts (from the full inventory)."""
         hosts = []
-        for i in range(supported_hosts_count):
+        for i in range(supported_count):
             host = mocker.Mock()
             host.name = f"supported{i + 1}"
             host.supported = True
             host.package_manager = "apt"
             hosts.append(host)
-
-        for i in range(unsupported_hosts_count):
+        for i in range(unsupported_count):
             host = mocker.Mock()
             host.name = f"unsupported{i + 1}"
             host.supported = False
@@ -235,12 +185,13 @@ class TestGetHostsOrError:
             hosts.append(host)
 
         mock_inventory.hosts = hosts
+        mock_context.inventory = mock_inventory
 
-        result = utils_module.get_hosts_or_error(supported_only=True)
+        # Empty selection -> drawn from inventory; no warning for inventory-wide.
+        result = utils_module.get_hosts_or_all((), supported_only=True)
 
         assert result is not None
         assert len(result) == expected_count
-        err_console_mock.print.assert_not_called()
 
     @pytest.mark.parametrize(
         "has_supported,has_package_manager",
@@ -255,19 +206,17 @@ class TestGetHostsOrError:
             "unsupported+pkgmgr",
         ],
     )
-    def test_get_hosts_supported_only_none_available(
+    def test_supported_only_none_available(
         self,
         mock_context,
         mock_inventory,
-        mock_console,
+        wide_console,
+        capsys,
         mocker,
         has_supported,
         has_package_manager,
     ):
-        """Test supported_only with no valid supported hosts."""
-        mock_context.inventory = mock_inventory
-        console_mock, err_console_mock = mock_console
-
+        """supported_only with no valid hosts in the inventory returns None."""
         host1 = mocker.Mock()
         host1.name = "host1"
         host1.supported = has_supported
@@ -279,22 +228,18 @@ class TestGetHostsOrError:
         host2.package_manager = None
 
         mock_inventory.hosts = [host1, host2]
+        mock_context.inventory = mock_inventory
 
-        result = utils_module.get_hosts_or_error(supported_only=True)
+        result = utils_module.get_hosts_or_all((), supported_only=True)
 
         assert result is None
-        err_console_mock.print.assert_called_once()
-        call_args = err_console_mock.print.call_args[0][0]
-        assert isinstance(call_args, Panel)
-        assert "No supported hosts found in inventory" in str(call_args.renderable)
+        assert "No supported hosts found in inventory" in capsys.readouterr().err
 
-    def test_get_hosts_supported_only_with_names_warning(
-        self, mock_context, mock_inventory, mock_console, mocker
+    def test_supported_only_explicit_warns(
+        self, mock_context, mock_inventory, wide_console, capsys, mocker
     ):
-        """Test supported_only with specific names shows warning for unsupported."""
+        """supported_only with explicit hosts warns about skipped unsupported ones."""
         mock_context.inventory = mock_inventory
-        console_mock, err_console_mock = mock_console
-
         host1 = mocker.Mock()
         host1.name = "host1"
         host1.supported = True
@@ -305,26 +250,17 @@ class TestGetHostsOrError:
         host2.supported = False
         host2.package_manager = None
 
-        mock_inventory.hosts = [host1, host2]
-
-        result = utils_module.get_hosts_or_error(
-            names=["host1", "host2"], supported_only=True
-        )
+        result = utils_module.get_hosts_or_all((host1, host2), supported_only=True)
 
         assert result is not None
         assert len(result) == 1
-        err_console_mock.print.assert_called_once()
-        call_args = err_console_mock.print.call_args[0][0]
-        assert isinstance(call_args, Panel)
-        assert "Unsupported hosts will be skipped" in str(call_args.renderable)
+        assert "Unsupported hosts will be skipped" in capsys.readouterr().err
 
-    def test_get_hosts_supported_only_with_names_none_supported(
-        self, mock_context, mock_inventory, mock_console, mocker
+    def test_supported_only_explicit_none_supported(
+        self, mock_context, mock_inventory, wide_console, capsys, mocker
     ):
-        """Test supported_only with specific names when none are supported."""
+        """supported_only with explicit hosts, none supported, returns None."""
         mock_context.inventory = mock_inventory
-        console_mock, err_console_mock = mock_console
-
         host1 = mocker.Mock()
         host1.name = "host1"
         host1.supported = False
@@ -335,17 +271,10 @@ class TestGetHostsOrError:
         host2.supported = False
         host2.package_manager = None
 
-        mock_inventory.hosts = [host1, host2]
-
-        result = utils_module.get_hosts_or_error(
-            names=["host1", "host2"], supported_only=True
-        )
+        result = utils_module.get_hosts_or_all((host1, host2), supported_only=True)
 
         assert result is None
-        err_console_mock.print.assert_called_once()
-        call_args = err_console_mock.print.call_args[0][0]
-        assert isinstance(call_args, Panel)
-        assert "No supported hosts found in specified list" in str(call_args.renderable)
+        assert "No supported hosts found in specified list" in capsys.readouterr().err
 
 
 class TestRunTaskWithProgress:

@@ -94,10 +94,10 @@ pinpoint the exact issue with authentication or connectivity.
     The settings in these files **will** be used. Double check your host aliases,
     if any!
 
-.. _Fabric: http://www.fabfile.org/
+.. _Fabric: https://www.fabfile.org/
 .. _Article on SSH keys: https://wiki.archlinux.org/title/SSH_keys
 .. _Windows OpenSSH Agent: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement
-.. _SSH Client feature: https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
+.. _SSH Client feature: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
 
 .. _sudo-policies-and-privileges:
 

@@ -10,9 +10,9 @@ as well as display bits around task execution, errors and status.
 
 import platform
 import sys
-from dataclasses import dataclass
+from typing import Annotated
 
-import typer
+from cyclopts import Parameter
 from rich import box
 from rich.columns import Columns
 from rich.console import Console
@@ -34,24 +34,41 @@ console = Console()
 err_console = Console(stderr=True)
 
 
-@dataclass
-class HostArgument:
+def resolve_host(type_: type, tokens) -> Host:
     """
-    Annotation class for typer Host arguments for REPL completion.
+    Argument Converter for resolving a name to a :class:`Host`
 
-    Set multiple=True to allow completion of multiple hosts.
+    Raises ``ValueError`` for an unknown host.
+
+    :param type_: The annotated target type (unused; always Host).
+    :param tokens: The Cyclopts tokens parsed for this argument.
+    :return: The resolved Host instance.
     """
+    name = tokens[0].value
+    host = get_inventory().get_host(name)
+    if host is None:
+        raise ValueError(f"Host '{name}' not found in inventory.")
 
-    multiple: bool = False
+    return host
 
 
-@dataclass
-class HostOption:
+# Shared config for a Host token, consume one token and resolves it to
+# to a Host object via the converter. Reused by both positionals and options.
+# Do not nest this, or it will drop n_tokens.
+HOST_PARAMETER = Parameter(n_tokens=1, converter=resolve_host, accepts_keys=False)
+
+# Annotation for a positional Host argument that arrives already resolved.
+HostArg = Annotated[Host, HOST_PARAMETER]
+
+
+def get_version_string() -> str:
     """
-    Annotation class for typer Host options for REPL completion.
+    Return the formatted (Rich markup) Exosphere version string.
     """
-
-    pass
+    return (
+        f"[bold cyan]Exosphere[/bold cyan] version "
+        f"[bold green]{__version__}[/bold green]"
+    )
 
 
 def print_version() -> None:
@@ -60,9 +77,7 @@ def print_version() -> None:
     Used by the 'version' command and '--version' option, for
     consistent output formatting.
     """
-    console.print(
-        f"[bold cyan]Exosphere[/bold cyan] version [bold green]{__version__}[/bold green]"
-    )
+    console.print(get_version_string())
 
 
 def print_environment() -> None:
@@ -136,125 +151,74 @@ def get_inventory() -> Inventory:
     Get the inventory from context.
     A convenience wrapper that bails if the inventory is not initialized.
 
-    :raises typer.Exit: If inventory is not initialized
+    :raises SystemExit: code 2 (application error) if inventory is not initialized
     :return: The active inventory instance
     """
     if context.inventory is None:
-        typer.echo(
-            "Inventory is not initialized, are you running this module directly?",
-            err=True,
+        err_console.print(
+            "Inventory is not initialized, are you running this module directly?"
         )
-        raise typer.Exit(code=1)  # Execution error
+        raise SystemExit(2)  # Execution error
 
     return context.inventory
 
 
-def get_host_or_error(name: str) -> Host | None:
-    """
-    Get a host by name from the inventory, printing an error if not found.
-    Wraps inventory.get_host() to handle displaying errors on console.
-
-    If the host is not found, pretty prints an error message on console.
-
-    :param name: The name of the host to retrieve
-    :return: The host object if found, or None if not found
-    """
-    inventory = get_inventory()
-
-    host = inventory.get_host(name)
-
-    if host is None:
-        err_console.print(
-            Panel.fit(
-                f"Host '{name}' not found in inventory.",
-                title="Error",
-                style="red",
-            )
-        )
-        return None
-
-    return host
-
-
-def get_hosts_or_error(
-    names: list[str] | None = None, supported_only: bool = False
+def get_hosts_or_all(
+    hosts: tuple[Host, ...], supported_only: bool = False
 ) -> list[Host] | None:
     """
-    Get hosts from the inventory, filtering by names if provided.
-    Will print an error message and return None if hosts are not found.
+    Obtain the given resolved hosts, or all inventory hosts if none were given.
 
-    This convenience wrapper around inventory.hosts will generally handle
-    emitting any sort of warning or error messages, so commands making use
-    of it do not need to duplicate that logic.
+    Helper intented exclusively for commands that take a variadic
+    ``*names: HostArg`` argument, and hinges on unknown hosts being
+    already rejected by the CLI Converter.
 
-    :param names: Optional list of host names to filter by. If None,
-        returns all hosts.
-    :param supported_only: If True, only return hosts that are marked as
-        supported.
-    :return: List of matching hosts, or None if no hosts found/matched
+    Meant to handle the common "no hosts specified -> all hosts" default,
+    the empty inventory scenario, nd the optional supported only filter.
+
+    :param hosts: Resolved hosts from a variadic host argument (empty for all).
+    :param supported_only: Return only supported hosts, with warning
+    :return: The resolved Host objects to operate on, or None.
     """
-    inventory = get_inventory()
+    explicit = bool(hosts)
 
-    # Start with all hosts or filter by names
-    if names:
-        selected_hosts = [h for h in inventory.hosts if h.name in names]
-        unmatched = set(names) - {h.name for h in selected_hosts}
-
-        if unmatched:
-            err_console.print(
-                Panel.fit(
-                    f"Host(s) not found in inventory: {', '.join(unmatched)}",
-                    title="Error",
-                )
-            )
-            return None
+    if hosts:
+        selected = list(hosts)
     else:
-        selected_hosts = list(inventory.hosts)
+        selected = list(get_inventory().hosts)
+        if not selected:
+            err_console.print(Panel.fit("No hosts found in inventory.", title="Error"))
+            return None
 
-    # Handle empty inventory
-    if not selected_hosts:
-        err_console.print(
-            Panel.fit(
-                "No hosts found in inventory.",
-                title="Error",
-            )
-        )
-        return None
-
-    # Apply supported_only filter if requested
     if supported_only:
-        supported_hosts = [
-            h for h in selected_hosts if h.supported and h.package_manager
-        ]
-        unsupported_hosts = set(selected_hosts) - set(supported_hosts)
+        supported = [h for h in selected if h.supported and h.package_manager]
+        unsupported = set(selected) - set(supported)
 
-        # Error if no supported hosts remain
-        if not supported_hosts:
-            context_msg = "specified list" if names else "inventory"
+        if not supported:
+            where = "specified list" if explicit else "inventory"
             err_console.print(
                 Panel.fit(
-                    f"No supported hosts found in {context_msg}. Ensure 'discover' has been run.",
+                    f"No supported hosts found in {where}. "
+                    "Ensure 'discover' has been run.",
                     title="Error",
                 )
             )
             return None
 
-        # Print warning if not returning all hosts
-        # We don't consider "unsupported hosts existing in whole inventory"
-        # to be a warning condition, unless the user asked for specific hosts.
-        if unsupported_hosts and names:
-            unsupported_names = [h.name for h in unsupported_hosts]
+        # Warn about skipped hosts only when the user named specific ones.
+        if unsupported and explicit:
             err_console.print(
                 Panel.fit(
-                    f"Unsupported hosts will be skipped: {', '.join(unsupported_names)}",
+                    "Unsupported hosts will be skipped: "
+                    f"{', '.join(h.name for h in unsupported)}",
                     title="Warning",
                     style="yellow",
                 )
             )
 
-        return supported_hosts
+        return supported
 
-    return selected_hosts
+    return selected
 
 
 def run_task_with_progress(

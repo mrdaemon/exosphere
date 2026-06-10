@@ -5,12 +5,12 @@ Config command module
 import os
 from typing import Annotated
 
-import typer
-from rich.console import Console
+from cyclopts import App, Parameter
 from rich.pretty import Pretty
 from rich.text import Text
 
 from exosphere import app_config, context, fspaths
+from exosphere.commands.utils import console, err_console
 from exosphere.config import Configuration
 
 ROOT_HELP = """
@@ -19,30 +19,22 @@ Configuration-related Commands
 Commands to inspect the currently loaded configuration.
 """
 
-app = typer.Typer(
+app = App(
+    name="config",
     help=ROOT_HELP,
-    no_args_is_help=True,
+    help_flags=["--help"],
+    console=console,
+    error_console=err_console,
 )
 
-console = Console()
-err_console = Console(stderr=True)
 
-
-@app.command()
+@app.command
 def show(
-    option: Annotated[
-        str | None,
-        typer.Argument(help="Name of the option to show. All if not specified."),
-    ] = None,
-    full: Annotated[
-        bool,
-        typer.Option(
-            "--full",
-            "-f",
-            help="Show full configuration structure, including inventory.",
-        ),
-    ] = False,
-) -> None:
+    option: str | None = None,
+    /,
+    *,
+    full: Annotated[bool, Parameter(name=["--full", "-f"], negative="")] = False,
+) -> int:
     """
     Show the current configuration.
 
@@ -51,15 +43,23 @@ def show(
 
     If `--full` is specified, it will show the entire configuration structure,
     including the inventory, beyond just the "options" section.
-    """
 
+    Parameters
+    ----------
+    option
+        Name of the option to show. All if not specified.
+    full
+        Show full configuration structure, including inventory.
+    """
     if full:
         if option:
             err_console.print(
                 "[yellow]Full configuration requested, ignoring option name.[/yellow]"
             )
+
         console.print(Pretty(app_config, expand_all=True, max_depth=None))
-        return
+
+        return 0
 
     if option:
         if option in app_config["options"]:
@@ -68,29 +68,28 @@ def show(
             err_console.print(
                 f"[red]Option '{option}' not found in configuration.[/red]"
             )
-            raise typer.Exit(1)  # Execution error
+            return 1  # Input error: unknown option
 
-        return
+        return 0
 
     console.print(Pretty(app_config["options"], expand_all=True))
 
+    return 0
 
-@app.command()
-def source(
-    env: Annotated[
-        bool,
-        typer.Option(
-            help="Show environment variables that affect the configuration.",
-        ),
-    ] = True,
-) -> None:
+
+@app.command
+def source(*, env: bool = True) -> None:
     """
     Show the configuration source, where it was loaded from.
 
     Displays the path of the configuration file loaded, if any, and
     any environment variables that affect the configuration.
-    """
 
+    Parameters
+    ----------
+    env
+        Show environment variables that affect the configuration.
+    """
     if context.confpath:
         console.print(f"{context.confpath}")
     else:
@@ -118,7 +117,7 @@ def source(
         console.print()
 
 
-@app.command()
+@app.command
 def paths() -> None:
     """
     Show the paths of application directories.
@@ -140,16 +139,10 @@ def paths() -> None:
         err_console.print("No configuration file loaded.")
 
 
-@app.command()
+@app.command
 def diff(
-    full: Annotated[
-        bool,
-        typer.Option(
-            "--full",
-            "-f",
-            help="Show full configuration diff, including unmodified options.",
-        ),
-    ] = False,
+    *,
+    full: Annotated[bool, Parameter(name=["--full", "-f"], negative="")] = False,
 ) -> None:
     """
     Show the differences between the current configuration and the defaults.
@@ -161,8 +154,12 @@ def diff(
     in its context, using the `--full` option.
 
     For a full config dump, use the `show` command instead.
-    """
 
+    Parameters
+    ----------
+    full
+        Show full configuration diff, including unmodified options.
+    """
     default_config = Configuration.DEFAULTS["options"]
     current_config = app_config["options"]
 

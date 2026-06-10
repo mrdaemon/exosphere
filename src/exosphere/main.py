@@ -22,8 +22,10 @@ from pathlib import Path
 from typing import Callable
 
 import yaml
+from rich.traceback import install as install_rich_traceback
 
 from exosphere import app_config, cli, context, fspaths
+from exosphere.commands.utils import err_console
 from exosphere.config import Configuration
 from exosphere.inventory import Inventory
 from exosphere.pipelining import ConnectionReaper
@@ -179,6 +181,9 @@ def main() -> None:
     """
     Program Entry Point
     """
+    # Install rich traceback handler early
+    install_rich_traceback(console=err_console, show_locals=False)
+
     # Ensure all required directories exist
     try:
         fspaths.ensure_dirs()
@@ -221,8 +226,11 @@ def main() -> None:
     context.reaper = ConnectionReaper()
     context.reaper.start()
 
-    # Launch CLI application
-    cli.app()
+    # Launch the regular CLI or REPL
+    if len(sys.argv) > 1:
+        cli.app()
+    else:
+        cli.start_interactive()
 
 
 if __name__ == "__main__":

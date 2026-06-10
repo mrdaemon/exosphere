@@ -3,26 +3,18 @@ Tests for the report command module.
 """
 
 import pytest
-import typer
-from typer.testing import CliRunner
 
-from exosphere.commands.report import generate
+from exosphere.commands import report
+from exosphere.commands import utils as utils_module
 from exosphere.data import Update
 from exosphere.objects import Host
 from exosphere.reporting import ReportScope, ReportType
 
-runner = CliRunner(env={"NO_COLOR": "1"})
 
-# There's either a bug in Typer or I'm misunderstanding something
-# fundamentally, but since report contains a single subcommand,
-# running runner.invoke(app, ["generate", ...]) results in
-# parsing fuckery where free arguments contain "generate" and other
-# strange stuff, making tests absurdly brittle.
-#
-# We work around it here by making the generate command available
-# at the root level and pretend the issue doesn't exist.
-generate_app = typer.Typer()
-generate_app.command()(generate)
+@pytest.fixture(autouse=True)
+def _console(patch_console):
+    """Install deterministic consoles for the report command module."""
+    patch_console(report)
 
 
 @pytest.fixture
@@ -96,11 +88,11 @@ def unsupported_host():
 
 @pytest.fixture
 def mock_get_hosts(mocker):
-    """Fixture that returns a patcher function for get_hosts_or_error."""
+    """Fixture that returns a patcher function for get_hosts_or_all."""
 
     def _patch_hosts(hosts):
         return mocker.patch(
-            "exosphere.commands.report.get_hosts_or_error", return_value=hosts
+            "exosphere.commands.report.get_hosts_or_all", return_value=hosts
         )
 
     return _patch_hosts
@@ -127,14 +119,17 @@ class TestGenerateCommand:
         format_name,
         expected_method,
         expected_output,
+        capsys,
     ):
         """
         Test basic report generation for all formats.
         """
         mock_get_hosts([sample_host])
 
-        result = runner.invoke(generate_app, ["--format", format_name])
-        assert result.exit_code == 0
+        code = report.app(
+            ["generate", "--format", format_name], result_action="return_value"
+        )
+        assert code == 0
 
         # Verify the correct renderer method was called
         render_method = getattr(mock_renderer, expected_method)
@@ -147,7 +142,7 @@ class TestGenerateCommand:
         )
 
         # Verify output contains expected content
-        assert expected_output in result.stdout
+        assert expected_output in capsys.readouterr().out
 
     @pytest.mark.parametrize(
         "navigation_flag,expected_navigation",
@@ -170,9 +165,9 @@ class TestGenerateCommand:
         """
         mock_get_hosts([sample_host])
 
-        args = ["--format", "html"] + navigation_flag
-        result = runner.invoke(generate_app, args)
-        assert result.exit_code == 0
+        args = ["generate", "--format", "html"] + navigation_flag
+        code = report.app(args, result_action="return_value")
+        assert code == 0
 
         mock_renderer.render_html.assert_called_once_with(
             [sample_host],
@@ -195,8 +190,10 @@ class TestGenerateCommand:
         """
         mock_get_hosts([sample_host, empty_host])
 
-        result = runner.invoke(generate_app, ["--format", "json", flag])
-        assert result.exit_code == 0
+        code = report.app(
+            ["generate", "--format", "json", flag], result_action="return_value"
+        )
+        assert code == 0
 
         mock_renderer.render_json.assert_called_once()
         call_args = mock_renderer.render_json.call_args[0]
@@ -206,15 +203,25 @@ class TestGenerateCommand:
         assert passed_hosts[0].name == "test-host"
 
     def test_generate_with_specific_hosts_filtered_scope(
-        self, mock_get_hosts, mock_renderer, sample_host, empty_host
+        self, mocker, mock_get_hosts, mock_renderer, sample_host
     ):
         """
         Test that specifying hosts on command line results in ReportScope.filtered
         """
         mock_get_hosts([sample_host])
 
-        result = runner.invoke(generate_app, ["--format", "json", "test-host"])
-        assert result.exit_code == 0
+        # Wire the inventory so the HostArg converter resolves "test-host".
+        fake_inventory = mocker.Mock()
+        fake_inventory.get_host.side_effect = lambda name: (
+            sample_host if name == "test-host" else None
+        )
+        mocker.patch.object(utils_module.context, "inventory", fake_inventory)
+
+        code = report.app(
+            ["generate", "--format", "json", "test-host"],
+            result_action="return_value",
+        )
+        assert code == 0
 
         mock_renderer.render_json.assert_called_once_with(
             [sample_host],
@@ -225,52 +232,41 @@ class TestGenerateCommand:
         )
 
     @pytest.mark.parametrize(
-        "hosts,expected_exit_code",
-        [
-            ("unsupported_hosts", 2),
-            (None, 2),
-        ],
+        "hosts",
+        ["unsupported_hosts", None],
         ids=["no_supported_hosts", "host_lookup_failure"],
     )
-    def test_generate_error_cases(
-        self, mock_get_hosts, unsupported_host, hosts, expected_exit_code
-    ):
+    def test_generate_error_cases(self, mock_get_hosts, unsupported_host, hosts):
         """
-        Test error handling for various failure scenarios
+        Test error handling for various failure scenarios.
 
-        In practice, get_hosts_or_error will handle displaying error messages.
-        Since we mock get_hosts_or_error to return None for error cases,
-        no specific error messages are generated by the command itself.
-
-        We only verify that the command exits with the expected code.
+        get_hosts_or_all returns None when no usable hosts are found (or the
+        inventory is empty), which the command treats as an input error.
         """
-        if hosts == "unsupported_hosts":
-            hosts_data = [unsupported_host]
-        else:
-            hosts_data = hosts
+        # get_hosts_or_all returns None for both error scenarios
+        mock_get_hosts(None)
 
-        # For unsupported hosts, get_hosts_or_error should return None
-        if hosts == "unsupported_hosts":
-            mock_get_hosts(None)  # Simulate no supported hosts
-        else:
-            mock_get_hosts(hosts_data)
-
-        result = runner.invoke(generate_app, ["--format", "json"])
-        assert result.exit_code == expected_exit_code
+        code = report.app(
+            ["generate", "--format", "json"], result_action="return_value"
+        )
+        assert code == 1  # Input error: no hosts to report on
 
     @pytest.mark.parametrize(
         "quiet_flag,expect_message",
         [
-            (
-                False,
-                True,
-            ),
+            (False, True),
             (True, False),
         ],
         ids=["no_quiet", "quiet"],
     )
     def test_updates_only_with_no_matching_hosts(
-        self, mock_get_hosts, mock_renderer, empty_host, quiet_flag, expect_message
+        self,
+        mock_get_hosts,
+        mock_renderer,
+        empty_host,
+        quiet_flag,
+        expect_message,
+        capsys,
     ):
         """
         Test --updates-only behavior when no hosts have updates
@@ -278,18 +274,19 @@ class TestGenerateCommand:
         mock_get_hosts([empty_host])
         mock_renderer.render_json.return_value = "[]"
 
-        args = ["--format", "json", "--updates-only"]
+        args = ["generate", "--format", "json", "--updates-only"]
         if quiet_flag:
             args.append("--quiet")
 
-        result = runner.invoke(generate_app, args)
-        assert result.exit_code == 0
+        code = report.app(args, result_action="return_value")
+        assert code == 0
 
+        captured = capsys.readouterr()
         if expect_message:
-            assert "No hosts with available updates found" in result.stderr
+            assert "No hosts with available updates found" in captured.err
         else:
-            assert result.stderr == ""
-            assert result.stdout.strip() == "[]"  # Empty JSON array rendered
+            assert captured.err == ""
+            assert captured.out.strip() == "[]"  # Empty JSON array rendered
 
     @pytest.mark.parametrize(
         "flag",
@@ -302,9 +299,11 @@ class TestGenerateCommand:
         """Test that --security-updates-only flag (both long and short) is passed to renderer methods."""
         mock_get_hosts([sample_host])
 
-        result = runner.invoke(generate_app, ["--format", "json", flag])
+        code = report.app(
+            ["generate", "--format", "json", flag], result_action="return_value"
+        )
 
-        assert result.exit_code == 0
+        assert code == 0
         mock_renderer.render_json.assert_called_with(
             [sample_host],
             hosts_count=1,
@@ -314,17 +313,18 @@ class TestGenerateCommand:
         )
 
     def test_security_updates_only_filters_hosts(
-        self, mock_get_hosts, mock_renderer, empty_host
+        self, mock_get_hosts, mock_renderer, empty_host, capsys
     ):
         """Test that hosts without security updates are filtered out."""
         mock_get_hosts([empty_host])
 
-        result = runner.invoke(
-            generate_app, ["--format", "json", "--security-updates-only"]
+        code = report.app(
+            ["generate", "--format", "json", "--security-updates-only"],
+            result_action="return_value",
         )
 
-        assert result.exit_code == 0
-        assert "No hosts with security updates found" in result.stderr
+        assert code == 0
+        assert "No hosts with security updates found" in capsys.readouterr().err
 
     @pytest.mark.parametrize(
         "use_tee,expect_stdout",
@@ -342,6 +342,7 @@ class TestGenerateCommand:
         tmp_path,
         use_tee,
         expect_stdout,
+        capsys,
     ):
         """
         Test file output, with and without --tee flag
@@ -350,21 +351,22 @@ class TestGenerateCommand:
         mock_renderer.render_json.return_value = '{"test": "data"}'
 
         output_file = tmp_path / "report.json"
-        args = ["--format", "json", "--output", str(output_file)]
+        args = ["generate", "--format", "json", "--output", str(output_file)]
         if use_tee:
             args.append("--tee")
 
-        result = runner.invoke(generate_app, args)
-        assert result.exit_code == 0
+        code = report.app(args, result_action="return_value")
+        assert code == 0
 
         assert output_file.exists()
         assert output_file.read_text() == '{"test": "data"}'
 
+        out = capsys.readouterr().out
         if expect_stdout:
             # Rich formats JSON with indentation, so check for key content
-            assert '"test"' in result.stdout and '"data"' in result.stdout
+            assert '"test"' in out and '"data"' in out
         else:
-            assert result.stdout == ""
+            assert out == ""
 
     @pytest.mark.parametrize(
         "quiet_flag,expect_message",
@@ -382,6 +384,7 @@ class TestGenerateCommand:
         tmp_path,
         quiet_flag,
         expect_message,
+        capsys,
     ):
         """
         Test file write out with and without --quiet flag
@@ -390,25 +393,27 @@ class TestGenerateCommand:
         mock_renderer.render_text.return_value = "test output"
 
         output_file = tmp_path / "test_output.txt"
-        args = ["--format", "text", "--output", str(output_file)]
+        args = ["generate", "--format", "text", "--output", str(output_file)]
         if quiet_flag:
             args.append("--quiet")
 
-        result = runner.invoke(generate_app, args)
+        code = report.app(args, result_action="return_value")
 
-        assert result.exit_code == 0
-        assert result.stdout == ""  # No stdout when using --output
+        assert code == 0
+        captured = capsys.readouterr()
+        assert captured.out == ""  # No stdout when using --output
         assert output_file.read_text() == "test output"
 
         if expect_message:
-            assert "Report of type" in result.stderr and "saved to" in result.stderr
+            assert "Report of type" in captured.err and "saved to" in captured.err
         else:
             assert (
-                "Report of type" not in result.stderr
-                and "saved to" not in result.stderr
+                "Report of type" not in captured.err and "saved to" not in captured.err
             )
 
-    def test_file_output_error_handling(self, mock_get_hosts, sample_host, tmp_path):
+    def test_file_output_error_handling(
+        self, mock_get_hosts, sample_host, tmp_path, capsys
+    ):
         """
         Test file write error handling
 
@@ -417,11 +422,26 @@ class TestGenerateCommand:
         """
         mock_get_hosts([sample_host])
 
-        # Test file write error with invalid path
+        # Test file write error with invalid path (nonexistent parent dirs)
         invalid_path = tmp_path / "nonexistent" / "directory" / "file.json"
-        result = runner.invoke(
-            generate_app, ["--format", "json", "--output", str(invalid_path)]
+        code = report.app(
+            ["generate", "--format", "json", "--output", str(invalid_path)],
+            result_action="return_value",
         )
 
-        assert result.exit_code == 1
-        assert "Failed to write to" in result.stderr
+        assert code == 2  # Application error: write failed
+        assert "Failed to write to" in capsys.readouterr().err
+
+    def test_output_rejects_directory(self, mock_get_hosts, sample_host, tmp_path):
+        """
+        Test that --output rejects a path that is a directory.
+
+        The Path validator (dir_okay=False) rejects directories during
+        argument binding, as an input error.
+        """
+        mock_get_hosts([sample_host])
+
+        with pytest.raises(SystemExit) as exc_info:
+            report.app(["generate", "--format", "json", "--output", str(tmp_path)])
+
+        assert exc_info.value.code == 1  # Input error from validator

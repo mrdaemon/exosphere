@@ -1409,5 +1409,5 @@ Below is the detailed list of all available host options and their defaults.
                 }
 
 .. _yaml: https://yaml.org/
-.. _toml: https://toml.io/
+.. _toml: https://toml.io/en/
 .. _json: https://www.json.org/

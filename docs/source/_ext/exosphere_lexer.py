@@ -32,40 +32,68 @@ from pygments.token import (
 # These lists are not intended to be maintained, but will be used if dynamic
 # discovery fails or is not possible.
 
-# Main commands (from app.add_typer() calls in cli.py)
-_STATIC_MAIN_COMMANDS = {"inventory", "host", "ui", "config", "sudo"}
+# Main commands
+_STATIC_MAIN_COMMANDS = {
+    "inventory",
+    "host",
+    "ui",
+    "config",
+    "sudo",
+    "report",
+    "connections",
+    "version",
+}
 
-# Subcommands (from @app.command() decorators in command modules)
+# Subcommands
 _STATIC_SUB_COMMANDS = {
     "check",
     "clear",
+    "close",
+    "details",
     "diff",
     "discover",
     "exit",
     "generate",
     "help",
+    "list",
     "paths",
     "ping",
     "policy",
     "providers",
     "quit",
     "refresh",
+    "reset",
     "save",
     "show",
     "source",
     "start",
     "status",
+    "sync",
     "webstart",
 }
 
 
-def _extract_typer_commands():
+def _const_strings(value) -> list[str]:
+    """Collect string constants from an AST node (a str or list/tuple of str)."""
+    if isinstance(value, ast.Constant) and isinstance(value.value, str):
+        return [value.value]
+    if isinstance(value, (ast.List, ast.Tuple)):
+        return [
+            elt.value
+            for elt in value.elts
+            if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
+        ]
+    return []
+
+
+def _extract_commands():
     """
-    Extract command names from Exosphere's Typer command modules.
+    Extract command names from Exosphere's Cyclopts command modules.
 
     This function dynamically discovers:
-    1. Main commands from app.add_typer() calls in cli.py
-    2. Subcommands from @app.command() decorated functions in command modules
+
+    1. Main commands from sub apps
+    2. Subcommands from @app.command decorated functions in command modules
 
     :return: Tuple of (main_commands_set, sub_commands_set)
     """
@@ -76,34 +104,6 @@ def _extract_typer_commands():
         # Find the src directory
         src_dir = Path(__file__).parent.parent.parent.parent / "src" / "exosphere"
 
-        # Extract main commands
-        cli_file = src_dir / "cli.py"
-        if cli_file.exists():
-            try:
-                with open(cli_file, "r", encoding="utf-8") as f:
-                    cli_content = f.read()
-
-                # Parse AST to find app.add_typer() calls
-                tree = ast.parse(cli_content)
-                for node in ast.walk(tree):
-                    if (
-                        isinstance(node, ast.Call)
-                        and isinstance(node.func, ast.Attribute)
-                        and isinstance(node.func.value, ast.Name)
-                        and node.func.value.id == "app"
-                        and node.func.attr == "add_typer"
-                    ):
-                        # Look for name= argument
-                        for keyword in node.keywords:
-                            if keyword.arg == "name" and isinstance(
-                                keyword.value, ast.Constant
-                            ):
-                                main_commands.add(keyword.value.value)
-                                break
-            except Exception:
-                pass
-
-        # Extract subcommands
         commands_dir = src_dir / "commands"
         if commands_dir.exists():
             for py_file in commands_dir.glob("*.py"):
@@ -111,17 +111,24 @@ def _extract_typer_commands():
                     continue
 
                 try:
-                    with open(py_file, "r", encoding="utf-8") as f:
-                        content = f.read()
-
-                    # Parse the AST to find @app.command() decorators
+                    content = py_file.read_text(encoding="utf-8")
                     tree = ast.parse(content)
 
                     for node in ast.walk(tree):
-                        # Look for function definitions with @app.command() decorator
+                        # Main command name: app = App(name="...")
+                        if (
+                            isinstance(node, ast.Call)
+                            and isinstance(node.func, ast.Name)
+                            and node.func.id == "App"
+                        ):
+                            for keyword in node.keywords:
+                                if keyword.arg == "name":
+                                    main_commands.update(_const_strings(keyword.value))
+
+                        # Subcommands: @app.command decorators
                         if isinstance(node, ast.FunctionDef):
                             for decorator in node.decorator_list:
-                                # Check if it's @app.command()
+                                # @app.command() with arguments
                                 if (
                                     isinstance(decorator, ast.Call)
                                     and isinstance(decorator.func, ast.Attribute)
@@ -130,8 +137,14 @@ def _extract_typer_commands():
                                     and decorator.func.attr == "command"
                                 ):
                                     sub_commands.add(node.name)
+                                    # Pick up synonym= aliases (str or list)
+                                    for keyword in decorator.keywords:
+                                        if keyword.arg == "synonym":
+                                            sub_commands.update(
+                                                _const_strings(keyword.value)
+                                            )
                                     break
-                                # Also check for @app.command without parentheses
+                                # @app.command without parentheses
                                 elif (
                                     isinstance(decorator, ast.Attribute)
                                     and isinstance(decorator.value, ast.Name)
@@ -149,13 +162,14 @@ def _extract_typer_commands():
         return _STATIC_MAIN_COMMANDS.copy(), _STATIC_SUB_COMMANDS.copy()
 
     # Add some common commands that might not be explicitly defined
+    # (it's builtins, really)
     main_commands.update(["help", "exit", "quit"])
 
     return main_commands, sub_commands
 
 
 # Extract commands at module level for use in class definition
-_DISCOVERED_MAIN_COMMANDS, _DISCOVERED_SUB_COMMANDS = _extract_typer_commands()
+_DISCOVERED_MAIN_COMMANDS, _DISCOVERED_SUB_COMMANDS = _extract_commands()
 
 # Create patterns
 _MAIN_COMMAND_PATTERN = (
@@ -177,7 +191,7 @@ class ExosphereLexer(RegexLexer):
 
     Highlights:
     - Prompt (exosphere>)
-    - Commands and subcommands (dynamically extracted from Typer decorators)
+    - Commands and subcommands (dynamically extracted from Cyclopts decorators)
     - Long options (--option)
     - Short options (-o)
     - Arguments and values
@@ -198,9 +212,9 @@ class ExosphereLexer(RegexLexer):
             # Short options (-o, -abc)
             (r"-[a-zA-Z0-9]+", Name.Attribute),
             # Main commands (inventory, host, ui, config, sudo)
-            (_MAIN_COMMAND_PATTERN, Name.Builtin),
+            (_MAIN_COMMAND_PATTERN, Keyword),
             # Subcommands (status, refresh, ping, etc.)
-            (_SUBCOMMAND_PATTERN, Keyword),
+            (_SUBCOMMAND_PATTERN, Name.Builtin),
             # Generic commands (fallback for unmatched command-like words)
             (r"(?<=exosphere>)\s+([a-zA-Z][a-zA-Z0-9-_]*)", Name.Function),
             (r"(?<=\|\s)([a-zA-Z][a-zA-Z0-9-_]*)", Name.Function),

@@ -6,15 +6,12 @@ like command history, autocompletion, and better line editing while
 maintaining Rich output formatting.
 """
 
-import inspect
 import logging
 import shlex
-import sys
-from collections.abc import Generator
-from enum import Enum
-from typing import Annotated, cast, get_args, get_origin
+from collections.abc import Callable, Iterable, Iterator
+from typing import get_args
 
-import typer
+from cyclopts import App, CycloptsError
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
@@ -23,431 +20,96 @@ from prompt_toolkit.history import FileHistory, History
 from prompt_toolkit.shortcuts import CompleteStyle
 from rich.console import Console
 from rich.panel import Panel
-from typer import Context
-from typer.core import TyperCommand, TyperGroup
 
 from exosphere import app_config
 from exosphere import context as app_context
-from exosphere.commands.utils import HostArgument, HostOption
+from exosphere.objects import Host
 
 logger = logging.getLogger(__name__)
 
+# Common help flags, will be stripped before resolving a command chain
+_HELP_FLAGS = {"--help"}
 
-class _NoArgsIsHelpUnavailable(BaseException):
+# Builtin (REPL-only) commands, mostly for help.
+BUILTINS = {
+    "exit": "Exit the interactive shell",
+    "quit": "Exit the interactive shell",
+    "clear": "Clear the console",
+}
+
+
+def _accepts_host(argument) -> bool:
     """
-    Sentinel exception for missing NoArgsIsHelpError
+    Check if argument resolves host names.
 
-    This exists as a fallback in case a future version of Typer, post
-    0.26, stops exposing NoArgsIsHelpError in the same module as typer.Exit.
-
-    It is never raised directly, but allows the module to import cleanly.
+    Host arguments and options are typed with the Host converter, so we
+    check if their hint involves :class:`Host`, either directly, or as a
+    tuple for variadics.
     """
-
-
-# Typer 0.26+ vendored Click, and doesn't re-export NoArgsIsHelpError.
-# It however still lives in the same module as Exit. Since I don't love
-# relying on this kind of behavior too hard, we anchor off the public
-# symbol to resolve the class name, but we fallback to a sentinel to
-# degrade gracefully and catch this in CI if it ever changes.
-_NoArgsIsHelpError: type[BaseException] = getattr(
-    sys.modules[typer.Exit.__module__], "NoArgsIsHelpError", _NoArgsIsHelpUnavailable
-)
-
-
-class HostMatchMode(Enum):
-    """
-    Defines how host name completion behaves for a command.
-
-    SINGLE: Command accepts exactly one host at position 0
-    MULTIPLE: Command accepts multiple hosts at any position
-    """
-
-    SINGLE = "single"
-    MULTIPLE = "multiple"
-
-
-# Reusable type aliases for host completion metadata
-type SubcommandHostMode = dict[str, HostMatchMode]
-type HostArgMetadata = dict[str, SubcommandHostMode]
-type SubcommandOptionNames = dict[str, list[str]]
-type HostOptionMetadata = dict[str, SubcommandOptionNames]
-type CommandNode = TyperGroup | TyperCommand
+    stack = [getattr(argument, "hint", None)]
+    while stack:
+        current = stack.pop()
+        if current is Host:
+            return True
+        stack.extend(get_args(current))
+    return False
 
 
 class ExosphereCompleter(Completer):
     """
-    Readline-like completion for Exosphere Commands
+    Readline-like completion for Exosphere commands
 
-    Handles completion of:
-
-     - Top-level commands (host, inventory, sudo, etc.)
-     - Subcommands and their options
-     - Sub-subcommands and their options
-     - Host name completions for relevant commands
-     - Host name completion for options that accept them
-     - Built-in commands like help, exit, clear
-
-    Host completion behavior is driven by metadata extracted from command
-    annotations (HostArgument and HostOption) at initialization time.
+    Handles completion of top-level commands, subcommands, their options
+    and choice values, host-name arguments/options, as well as the
+    builtin REPL commands (e.g. 'help', 'exit', etc).
     """
 
-    def __init__(self, root_command: TyperGroup | None) -> None:
-        self.root_command = root_command
-        self.commands = ["clear", "help", "exit", "quit"]
-        if root_command:
-            self.commands += list(getattr(root_command, "commands", {}))
+    def __init__(self, app: App, host_names: Callable[[], list[str]]) -> None:
+        self.app = app
+        self.host_names = host_names
 
-        # Extract host command metadata from annotations
-        # We do this ahead of time, on init instead of on demand, for performance.
-        arg_commands, option_commands = self._extract_host_metadata(root_command)
-        self.HOST_ARG_COMMANDS = arg_commands
-        self.HOST_OPTION_COMMANDS = option_commands
+    @staticmethod
+    def _subcommands(app: App) -> list[str]:
+        """Real subcommand names of an app (no flags)"""
+        return [name for name in app if not name.startswith("-")]
 
-    def _extract_host_metadata(
-        self, root_command: TyperGroup | None
-    ) -> tuple[HostArgMetadata, HostOptionMetadata]:
+    def _complete(self, matches: Iterable[str], prefix: str) -> Iterator[Completion]:
         """
-        Extract host completion metadata from command annotations.
-
-        We do this by introspecting the Click/Typer command signatures
-        and looking for our custom HostArgument and HostOption annotations.
-        """
-        host_args = {}
-        host_options = {}
-
-        if not root_command:
-            return host_args, host_options
-
-        try:
-            commands = getattr(root_command, "commands", {})
-            for group_name, group_cmd in commands.items():
-                self._extract_from_group(group_name, group_cmd, host_args, host_options)
-        except (AttributeError, TypeError) as e:
-            logger.debug("Could not extract host completion metadata: %s", e)
-
-        return host_args, host_options
-
-    def _extract_from_group(
-        self,
-        group_name: str,
-        group_cmd: TyperGroup,
-        host_args: HostArgMetadata,
-        host_options: HostOptionMetadata,
-    ) -> None:
-        """Extract host completion metadata from a command group."""
-        commands = getattr(group_cmd, "commands", {})
-        for cmd_name, cmd in commands.items():
-            self._extract_from_command(
-                group_name, cmd_name, cmd, host_args, host_options
-            )
-
-    def _extract_from_command(
-        self,
-        group_name: str,
-        cmd_name: str,
-        cmd: TyperCommand,
-        host_args: HostArgMetadata,
-        host_options: HostOptionMetadata,
-    ) -> None:
-        """Extract host completion metadata from a single command."""
-        if not hasattr(cmd, "callback") or not cmd.callback:
-            return
-
-        sig = inspect.signature(cmd.callback)
-        for param in sig.parameters.values():
-            self._extract_from_parameter(
-                group_name, cmd_name, cmd, param, host_args, host_options
-            )
-
-    def _extract_from_parameter(
-        self,
-        group_name: str,
-        cmd_name: str,
-        cmd: TyperCommand,
-        param: inspect.Parameter,
-        host_args: HostArgMetadata,
-        host_options: HostOptionMetadata,
-    ) -> None:
-        """Extract host metadata from a parameter annotation."""
-        if param.annotation == inspect.Parameter.empty:
-            return
-
-        if get_origin(param.annotation) is not Annotated:
-            return
-
-        args = get_args(param.annotation)
-        for metadata in args[1:]:
-            if isinstance(metadata, HostArgument):
-                if group_name not in host_args:
-                    host_args[group_name] = {}
-                mode = (
-                    HostMatchMode.MULTIPLE
-                    if metadata.multiple
-                    else HostMatchMode.SINGLE
-                )
-                host_args[group_name][cmd_name] = mode
-
-            elif isinstance(metadata, HostOption):
-                option_names = self._get_option_names_from_param(cmd, param.name)
-                if option_names:
-                    if group_name not in host_options:
-                        host_options[group_name] = {}
-                    host_options[group_name][cmd_name] = option_names
-
-    def _get_option_names_from_param(
-        self, cmd: TyperCommand, param_name: str
-    ) -> list[str]:
-        """Extract option names from Click command param."""
-        for click_param in getattr(cmd, "params", []):
-            if getattr(click_param, "name", None) == param_name:
-                return getattr(click_param, "opts", [])
-        return []
-
-    def _get_host_names(self) -> list[str]:
-        """Get list of host names from current inventory."""
-        if app_context.inventory is None:
-            return []
-
-        return [host.name for host in app_context.inventory.hosts]
-
-    def _make_completions(
-        self, matches: list[str], start_position: int
-    ) -> list[Completion]:
-        """
-        Return Completion objects for the given matches.
+        Yield completions for matches with the given prefix.
 
         We append a space on full match for rapid tab-through completion,
-        an ancestral behavior from Quality Things like bash that I, for one,
-        absolutely expect.
+        an ancestral behavior from Quality Things like Bash that I, for
+        one, absolutely expect. A time tried tradition.
         """
-        if len(matches) == 1:
-            return [Completion(matches[0] + " ", start_position=start_position)]
+        candidates = sorted(m for m in set(matches) if m.startswith(prefix))
+        startpos = -len(prefix)
 
-        return [Completion(match, start_position=start_position) for match in matches]
+        if len(candidates) == 1:
+            yield Completion(candidates[0] + " ", start_position=startpos)
+            return
 
-    def _complete_main_commands(self, words: list[str], text: str) -> list[Completion]:
-        """Complete top-level commands (host, inventory, sudo, etc.)."""
-        prefix = words[0].lower() if words else ""
-        matches = [c for c in self.commands if c.lower().startswith(prefix)]
+        for match in candidates:
+            yield Completion(match, start_position=startpos)
 
-        # We arbitrarily limit the number of matches to 8
-        # and just kind of silently bail if exceeded.
-        if prefix and len(matches) > 8:
-            return []
-
-        sp = -len(words[0]) if words and prefix else 0
-        return self._make_completions(matches, sp)
-
-    def _complete_help_command(self, words: list[str], text: str) -> list[Completion]:
-        """Complete the 'help' builtin command with available commands."""
-        if not self.root_command:
-            return []
-
-        main_commands = getattr(self.root_command, "commands", {})
-        current = "" if text.endswith(" ") else (words[1] if len(words) > 1 else "")
-        matching = [name for name in main_commands if name.startswith(current)]
-
-        return self._make_completions(matching, -len(current))
-
-    def _should_complete_host_option_value(
-        self, command: str, words: list[str], text: str
-    ) -> bool:
+    def _host_matches(
+        self, prefix: str, exclude: set[str] | None = None
+    ) -> Iterator[Completion]:
         """
-        Check if we can and should complete host names for an option value.
+        Yield host-name completions
 
-        Has some extra sanity checks, for current state, but mainly just
-        checks if the option is in the HOST_OPTION_COMMANDS mapping.
+        Optionally excludes hosts in the given set, which is useful for
+        hosts that have already been consumed/completed in the current
+        command line.
         """
-
-        if len(words) < 2:
-            return False
-
-        # Ensure we're not still completing the option itself by expecting
-        # a space in the unsplit text.
-        prev_option = (
-            words[-1] if text.endswith(" ") else (words[-2] if len(words) >= 2 else "")
-        )
-
-        if not prev_option.startswith("-"):
-            return False
-
-        if command not in self.HOST_OPTION_COMMANDS:
-            return False
-
-        subcmd_config = self.HOST_OPTION_COMMANDS[command]
-        if not isinstance(subcmd_config, dict) or words[1] not in subcmd_config:
-            return False
-
-        host_options = subcmd_config[words[1]]
-        return prev_option in host_options
-
-    def _complete_host_names(
-        self, current: str, sp: int, exclude: set[str] | None = None
-    ) -> list[Completion]:
-        """
-        Return host name completions
-
-        Optionally exclude already-used host names during completion.
-        """
-        host_names = self._get_host_names()
         exclude = exclude or set()
-        matching = [h for h in host_names if h.startswith(current) and h not in exclude]
-
-        return self._make_completions(matching, sp)
-
-    def _complete_host_positional_arg(
-        self, command: str, words: list[str], text: str, current: str, sp: int
-    ) -> Generator[Completion, None, None]:
-        """Complete host names for positional arguments."""
-        if command not in self.HOST_ARG_COMMANDS:
-            return
-
-        subcmd_config = self.HOST_ARG_COMMANDS[command]
-        if not isinstance(subcmd_config, dict) or words[1] not in subcmd_config:
-            return
-
-        # Count non-option arguments to determine position
-        non_opt_args = [w for w in words[2:] if not w.startswith("-")]
-        arg_position = (
-            len(non_opt_args) if text.endswith(" ") else len(non_opt_args) - 1
-        )
-
-        mode = subcmd_config[words[1]]
-
-        # Determine if this position accepts host names based on completion mode
-        accepts_hosts = False
-        match mode:
-            case HostMatchMode.SINGLE:
-                # Only position 0
-                accepts_hosts = arg_position == 0
-            case HostMatchMode.MULTIPLE:
-                # Any position
-                accepts_hosts = True
-
-        if accepts_hosts:
-            # For single-host commands, no exclusion needed
-            exclude = set()
-            if mode == HostMatchMode.MULTIPLE:
-                # Multi-host command: exclude hosts already specified
-                exclude = set(non_opt_args)
-                if not text.endswith(" ") and non_opt_args:
-                    # Remove the current partial word from exclusions
-                    exclude.discard(non_opt_args[-1])
-
-            yield from self._complete_host_names(current, sp, exclude=exclude)
-
-    def _is_flag_option(self, subsub: TyperCommand, option_name: str) -> bool:
-        """
-        Check if an option is a flag (doesn't take a value).
-
-        This is used to determine whether or not to halt completion after
-        an option is completed.
-        """
-        if not hasattr(subsub, "params"):
-            return False
-
-        # We check for Click/Typer is_flag, count, and BOOL type
-        # All of them imply the option value is the option itself (a flag)
-        # We have to do this due to inconsistencies across Typer/Click details.
-        for param in subsub.params:
-            if option_name in getattr(param, "opts", []):
-                if getattr(param, "is_flag", False):
-                    return True
-                if getattr(param, "count", False):
-                    return True
-                param_type = getattr(param, "type", None)
-                if param_type and getattr(param_type, "name", None) == "BOOL":
-                    return True
-
-        return False
-
-    def _get_choice_option_values(
-        self, subsub: TyperCommand, option_name: str
-    ) -> list[str] | None:
-        """
-        Return the valid values for a fixed-choice option, or None.
-
-        Used to complete the value of an option backed by a fixed set of
-        choices (e.g. an Enum).
-
-        Returns None when the option is not a choice option, so the
-        caller can fall back to its usual handling.
-        """
-        for param in getattr(subsub, "params", []):
-            if option_name in getattr(param, "opts", []):
-                param_type = getattr(param, "type", None)
-                # Best effort check for Choice types, since Typer
-                # 0.26 vendors click, and doesn't export click.Choice
-                if getattr(param_type, "name", None) == "choice":
-                    return list(getattr(param_type, "choices", []))
-                return None
-
-        return None
-
-    def _complete_subsubcommand(
-        self, command: str, subcommand, words: list[str], text: str, used_opts: set
-    ) -> Generator[Completion, None, None]:
-        """
-        Complete options and arguments for a subsubcommand
-        (e.g., 'host show').
-
-        This is where most of the hot complete action happens within
-        the context of Exosphere.
-        """
-        subsub = subcommand.commands.get(words[1])
-        if not subsub or not hasattr(subsub, "params"):
-            return
-
-        current = words[-1] if not text.endswith(" ") else ""
-        sp = -len(current) if current else 0
-
-        # Complete options if current word starts with -
-        # (e.g., typing "--ho" to get "--host")
-        if current.startswith("-"):
-            opts = {"--help"}
-            for param in getattr(subsub, "params", []):
-                opts.update(o for o in getattr(param, "opts", []) if o.startswith("--"))
-
-            # Filter matching options
-            matching_opts = [
-                opt for opt in opts if opt not in used_opts and opt.startswith(current)
-            ]
-
-            yield from self._make_completions(matching_opts, sp)
-            return
-
-        # If previous word was an option that takes host names, complete host names
-        if self._should_complete_host_option_value(command, words, text):
-            yield from self._complete_host_names(current, sp)
-            return
-
-        # Determine the previous word, to detect option-value context.
-        prev_word = (
-            words[-1] if text.endswith(" ") else (words[-2] if len(words) >= 2 else "")
-        )
-
-        if prev_word.startswith("-"):
-            # If the previous word was an option backed by a fixed set of
-            # choices (e.g. an Enum like --sort), complete those values.
-            choices = self._get_choice_option_values(subsub, prev_word)
-            if choices is not None:
-                matching = [c for c in choices if c.startswith(current)]
-                yield from self._make_completions(matching, sp)
-                return
-
-            # Otherwise, stop completion if we are following a non-flag
-            # option that expects a value we can't complete.
-            if not self._is_flag_option(subsub, prev_word):
-                return
-
-        # Complete host names for positional arguments
-        yield from self._complete_host_positional_arg(command, words, text, current, sp)
+        hosts = [h for h in self.host_names() if h not in exclude]
+        yield from self._complete(hosts, prefix)
 
     def get_completions(
         self, document: Document, complete_event
-    ) -> Generator[Completion, None, None]:
+    ) -> Iterator[Completion]:
         """
-        Retrieve completions based on current input.
+        Retrieve completion based on current input
 
         Provides the main completer logic for Exosphere commands.
 
@@ -456,54 +118,82 @@ class ExosphereCompleter(Completer):
         """
         text = document.text_before_cursor
         words = text.split()
+        ends_space = text == "" or text.endswith(" ")
+        current = "" if ends_space else (words[-1] if words else "")
+        settled = words if ends_space else words[:-1]
 
-        # Complete top-level commands
-        if not words or (len(words) == 1 and not text.endswith(" ")):
-            yield from self._complete_main_commands(words, text)
+        # Complete top-level commands and builtins
+        if not settled:
+            yield from self._complete(
+                self._subcommands(self.app) + list(BUILTINS), current
+            )
             return
+
+        head = settled[0]
 
         # Handle built-in commands
-        command = words[0]
-        if command in ("help", "exit", "quit"):
-            if command == "help" and len(words) <= 2:
-                yield from self._complete_help_command(words, text)
+        # Only 'help' completes commands, others take no arguments
+        if head in ("exit", "quit", "clear"):
+            return
+        if head == "help":
+            if len(settled) == 1:
+                yield from self._complete(self._subcommands(self.app), current)
             return
 
-        # Handle exosphere commands from the root command
-        # Typer commands are all attached to the root repl command
-        # which dispatches them as subcommands -- which, surprise surprise,
-        # will also have subcommands of their own.
-        if not self.root_command:
+        # Resolve the command chain
+        _chain, apps, unused = self.app.parse_commands(settled)
+        node = apps[-1]
+
+        # Complete group subcommands
+        subs = self._subcommands(node)
+        if subs and not unused:
+            yield from self._complete(subs, current)
             return
 
-        main_commands = getattr(self.root_command, "commands", {})
-        subcommand = main_commands.get(command)
-        if not subcommand:
+        # Introspect command arguments for leaf commands
+        try:
+            ac = node.assemble_argument_collection()
+        except Exception:  # noqa: BLE001
             return
 
-        # Collect already used options to avoid repeating them
-        # This is kind of a hack, but it's enough for our needs so far
-        used_opts = set(w for w in words[1:] if w.startswith("-"))
+        used_opts = {token for token in unused if token.startswith("-")}
 
-        current = words[-1] if not text.endswith(" ") else ""
-        sp = -len(current) if current else 0
+        # Completing an option name.
+        if current.startswith("-"):
+            opts = ["--help"]
+            for arg in ac:
+                opts.extend(name for name in arg.names if name.startswith("-"))
+            yield from self._complete(
+                (opt for opt in opts if opt not in used_opts), current
+            )
+            return
 
-        # Complete subcommands if available
-        commands = getattr(subcommand, "commands", {})
-        if commands:
-            if len(words) == 1 or (len(words) == 2 and not text.endswith(" ")):
-                matching = [name for name in commands if name.startswith(current)]
+        # Complete option values for last option, if applicable
+        prev = unused[-1] if unused else ""
+        if prev.startswith("-"):
+            for arg in ac:
+                if prev in arg.names:
+                    choices = arg.get_choices()
+                    if choices:
+                        yield from self._complete(list(choices), current)
+                        return
+                    if _accepts_host(arg):
+                        yield from self._host_matches(current)
+                        return
+                    if not arg.is_flag():
+                        # Nothing to offer here
+                        return
+                    break
 
-                yield from self._make_completions(matching, sp)
-            elif len(words) >= 2:
-                yield from self._complete_subsubcommand(
-                    command, subcommand, words, text, used_opts
-                )
-        else:
-            # We helpfully tack on --help to simple commands because
-            # it is universal to all typer commands.
-            if "--help".startswith(current) and "--help" not in used_opts:
-                yield Completion("--help", start_position=sp)
+        # Complete positional host arguments
+        positional_host = any(
+            _accepts_host(arg) and not any(name.startswith("-") for name in arg.names)
+            for arg in ac
+        )
+
+        if positional_host:
+            used_hosts = {token for token in unused if not token.startswith("-")}
+            yield from self._host_matches(current, exclude=used_hosts)
 
 
 class ExosphereREPL:
@@ -512,57 +202,58 @@ class ExosphereREPL:
 
     Provides an interactive interface with enhanced features:
     - Command history with search (Ctrl+R)
-    - Tab autocompletion down to subcommands and options
-    - Cross-platform compatibility
-    - And probably more as I start to regret my life choices
+    - Fun Expected Keybinds Handling (ctrl+d, ctrl+c etc)
+    - Tab autocompletion down to subcommand, option and values
+    - Cross-platform compatibility (not relying on readline)
+    - Rich formatted output
+    - Unified handling of commands from a root command
+    - Built-in commands for console management and help
+    - And probably more, as I start to regret my life choices.
     """
 
-    def __init__(self, ctx: Context, prompt_text: str = "exosphere> ") -> None:
+    def __init__(self, app: App, prompt_text: str = "exosphere> ") -> None:
         """
-        Initialize the REPL with the given context and prompt.
+        Initialize the REPL with the given app and prompt.
 
-        :param ctx: Typer/Click context
-        :param prompt_text: The prompt string to display
+
+        :param app: Cyclopts App object instance
+        :param prompt_text: The prompt string to display.
         """
-        self.ctx = ctx
+        self.app = app
         self.prompt_text = prompt_text
         self.console = Console()
+        self.builtins = BUILTINS
 
-        # Builtin commands, mostly for help
-        self.builtins = {
-            "exit": "Exit the interactive shell",
-            "quit": "Exit the interactive shell",
-            "clear": "Clear the console",
-        }
+        # Reveal interactive-only (hidden) commands
+        # We keep these hidden from normal CLI help since they only
+        # make sense across multiple commands (e.g. 'connections')
+        _unhide(app)
 
         # Setup persistent history
         self.history = self._setup_history()
 
-        # Get the root command for executing subcommands.
-        # Typer statically types ctx.command as the base Command, but
-        # for a Typer app the root is always the TyperGroup it built.
-        self.root_command: TyperGroup | None = (
-            cast(TyperGroup, ctx.command) if ctx.command else None
-        )
-
         # Setup the specialized completer
-        self.completer = ExosphereCompleter(self.root_command)
+        self.completer = ExosphereCompleter(app, self._host_names)
+
+    def _host_names(self) -> list[str]:
+        """Host names from the current inventory (for completion)."""
+        if app_context.inventory is None:
+            return []
+        return [host.name for host in app_context.inventory.hosts]
 
     def _setup_history(self) -> History:
         """
-        Setup persistent command history using FileHistory
+        Setup persistent command history using FileHistory.
 
-        The history file will be dumped in the State directory
-        for exosphere, according to platform conventions.
+        The history file will be dumped in the State directory for
+        Exosphere, according to platform conventions.
 
-        :return: FileHistory instance with proper file path,
-                 or InMemoryHistory as fallback
+        Falls back to in-memory history if the file cannot be opened.
         """
         try:
             history_file = app_config["options"]["history_file"]
             return FileHistory(str(history_file))
-        except Exception as e:
-            # Fallback to in-memory history if file operations fail
+        except Exception as e:  # noqa: BLE001
             logger.warning("Could not setup persistent history: %s", e)
             logger.warning("REPL is falling back to in-memory history")
 
@@ -574,7 +265,7 @@ class ExosphereREPL:
         """
         Main REPL loop
 
-        Handles printing the prompt and reading user input.
+        Read, Eval, Print, Lather, Rinse, Repeat.
         """
 
         # Standard optional intro/banner subtext
@@ -582,14 +273,15 @@ class ExosphereREPL:
             self.console.print(intro)
             self.console.print()
 
-        # Use HTML to format the prompt since it's what prompt_toolkit expects
-        # I would use Rich tags here this is a different animal.
+        # Use HTML to format the prompt since it's what prompt_toolkit
+        # expects. I would use Rich tags here, but this is a different
+        # animal entirely, with its own syntax and coffee bar.
         prompt_html = HTML(f"<ansiblue>{self.prompt_text}</ansiblue>")
 
         while True:
             try:
                 # Prompt for user input with colored prompt
-                # We use readline style completion for familiarity
+                # We use readline-style completion for familiarity
                 user_input = prompt(
                     prompt_html,
                     history=self.history,
@@ -599,6 +291,7 @@ class ExosphereREPL:
                     complete_style=CompleteStyle.READLINE_LIKE,
                 )
 
+                # Skip over empty input
                 if not user_input.strip():
                     continue
 
@@ -613,13 +306,14 @@ class ExosphereREPL:
                 # Ctrl+D exits gracefully
                 self.console.print("Exiting Interactive mode")
                 break
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
+                # Catch-all for unexpected crashes
                 self.console.print(f"[red]Unexpected error in REPL: {e}[/red]")
                 logger.exception("Unexpected error in REPL")
 
     def execute_command(self, line: str) -> None:
         """
-        Execute a command with Rich output formatting
+        Parse and Execute a command with Rich output formatting
         """
         try:
             # Split the command line into arguments
@@ -639,103 +333,90 @@ class ExosphereREPL:
                 self.console.clear()
                 return
 
-            # Execute Typer/Click commands
-            self._execute_typer_command(args)
+            # Execute application commands
+            self._execute_command(args)
 
         except ValueError as e:
             self.console.print(f"[red]Error parsing command: {e}[/red]")
-        except (SystemExit, typer.Exit):
-            # Commands may exit, this is expected
-            pass
         except EOFError:
             # Re-raise EOFError so it reaches the main loop
             # Allows Ctrl+D to exit gracefully
             raise
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.console.print(f"[red]Error executing command: {e}[/red]")
-            logger.exception(f"Error executing command: {line}")
+            logger.exception("Error executing command: %s", line)
 
-    def _execute_typer_command(self, args: list[str]) -> None:
+    def _execute_command(self, args: list[str]) -> None:
         """
-        Execute a Typer/Click command through its explicit context
+        Dispatch and Execute an Application command
 
-        We scope the context to the subcommand specifically in order to
-        make the Typer help system not display the entire command tree
-        in its usage line, which is cleaner, and also more useful in
-        interactive mode.
+        We route "--help" to scoped help explicitly to avoid full
+        command name resolution, essentially stripping the root command
+        from usage lines.
 
-        :param args: Command arguments
+        Otherwise, we run via the Cyclopts token handling, which
+        cleanly delegates parsing and exit codes to the library.
+
+        Command exit codes are swallowed in interactive mode, since the
+        standard output/error text is the intended feedback.
+        Cyclopts and general parse errors are surfaced, however.
         """
-        if not self.root_command:
-            self.console.print("[red]No root command available[/red]")
+        head = args[0]
+
+        # Route --help through scoped help handler
+        # Rewrites command names to be relative
+        if any(token in _HELP_FLAGS for token in args):
+            self._scoped_help(args)
             return
 
-        if not args:
-            self.console.print("[red]No command specified[/red]")
+        # Bare groups (sub-app that has subcommands but has no further
+        # tokens, and has no default command) also get routed to scoped
+        # help, for the same reason,
+        _chain, apps, unused = self.app.parse_commands(args)
+        node = apps[-1]
+        has_subcommands = any(not name.startswith("-") for name in node)
+        if has_subcommands and not unused and node.default_command is None:
+            self._scoped_help(args)
             return
 
-        command_name = args[0]
-
-        # Find the subcommand in the root command's commands dict
-        subcommands = getattr(self.root_command, "commands", {})
-        subcommand = subcommands.get(command_name)
-
-        if not subcommand:
-            self.console.print(f"[red]Unknown command: {command_name}[/red]")
-            available = list(subcommands.keys())
-            if available:
-                self.console.print(f"Available commands: {', '.join(available)}")
-            return
-
-        # In interactive mode, unhide all commands.
-        # This ensures interactive-only commands are visible.
-        self._unhide_commands(subcommand)
-
-        # Create context without parent to avoid issues with help
         try:
-            with subcommand.make_context(command_name, args[1:]) as sub_ctx:
-                subcommand.invoke(sub_ctx)
-
-        except typer.Exit:
-            # Commands (including help) may exit, this is expected
+            self.app(
+                args,
+                exit_on_error=False,
+                print_error=True,  # Use native CycloptsPanel for errors
+                result_action="return_value",
+            )
+        except SystemExit:
+            # Handle sys.exit calls from commands gracefully, without
+            # exiting the REPL - output is already handled by now.
             pass
-
-        except _NoArgsIsHelpError:
-            # Command was invoked with no arguments and displayed help
-            self.console.print(f"[red]Command {command_name} requires arguments[/red]")
-
-        except SystemExit as e:
-            # Handle sys.exit calls from commands gracefully
-            # In general, commands exit by raising Typer's specific exit state
-            # But it's better to be defensive here, as to highlight bugs.
-            if e.code is not None and e.code != 0:
-                self.console.print(
-                    f"[yellow]Command exited with code {e.code}[/yellow]"
-                )
-
+        except CycloptsError:
+            # Handle CycloptsErrors gracefully
+            # It already prints the errors
+            pass
         except Exception as e:
             # Something went horribly wrong and we have no idea what
-            self.console.print(f"[red]Error executing {command_name}: {e}[/red]")
-            logger.exception(f"Error executing command '{command_name}': {e}")
+            self.console.print(f"[red]Error executing {head}: {e}[/red]")
+            logger.exception("Error executing command '%s'", head)
 
-    def _unhide_commands(self, command: CommandNode) -> None:
+    def _scoped_help(self, args: list[str]) -> None:
         """
-        Recursively unhide all subcommands for interactive mode.
+        Render help for the typed command, with relative command name
 
-        In interactive mode, we want to show all commands including those
-        marked as hidden (which are typically interactive-only commands).
+        This allows help given from interactive mode to omit the root
+        command for usage lines, which is much friendlier in context.
 
-        :param command: The command to unhide along with its subcommands
+        Example: "exosphere sudo generate" --> "sudo generate"
         """
-        # Unhide the command itself if it has a hidden attribute
-        if hasattr(command, "hidden"):
-            command.hidden = False
+        tokens = [token for token in args if token not in _HELP_FLAGS]
+        _chain, apps, _unused = self.app.parse_commands(tokens)
 
-        # Unhide all subcommands recursively
-        for subcmd in getattr(command, "commands", {}).values():
-            self._unhide_commands(subcmd)
+        if len(apps) >= 2:
+            apps[1].help_print(list(_chain[1:]))
+        else:
+            self.app.help_print([])
 
-    def _show_help(self, args: list) -> None:
+    def _show_help(self, args: list[str]) -> None:
         """
         Show help with Rich formatting
         """
@@ -745,7 +426,7 @@ class ExosphereREPL:
         elif args[0] in self.builtins:
             # Handle built-in commands
             self.console.print(f"[cyan]Built-in: {self.builtins[args[0]]}[/cyan]")
-        elif args[0] == "--help" or args[0] == "help":
+        elif args[0] in ("--help", "help"):
             # Show help for help, because someone is bound to try
             # Might as well leave a small easter egg for them.
             self.console.print(
@@ -753,37 +434,35 @@ class ExosphereREPL:
                 "Use 'help' without arguments for general help."
             )
         else:
-            # Specific command help, we just wrap the command with
-            # '--help' as argument and let the typer help system handle it
-            self._execute_typer_command([args[0], "--help"])
+            # Specific command help, delegate to scoped help
+            # which in turns lets Cyclopts handle it entirely.
+            self._scoped_help([args[0], "--help"])
 
     def _show_general_help(self) -> None:
         """
         Show general help for interactive mode
         Hidden commands will be included.
         """
-        if self.root_command:
-            subcommands = getattr(self.root_command, "commands", {})
-            lines = []
-            for name, cmd in subcommands.items():
-                help_text = getattr(cmd, "help", None) or "No description available."
+        lines = []
+        for name in self._command_names():
+            sub = self.app[name]
+            help_text = (sub.help or "").strip() or "No description available."
 
-                # Show only the first line of the help text for brevity
-                # This can be a multi-line string
-                first_line = help_text.split("\n")[0]
+            # Show only the first line of the help text for brevity
+            # This can be a multi-line string
+            first_line = help_text.split("\n")[0]
 
-                lines.append(f"[cyan]{name:<13}[/cyan] {first_line}")
+            lines.append(f"[cyan]{name:<13}[/cyan] {first_line}")
 
-            if lines:
-                content = "\n".join(lines)
-                panel = Panel.fit(
-                    content,
-                    title="Commands",
-                    title_align="left",
-                    border_style="dim",
-                )
-                self.console.print("\nAvailable modules during interactive use:\n")
-                self.console.print(panel)
+        if lines:
+            panel = Panel.fit(
+                "\n".join(lines),
+                title="Commands",
+                title_align="left",
+                border_style="dim",
+            )
+            self.console.print("\nAvailable modules during interactive use:\n")
+            self.console.print(panel)
 
         # Spacing for better readability
         self.console.print()
@@ -792,24 +471,48 @@ class ExosphereREPL:
             "Use '<command> --help' or 'help <command>' for help on a specific command."
         )
 
-        if self.builtins:
-            # Show built-in commands
-            self.console.print(
-                f"[dim]Built-in commands: {', '.join(self.builtins.keys())}[/dim]"
-            )
-        else:
-            # Leave empty line if no built-ins
-            self.console.print()
+        self.console.print(
+            f"[dim]Built-in commands: {', '.join(self.builtins.keys())}[/dim]"
+        )
+
+    def _command_names(self) -> list[str]:
+        """Top-level command names (no flags)."""
+        return [name for name in self.app if not name.startswith("-")]
 
 
-def start_repl(ctx: Context, prompt_text: str = "exosphere> ") -> None:
+def _unhide(app: App) -> None:
     """
-    Start the Exosphere REPL
+    Recursively reveal hidden commands/sub-apps for interactive use.
 
-    :param ctx: Click context
+    Interactive-only commands (e.g. ``connections``, ``inventory save``) are
+    registered with "show=False" to stay out of the normal CLI help.
+    In interactive mode (the REPL), we want them visible, so we
+    recursively flip that back to True.
+
+    Since this is done at runtime, it never leaks to a CLI invocation.
+    """
+    for name in list(app):
+        if name.startswith("-"):
+            continue
+
+        sub = app[name]
+
+        try:
+            sub.show = True
+        except Exception:  # noqa: BLE001
+            pass
+
+        _unhide(sub)
+
+
+def start_repl(app: App, prompt_text: str = "exosphere> ") -> None:
+    """
+    Start the Exosphere REPL.
+
+    :param app: Cyclopts application.
     :param prompt_text: The prompt string to display
     """
-    repl = ExosphereREPL(ctx, prompt_text)
+    repl = ExosphereREPL(app, prompt_text)
     intro = (
         "[cyan]Welcome to the Exosphere interactive shell[/cyan]\n"
         "Type 'help' for commands or 'ui start' to start the UI."

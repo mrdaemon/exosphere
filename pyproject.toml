@@ -1,6 +1,6 @@
 [project]
 name = "exosphere-cli"
-version = "2.5.0.dev4"
+version = "3.0.0.dev0"
 description = "CLI/TUI driven patch reporting for remote Unix-like systems."
 readme = "README.md"
 authors = [
@@ -27,7 +27,6 @@ license-files = [
 
 dependencies = [
     "fabric>=3.2.2",
-    "typer>=0.20.0",
     "textual>=6.7.0",
     "pyyaml>=6.0.3",
     "platformdirs>=4.3.8",
@@ -35,6 +34,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "packaging>=24.0",
     "rich>=14.1.0",
+    "cyclopts>=4.16.1",
 ]
 
 [dependency-groups]
@@ -55,7 +55,6 @@ dev = [
     "sphinx-lint>=1.0.0",
     "sphinx-tabs>=3.4.7",
     "sphinxcontrib-spelling>=8.0.1",
-    "sphinxcontrib-typer>=0.7.2",
     "textual-dev>=1.7.0",
 ]
 
