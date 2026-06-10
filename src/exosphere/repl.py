@@ -162,7 +162,8 @@ class ExosphereCompleter(Completer):
         if current.startswith("-"):
             opts = ["--help"]
             for arg in ac:
-                opts.extend(name for name in arg.names if name.startswith("-"))
+                # We only complete long options, for discoverability
+                opts.extend(name for name in arg.names if name.startswith("--"))
             yield from self._complete(
                 (opt for opt in opts if opt not in used_opts), current
             )

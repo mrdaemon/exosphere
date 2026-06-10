@@ -265,6 +265,15 @@ class TestCompleterContent:
         assert "--port" in with_dash
         assert "--help" in with_dash
 
+    def test_only_long_options_are_completed(self, completer):
+        result = _completions(completer, "sudo generate -")
+
+        assert "--host" in result
+        assert "-h" not in result
+
+        # "-" and "--" should yield the exact same: long options
+        assert result == _completions(completer, "sudo generate --")
+
     def test_enum_option_values(self, completer):
         """Enum options should offer their values"""
         result = _completions(completer, "inventory status --sort ")
