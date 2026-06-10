@@ -1,3 +1,4 @@
+anyways
 autoescaping
 autosave
 boolean
@@ -39,13 +40,16 @@ nullable
 passwordless
 pre
 quickstart
+reachability
 repo
 resolver
 resolvers
 runtime
 scrollable
 serializable
+sizeable
 solaris
+sortable
 sshd
 stdout
 subclass
