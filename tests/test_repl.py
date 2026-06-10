@@ -299,6 +299,11 @@ class TestCompleterContent:
         assert "web02" in result
         assert "db01" in result
 
+    def test_single_host_command_stops_after_one(self, completer):
+        """Single host options should not get unlimited completions"""
+        assert _completions(completer, "host show web01 ") == []
+        assert _completions(completer, "host show web01 --updates ") == []
+
     def test_host_option_value_completion(self, completer):
         """The value of a host-typed option completes to host names."""
         result = _completions(completer, "sudo generate --host ")

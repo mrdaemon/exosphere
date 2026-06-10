@@ -11,7 +11,7 @@ import shlex
 from collections.abc import Callable, Iterable, Iterator
 from typing import get_args
 
-from cyclopts import App, CycloptsError
+from cyclopts import App, ArgumentCollection, CycloptsError
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
@@ -67,6 +67,23 @@ class ExosphereCompleter(Completer):
     def __init__(self, app: App, host_names: Callable[[], list[str]]) -> None:
         self.app = app
         self.host_names = host_names
+
+        # Cache ArgumentCollection for performance
+        # It is invariant once the app tree is built, so we can cache
+        # it per command node instead of re-introspecting every keystroke
+        self._ac_cache: dict[int, ArgumentCollection] = {}
+
+    def _argument_collection(self, node: App) -> ArgumentCollection:
+        """
+        Returns the argument collection for a command node.
+        Caches the result for performance.
+        """
+        key = id(node)
+
+        if key not in self._ac_cache:
+            self._ac_cache[key] = node.assemble_argument_collection()
+
+        return self._ac_cache[key]
 
     @staticmethod
     def _subcommands(app: App) -> list[str]:
@@ -151,8 +168,9 @@ class ExosphereCompleter(Completer):
             return
 
         # Introspect command arguments for leaf commands
+        # (hits cache, if available, for performance)
         try:
-            ac = node.assemble_argument_collection()
+            ac = self._argument_collection(node)
         except Exception:  # noqa: BLE001
             return
 
@@ -187,14 +205,22 @@ class ExosphereCompleter(Completer):
                     break
 
         # Complete positional host arguments
-        positional_host = any(
-            _accepts_host(arg) and not any(name.startswith("-") for name in arg.names)
-            for arg in ac
+        # Stop after a single positional host, unless it's variadic
+        # (e.g. *hosts), then keep handing out more until we run out
+        positional_host = next(
+            (
+                arg
+                for arg in ac
+                if _accepts_host(arg)
+                and not any(name.startswith("-") for name in arg.names)
+            ),
+            None,
         )
 
-        if positional_host:
+        if positional_host is not None:
             used_hosts = {token for token in unused if not token.startswith("-")}
-            yield from self._host_matches(current, exclude=used_hosts)
+            if positional_host.is_var_positional() or not used_hosts:
+                yield from self._host_matches(current, exclude=used_hosts)
 
 
 class ExosphereREPL:
