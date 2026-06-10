@@ -22,13 +22,7 @@ Version and Update Check Commands
 Show current version, check for updates.
 """
 
-app = App(
-    name="version",
-    help=ROOT_HELP,
-    help_flags=["--help"],
-    console=console,
-    error_console=err_console,
-)
+app = App(name="version", help=ROOT_HELP, help_flags=["--help"])
 
 PACKAGE_NAME = "exosphere-cli"
 PYPI_URL = f"https://pypi.org/pypi/{PACKAGE_NAME}/json"

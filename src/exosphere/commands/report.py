@@ -24,13 +24,7 @@ Allows exporting the state of the inventory to various formats, including
 JSON for use in other tools or custom reporting.
 """
 
-app = App(
-    name="report",
-    help=ROOT_HELP,
-    help_flags=["--help"],
-    console=console,
-    error_console=err_console,
-)
+app = App(name="report", help=ROOT_HELP, help_flags=["--help"])
 
 
 @app.command

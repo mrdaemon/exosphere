@@ -19,13 +19,7 @@ Configuration-related Commands
 Commands to inspect the currently loaded configuration.
 """
 
-app = App(
-    name="config",
-    help=ROOT_HELP,
-    help_flags=["--help"],
-    console=console,
-    error_console=err_console,
-)
+app = App(name="config", help=ROOT_HELP, help_flags=["--help"])
 
 
 @app.command

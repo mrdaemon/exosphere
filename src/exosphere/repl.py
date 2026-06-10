@@ -141,9 +141,7 @@ class ExosphereCompleter(Completer):
 
         # Complete top-level commands and builtins
         if not settled:
-            yield from self._complete(
-                _subcommands(self.app) + list(BUILTINS), current
-            )
+            yield from self._complete(_subcommands(self.app) + list(BUILTINS), current)
             return
 
         head = settled[0]

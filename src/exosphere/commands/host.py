@@ -39,13 +39,7 @@ Host Management Commands
 Commands to query, refresh and discover individual hosts.
 """
 
-app = App(
-    name="host",
-    help=ROOT_HELP,
-    help_flags=["--help"],
-    console=console,
-    error_console=err_console,
-)
+app = App(name="host", help=ROOT_HELP, help_flags=["--help"])
 
 
 def _format_security_count(host: Host) -> str:

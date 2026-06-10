@@ -6,7 +6,7 @@ import logging
 
 from cyclopts import App
 
-from exosphere.commands.utils import console, err_console
+from exosphere.commands.utils import err_console
 from exosphere.ui.app import ExosphereUi
 
 ROOT_HELP = """
@@ -15,13 +15,7 @@ Exosphere User Interface
 Commands to start the Text-based or Web-based User Interface.
 """
 
-app = App(
-    name="ui",
-    help=ROOT_HELP,
-    help_flags=["--help"],
-    console=console,
-    error_console=err_console,
-)
+app = App(name="ui", help=ROOT_HELP, help_flags=["--help"])
 
 
 @app.command

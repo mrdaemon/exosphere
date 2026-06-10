@@ -52,13 +52,7 @@ Commands to bulk query, discover and refresh hosts in the inventory.
 Most commands accept an optional list of host names to operate on.
 """
 
-app = App(
-    name="inventory",
-    help=ROOT_HELP,
-    help_flags=["--help"],
-    console=console,
-    error_console=err_console,
-)
+app = App(name="inventory", help=ROOT_HELP, help_flags=["--help"])
 
 
 @app.command

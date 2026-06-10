@@ -23,13 +23,7 @@ Commands to view Sudo Policies, check resultant host policies,
 list provider requirements, and generate sudoers snippets.
 """
 
-app = App(
-    name="sudo",
-    help=ROOT_HELP,
-    help_flags=["--help"],
-    console=console,
-    error_console=err_console,
-)
+app = App(name="sudo", help=ROOT_HELP, help_flags=["--help"])
 
 
 def _get_global_policy() -> SudoPolicy:

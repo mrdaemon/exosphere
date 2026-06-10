@@ -30,14 +30,7 @@ between separate CLI invocations.
 # Interactive-only group: hidden from normal CLI help
 # It can still be invoked directly, but won't show up in the main help
 # Interactive Mode (the REPL) will unhide it at runtime.
-app = App(
-    name="connections",
-    help=ROOT_HELP,
-    help_flags=["--help"],
-    show=False,
-    console=console,
-    error_console=err_console,
-)
+app = App(name="connections", help=ROOT_HELP, help_flags=["--help"], show=False)
 
 
 def _format_duration(seconds: int) -> str:
