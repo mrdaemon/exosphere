@@ -56,7 +56,7 @@ def _format_duration(seconds: int) -> str:
         return f"{hours}h {remaining_minutes}m" if remaining_minutes else f"{hours}h"
 
 
-@app.command
+@app.command(synonym=["list", "status"])
 def show(
     *names: HostArg,
     active_only: Annotated[
