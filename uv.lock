@@ -604,7 +604,7 @@ dev = [
     { name = "sphinx-lint", specifier = ">=1.0.0" },
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
     { name = "sphinx-tabs", specifier = ">=3.4.7" },
-    { name = "sphinxcontrib-spelling", specifier = ">=8.0.1" },
+    { name = "sphinxcontrib-spelling", specifier = ">=8.0.2" },
     { name = "textual-dev", specifier = ">=1.7.0" },
 ]
 
