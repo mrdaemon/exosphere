@@ -55,6 +55,11 @@ def _accepts_host(argument) -> bool:
     return False
 
 
+def _subcommands(app: App) -> list[str]:
+    """Real subcommand names of an app (no leading-dash flags)."""
+    return [name for name in app if not name.startswith("-")]
+
+
 class ExosphereCompleter(Completer):
     """
     Readline-like completion for Exosphere commands
@@ -84,11 +89,6 @@ class ExosphereCompleter(Completer):
             self._ac_cache[key] = node.assemble_argument_collection()
 
         return self._ac_cache[key]
-
-    @staticmethod
-    def _subcommands(app: App) -> list[str]:
-        """Real subcommand names of an app (no flags)"""
-        return [name for name in app if not name.startswith("-")]
 
     def _complete(self, matches: Iterable[str], prefix: str) -> Iterator[Completion]:
         """
@@ -142,7 +142,7 @@ class ExosphereCompleter(Completer):
         # Complete top-level commands and builtins
         if not settled:
             yield from self._complete(
-                self._subcommands(self.app) + list(BUILTINS), current
+                _subcommands(self.app) + list(BUILTINS), current
             )
             return
 
@@ -154,7 +154,7 @@ class ExosphereCompleter(Completer):
             return
         if head == "help":
             if len(settled) == 1:
-                yield from self._complete(self._subcommands(self.app), current)
+                yield from self._complete(_subcommands(self.app), current)
             return
 
         # Resolve the command chain
@@ -162,7 +162,7 @@ class ExosphereCompleter(Completer):
         node = apps[-1]
 
         # Complete group subcommands
-        subs = self._subcommands(node)
+        subs = _subcommands(node)
         if subs and not unused:
             yield from self._complete(subs, current)
             return
@@ -401,8 +401,7 @@ class ExosphereREPL:
         # help, for the same reason,
         _chain, apps, unused = self.app.parse_commands(args)
         node = apps[-1]
-        has_subcommands = any(not name.startswith("-") for name in node)
-        if has_subcommands and not unused and node.default_command is None:
+        if _subcommands(node) and not unused and node.default_command is None:
             self._scoped_help(args)
             return
 
@@ -471,7 +470,7 @@ class ExosphereREPL:
         Hidden commands will be included.
         """
         lines = []
-        for name in self._command_names():
+        for name in _subcommands(self.app):
             sub = self.app[name]
             help_text = (sub.help or "").strip() or "No description available."
 
@@ -501,10 +500,6 @@ class ExosphereREPL:
         self.console.print(
             f"[dim]Built-in commands: {', '.join(self.builtins.keys())}[/dim]"
         )
-
-    def _command_names(self) -> list[str]:
-        """Top-level command names (no flags)."""
-        return [name for name in self.app if not name.startswith("-")]
 
 
 def _unhide(app: App) -> None:
