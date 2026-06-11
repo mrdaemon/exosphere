@@ -11,9 +11,6 @@ I can't emphasize this enough: this is gnarly.
 It is also a real "What am I doing with my life?" moment.
 """
 
-import ast
-from pathlib import Path
-
 from pygments.lexer import RegexLexer
 from pygments.token import (
     Comment,
@@ -73,116 +70,54 @@ _STATIC_SUB_COMMANDS = {
 }
 
 
-def _const_strings(value) -> list[str]:
-    """Collect string constants from an AST node (a str or list/tuple of str)."""
-    if isinstance(value, ast.Constant) and isinstance(value.value, str):
-        return [value.value]
-    if isinstance(value, (ast.List, ast.Tuple)):
-        return [
-            elt.value
-            for elt in value.elts
-            if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
-        ]
-    return []
-
-
 def _extract_commands():
     """
-    Extract command names from Exosphere's Cyclopts command modules.
+    Extract command names from Exosphere's Cyclopts application
 
     This function dynamically discovers:
 
-    1. Main commands from sub apps
-    2. Subcommands from @app.command decorated functions in command modules
+    1. Main commands from the root app
+    2. Subcommands from each of the sub-app
 
-    :return: Tuple of (main_commands_set, sub_commands_set)
+    Synonyms are purposefully ignored as those are only ever relevant
+    within the context of the fuzzy suggestion matcher in error
+    messages.
+
+    Uses the Cyclopts API to introspect these, instead of parsing the
+    AST, which the previous Typer implementation of this module did.
+
+    :return: Tuple of (main_commands_set, sub_commands_set, used_fallback)
     """
-    main_commands = set()
-    sub_commands = set()
+
+    def _names(node) -> set[str]:
+        return {name for name in node if not name.startswith("-")}
 
     try:
-        # Find the src directory
-        src_dir = Path(__file__).parent.parent.parent.parent / "src" / "exosphere"
+        from exosphere.cli import app
 
-        commands_dir = src_dir / "commands"
-        if commands_dir.exists():
-            for py_file in commands_dir.glob("*.py"):
-                if py_file.name.startswith("_"):
-                    continue
-
-                try:
-                    content = py_file.read_text(encoding="utf-8")
-                    tree = ast.parse(content)
-
-                    for node in ast.walk(tree):
-                        # Main command name: app = App(name="...")
-                        if (
-                            isinstance(node, ast.Call)
-                            and isinstance(node.func, ast.Name)
-                            and node.func.id == "App"
-                        ):
-                            for keyword in node.keywords:
-                                if keyword.arg == "name":
-                                    main_commands.update(_const_strings(keyword.value))
-
-                        # Subcommands: @app.command decorators
-                        if isinstance(node, ast.FunctionDef):
-                            for decorator in node.decorator_list:
-                                # @app.command() with arguments
-                                if (
-                                    isinstance(decorator, ast.Call)
-                                    and isinstance(decorator.func, ast.Attribute)
-                                    and isinstance(decorator.func.value, ast.Name)
-                                    and decorator.func.value.id == "app"
-                                    and decorator.func.attr == "command"
-                                ):
-                                    sub_commands.add(node.name)
-                                    # Pick up synonym= aliases (str or list)
-                                    for keyword in decorator.keywords:
-                                        if keyword.arg == "synonym":
-                                            sub_commands.update(
-                                                _const_strings(keyword.value)
-                                            )
-                                    break
-                                # @app.command without parentheses
-                                elif (
-                                    isinstance(decorator, ast.Attribute)
-                                    and isinstance(decorator.value, ast.Name)
-                                    and decorator.value.id == "app"
-                                    and decorator.attr == "command"
-                                ):
-                                    sub_commands.add(node.name)
-                                    break
-
-                except Exception:
-                    continue
-
+        main_commands = _names(app)
+        sub_commands: set[str] = set()
+        for name in main_commands:
+            sub_commands |= _names(app[name])
     except Exception:
-        # If anything goes wrong, fall back to static lists
-        return _STATIC_MAIN_COMMANDS.copy(), _STATIC_SUB_COMMANDS.copy()
+        # If the app can't be imported, fall back to static lists
+        return _STATIC_MAIN_COMMANDS.copy(), _STATIC_SUB_COMMANDS.copy(), True
 
     # Add some common commands that might not be explicitly defined
     # (it's builtins, really)
     main_commands.update(["help", "exit", "quit"])
 
-    return main_commands, sub_commands
+    return main_commands, sub_commands, False
 
 
 # Extract commands at module level for use in class definition
-_DISCOVERED_MAIN_COMMANDS, _DISCOVERED_SUB_COMMANDS = _extract_commands()
-
-# Create patterns
-_MAIN_COMMAND_PATTERN = (
-    r"\b(" + "|".join(sorted(_DISCOVERED_MAIN_COMMANDS)) + r")\b"
-    if _DISCOVERED_MAIN_COMMANDS
-    else r"\b(" + "|".join(sorted(_STATIC_MAIN_COMMANDS)) + r")\b"
+_DISCOVERED_MAIN_COMMANDS, _DISCOVERED_SUB_COMMANDS, _USED_FALLBACK = (
+    _extract_commands()
 )
 
-_SUBCOMMAND_PATTERN = (
-    r"\b(" + "|".join(sorted(_DISCOVERED_SUB_COMMANDS)) + r")\b"
-    if _DISCOVERED_SUB_COMMANDS
-    else r"\b(" + "|".join(sorted(_STATIC_SUB_COMMANDS)) + r")\b"
-)
+# Create patterns. _extract_commands always returns non-empty sets
+_MAIN_COMMAND_PATTERN = r"\b(" + "|".join(sorted(_DISCOVERED_MAIN_COMMANDS)) + r")\b"
+_SUBCOMMAND_PATTERN = r"\b(" + "|".join(sorted(_DISCOVERED_SUB_COMMANDS)) + r")\b"
 
 
 class ExosphereLexer(RegexLexer):
@@ -244,20 +179,22 @@ def setup(app):
     lexers["exosphere"] = ExosphereLexer()
 
     # Show discovered commands in build output
-    # This is useful for debugging and ensuring the lexer has the right commands
-    commandslen = len(_DISCOVERED_MAIN_COMMANDS)
-    subcommandslen = len(_DISCOVERED_SUB_COMMANDS)
-    if commandslen or subcommandslen:
+    # This is useful for debugging and ensure the lexer has the right
+    # commands, and what it discovered.
+    # Also helps in signaling that the lexer broke and is using
+    # the static fallback lists.
+    if _USED_FALLBACK:
+        print("[INFO] Exosphere lexer using static fallback commands.")
+    else:
         print(
-            f"[INFO] Exosphere lexer loaded with {commandslen} commands and {subcommandslen} subcommands: "
+            f"[INFO] Exosphere lexer loaded with {len(_DISCOVERED_MAIN_COMMANDS)} commands "
+            f"and {len(_DISCOVERED_SUB_COMMANDS)} subcommands: "
             f"Main: {sorted(_DISCOVERED_MAIN_COMMANDS)}, "
             f"Sub: {sorted(_DISCOVERED_SUB_COMMANDS)}"
         )
-    else:
-        print("[INFO] Exosphere lexer using fallback commands.")
 
     return {
-        "version": "1.0",
+        "version": "2.0",
         "parallel_read_safe": True,
         "parallel_write_safe": True,
     }
