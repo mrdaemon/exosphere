@@ -6,8 +6,8 @@ Exosphere application, along with presentation helpers that rewrite
 inscrutable upstream error messages into something a human can act on.
 """
 
-from cyclopts.exceptions import CycloptsError, UnusedCliTokensError
-from cyclopts.panel import CycloptsPanel
+from cyclopts import CycloptsError, CycloptsPanel, UnusedCliTokensError
+from rich.console import RenderableType
 
 # Standard authentication error message for better UX
 # This is intended to be displayed whenever Paramiko raises
@@ -33,29 +33,28 @@ SUDO_AUTH_FAILURE_MESSAGE = (
 )
 
 
-def error_formatter(error: CycloptsError):
+def error_formatter(error: CycloptsError) -> RenderableType:
     """
-    Render runtime CLI errors, rewording certain messages for friendliness.
+    Runtime error formatter callable for the CLI
 
-    Currently only rewords the default message for unused tokens, which
-    is an inscrutable "Unused Tokens: ['foo', 'bar']" dump.
+    Error display hook setup on the root App, inherited by all
+    subcommands.
 
-    This otherwise works very much like a pass-through for anything it
-    doesn't touch, using the styling CycloptsPanel was configured
-    with during App setup.
+    It is intended to:
+
+    - Reword certain error messages for better UX, especially those that
+      are otherwise inscrutable dumps of internal state
+    - Apply a consistent visual style to all errors, with the ability
+      to change them in one central place, if necessary.
+
+    As long as what is returns is a Rich Renderable, all is well.
 
     :param error: The CycloptsError to handle
     :return: a Renderable with the error object
     """
     if isinstance(error, UnusedCliTokensError):
         tokens = ", ".join(error.unused_tokens or [])
-        return CycloptsPanel(
-            CycloptsError(
-                msg=f"Unexpected argument(s): {tokens}. See --help for usage.",
-                console=error.console,
-                command_chain=error.command_chain,
-            )
-        )
+        return CycloptsPanel(f"Unexpected argument(s): {tokens}. See --help for usage.")
 
     return CycloptsPanel(error)
 

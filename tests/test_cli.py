@@ -60,6 +60,20 @@ def test_repl_version(capsys) -> None:
     assert "Exosphere version" in capsys.readouterr().out
 
 
+def test_unused_tokens_error_is_reworded(capsys) -> None:
+    """Extraneous arguments produce our friendlier error, not Cyclopts' raw dump."""
+    from exosphere import cli
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.app(["version", "stray"])
+
+    assert exc_info.value.code == 1
+
+    err = capsys.readouterr().err
+    assert "Unexpected argument(s): stray. See --help for usage." in err
+    assert "Unused Tokens" not in err
+
+
 def test_ui_start(mocker, caplog) -> None:
     """UI entrypoint starts the UI"""
     from exosphere.commands import ui
