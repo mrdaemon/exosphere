@@ -162,6 +162,21 @@ The available sort columns are ``host``, ``os``, ``flavor``, ``version``,
 
 Sorting and filtering **can be combined freely**.
 
+A useful filter and sort combo you might find useful out of the box would be:
+
+.. code-block:: exosphere
+
+   exosphere> inventory status --updates-only --sort security --reverse
+
+Or, in short form:
+
+.. code-block:: exosphere
+
+   exosphere> inventory status -u -o security -r
+
+It will show hosts with updates, sorted by amount of security updates,
+descending, which is a great at a glance view of what to patch first.
+
 .. admonition:: Note
 
    Sorting by ``version`` groups hosts by flavor first, then orders versions
@@ -292,7 +307,7 @@ You can manually close them with the following command:
    exosphere> connections close
 
 Both of these commands can take arguments, including specifying particular hosts.
-See the built in `--help` argument output for details.
+See the built in ``--help`` argument output for details.
 
 If you do not have SSH Pipelining enabled (the default), connections are
 automatically closed after each operation, so these commands will have no effect.
