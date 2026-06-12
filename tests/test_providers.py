@@ -121,6 +121,55 @@ class TestPkgManagerFactory:
         assert PkgManagerFactory.get_registry()["apt"] != "modified"
 
 
+class TestHostLogBinding:
+    """
+    Tests for binding host context onto a provider's logger, so log
+    lines can be traced back to the host that produced them.
+    """
+
+    def test_create_with_host_prefixes_messages(self, caplog):
+        """A provider created for a host prefixes its log lines with [host]."""
+        pkg = PkgManagerFactory.create("apt", host_name="web1")
+
+        with caplog.at_level(logging.WARNING, logger="exosphere.providers.apt"):
+            pkg.logger.warning("Spaghetti is falling out of pockets!")
+
+        assert (
+            caplog.records[-1].getMessage()
+            == "[web1] Spaghetti is falling out of pockets!"
+        )
+
+    def test_create_without_host_has_no_prefix(self, caplog):
+        """A provider created without a host name logs unprefixed."""
+        pkg = PkgManagerFactory.create("apt")
+
+        with caplog.at_level(logging.WARNING, logger="exosphere.providers.apt"):
+            pkg.logger.warning("Spaghetti successfully pocketed")
+
+        assert caplog.records[-1].getMessage() == "Spaghetti successfully pocketed"
+
+    def test_bind_host_wraps_existing_instance(self, caplog):
+        """bind_host attaches the prefix to an already-constructed provider."""
+        pkg = Apt()
+        pkg.bind_host("compute3")
+
+        with caplog.at_level(logging.WARNING, logger="exosphere.providers.apt"):
+            pkg.logger.warning("The spaghetti was late to the party")
+
+        assert (
+            caplog.records[-1].getMessage()
+            == "[compute3] The spaghetti was late to the party"
+        )
+
+    def test_bound_logger_keeps_per_class_name(self):
+        """None of this affects or changes the logger name"""
+        pkg = PkgManagerFactory.create("apt", host_name="web1")
+
+        # Outer logger is the logging adapter, inner is logger
+        assert isinstance(pkg.logger, logging.LoggerAdapter)
+        assert pkg.logger.logger.name == "exosphere.providers.apt"
+
+
 class TestAptProvider:
     @pytest.fixture
     def mock_connection(self, mocker):

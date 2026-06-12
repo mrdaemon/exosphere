@@ -9,13 +9,29 @@ provider implementations.
 import functools
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, MutableMapping
+from typing import Any
 
 from fabric import Connection
 from invoke.exceptions import AuthFailure
 
 from exosphere.data import Update
 from exosphere.errors import SUDO_AUTH_FAILURE_MESSAGE, DataRefreshError
+
+
+class _HostLogAdapter(logging.LoggerAdapter):
+    """
+    Logger adapter that prefixes messages with a host name.
+    """
+
+    def __init__(self, logger: logging.Logger, host_name: str) -> None:
+        super().__init__(logger, {"host": host_name})
+        self._host_name = host_name
+
+    def process(
+        self, msg: Any, kwargs: MutableMapping[str, Any]
+    ) -> tuple[Any, MutableMapping[str, Any]]:
+        return f"[{self._host_name}] {msg}", kwargs
 
 
 def requires_sudo(func: Callable) -> Callable:
@@ -81,10 +97,20 @@ class PkgManager(ABC):
         Initialize the Package Manager.
         """
 
-        # Setup logging
-        self.logger = logging.getLogger(
+        # Setup logging - base logger is per-provider class.
+        # The bind_host() method can later wrap it to add a host prefix
+        self._base_logger = logging.getLogger(
             f"exosphere.providers.{self.__class__.__name__.lower()}"
         )
+        self.logger: logging.Logger | logging.LoggerAdapter = self._base_logger
+
+    def bind_host(self, host_name: str) -> None:
+        """
+        Attach host context to this provider's logger.
+
+        :param host_name: Name of the host this provider instance serves.
+        """
+        self.logger = _HostLogAdapter(self._base_logger, host_name)
 
     @abstractmethod
     def reposync(self, cx: Connection) -> bool:

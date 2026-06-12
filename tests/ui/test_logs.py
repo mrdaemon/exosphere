@@ -1,10 +1,12 @@
+import io
 import logging
 import threading
 
 import pytest
+from rich.console import Console
 from textual.widgets import RichLog
 
-from exosphere.ui.logs import LogsScreen, UILogHandler
+from exosphere.ui.logs import LogsScreen, RichLogFormatter, UILogHandler
 
 
 @pytest.fixture
@@ -33,6 +35,56 @@ def mock_app(mocker):
 def clear_log_buffer():
     """Clear the log buffer before each test to avoid test interference."""
     UILogHandler.clear_buffer()
+
+
+class TestRichLogFormatter:
+    """Tests for the RichLogFormatter."""
+
+    @staticmethod
+    def _make_record(message: str, level: int = logging.WARNING) -> logging.LogRecord:
+        return logging.LogRecord(
+            name="exosphere.providers.apt",
+            level=level,
+            pathname=__file__,
+            lineno=1,
+            msg=message,
+            args=(),
+            exc_info=None,
+        )
+
+    @staticmethod
+    def _render(formatted: str) -> str:
+        """
+        Render markup the way the RichLog widget (markup=True) would.
+
+        We (ab)use a Rich Console to achieve this outcome.
+        """
+        buffer = io.StringIO()
+        console = Console(file=buffer, width=200, color_system=None, markup=True)
+
+        console.print(formatted)
+
+        return buffer.getvalue()
+
+    def test_bracketed_message_survives_markup_rendering(self):
+        """Brackets must come out as literals, not swallowed"""
+        record = self._make_record(
+            "Spaghetti-x86 [arm64] for (pockets3), got [sudo] prompt:"
+        )
+        out = self._render(RichLogFormatter().format(record))
+
+        assert "[arm64]" in out
+        assert "[sudo] prompt:" in out
+        assert "(pockets3)" in out
+
+    def test_log_formatting_still_applies(self):
+        """Deliberate formatting in non message elemnts should remain"""
+        formatted = RichLogFormatter().format(self._make_record("SPAGHETT!"))
+        level_color = RichLogFormatter.LEVEL_COLORS["WARNING"]
+
+        # The deliberate level-coloring markup is present and active (un-escaped).
+        assert f"[{level_color}]" in formatted
+        assert f"\\[{level_color}]" not in formatted
 
 
 class TestUILogHandler:

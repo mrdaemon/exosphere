@@ -1458,7 +1458,7 @@ class TestHostStateSerialization:
 
         host.from_state(state)
 
-        mock_factory.assert_called_once_with("apt")
+        mock_factory.assert_called_once_with("apt", host_name="test_host")
         assert host._pkginst == fake_pkginst
 
     def test_from_state_no_pkginst_when_not_supported(self, mocker):

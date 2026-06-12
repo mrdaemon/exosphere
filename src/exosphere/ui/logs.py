@@ -6,6 +6,7 @@ import logging
 import threading
 from typing import cast
 
+from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
@@ -33,7 +34,10 @@ class RichLogFormatter(logging.Formatter):
         timestamp = self.formatTime(record, self.datefmt)
         logger_name = record.name
         level_name = record.levelname
-        message = record.getMessage()
+
+        # Escape rich markup in the log message
+        # Log strings should never contained unescaped markup.
+        message = escape(record.getMessage())
 
         # Strip "exosphere." prefix to save space
         if logger_name.startswith("exosphere."):

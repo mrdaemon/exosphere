@@ -197,7 +197,9 @@ class Host:
 
         # Instantiate concrete package manager if defined
         if self.package_manager and self.supported:
-            self._pkginst = PkgManagerFactory.create(self.package_manager)
+            self._pkginst = PkgManagerFactory.create(
+                self.package_manager, host_name=self.name
+            )
         else:
             self._pkginst = None
 
@@ -479,7 +481,9 @@ class Host:
         self.package_manager = platform_info.package_manager
 
         if self.package_manager:
-            self._pkginst = PkgManagerFactory.create(self.package_manager)
+            self._pkginst = PkgManagerFactory.create(
+                self.package_manager, host_name=self.name
+            )
             self.logger.debug(
                 "Using concrete package manager %s.%s for %s",
                 self._pkginst.__class__.__module__,

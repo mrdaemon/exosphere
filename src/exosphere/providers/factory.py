@@ -38,15 +38,22 @@ class PkgManagerFactory:
         return PkgManagerFactory._REGISTRY.copy()
 
     @staticmethod
-    def create(name: str) -> PkgManager:
+    def create(name: str, host_name: str | None = None) -> PkgManager:
         """
         Create a package manager instance based on the provided name.
 
         :param name: Name of the package manager (e.g., 'apt').
+        :param host_name: Optional host name to bind for log context, so
+                          the provider's log lines are prefixed with it
         :return: An instance of the specified package manager.
         """
         if name not in PkgManagerFactory._REGISTRY:
             raise ValueError(f"Unsupported package manager: {name}")
 
         pkg_impl = PkgManagerFactory._REGISTRY[name]
-        return pkg_impl()
+        instance = pkg_impl()
+
+        if host_name:
+            instance.bind_host(host_name)
+
+        return instance
