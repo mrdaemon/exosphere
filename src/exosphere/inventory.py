@@ -437,7 +437,7 @@ class Inventory:
             if exc:
                 self.logger.error("Failed to discover host %s: %s", host.name, exc)
             else:
-                self.logger.info("Host %s discovered successfully", host.name)
+                self.logger.debug("Host %s discovered successfully", host.name)
 
         self.logger.info("All hosts discovered")
 
@@ -458,7 +458,7 @@ class Inventory:
                     "Failed to sync repositories for host %s: %s", host.name, exc
                 )
             else:
-                self.logger.info("Package repositories synced for host %s", host.name)
+                self.logger.debug("Package repositories synced for host %s", host.name)
 
         self.logger.info("Package repositories synced for all hosts")
 
@@ -480,7 +480,7 @@ class Inventory:
                     "Failed to refresh updates for host %s: %s", host.name, exc
                 )
             else:
-                self.logger.info("Updates refreshed for host %s", host.name)
+                self.logger.debug("Updates refreshed for host %s", host.name)
 
         self.logger.info("Updates refreshed for all hosts")
 
@@ -502,7 +502,7 @@ class Inventory:
                 self.logger.error("Failed to ping host %s: %s", host.name, exc)
             else:
                 status = "offline" if not online else "online"
-                self.logger.info("Host %s is %s", host.name, status)
+                self.logger.debug("Host %s is %s", host.name, status)
 
         self.logger.info("Pinged all hosts")
 

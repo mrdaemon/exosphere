@@ -599,7 +599,7 @@ class InventoryScreen(DataScreen):
                 self.current_filter = filter_mode
                 self.refresh_rows("filter")
                 self._update_status_bar()
-                logger.info("Applied filter: %s", filter_mode)
+                logger.debug("Applied filter: %s", filter_mode)
 
         self.app.push_screen(FilterScreen(), handle_filter_selection)
 
@@ -623,7 +623,7 @@ class InventoryScreen(DataScreen):
             self.refresh_rows("sort")
             self._update_status_bar()
             field_name = field.value if field is not None else "default"
-            logger.info("Applied sort: %s (reverse=%s)", field_name, reverse)
+            logger.debug("Applied sort: %s (reverse=%s)", field_name, reverse)
 
         self.app.push_screen(
             SortScreen(self.current_sort, self.sort_reverse), handle_sort_selection

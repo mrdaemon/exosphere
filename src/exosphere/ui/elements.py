@@ -255,7 +255,7 @@ class ProgressScreen(Screen[TaskOutcome]):
                     logger.warning("Task was cancelled, stopping progress update.")
                     break
 
-            logger.info("Finished running %s.", self.operation.value)
+            logger.debug("Finished running %s.", self.operation.value)
 
             # Attempt to serialize state if autosave is enabled, unless
             # the operation is stateless or states otherwise

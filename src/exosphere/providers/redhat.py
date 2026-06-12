@@ -203,7 +203,7 @@ class Dnf(PkgManager):
                 name, version, source = parsed
                 updates.append(name)
 
-        self.logger.info("Found %d security updates", len(updates))
+        self.logger.debug("Found %d security updates", len(updates))
         return updates
 
     def _parse_line(self, line: str) -> tuple[str, str, str] | None:

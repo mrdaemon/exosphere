@@ -1161,7 +1161,7 @@ class TestInventory:
         # Get corresponding method to call on Inventory
         target_method = getattr(inventory, f"{method_name}_all")
 
-        with caplog.at_level("INFO"):
+        with caplog.at_level("DEBUG"):
             target_method()
 
         assert any(success_log in m for m in caplog.messages)
