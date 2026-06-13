@@ -11,6 +11,8 @@ and acts as the CLI entrypoint for the application.
 import logging
 
 from cyclopts import App
+from cyclopts.help import DefaultFormatter
+from cyclopts.help.specs import PanelSpec
 
 from exosphere import __version__, app_config
 from exosphere.commands import (
@@ -48,6 +50,9 @@ Run without arguments to start the interactive mode.
 """
 
 
+# Help panel formatter to use across the app
+HELP_FORMATTER = DefaultFormatter(panel_spec=PanelSpec(border_style="dim"))
+
 # Setup the root CLI app
 app = App(
     name="exosphere",
@@ -57,19 +62,27 @@ app = App(
     version_format="rich",
     version_flags=["--version", "-V"],
     error_formatter=error_formatter,  # Custom formatter
+    help_formatter=HELP_FORMATTER,
     console=console,
     error_console=err_console,
 )
 
 # Setup commands from modules
-app.command(inventory.app)
-app.command(host.app)
-app.command(connections.app)
-app.command(ui.app)
-app.command(config.app)
-app.command(report.app)
-app.command(sudo.app)
-app.command(version.app)
+for subapp in (
+    inventory.app,
+    host.app,
+    connections.app,
+    ui.app,
+    config.app,
+    report.app,
+    sudo.app,
+    version.app,
+):
+    # The REPL calls help directly on subapps at times, so we
+    # explicitly set the help formatter on them for consistency.
+    # Other scenarios inherit from the root app.
+    app.command(subapp)
+    subapp.help_formatter = HELP_FORMATTER
 
 
 def start_interactive() -> None:

@@ -14,6 +14,20 @@ def _console(patch_console):
     patch_console(cli)
 
 
+def test_subapps_share_root_help_formatter() -> None:
+    """Every group sub-app shares the root's help_formatter."""
+    from exosphere import cli
+
+    root_formatter = cli.app.help_formatter
+    assert root_formatter is not None
+
+    names = [name for name in cli.app if not name.startswith("-")]
+    assert names  # sanity: sub-apps are registered
+
+    for name in names:
+        assert cli.app[name].help_formatter is root_formatter, name
+
+
 def test_repl_root(mocker, caplog, capsys) -> None:
     """Interactive entrypoint prints the banner and starts the REPL."""
     from exosphere import cli

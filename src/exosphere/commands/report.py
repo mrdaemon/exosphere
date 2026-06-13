@@ -73,7 +73,7 @@ def generate(
     security_only
         Only report security updates
     tee
-        Also print report to stdout when using --output
+        Also print report to stdout when using `--output`
     quiet
         Suppress informational messages
     navigation

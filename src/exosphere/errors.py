@@ -6,8 +6,10 @@ Exosphere application, along with presentation helpers that rewrite
 inscrutable upstream error messages into something a human can act on.
 """
 
-from cyclopts import CycloptsError, CycloptsPanel, UnusedCliTokensError
+from cyclopts import CycloptsError, UnusedCliTokensError
+from rich.box import ROUNDED
 from rich.console import RenderableType
+from rich.panel import Panel
 
 # Standard authentication error message for better UX
 # This is intended to be displayed whenever Paramiko raises
@@ -47,16 +49,27 @@ def error_formatter(error: CycloptsError) -> RenderableType:
     - Apply a consistent visual style to all errors, with the ability
       to change them in one central place, if necessary.
 
-    As long as what is returns is a Rich Renderable, all is well.
+    As long as what it returns is a Rich Renderable, all is well.
 
     :param error: The CycloptsError to handle
     :return: a Renderable with the error object
     """
+    message: RenderableType
+
     if isinstance(error, UnusedCliTokensError):
         tokens = ", ".join(error.unused_tokens or [])
-        return CycloptsPanel(f"Unexpected argument(s): {tokens}. See --help for usage.")
+        message = f"Unexpected argument(s): {tokens}. See --help for usage."
+    else:
+        message = error
 
-    return CycloptsPanel(error)
+    return Panel(
+        message,
+        title="Error",
+        title_align="left",
+        border_style="red",
+        box=ROUNDED,
+        expand=False,
+    )
 
 
 class DataRefreshError(Exception):
