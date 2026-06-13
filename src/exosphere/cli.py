@@ -10,7 +10,7 @@ and acts as the CLI entrypoint for the application.
 
 import logging
 
-from cyclopts import App
+from cyclopts import App, Group
 from cyclopts.help import DefaultFormatter
 from cyclopts.help.specs import PanelSpec
 
@@ -83,6 +83,12 @@ for subapp in (
     # Other scenarios inherit from the root app.
     app.command(subapp)
     subapp.help_formatter = HELP_FORMATTER
+
+# Force root --help and --version flags to be part of the parameters
+# group instead of the commands one - this preserves previous behavior
+_root_flags_group = Group("Parameters")
+for flag in ("--help", "--version"):
+    app[flag].group = _root_flags_group
 
 
 def start_interactive() -> None:

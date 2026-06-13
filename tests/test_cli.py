@@ -3,6 +3,7 @@ import sys
 import types
 
 import pytest
+from cyclopts import Group
 
 from exosphere import __version__, cli
 from exosphere.config import Configuration
@@ -26,6 +27,16 @@ def test_subapps_share_root_help_formatter() -> None:
 
     for name in names:
         assert cli.app[name].help_formatter is root_formatter, name
+
+
+def test_root_help_version_grouped_as_parameters() -> None:
+    """The flags should not be in "Commands", like Typer"""
+    from exosphere import cli
+
+    for flag in ("--help", "--version"):
+        group = cli.app[flag].group
+        assert isinstance(group, tuple)
+        assert any(isinstance(g, Group) and g.name == "Parameters" for g in group), flag
 
 
 def test_repl_root(mocker, caplog, capsys) -> None:
