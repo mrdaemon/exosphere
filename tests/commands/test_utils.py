@@ -368,6 +368,46 @@ class TestRunTaskWithProgress:
         mock_progress_instance.add_task.assert_called_once_with("Testing task", total=2)
         assert mock_progress_instance.update.call_count == 2
 
+    def test_run_task_displays_skipped_hosts(
+        self, mock_inventory, mock_console, mocker
+    ):
+        """Skipped hosts are displayed separately from total progress"""
+        host1 = mocker.Mock()
+        host1.name = "host1"
+        skipped_host = mocker.Mock()
+        skipped_host.name = "irixbox"
+
+        mock_inventory.run_task.return_value = [(host1, None, None)]
+
+        mock_progress = mocker.patch("exosphere.commands.utils.Progress")
+        mock_progress_instance = mock_progress.return_value.__enter__.return_value
+        mock_progress_instance.add_task.return_value = "task_id"
+
+        result = utils_module.run_task_with_progress(
+            inventory=mock_inventory,
+            hosts=[host1],
+            operation=HostOperation.REFRESH,
+            task_description="Refreshing",
+            display_hosts=True,
+            skipped=[skipped_host],
+        )
+
+        assert result == []
+        # Only the runnable host is dispatched; total excludes the skipped one.
+        mock_inventory.run_task.assert_called_once_with(
+            HostOperation.REFRESH, hosts=[host1]
+        )
+        mock_progress_instance.add_task.assert_called_once_with("Refreshing", total=1)
+
+        # The skipped host is rendered with a SKIPPED status.
+        rendered = [
+            str(renderable)
+            for call in mock_progress_instance.console.print.call_args_list
+            for renderable in getattr(call.args[0], "renderables", [])
+        ]
+        assert any("SKIPPED" in chunk for chunk in rendered)
+        assert any("irixbox" in chunk for chunk in rendered)
+
     def test_run_task_with_errors(self, mock_inventory, mock_console, mocker):
         """Test task execution with some errors."""
         console_mock, err_console_mock = mock_console

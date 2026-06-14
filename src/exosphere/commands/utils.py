@@ -29,6 +29,7 @@ from exosphere.objects import Host, HostOperation
 STATUS_FORMATS = {
     "success": "[[bold green]OK[/bold green]]",
     "failure": "[[bold red]FAILED[/bold red]]",
+    "skipped": "[[dim]SKIPPED[/dim]]",
 }
 
 console = Console()
@@ -263,6 +264,7 @@ def run_task_with_progress(
     immediate_error_display: bool = False,
     transient: bool = True,
     progress_args: tuple = (),
+    skipped: list[Host] | None = None,
 ) -> list[tuple[str, Exception]]:
     """
     Run a task on selected hosts with progress display.
@@ -293,6 +295,8 @@ def run_task_with_progress(
     :param transient: Whether progress bar disappears after completion
     :param progress_args: List of renderables to compose the Progress
         layout
+    :param skipped: Hosts that were skipped, to display with the
+        skipped status, when display_host is True. Purely for display.
     :return: List of (hostname, exception objects) tuples for any failed
         hosts
     """
@@ -300,6 +304,19 @@ def run_task_with_progress(
 
     with Progress(transient=transient, *progress_args) as progress:
         task = progress.add_task(task_description, total=len(hosts))
+
+        # Surface skipped hosts up front, if any. It is easier to do
+        # this before starting so it doesn't get tangled with other
+        # messages and the behavior of immediate errors.
+        if display_hosts and skipped:
+            for host in skipped:
+                progress.console.print(
+                    Columns(
+                        [STATUS_FORMATS["skipped"], f"[bold]{host.name}[/bold]"],
+                        padding=(2, 1),
+                        equal=True,
+                    )
+                )
 
         for host, _, exc in inventory.run_task(operation, hosts=hosts):
             status_out = STATUS_FORMATS["failure"] if exc else STATUS_FORMATS["success"]
