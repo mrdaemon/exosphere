@@ -338,18 +338,16 @@ class TestGenerateCommand:
     ):
         """
         Test the sudo generate command with both host and provider specified.
-        This should raise an error since only one can be specified at a time.
+        This should return a failure since they are mutually exclusive.
         """
         mock_inventory.get_host.return_value = dummy_host
         mock_inventory.hosts = [dummy_host]
 
-        code = sudo.app(
-            ["generate", "--host", "dummy_host", "--provider", "apt"],
-            result_action="return_value",
-        )
+        with pytest.raises(SystemExit) as exc_info:
+            sudo.app(["generate", "--host", "dummy_host", "--provider", "apt"])
 
-        assert code == 1  # Input error
-        assert "--host and --provider are mutually exclusive" in capsys.readouterr().err
+        assert exc_info.value.code == 1
+        assert "Mutually exclusive arguments" in capsys.readouterr().err
 
     def test_with_host(
         self, mock_inventory, dummy_host, mock_pkgmanager_factory, capsys

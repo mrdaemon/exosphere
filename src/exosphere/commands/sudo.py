@@ -6,7 +6,7 @@ from typing import Annotated
 
 import fabric
 import fabric.util
-from cyclopts import App, Parameter
+from cyclopts import App, Group, Parameter, validators
 from rich.table import Table
 
 from exosphere import app_config
@@ -283,13 +283,25 @@ def providers(name: str | None = None, /) -> int:
     return 0
 
 
+# Target group for sudo generate
+TARGET_GROUP = Group(
+    "Target",
+    help="(Required, Mutually Exclusive)",
+    validator=validators.mutually_exclusive,
+)
+
+
 @app.command
 def generate(
     *,
     host: Annotated[
-        Host | None, HOST_PARAMETER, Parameter(name=["--host", "-h"])
+        Host | None,
+        HOST_PARAMETER,
+        Parameter(name=["--host", "-h"], group=TARGET_GROUP),
     ] = None,
-    provider: Annotated[str | None, Parameter(name=["--provider", "-p"])] = None,
+    provider: Annotated[
+        str | None, Parameter(name=["--provider", "-p"], group=TARGET_GROUP)
+    ] = None,
     user: Annotated[str | None, Parameter(name=["--user", "-u"])] = None,
 ) -> int:
     """
@@ -316,10 +328,6 @@ def generate(
             "[red]You must specify either --host or --provider.[/red]\n"
             "Use --help for more information."
         )
-        return 1  # Input error
-
-    if host and provider:
-        err_console.print("[red]--host and --provider are mutually exclusive.[/red]")
         return 1  # Input error
 
     provider_infos = _get_provider_infos()

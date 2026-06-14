@@ -112,6 +112,60 @@ class TestResolveHost:
         assert exc_info.value.code == 2
 
 
+class TestRequires:
+    """Tests for the requires() group-validator factory."""
+
+    @staticmethod
+    def _app():
+        from typing import Annotated, Optional
+
+        from cyclopts import App, Group, Parameter
+
+        group = Group(
+            "Deps", validator=utils_module.arg_requires_arg("dependent", "required")
+        )
+        app = App(name="t")
+
+        @app.command
+        def run(
+            dependent: Annotated[
+                bool, Parameter(name=["--dependent"], negative="", group=group)
+            ] = False,
+            required: Annotated[
+                Optional[str], Parameter(name=["--required"], group=group)
+            ] = None,
+        ) -> int:
+            return 0
+
+        return app
+
+    def test_dependent_without_required_errors(self, capsys):
+        """The dependent flag without its requirement is an input error."""
+        with pytest.raises(SystemExit) as exc_info:
+            self._app()(["run", "--dependent"])
+
+        assert exc_info.value.code == 1
+        # Message is derived from the arguments' primary CLI names.
+        assert "--dependent requires --required" in capsys.readouterr().err
+
+    def test_dependent_with_required_ok(self):
+        """Both supplied is valid."""
+        code = self._app()(
+            ["run", "--dependent", "--required", "x"], result_action="return_value"
+        )
+        assert code == 0
+
+    def test_neither_ok(self):
+        """Neither supplied is valid (the rule only triggers on the dependent)."""
+        code = self._app()(["run"], result_action="return_value")
+        assert code == 0
+
+    def test_required_alone_ok(self):
+        """The required flag alone is valid."""
+        code = self._app()(["run", "--required", "x"], result_action="return_value")
+        assert code == 0
+
+
 class TestGetHostsOrAll:
     """Test the get_hosts_or_all helper."""
 

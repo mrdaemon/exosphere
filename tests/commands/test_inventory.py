@@ -413,34 +413,20 @@ class TestStatusCommand:
         assert "host3" not in out
         assert "Host Status (security updates only)" in out
 
-    def test_both_filters_combined(self, create_host, mock_inventory, capsys):
+    def test_both_filters_mutually_exclusive(self, create_host, mock_inventory, capsys):
         """
-        Test status command with both --updates-only and --security-only flags.
-        Since --security-only takes precedence, it should behave exactly like --security-only alone.
+        --updates-only and --security-only are mutually exclusive; supplying
+        both is rejected as an input error by the Filtering Options validator.
         """
-        host_with_both = create_host(
-            name="host1", updates=[1, 2, 3], security_updates=[1]
-        )
-        host_updates_only = create_host(
-            name="host2", updates=[1, 2], security_updates=[]
-        )
-        host_no_updates = create_host(name="host3", updates=[], security_updates=[])
+        mock_inventory.hosts = [
+            create_host(name="host1", updates=[1, 2, 3], security_updates=[1])
+        ]
 
-        mock_inventory.hosts = [host_with_both, host_updates_only, host_no_updates]
+        with pytest.raises(SystemExit) as exc_info:
+            inventory_module.app(["status", "--updates-only", "--security-only"])
 
-        code = inventory_module.app(
-            ["status", "--updates-only", "--security-only"],
-            result_action="return_value",
-        )
-
-        out = capsys.readouterr().out
-        assert code == 0
-        assert "host1" in out
-        assert "host2" not in out
-        assert "host3" not in out
-        # Verify that security-only takes precedence in the title
-        assert "(security updates only)" in out
-        assert "(updates only)" not in out
+        assert exc_info.value.code == 1
+        assert "Mutually exclusive arguments" in capsys.readouterr().err
 
     def test_no_hosts_matching_criteria(self, create_host, mock_inventory, capsys):
         """
@@ -541,24 +527,20 @@ class TestStatusCommand:
 
         assert exc_info.value.code != 0
 
-    def test_reverse_without_sort_warns(self, create_host, mock_inventory, capsys):
+    def test_reverse_without_sort_errors(self, create_host, mock_inventory, capsys):
         """
-        Test --reverse without --sort is a no-op (warns, still succeeds).
+        Test --reverse without --sort is rejected by the validation
         """
         mock_inventory.hosts = [
             create_host(name="bravo"),
             create_host(name="alpha"),
         ]
 
-        code = inventory_module.app(
-            ["status", "--reverse"], result_action="return_value"
-        )
+        with pytest.raises(SystemExit) as exc_info:
+            inventory_module.app(["status", "--reverse"])
 
-        captured = capsys.readouterr()
-        assert code == 0
-        # Order should be unchanged (config order preserved)
-        assert captured.out.index("bravo") < captured.out.index("alpha")
-        assert "--reverse has no effect without --sort" in captured.err
+        assert exc_info.value.code == 1
+        assert "--reverse requires --sort" in capsys.readouterr().err
 
 
 class TestSaveCommand:

@@ -10,9 +10,10 @@ as well as display bits around task execution, errors and status.
 
 import platform
 import sys
+from collections.abc import Callable
 from typing import Annotated
 
-from cyclopts import Parameter
+from cyclopts import ArgumentCollection, Parameter
 from rich import box
 from rich.columns import Columns
 from rich.console import Console
@@ -59,6 +60,37 @@ HOST_PARAMETER = Parameter(n_tokens=1, converter=resolve_host, accepts_keys=Fals
 
 # Annotation for a positional Host argument that arrives already resolved.
 HostArg = Annotated[Host, HOST_PARAMETER]
+
+
+def arg_requires_arg(field: str, required: str) -> Callable[[ArgumentCollection], None]:
+    """
+    Build a group validator enforcing a one-way "requires" dependency.
+
+    If the ``field`` parameter is supplied with a truthy value, then
+    ``required`` must also be supplied; otherwise an input error is raised,
+    naming both options by their primary CLI flag.
+
+    Both parameters must belong to the same parameter group for the
+    validator to see them. The message is derived from the arguments::
+
+        Group("Sorting", validator=arg_requires_arg("reverse", "sort"))
+        # --reverse without --sort -> "--reverse requires --sort."
+
+    :param field: Parameter (field) name whose truthy value triggers the rule.
+    :param required: Parameter (field) name that must then also be present.
+    :return: A group validator callable suitable for a parameter group.
+    """
+
+    def _validator(arguments: ArgumentCollection) -> None:
+        by_field = {arg.field_info.name: arg for arg in arguments}
+        provided = {arg.field_info.name for arg in arguments.filter_by(value_set=True)}
+
+        if field in provided and by_field[field].value and required not in provided:
+            raise ValueError(
+                f"{by_field[field].names[0]} requires {by_field[required].names[0]}."
+            )
+
+    return _validator
 
 
 def get_version_string() -> str:
@@ -169,12 +201,12 @@ def get_hosts_or_all(
     """
     Obtain the given resolved hosts, or all inventory hosts if none were given.
 
-    Helper intented exclusively for commands that take a variadic
+    Helper intended exclusively for commands that take a variadic
     ``*names: HostArg`` argument, and hinges on unknown hosts being
     already rejected by the CLI Converter.
 
     Meant to handle the common "no hosts specified -> all hosts" default,
-    the empty inventory scenario, nd the optional supported only filter.
+    the empty inventory scenario, and the optional supported only filter.
 
     :param hosts: Resolved hosts from a variadic host argument (empty for all).
     :param supported_only: Return only supported hosts, with warning

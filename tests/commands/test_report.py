@@ -445,3 +445,35 @@ class TestGenerateCommand:
             report.app(["generate", "--format", "json", "--output", str(tmp_path)])
 
         assert exc_info.value.code == 1  # Input error from validator
+
+    def test_tee_requires_output(self, mock_get_hosts, sample_host, capsys):
+        """--tee without --output is rejected by the validator"""
+        mock_get_hosts([sample_host])
+
+        with pytest.raises(SystemExit) as exc_info:
+            report.app(["generate", "--tee"])
+
+        assert exc_info.value.code == 1
+        assert "--tee requires --output" in capsys.readouterr().err
+
+    def test_no_navigation_requires_html(self, mock_get_hosts, sample_host, capsys):
+        """--no-navigation only applies to HTML output only"""
+        mock_get_hosts([sample_host])
+
+        with pytest.raises(SystemExit) as exc_info:
+            report.app(["generate", "--format", "text", "--no-navigation"])
+
+        assert exc_info.value.code == 1
+        assert (
+            "--no-navigation only applies to --format html" in capsys.readouterr().err
+        )
+
+    def test_filters_mutually_exclusive(self, mock_get_hosts, sample_host, capsys):
+        """--updates-only and --security-updates-only are mutually exclusive."""
+        mock_get_hosts([sample_host])
+
+        with pytest.raises(SystemExit) as exc_info:
+            report.app(["generate", "--updates-only", "--security-updates-only"])
+
+        assert exc_info.value.code == 1
+        assert "Mutually exclusive arguments" in capsys.readouterr().err

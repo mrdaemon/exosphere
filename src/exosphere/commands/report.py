@@ -5,11 +5,12 @@ Reporting command module
 from pathlib import Path
 from typing import Annotated
 
-from cyclopts import App, Parameter, validators
+from cyclopts import App, ArgumentCollection, Group, Parameter, validators
 from rich.json import JSON
 
 from exosphere.commands.utils import (
     HostArg,
+    arg_requires_arg,
     console,
     err_console,
     get_hosts_or_all,
@@ -27,25 +28,63 @@ JSON for use in other tools or custom reporting.
 app = App(name="report", help=ROOT_HELP, help_flags=["--help"])
 
 
+def _validate_navigation_option(arguments: ArgumentCollection) -> None:
+    """
+    Group validator: ``--no-navigation`` only applies to HTML output.
+
+    The navigation section only exists in the HTML report, so disabling it
+    for any other format is meaningless.
+    """
+    by_field = {arg.field_info.name: arg for arg in arguments}
+    set_fields = {arg.field_info.name for arg in arguments.filter_by(value_set=True)}
+
+    no_navigation = "navigation" in set_fields and by_field["navigation"].value is False
+    if not no_navigation:
+        return
+
+    is_html = "format" in set_fields and by_field["format"].value == OutputFormat.html
+    if not is_html:
+        raise ValueError("--no-navigation only applies to --format html.")
+
+
+FILTER_GROUP = Group("Filtering Options", validator=validators.mutually_exclusive)
+OUTPUT_GROUP = Group(
+    "Output Options",
+    validator=(arg_requires_arg("tee", "output"), _validate_navigation_option),
+)
+
+
 @app.command
 def generate(
     *hosts: HostArg,
     format: Annotated[
-        OutputFormat, Parameter(name=["--format", "-f"])
+        OutputFormat, Parameter(name=["--format", "-f"], group=OUTPUT_GROUP)
     ] = OutputFormat.text,
     output: Annotated[
         Path | None,
-        Parameter(name=["--output", "-o"], validator=validators.Path(dir_okay=False)),
+        Parameter(
+            name=["--output", "-o"],
+            validator=validators.Path(dir_okay=False),
+            group=OUTPUT_GROUP,
+        ),
     ] = None,
     updates_only: Annotated[
-        bool, Parameter(name=["--updates-only", "-u"], negative="")
+        bool,
+        Parameter(name=["--updates-only", "-u"], negative="", group=FILTER_GROUP),
     ] = False,
     security_only: Annotated[
-        bool, Parameter(name=["--security-updates-only", "-s"], negative="")
+        bool,
+        Parameter(
+            name=["--security-updates-only", "-s"], negative="", group=FILTER_GROUP
+        ),
     ] = False,
-    tee: Annotated[bool, Parameter(name=["--tee"], negative="")] = False,
-    quiet: Annotated[bool, Parameter(name=["--quiet", "-q"], negative="")] = False,
-    navigation: bool = True,
+    tee: Annotated[
+        bool, Parameter(name=["--tee"], negative="", group=OUTPUT_GROUP)
+    ] = False,
+    quiet: Annotated[
+        bool, Parameter(name=["--quiet", "-q"], negative="", group=OUTPUT_GROUP)
+    ] = False,
+    navigation: Annotated[bool, Parameter(group=OUTPUT_GROUP)] = True,
 ) -> int:
     """
     Generate a report of the current inventory state.
@@ -57,6 +96,10 @@ def generate(
     The report can also be filtered to include only specific hosts by
     providing their names as arguments. If no hosts are specified,
     the report will include all hosts in the inventory.
+
+    It can further be narrowed to hosts with pending updates
+    (`--updates-only`) or pending security updates
+    (`--security-updates-only`), which are mutually exclusive.
 
     Note: Undiscovered or unsupported hosts are excluded from the report.
 
@@ -73,7 +116,7 @@ def generate(
     security_only
         Only report security updates
     tee
-        Also print report to stdout when using `--output`
+        Also print report to stdout (requires `--output`)
     quiet
         Suppress informational messages
     navigation

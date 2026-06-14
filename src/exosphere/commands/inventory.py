@@ -5,7 +5,7 @@ Inventory command module
 import logging
 from typing import Annotated
 
-from cyclopts import App, Parameter
+from cyclopts import App, Group, Parameter, validators
 from rich import box
 from rich.panel import Panel
 from rich.progress import (
@@ -21,6 +21,7 @@ from rich.table import Table
 from exosphere import app_config
 from exosphere.commands.utils import (
     HostArg,
+    arg_requires_arg,
     console,
     err_console,
     get_hosts_or_all,
@@ -293,17 +294,46 @@ def ping(*names: HostArg) -> int:
     return 0
 
 
+STATUS_FILTER_GROUP = Group(
+    "Filtering Options", validator=validators.mutually_exclusive
+)
+STATUS_SORT_GROUP = Group(
+    "Sorting Options", validator=arg_requires_arg("reverse", "sort")
+)
+
+
 @app.command(synonym=["list", "show"])
 def status(
     *names: HostArg,
     updates_only: Annotated[
-        bool, Parameter(name=["--updates-only", "-u"], negative="")
+        bool,
+        Parameter(
+            name=["--updates-only", "-u"], negative="", group=STATUS_FILTER_GROUP
+        ),
     ] = False,
     security_only: Annotated[
-        bool, Parameter(name=["--security-only", "-s"], negative="")
+        bool,
+        Parameter(
+            name=["--security-only", "-s"],
+            negative="",
+            group=STATUS_FILTER_GROUP,
+        ),
     ] = False,
-    sort: Annotated[SortField | None, Parameter(name=["--sort", "-o"])] = None,
-    reverse: Annotated[bool, Parameter(name=["--reverse", "-r"], negative="")] = False,
+    sort: Annotated[
+        SortField | None,
+        Parameter(
+            name=["--sort", "-o"],
+            group=STATUS_SORT_GROUP,
+        ),
+    ] = None,
+    reverse: Annotated[
+        bool,
+        Parameter(
+            name=["--reverse", "-r"],
+            negative="",
+            group=STATUS_SORT_GROUP,
+        ),
+    ] = False,
     full: Annotated[bool, Parameter(name=["--full", "-f"], negative="")] = False,
 ) -> int:
     """
@@ -313,9 +343,9 @@ def status(
     in the inventory, including their package update counts, their
     online status and whether or not the data is stale.
 
-    Output can be filtered to only show hosts with pending
-    updates or security updates. Filtering for security updates
-    implies filtering for updates as well.
+    Output can be filtered to show only hosts with pending updates
+    (`--updates-only`) or only those with pending security updates
+    (`--security-only`). These two filters are mutually exclusive.
 
     Output can also be sorted by any column with `--sort`, optionally
     reversed with `--reverse`. Sorting by 'version' groups hosts by
@@ -336,7 +366,7 @@ def status(
     updates_only
         Show only hosts with pending updates
     security_only
-        Show only hosts with pending security updates (implies `--updates-only`)
+        Show only hosts with pending security updates
     sort
         Sort the table by the given column
     reverse
@@ -353,11 +383,11 @@ def status(
     if hosts is None:
         return 1  # Input error: no hosts to operate on
 
-    # Map the active flags to a FilterMode and table title.
-    # Note: security_only implies updates_only as they're a subset,
-    # so it effectively takes precedence here.
+    # Map the active filter flag to a FilterMode and table title.
+    # --updates-only and --security-only are mutually exclusive (enforced by
+    # the Filtering Options group validator), so at most one is set here.
     match (updates_only, security_only):
-        case (_, True):
+        case (False, True):
             filter_mode = FilterMode.SECURITY_ONLY
             table_suffix = "(security updates only)"
         case (True, False):
@@ -373,12 +403,9 @@ def status(
         console.print(Panel.fit("No hosts matching requested criteria."))
         return 3  # No matches for filtering
 
+    # The validator prevents --reverse without --sort
     if sort is not None:
         hosts = inventory.sort_hosts(sort, hosts=hosts, reverse=reverse)
-    elif reverse:
-        err_console.print(
-            "[yellow]Warning: --reverse has no effect without --sort[/yellow]"
-        )
 
     # Iterates through all hosts in the inventory and render a nice
     # Rich table with their properties and status. The sortable column
