@@ -87,7 +87,7 @@ class TestMain:
 
         mock_load_first_config.assert_called_once()
         mock_setup_logging.assert_called_once()
-        mock_cli_app.assert_called_once()
+        mock_cli_app.assert_called_once_with(help_on_error=True)
 
         assert "Configuration loaded from:" in caplog.text
 

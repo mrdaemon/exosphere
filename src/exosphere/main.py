@@ -228,7 +228,8 @@ def main() -> None:
 
     # Launch the regular CLI or REPL
     if len(sys.argv) > 1:
-        cli.app()
+        # Non-interactive errors should display help
+        cli.app(help_on_error=True)
     else:
         cli.start_interactive()
 

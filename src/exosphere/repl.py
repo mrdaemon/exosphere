@@ -391,8 +391,15 @@ class ExosphereREPL:
         # Route --help through scoped help handler
         # Rewrites command names to be relative
         if any(token in _HELP_FLAGS for token in args):
-            self._scoped_help(args)
-            return
+            if self._scoped_help(args):
+                return
+
+            # Fall back to normal dispatch if scoped help couldn't
+            # handle it (e.g. unrecognized command)
+            args = [token for token in args if token not in _HELP_FLAGS]
+            if not args:
+                return
+            head = args[0]
 
         # Bare groups (sub-app that has subcommands but has no further
         # tokens, and has no default command) also get routed to scoped
@@ -423,7 +430,7 @@ class ExosphereREPL:
             self.console.print(f"[red]Error executing {head}: {e}[/red]")
             logger.exception("Error executing command '%s'", head)
 
-    def _scoped_help(self, args: list[str]) -> None:
+    def _scoped_help(self, args: list[str]) -> bool:
         """
         Render help for the typed command, with relative command name
 
@@ -431,14 +438,27 @@ class ExosphereREPL:
         command for usage lines, which is much friendlier in context.
 
         Example: "exosphere sudo generate" --> "sudo generate"
+
+        Returns False when the tokens leave an unrecognized command, so the
+        caller can fall back to normal dispatch (surfacing the proper
+        unknown-command error rather than the root help).
         """
         tokens = [token for token in args if token not in _HELP_FLAGS]
-        _chain, apps, _unused = self.app.parse_commands(tokens)
+        chain, apps, unused = self.app.parse_commands(tokens)
+
+        # If there are leftover tokens that don't look like options or their
+        # values, don't try to twiddle help any further.
+        # NOTE: misfires for a group whose default command takes a positional
+        # (none do today, but noting for the future).
+        if _subcommands(apps[-1]) and unused and not unused[0].startswith("-"):
+            return False
 
         if len(apps) >= 2:
-            apps[1].help_print(list(_chain[1:]))
+            apps[1].help_print(list(chain[1:]))
         else:
             self.app.help_print([])
+
+        return True
 
     def _show_help(self, args: list[str]) -> None:
         """
@@ -458,9 +478,11 @@ class ExosphereREPL:
                 "Use 'help' without arguments for general help."
             )
         else:
-            # Specific command help, delegate to scoped help
-            # which in turns lets Cyclopts handle it entirely.
-            self._scoped_help([args[0], "--help"])
+            # Specific command help, delegate to scoped help. If the command
+            # isn't recognized, dispatch it normally so Cyclopts reports the
+            # unknown command (and suggestions) rather than rendering nothing.
+            if not self._scoped_help([args[0], "--help"]):
+                self._execute_command([args[0]])
 
     def _show_general_help(self) -> None:
         """

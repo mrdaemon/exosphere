@@ -419,6 +419,16 @@ class TestReplCommands:
         assert "show" in out
         assert "--updates" in out
 
+    def test_help_flag_with_command_options_shows_help(self, repl, capsys):
+        """Regression test: Don't parse option args as invalid commands"""
+        instance, recorder = repl
+
+        instance.execute_command("inventory status --sort os --help")
+        out = capsys.readouterr().out
+
+        assert "status" in out  # the command's help was rendered
+        assert recorder == []  # the command did not run
+
     def test_bare_group_shows_its_subcommands(self, repl, capsys):
         instance, _ = repl
 
@@ -456,15 +466,27 @@ class TestReplCommands:
         assert "show" in out  # it is the host group's help
         assert "exosphere" not in out  # root command is stripped
 
-    def test_help_for_unknown_command_falls_back_to_root(self, repl, capsys):
-        """Unknown commands show help for root command"""
+    def test_help_for_unknown_command_reports_it(self, repl, capsys):
+        """Help reports the unknown command, not root help."""
         instance, _ = repl
 
         instance.execute_command("help defenestrate")
-        out = capsys.readouterr().out
+        captured = capsys.readouterr()
+        combined = captured.out + captured.err
 
-        assert "host" in out
-        assert "inventory" in out
+        assert "Unknown command" in combined
+        assert "defenestrate" in combined
+
+    def test_help_flag_on_unknown_command_reports_it(self, repl, capsys):
+        """Help flags on unknown commands should also report the unknown command"""
+        instance, _ = repl
+
+        instance.execute_command("defenestrate --help")
+        captured = capsys.readouterr()
+        combined = captured.out + captured.err
+
+        assert "Unknown command" in combined
+        assert "defenestrate" in combined
 
     def test_empty_line_is_noop(self, repl, capsys):
         """A blank line dispatches nothing and prints nothing."""
