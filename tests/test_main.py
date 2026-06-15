@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import pytest
@@ -341,22 +342,21 @@ class TestMain:
         """
 
         basic_config = mocker.patch("logging.basicConfig")
-        get_logger = mocker.patch("logging.getLogger")
+        set_level = mocker.patch.object(logging.getLogger("exosphere"), "setLevel")
 
         from exosphere.main import setup_logging
 
         setup_logging("INFO")
 
         basic_config.assert_called()
-        get_logger.assert_any_call("exosphere")
-        get_logger.assert_any_call("exosphere.main")
+        set_level.assert_called_once_with("INFO")
 
     def test_setup_logging_file_handler(self, mocker, tmp_path):
         """
         Test setup_logging with a log_file (should use FileHandler).
         """
         basic_config = mocker.patch("logging.basicConfig")
-        get_logger = mocker.patch("logging.getLogger")
+        set_level = mocker.patch.object(logging.getLogger("exosphere"), "setLevel")
         log_file = tmp_path / "test.log"
 
         from exosphere.main import setup_logging
@@ -364,8 +364,7 @@ class TestMain:
         setup_logging("DEBUG", str(log_file))
 
         basic_config.assert_called()
-        get_logger.assert_any_call("exosphere")
-        get_logger.assert_any_call("exosphere.main")
+        set_level.assert_called_once_with("DEBUG")
 
     def test_setup_logging_invalid_log_level(self):
         """
@@ -397,7 +396,7 @@ class TestMain:
         It should normalize to uppercase.
         """
         mocker.patch("logging.basicConfig")
-        get_logger = mocker.patch("logging.getLogger")
+        set_level = mocker.patch.object(logging.getLogger("exosphere"), "setLevel")
 
         from exosphere.main import setup_logging
 
@@ -407,9 +406,7 @@ class TestMain:
             pytest.fail("setup_logging raised ValueError unexpectedly!")
 
         # Check if the log level was set to DEBUG
-        get_logger.assert_any_call("exosphere")
-        get_logger.assert_any_call("exosphere.main")
-        get_logger().setLevel.assert_called_with("DEBUG")
+        set_level.assert_called_once_with("DEBUG")
 
     def test_main_logging_setup_exception(
         self, mocker, mock_setup_logging_exception, capsys
