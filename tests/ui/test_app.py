@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from textual.widgets import Footer, Header
 
@@ -30,8 +32,17 @@ class TestExosphereUi:
 
     @pytest.fixture
     def mock_logger(self, mocker):
-        """Mock the exosphere logger."""
-        return mocker.patch("logging.getLogger")
+        """Mock the exosphere logger.
+
+        Patches addHandler/removeHandler on the actual logger object
+        rather than the global logging.getLogger, as to not interfere
+        with pytests's own log-capture plugin, which also calls
+        logging.getLogger() and would leak into teardown otherwise.
+        """
+        logger = logging.getLogger("exosphere")
+        mocker.patch.object(logger, "addHandler")
+        mocker.patch.object(logger, "removeHandler")
+        return logger
 
     @pytest.fixture
     def app(self):
@@ -129,10 +140,6 @@ class TestExosphereUi:
         mock_handler_instance = mocker.Mock(spec=UILogHandler)
         mock_ui_log_handler.return_value = mock_handler_instance
 
-        # Mock the exosphere logger
-        mock_exosphere_logger = mocker.Mock()
-        mock_logger.return_value = mock_exosphere_logger
-
         # Call on_mount
         app.on_mount()
 
@@ -146,8 +153,7 @@ class TestExosphereUi:
         mock_handler_instance.setFormatter.assert_called_once_with(mock_formatter)
 
         # Verify the handler was added to the exosphere logger
-        mock_logger.assert_called_with("exosphere")
-        mock_exosphere_logger.addHandler.assert_called_once_with(mock_handler_instance)
+        mock_logger.addHandler.assert_called_once_with(mock_handler_instance)
 
         # Verify switch_mode was called with dashboard
         mock_switch_mode.assert_called_once_with("dashboard")
@@ -161,16 +167,11 @@ class TestExosphereUi:
         mock_handler = mocker.Mock(spec=UILogHandler)
         app.ui_log_handler = mock_handler
 
-        # Mock the exosphere logger
-        mock_exosphere_logger = mocker.Mock()
-        mock_logger.return_value = mock_exosphere_logger
-
         # Call on_unmount
         app.on_unmount()
 
         # Verify the handler was removed from the logger
-        mock_logger.assert_called_with("exosphere")
-        mock_exosphere_logger.removeHandler.assert_called_once_with(mock_handler)
+        mock_logger.removeHandler.assert_called_once_with(mock_handler)
 
         # Verify the handler was closed
         mock_handler.close.assert_called_once()
@@ -178,20 +179,16 @@ class TestExosphereUi:
         # Verify the handler was set to None
         assert app.ui_log_handler is None
 
-    def test_on_unmount_with_no_handler(self, app, mock_logger, mocker):
+    def test_on_unmount_with_no_handler(self, app, mock_logger):
         """Test that on_unmount handles case when ui_log_handler is None."""
         # Ensure handler is None
         app.ui_log_handler = None
-
-        # Mock the exosphere logger
-        mock_exosphere_logger = mocker.Mock()
-        mock_logger.return_value = mock_exosphere_logger
 
         # Call on_unmount (should not raise any exceptions)
         app.on_unmount()
 
         # Verify logger methods were not called since handler was None
-        mock_exosphere_logger.removeHandler.assert_not_called()
+        mock_logger.removeHandler.assert_not_called()
 
     def test_app_has_required_methods(self, app):
         """Test that the app has all required methods and they are callable."""
@@ -232,28 +229,24 @@ class TestExosphereUi:
         # Set up a mock handler
         mock_handler = mocker.Mock(spec=UILogHandler)
         app.ui_log_handler = mock_handler
-        mock_exosphere_logger = mocker.Mock()
-        mock_logger.return_value = mock_exosphere_logger
 
         # Call on_unmount
         app.on_unmount()
 
         # Verify cleanup was performed
-        mock_exosphere_logger.removeHandler.assert_called_once_with(mock_handler)
+        mock_logger.removeHandler.assert_called_once_with(mock_handler)
         mock_handler.close.assert_called_once()
         assert app.ui_log_handler is None
 
-    def test_handler_cleanup_when_none(self, app, mock_logger, mocker):
+    def test_handler_cleanup_when_none(self, app, mock_logger):
         """Test that on_unmount handles None handler gracefully."""
         app.ui_log_handler = None
-        mock_exosphere_logger = mocker.Mock()
-        mock_logger.return_value = mock_exosphere_logger
 
         # Should not raise any exceptions
         app.on_unmount()
 
         # Logger methods should not be called since handler is None
-        mock_exosphere_logger.removeHandler.assert_not_called()
+        mock_logger.removeHandler.assert_not_called()
 
     @pytest.fixture
     def mock_context(self, mocker):
