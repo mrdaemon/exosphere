@@ -59,6 +59,7 @@ subcommands
 sudo
 sudoers
 syspatch
+typer
 templating
 tcp
 toJSON
@@ -72,3 +73,4 @@ webserver
 webstart
 writeout
 zigbee
+zsh

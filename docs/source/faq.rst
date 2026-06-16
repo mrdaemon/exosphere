@@ -169,6 +169,68 @@ I don't like the ascii art banner in interactive mode
 You can disable it entirely with the ``no_banner``
 :ref:`config option <no_banner_option>`.
 
+After upgrading to 3.0, my old shell completion misbehaves
+----------------------------------------------------------
+
+Exosphere can install tab-completion for **zsh**, **bash** and **fish** with:
+
+.. code-block:: console
+
+   exosphere --install-completion
+
+Versions prior to **3.0** generated completion differently (via Typer) and
+wrote the scripts to *different* locations. Re-running ``--install-completion``
+installs the new script alongside the old one rather than replacing it, so the
+stale files from the previous version are left behind.
+
+For all cases **except PowerShell**, the new completion takes precedence and
+the leftovers are harmless, but it is cleanest to remove them. If a stale script
+ever did take precedence, it would try to run ``exosphere`` at completion time and
+drop into the interactive REPL, appearing to hang your shell.
+
+To clean up the previous version's files:
+
+- **bash**: delete ``~/.bash_completions/exosphere.sh`` and remove its
+  ``source`` line from ``~/.bashrc``.
+- **zsh**: delete ``~/.zfunc/_exosphere`` (the new script is installed under
+  ``~/.zsh/completions``, or your oh-my-zsh completions directory).
+- **fish**: nothing to do — the new script overwrites the old one at the
+  same path.
+
+.. attention::
+
+   Typer also supported PowerShell completion, but Exosphere 3.0 does **not**.
+   This makes cleanup *required* on PowerShell rather than optional: with no
+   new completion to replace it, the stale Typer completer remains active and
+   *will* try to run ``exosphere`` at completion time, dropping into the REPL
+   and appearing to hang your shell.
+
+   Typer appended its completion directly into your PowerShell profile (rather
+   than a separate file). To remove it, open the profile:
+
+   .. code-block:: powershell
+
+      notepad $PROFILE
+
+   and delete the Exosphere completion block, which looks roughly like:
+
+   .. code-block:: powershell
+
+      Import-Module PSReadLine
+      Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+      $scriptblock = {
+          param($wordToComplete, $commandAst, $cursorPosition)
+          $Env:_EXOSPHERE_COMPLETE = "complete_powershell"
+          # ... several lines referencing exosphere ...
+      }
+      Register-ArgumentCompleter -Native -CommandName exosphere -ScriptBlock $scriptblock
+
+   Remove the ``$scriptblock`` assignment and the matching
+   ``Register-ArgumentCompleter ... -CommandName exosphere`` line. You can
+   leave the generic ``Import-Module PSReadLine`` /
+   ``Set-PSReadLineKeyHandler`` lines if other tools rely on them. Restart
+   PowerShell afterwards.
+
 When managing Ubuntu systems, will this handle snaps?
 -----------------------------------------------------
 

@@ -84,10 +84,14 @@ for subapp in (
     app.command(subapp)
     subapp.help_formatter = HELP_FORMATTER
 
-# Force root --help and --version flags to be part of the parameters
-# group instead of the commands one - this preserves previous behavior
+# Register the shell completion installer.
+app.register_install_completion_command()
+
+# Force root --help, --version and --install-completion flags to be
+# part of the parameters group instead of the commands one
+# This preserves previous CLI behavior
 _root_flags_group = Group("Parameters")
-for flag in ("--help", "--version"):
+for flag in ("--help", "--version", "--install-completion"):
     app[flag].group = _root_flags_group
 
 
