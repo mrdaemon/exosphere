@@ -7,6 +7,7 @@ import pytest
 from exosphere.commands import report
 from exosphere.commands import utils as utils_module
 from exosphere.data import Update
+from exosphere.inventory import Inventory
 from exosphere.objects import Host
 from exosphere.reporting import ReportScope, ReportType
 
@@ -15,6 +16,27 @@ from exosphere.reporting import ReportScope, ReportType
 def _console(patch_console):
     """Install deterministic consoles for the report command module."""
     patch_console(report)
+
+
+@pytest.fixture(autouse=True)
+def mock_inventory(mocker):
+    """
+    Patch context inventory for all tests.
+
+    report.generate resolves a live inventory via get_inventory() and
+    delegates update/security filtering to the real Inventory.filter_hosts,
+    so we mirror this here.
+    """
+    fake_inventory = mocker.create_autospec(Inventory, instance=True)
+    fake_inventory.hosts = []
+
+    real = Inventory
+    fake_inventory.filter_hosts.side_effect = lambda mode, hosts=None: (
+        real.filter_hosts(fake_inventory, mode, hosts)
+    )
+
+    mocker.patch.object(utils_module.context, "inventory", fake_inventory)
+    return fake_inventory
 
 
 @pytest.fixture

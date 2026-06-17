@@ -14,7 +14,9 @@ from exosphere.commands.utils import (
     console,
     err_console,
     get_hosts_or_all,
+    get_inventory,
 )
+from exosphere.inventory import FilterMode
 from exosphere.reporting import OutputFormat, ReportRenderer, ReportScope, ReportType
 
 ROOT_HELP = """
@@ -126,6 +128,8 @@ def generate(
     report_type = ReportType.full
     report_scope = ReportScope.complete
 
+    inventory = get_inventory()
+
     selected_hosts = get_hosts_or_all(hosts, supported_only=True)
     if selected_hosts is None:
         return 1  # Input error: no hosts to report on
@@ -140,7 +144,9 @@ def generate(
         report_scope = ReportScope.filtered
 
     if updates_only:
-        selected_hosts = [host for host in selected_hosts if host.updates]
+        selected_hosts = inventory.filter_hosts(
+            FilterMode.UPDATES_ONLY, hosts=selected_hosts
+        )
         if not selected_hosts and not quiet:
             err_console.print(
                 "No hosts with available updates found, nothing to report."
@@ -150,7 +156,9 @@ def generate(
         report_type = ReportType.updates_only
 
     if security_only:
-        selected_hosts = [host for host in selected_hosts if host.security_updates]
+        selected_hosts = inventory.filter_hosts(
+            FilterMode.SECURITY_ONLY, hosts=selected_hosts
+        )
         if not selected_hosts and not quiet:
             err_console.print(
                 "No hosts with security updates found, nothing to report."
