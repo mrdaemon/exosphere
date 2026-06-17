@@ -13,11 +13,13 @@ awful little corner of hell instead of spreading it everywhere.
 """
 
 import pytest
+from textual.widgets import ListItem, ListView
 
+from exosphere.inventory import SortField
 from exosphere.ui.app import ExosphereUi
 from exosphere.ui.dashboard import DashboardScreen
 from exosphere.ui.elements import ErrorScreen
-from exosphere.ui.inventory import InventoryScreen
+from exosphere.ui.inventory import InventoryScreen, SortScreen
 from exosphere.ui.logs import LogsScreen
 
 
@@ -156,3 +158,36 @@ async def test_error_screen_display_and_dismiss():
 
         # Should be back on dashboard after dismissing error
         assert isinstance(app.screen, DashboardScreen)
+
+
+@pytest.mark.asyncio
+async def test_sort_screen_list_matches_sortfield():
+    """
+    The SortScreen sort list must stay aligned with SortField.
+
+    The rows in the SortScreen's sort list are expected to be ordered
+    the exact same way as the Enum members of SortField, with a
+    "Default" entry at the top.
+
+    This assumption is essentially baked into the SortScreen's behavior
+    This test is meant to trip if that assumption breaks, and the
+    entries are out of sync/misaligned, and this needs fixed.
+
+    For the future generations reading this test wondering why
+    it's red, and why this idiot didn't dynamically generate
+    the list from enum members: It was because doing that AND
+    modifying the labels with their hotkey underline in the UI was
+    actively WAY uglier than just unrolling the enum members into a
+    nice static list of ListItems. And also, quit whining, the things
+    you have to modify to fix this are like, three feet to the left.
+    """
+    app = ExosphereUi()
+    async with app.run_test() as pilot:
+        app.push_screen(SortScreen())
+        await pilot.pause()
+
+        assert isinstance(app.screen, SortScreen)
+        list_view = app.screen.query_one("#sort-list", ListView)
+        ids = [item.id for item in list_view.query(ListItem)]
+
+    assert ids == ["sort-none"] + [f"sort-{field.value}" for field in SortField]

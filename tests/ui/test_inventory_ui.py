@@ -641,6 +641,91 @@ class TestSortScreen:
 
         mock_dismiss.assert_called_once_with(None)
 
+    @pytest.mark.parametrize(
+        "key, expected_field",
+        [
+            ("h", SortField.HOST),
+            ("o", SortField.OS),
+            ("f", SortField.FLAVOR),
+            ("v", SortField.VERSION),
+            ("u", SortField.UPDATES),
+            ("s", SortField.SECURITY),
+            ("a", SortField.STATUS),
+            ("H", SortField.HOST),  # case-insensitive
+            ("d", None),  # default/config order
+        ],
+        ids=[
+            "host",
+            "os",
+            "flavor",
+            "version",
+            "updates",
+            "security",
+            "status",
+            "host-uppercase",
+            "default",
+        ],
+    )
+    def test_quick_key_dismisses_with_field(self, mocker, key, expected_field):
+        """Each quick-key applies its mapped field (default, non-reversed)."""
+        screen = SortScreen()
+        mock_checkbox = mocker.Mock()
+        mock_checkbox.value = False
+        mocker.patch.object(screen, "query_one", return_value=mock_checkbox)
+        mock_dismiss = mocker.patch.object(screen, "dismiss")
+
+        event = mocker.Mock()
+        event.key = key
+        screen.on_key(event)
+
+        mock_dismiss.assert_called_once_with((expected_field, False))
+        event.stop.assert_called_once()
+
+    @pytest.mark.parametrize("reverse", [True, False])
+    def test_quick_key_carries_reverse_state(self, mocker, reverse):
+        """Dismissing via quick key includes reverse checkbox state"""
+        screen = SortScreen()
+        mock_checkbox = mocker.Mock()
+        mock_checkbox.value = reverse
+        mocker.patch.object(screen, "query_one", return_value=mock_checkbox)
+        mock_dismiss = mocker.patch.object(screen, "dismiss")
+
+        event = mocker.Mock()
+        event.key = "h"
+        screen.on_key(event)
+
+        mock_dismiss.assert_called_once_with((SortField.HOST, reverse))
+
+    def test_reverse_key_toggles_checkbox_without_dismissing(self, mocker):
+        """'r' flips the reverse checkbox and does not dismiss."""
+        screen = SortScreen()
+        mock_checkbox = mocker.Mock()
+        mock_checkbox.value = False
+        mocker.patch.object(screen, "query_one", return_value=mock_checkbox)
+        mock_dismiss = mocker.patch.object(screen, "dismiss")
+
+        event = mocker.Mock()
+        event.key = "r"
+        screen.on_key(event)
+
+        assert mock_checkbox.value is True
+        mock_dismiss.assert_not_called()
+
+    def test_unmapped_key_is_ignored(self, mocker):
+        """A key with no binding doesn't do anything."""
+        screen = SortScreen()
+        mock_checkbox = mocker.Mock()
+        mock_checkbox.value = False
+        mocker.patch.object(screen, "query_one", return_value=mock_checkbox)
+        mock_dismiss = mocker.patch.object(screen, "dismiss")
+
+        event = mocker.Mock()
+        event.key = "z"
+        screen.on_key(event)
+
+        mock_dismiss.assert_not_called()
+        event.stop.assert_not_called()
+
 
 class TestActionSortView:
     """Test the action_sort_view method and sort selection."""

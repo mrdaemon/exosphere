@@ -237,13 +237,17 @@ columns with the Arrow Keys, toggle reverse by pressing ``r`` (or focusing
 the checkbox with ``Tab`` and pressing ``Space``), and press ``Enter`` to
 apply.
 
+Each entry also has an underlined quick-select key (``H`` for
+*Host*, ``O`` for *OS*, ``S`` for *Security*, etc.) that applies that sort
+**immediately** when pressed.
+
 .. image:: /_static/sort_sample.png
    :alt: Example of Exosphere TUI Sort Prompt
 
 After applying a sort, the active sort field and direction are shown in
 the status bar alongside any active filter. You can restore the original
 configuration order by pressing `ctrl+s` again and selecting the
-"Default (config order)" option.
+"Default (config order)" option (or pressing ``D``).
 
 .. image:: /_static/ui_inventory_sort_statusbar.png
    :alt: Exosphere TUI Inventory Status Bar with sorted status and direction

@@ -96,12 +96,16 @@ class FilterScreen(Screen):
         match event.key:
             case "escape":
                 self.dismiss(None)
+                event.stop()
             case "a" | "A":
                 self.dismiss(FilterMode.NONE)
+                event.stop()
             case "u" | "U":
                 self.dismiss(FilterMode.UPDATES_ONLY)
+                event.stop()
             case "s" | "S":
                 self.dismiss(FilterMode.SECURITY_ONLY)
+                event.stop()
 
 
 class SortScreen(Screen):
@@ -126,11 +130,17 @@ class SortScreen(Screen):
         self._reverse = reverse
 
     def compose(self) -> ComposeResult:
-        items = [ListItem(Label("Default (config order)"), id="sort-none")]
-        items.extend(
-            ListItem(Label(field.label), id=f"sort-{field.value}")
-            for field in SortField
-        )
+        # Sort options items, with hotkey indicators
+        items = [
+            ListItem(Label("[u]D[/u]efault (config order)"), id="sort-none"),
+            ListItem(Label("[u]H[/u]ost"), id="sort-host"),
+            ListItem(Label("[u]O[/u]S"), id="sort-os"),
+            ListItem(Label("[u]F[/u]lavor"), id="sort-flavor"),
+            ListItem(Label("[u]V[/u]ersion"), id="sort-version"),
+            ListItem(Label("[u]U[/u]pdates"), id="sort-updates"),
+            ListItem(Label("[u]S[/u]ecurity"), id="sort-security"),
+            ListItem(Label("St[u]a[/u]tus"), id="sort-status"),
+        ]
 
         # Preselect the current sort field, if any. Index 0 is the
         # "Default (config order)" entry, so fields are offset by one.
@@ -142,10 +152,11 @@ class SortScreen(Screen):
             Container(
                 Label("Sort Inventory View", id="sort-title"),
                 ListView(*items, id="sort-list", initial_index=initial_index),
-                Checkbox("Reverse order", value=self._reverse, id="sort-reverse"),
+                Checkbox(
+                    "[u]R[/u]everse order", value=self._reverse, id="sort-reverse"
+                ),
                 Label(
-                    "[dim]↑/↓ + Enter to apply, 'r' to toggle reverse, "
-                    "ESC to cancel[/dim]",
+                    "[dim]↑/↓ + Enter to apply, ESC to cancel[/dim]",
                     id="sort-help",
                 ),
                 classes="filter-message",
@@ -184,15 +195,41 @@ class SortScreen(Screen):
         self.dismiss((field, reverse))
         event.stop()
 
+    def _apply_sort(self, field: SortField | None, event: Key) -> None:
+        """Read the reverse checkbox and dismiss with the chosen sort."""
+        reverse = self.query_one("#sort-reverse", Checkbox).value
+        self.dismiss((field, reverse))
+        event.stop()
+
     def on_key(self, event: Key) -> None:
-        """Handle window key events for exit."""
-        match event.key:
+        """Handle window key events for quick select and exit."""
+        match event.key.lower():
             case "escape":
+                # Exit without applying changes
                 self.dismiss(None)
+                event.stop()
             case "r":
-                # Toggle reverse on 'r' key for convenience
+                # Flip the reverse checkbox value
                 reverse_checkbox = self.query_one("#sort-reverse", Checkbox)
                 reverse_checkbox.value = not reverse_checkbox.value
+                event.stop()
+            case "d":
+                # Default Sort (config order)
+                self._apply_sort(None, event)
+            case "h":
+                self._apply_sort(SortField.HOST, event)
+            case "o":
+                self._apply_sort(SortField.OS, event)
+            case "f":
+                self._apply_sort(SortField.FLAVOR, event)
+            case "v":
+                self._apply_sort(SortField.VERSION, event)
+            case "u":
+                self._apply_sort(SortField.UPDATES, event)
+            case "s":
+                self._apply_sort(SortField.SECURITY, event)
+            case "a":
+                self._apply_sort(SortField.STATUS, event)
 
 
 class HostDetailsPanel(Screen):
