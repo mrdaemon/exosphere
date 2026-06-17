@@ -46,8 +46,13 @@ def resolve_host(type_: type, tokens) -> Host:
     :param tokens: The Cyclopts tokens parsed for this argument.
     :return: The resolved Host instance.
     """
+    if context.inventory is None:
+        raise ValueError("Inventory is not initialized.")
+
     name = tokens[0].value
-    host = get_inventory().get_host(name)
+    # Do not rely on get_inventory() here, to avoid raising
+    # SystemExit in the middle of argument parsing.
+    host = context.inventory.get_host(name)
     if host is None:
         raise ValueError(f"Host '{name}' not found in inventory.")
 

@@ -650,19 +650,13 @@ class TestSudoCommands:
     def test_commands_bail_with_uninitialized_inventory(
         self, mocker, command, args, capsys
     ):
-        """
-        Test that sudo commands bail out with an uninitialized inventory.
-
-        Host resolution runs through get_inventory() in the converter, so an
-        uninitialized inventory aborts during binding with an application
-        error (exit 2).
-        """
+        """Test that sudo commands bail out with an uninitialized inventory."""
         # Patch the inventory to simulate it being uninitialized
         mocker.patch.object(utils_module.context, "inventory", None)
 
         with pytest.raises(SystemExit) as exc_info:
             sudo.app([command] + args)
 
-        assert exc_info.value.code == 2  # Application error
+        assert exc_info.value.code == 1  # Input error from converter
         captured = capsys.readouterr()
         assert "Inventory is not initialized" in captured.out + captured.err

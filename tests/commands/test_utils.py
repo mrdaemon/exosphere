@@ -103,13 +103,11 @@ class TestResolveHost:
             utils_module.resolve_host(Host, [_token("nonexistent")])
 
     def test_resolve_host_uninitialized_inventory(self, mock_context):
-        """An uninitialized inventory aborts via get_inventory (app error)."""
+        """An uninitialized inventory raises ValueError mid-parse."""
         mock_context.inventory = None
 
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(ValueError, match="not initialized"):
             utils_module.resolve_host(Host, [_token("test-host")])
-
-        assert exc_info.value.code == 2
 
 
 class TestRequires:
