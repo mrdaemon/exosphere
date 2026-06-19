@@ -33,14 +33,14 @@ from exosphere.pipelining import ConnectionReaper
 
 logger = logging.getLogger(__name__)
 
-# List of configuration file paths to check, in order of precedence
+# Configuration file names to check, in order of precedence.
 # The search stops at first match, so ordering matters.
-CONFPATHS: list[Path] = [
-    fspaths.CONFIG_DIR / "config.yaml",
-    fspaths.CONFIG_DIR / "config.yml",
-    fspaths.CONFIG_DIR / "config.toml",
-    fspaths.CONFIG_DIR / "config.json",
-]
+CONFIG_FILENAMES: tuple[str, ...] = (
+    "config.yaml",
+    "config.yml",
+    "config.toml",
+    "config.json",
+)
 
 LOADERS: dict[str, Callable] = {
     "yaml": yaml.safe_load,
@@ -48,6 +48,16 @@ LOADERS: dict[str, Callable] = {
     "toml": tomllib.load,
     "json": json.load,
 }
+
+
+def config_paths(base: Path) -> list[Path]:
+    """
+    Build the ordered list of candidate config file paths under ``base``.
+
+    Resolved at call time to ensure we get the correct base path
+    in case of environment variable override or other dynamic changes.
+    """
+    return [base / name for name in CONFIG_FILENAMES]
 
 
 def setup_logging(log_level: str, log_file: str | None = None) -> None:
@@ -111,7 +121,7 @@ def load_first_config(config: Configuration) -> bool:
     Load the first configuration file found in either:
 
     - Environment variable EXOSPHERE_CONFIG_FILE (if set)
-    - The list of predefined paths (CONFPATHS).
+    - The list of predefined paths under fspaths.CONFIG_DIR.
 
     Those two are mutually exclusive, meaning if the environment variable
     is set, it will be used instead of the predefined paths.
@@ -136,15 +146,10 @@ def load_first_config(config: Configuration) -> bool:
         logger.info(
             "Using configuration path from environment variable: %s", env_config_path
         )
-        paths = [
-            Path(env_config_path) / "config.yaml",
-            Path(env_config_path) / "config.yml",
-            Path(env_config_path) / "config.toml",
-            Path(env_config_path) / "config.json",
-        ]
+        paths = config_paths(Path(env_config_path))
     else:
         logger.debug("Using default configuration paths")
-        paths = CONFPATHS
+        paths = config_paths(fspaths.CONFIG_DIR)
 
     for confpath in paths:
         logger.debug("Trying config file at %s", confpath)
