@@ -62,12 +62,13 @@ class TestMain:
         mock.is_running = True
         return mock
 
-    @pytest.fixture()
+    @pytest.fixture(autouse=True)
     def mock_inventory(self, mocker):
         """
-        Fixture to create a mock Inventory.
+        Autouse fixture to create a mock Inventory.
         """
-        return mocker.MagicMock()
+        mock_cls = mocker.patch("exosphere.main.Inventory")
+        return mock_cls.return_value
 
     def test_main(self, mocker, caplog):
         """
@@ -471,7 +472,6 @@ class TestMain:
         mocker.patch("exosphere.main.load_first_config", return_value=True)
         mocker.patch("exosphere.cli.app")
         mocker.patch("exosphere.main.fspaths.ensure_dirs")
-        mocker.patch("exosphere.main.Inventory")
 
         from exosphere.main import main
 
@@ -497,7 +497,6 @@ class TestMain:
         mocker.patch("exosphere.main.load_first_config", return_value=True)
         mocker.patch("exosphere.main.setup_logging")
         mocker.patch("exosphere.cli.app")
-        mocker.patch("exosphere.main.Inventory")
 
         from exosphere.main import main
 

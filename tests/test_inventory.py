@@ -59,8 +59,9 @@ class TestInventory:
         config.update_from_mapping(data)
         return config
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def mock_diskcache(self, mocker):
+        # We should never write to the actual disk cache during tests.
         mock_dc = mocker.patch("exosphere.inventory.DiskCache")
         return mock_dc
 
@@ -94,7 +95,7 @@ class TestInventory:
         return host
 
     @pytest.fixture
-    def view_inventory(self, mock_config, mock_diskcache, mocker):
+    def view_inventory(self, mock_config, mocker):
         """
         An inventory with crafted hosts for filter/sort tests.
 
@@ -148,7 +149,7 @@ class TestInventory:
         ]
         return inventory
 
-    def test_init_all(self, mock_config, mock_diskcache):
+    def test_init_all(self, mock_config):
         """
         Test that init_all creates Host objects from the configuration.
         """
@@ -184,7 +185,7 @@ class TestInventory:
         assert inventory.hosts[4].ip == "127.0.0.5"
         assert inventory.hosts[4].sudo_policy == SudoPolicy.NOPASSWD
 
-    def test_init_all_with_empty_hosts(self, mock_diskcache, caplog):
+    def test_init_all_with_empty_hosts(self, caplog):
         """
         Test that init_all handles empty host configuration gracefully.
         """
@@ -717,9 +718,7 @@ class TestInventory:
         result = view_inventory.sort_hosts(field)
         assert result[-1].name == "delta"
 
-    def test_sort_hosts_os_includes_unsupported(
-        self, mock_config, mock_diskcache, mocker
-    ):
+    def test_sort_hosts_os_includes_unsupported(self, mock_config, mocker):
         """
         Test that sorting by OS includes unsupported hosts.
 
@@ -746,9 +745,7 @@ class TestInventory:
             "undiscovered",
         ]
 
-    def test_sort_hosts_pins_undiscovered_above_unsupported(
-        self, mock_config, mock_diskcache, mocker
-    ):
+    def test_sort_hosts_pins_undiscovered_above_unsupported(self, mock_config, mocker):
         """
         Test the no-data hosts ordering on data columns.
 
@@ -791,9 +788,7 @@ class TestInventory:
         # Online (alpha, bravo) sort before offline (charlie, delta)
         assert [h.online for h in result] == [True, True, False, False]
 
-    def test_sort_hosts_status_orders_all_hosts(
-        self, mock_config, mock_diskcache, mocker
-    ):
+    def test_sort_hosts_status_orders_all_hosts(self, mock_config, mocker):
         """
         Test that STATUS sorting never pins hosts.
 
@@ -812,9 +807,7 @@ class TestInventory:
         assert [h.online for h in result] == [True, True, False]
         assert result[-1].name == "offline"
 
-    def test_sort_hosts_stable_preserves_config_order(
-        self, mock_config, mock_diskcache, mocker
-    ):
+    def test_sort_hosts_stable_preserves_config_order(self, mock_config, mocker):
         """
         Test that sorts hosts preserves config order when values compare equal
 
@@ -830,7 +823,7 @@ class TestInventory:
         result = inventory.sort_hosts(SortField.UPDATES)
         assert [h.name for h in result] == ["first", "second", "third"]
 
-    def test_sort_hosts_by_version_compound(self, mock_config, mock_diskcache, mocker):
+    def test_sort_hosts_by_version_compound(self, mock_config, mocker):
         """
         Test that sorting by version compounds with flavor
 
@@ -851,9 +844,7 @@ class TestInventory:
         # debian group first (deb-9 < deb-12 naturally), then ubuntu group
         assert [h.name for h in result] == ["deb-9", "deb-12", "ubu-8", "ubu-22"]
 
-    def test_sort_hosts_by_flavor_groups_by_os(
-        self, mock_config, mock_diskcache, mocker
-    ):
+    def test_sort_hosts_by_flavor_groups_by_os(self, mock_config, mocker):
         """
         Test that sorting by flavor groups by OS first.
 
@@ -899,7 +890,7 @@ class TestInventory:
         ],
     )
     def test_sort_hosts_version_natural_order(
-        self, mock_config, mock_diskcache, mocker, earlier, later
+        self, mock_config, mocker, earlier, later
     ):
         """
         Test that version sorting compares in natural order, not lexical.
@@ -917,7 +908,7 @@ class TestInventory:
         result = inventory.sort_hosts(SortField.VERSION)
         assert [h.name for h in result] == ["alpha", "beta"]
 
-    def test_discover_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
+    def test_discover_all_calls_run_task(self, mocker, mock_config):
         """
         Test that discover_all calls run_task with 'discover'.
         """
@@ -930,7 +921,7 @@ class TestInventory:
 
         mock_run.assert_called_once_with(HostOperation.DISCOVER)
 
-    def test_sync_repos_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
+    def test_sync_repos_all_calls_run_task(self, mocker, mock_config):
         """
         Test that sync_repos_all calls run_task with 'sync_repos'.
         """
@@ -945,9 +936,7 @@ class TestInventory:
 
         mock_run.assert_called_once_with(HostOperation.SYNC)
 
-    def test_refresh_updates_all_calls_run_task(
-        self, mocker, mock_config, mock_diskcache
-    ):
+    def test_refresh_updates_all_calls_run_task(self, mocker, mock_config):
         """
         Test that refresh_updates_all calls run_task with 'refresh_updates'.
         """
@@ -962,7 +951,7 @@ class TestInventory:
 
         mock_run.assert_called_once_with(HostOperation.REFRESH)
 
-    def test_ping_all_calls_run_task(self, mocker, mock_config, mock_diskcache):
+    def test_ping_all_calls_run_task(self, mocker, mock_config):
         """
         Test that ping_all calls run_task with 'ping'.
         """
@@ -977,7 +966,7 @@ class TestInventory:
 
         mock_run.assert_called_once_with(HostOperation.PING)
 
-    def test_run_task_with_custom_host_list(self, mocker, mock_config, mock_diskcache):
+    def test_run_task_with_custom_host_list(self, mocker, mock_config):
         """
         Test that run_task works with a custom list of hosts.
         """
@@ -1012,9 +1001,7 @@ class TestInventory:
         assert not hasattr(mock_host3, "ping") or mock_host3.ping.call_count == 0
 
     @pytest.mark.parametrize("hosts_arg", [None, [], [{}]])
-    def test_run_task_no_hosts(
-        self, mocker, mock_config, mock_diskcache, hosts_arg, caplog
-    ):
+    def test_run_task_no_hosts(self, mocker, mock_config, hosts_arg, caplog):
         """
         Test run_task yields nothing and logs a warning if there are no hosts.
         """
@@ -1035,7 +1022,7 @@ class TestInventory:
         "method_name",
         ["discover", "sync_repos", "refresh_updates", "ping"],
     )
-    def test_run_task(self, mocker, mock_config, mock_diskcache, caplog, method_name):
+    def test_run_task(self, mocker, mock_config, caplog, method_name):
         """
         Test run_task behavior with success and failure cases.
         """
@@ -1124,7 +1111,6 @@ class TestInventory:
         self,
         mocker,
         mock_config,
-        mock_diskcache,
         caplog,
         method_name,
         should_raise,
@@ -1168,9 +1154,7 @@ class TestInventory:
         assert any(failure_log in m for m in caplog.messages)
         assert any(completion_log in m for m in caplog.messages)
 
-    def test_ping_all_handles_unexpected_exceptions(
-        self, mocker, mock_config, mock_diskcache, caplog
-    ):
+    def test_ping_all_handles_unexpected_exceptions(self, mocker, mock_config, caplog):
         """
         Test that ping_all handles unexpected exceptions gracefully.
         """
@@ -1195,9 +1179,7 @@ class TestInventory:
         )
         assert any("Pinged all hosts" in m for m in caplog.messages)
 
-    def test_run_task_uses_max_threads_configuration(
-        self, mocker, mock_config, mock_diskcache
-    ):
+    def test_run_task_uses_max_threads_configuration(self, mocker, mock_config):
         """
         Test that run_task uses max_threads from configuration.
         """
@@ -1230,7 +1212,7 @@ class TestInventory:
         # Verify ThreadPoolExecutor was called with correct max_workers
         mock_executor.assert_called_once_with(max_workers=5)
 
-    def test_close_all_closes_all_hosts(self, mocker, mock_config, mock_diskcache):
+    def test_close_all_closes_all_hosts(self, mocker, mock_config):
         """
         Test that close_all() calls close() on all hosts.
         """
@@ -1255,7 +1237,7 @@ class TestInventory:
         mock_host2.close.assert_called_once_with(clear=False)
         mock_host3.close.assert_called_once_with(clear=False)
 
-    def test_close_all_with_clear(self, mocker, mock_config, mock_diskcache):
+    def test_close_all_with_clear(self, mocker, mock_config):
         """
         Test that close_all(clear=True) passes clear flag to hosts.
         """
@@ -1276,7 +1258,7 @@ class TestInventory:
         mock_host.close.assert_called_once_with(clear=True)
         mock_host2.close.assert_called_once_with(clear=True)
 
-    def test_close_all_with_empty_inventory(self, mock_diskcache):
+    def test_close_all_with_empty_inventory(self):
         """
         Test that close_all() handles empty inventory gracefully.
         """
