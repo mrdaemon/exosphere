@@ -9,6 +9,8 @@ wheels/
 # Pytest
 *.cover
 *.coverage
+.coverage.*
+coverage.xml
 htmlcov/
 .pytest_cache/
 .tests_report.json
@@ -21,8 +23,17 @@ docs/source/_static/reports/
 # linters etc
 .ruff_cache/
 
-# Vscode settings
+# Editor cruft
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS cruft
+.DS_Store
+Thumbs.db
+Desktop.ini
 
 # Virtual environments
 .venv
@@ -57,5 +68,6 @@ docs/source/_static/reports/
 # Agentic LLM Garbage
 # Please refer to the AI policy in the README for more details
 CLAUDE.md
+.claude/
 AGENTS.md
 copilot-instructions.md
