@@ -38,6 +38,59 @@ BUILTINS = {
 }
 
 
+def _trim_history_file(path: str, max_entries: int) -> None:
+    """
+    Trim the history file to the most recent entries
+
+    the FileHistory backend only ever appends so the file grows
+    unrestricted over time. This helper function rewrites it in place,
+    keeping the amount of last entries specified by max_entries.
+
+    The on-disk format stores every entry as a block of things:
+     - A # <timestamp> header line
+     - One or more +<content> lines for the entry content
+
+    A non-positive max_entries disable trimming, and we swallow any I/O
+    errors since failure to trim shouldn't block the REPL.
+
+    :param path: Path to the history file.
+    :param max_entries: Maximum number of entries to retain.
+    """
+    # Early bail if trimming is disabled
+    if max_entries <= 0:
+        return
+
+    try:
+        # Don't normalize newlines, FileHistory doesn't.
+        with open(path, "r", encoding="utf-8", errors="replace", newline="") as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        return
+    except OSError as e:
+        logger.warning("Could not read history file for trimming: %s", e)
+        return
+
+    # Group lines into entries, each beginning at a "# <timestamp>" header.
+    entries: list[list[str]] = []
+    for line in lines:
+        if line.startswith("#"):
+            entries.append([line])
+        elif entries:
+            entries[-1].append(line)
+        # Lines before the first header (if any) are dropped as junk.
+
+    if len(entries) <= max_entries:
+        return
+
+    kept = "".join(line for entry in entries[-max_entries:] for line in entry)
+    try:
+        # Again: preserve endings because FileHistory expects it
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write(kept)
+    except OSError as e:
+        logger.warning("Could not rewrite trimmed history file: %s", e)
+
+
 def _accepts_host(argument) -> bool:
     """
     Check if argument resolves host names.
@@ -273,11 +326,17 @@ class ExosphereREPL:
         The history file will be dumped in the State directory for
         Exosphere, according to platform conventions.
 
+        Before opening, the file is trimmed to the most recent
+        ``history_max_entries`` entries so it cannot grow without bound.
+
         Falls back to in-memory history if the file cannot be opened.
         """
         try:
-            history_file = app_config["options"]["history_file"]
-            return FileHistory(str(history_file))
+            history_file = str(app_config["options"]["history_file"])
+            _trim_history_file(
+                history_file, app_config["options"]["history_max_entries"]
+            )
+            return FileHistory(history_file)
         except Exception as e:  # noqa: BLE001
             logger.warning("Could not setup persistent history: %s", e)
             logger.warning("REPL is falling back to in-memory history")

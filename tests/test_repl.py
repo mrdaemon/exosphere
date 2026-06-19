@@ -160,11 +160,89 @@ class TestReplInit:
 
         mocker.patch(
             "exosphere.repl.app_config",
-            {"options": {"history_file": str(history_file)}},
+            {
+                "options": {
+                    "history_file": str(history_file),
+                    "history_max_entries": 1000,
+                }
+            },
         )
 
         instance = ExosphereREPL(root)
 
+        assert isinstance(instance.history, FileHistory)
+
+    def test_history_trimmed_to_max_entries(self, fake_exosphere, mocker, tmp_path):
+        """Constructing the REPL should trim the history file to max_entries."""
+        root, _ = fake_exosphere
+        history_file = tmp_path / "history.txt"
+
+        # Seed a history file with 10 entries, oldest first.
+        seed = FileHistory(str(history_file))
+        for i in range(10):
+            seed.append_string(f"command {i}")
+
+        mocker.patch(
+            "exosphere.repl.app_config",
+            {"options": {"history_file": str(history_file), "history_max_entries": 3}},
+        )
+
+        ExosphereREPL(root)
+
+        # load_history_strings yields most-recent-first.
+        remaining = list(FileHistory(str(history_file)).load_history_strings())
+        assert remaining == ["command 9", "command 8", "command 7"]
+
+    def test_history_not_trimmed_under_limit(self, fake_exosphere, mocker, tmp_path):
+        """A history file under the limit should be left untouched."""
+        root, _ = fake_exosphere
+        history_file = tmp_path / "history.txt"
+
+        seed = FileHistory(str(history_file))
+        for i in range(3):
+            seed.append_string(f"command {i}")
+        original = history_file.read_text(encoding="utf-8")
+
+        mocker.patch(
+            "exosphere.repl.app_config",
+            {"options": {"history_file": str(history_file), "history_max_entries": 10}},
+        )
+
+        ExosphereREPL(root)
+
+        assert history_file.read_text(encoding="utf-8") == original
+
+    def test_history_trim_disabled_with_zero(self, fake_exosphere, mocker, tmp_path):
+        """A max_entries of 0 disables trimming entirely."""
+        root, _ = fake_exosphere
+        history_file = tmp_path / "history.txt"
+
+        seed = FileHistory(str(history_file))
+        for i in range(10):
+            seed.append_string(f"command {i}")
+        original = history_file.read_text(encoding="utf-8")
+
+        mocker.patch(
+            "exosphere.repl.app_config",
+            {"options": {"history_file": str(history_file), "history_max_entries": 0}},
+        )
+
+        ExosphereREPL(root)
+
+        assert history_file.read_text(encoding="utf-8") == original
+
+    def test_history_trim_missing_file_is_safe(self, fake_exosphere, mocker, tmp_path):
+        """Trimming a non-existent history file should not raise."""
+        root, _ = fake_exosphere
+        history_file = tmp_path / "does_not_exist.txt"
+
+        mocker.patch(
+            "exosphere.repl.app_config",
+            {"options": {"history_file": str(history_file), "history_max_entries": 5}},
+        )
+
+        # Should construct cleanly and fall through to a FileHistory.
+        instance = ExosphereREPL(root)
         assert isinstance(instance.history, FileHistory)
 
     def test_history_falls_back_to_memory(self, fake_exosphere, mocker, caplog):
@@ -173,7 +251,7 @@ class TestReplInit:
         # Ensure history file is configured
         mocker.patch(
             "exosphere.repl.app_config",
-            {"options": {"history_file": "/some/path"}},
+            {"options": {"history_file": "/some/path", "history_max_entries": 1000}},
         )
 
         # Oh no! FileHistory died somehow!

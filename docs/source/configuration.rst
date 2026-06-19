@@ -157,7 +157,10 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`default_sudo_policy`
 - :option:`debug`
 - :option:`log_file`
+- :option:`log_max_bytes`
+- :option:`log_backup_count`
 - :option:`history_file`
+- :option:`history_max_entries`
 - :option:`cache_autosave`
 - :option:`cache_autopurge`
 - :option:`cache_file`
@@ -371,6 +374,94 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. _log_max_bytes_option:
+
+.. option:: log_max_bytes
+
+    The maximum size, in bytes, that the :option:`log_file` may reach before
+    it is rotated. When the log file grows past this size, it is rolled over
+    and a fresh file is started.
+
+    This only applies when logging to a file; it has no effect on console
+    logging. Set to ``0`` to disable rotation entirely and let the log grow
+    without bound.
+
+    **Default**: ``5242880`` (5 MiB)
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  log_max_bytes: 10485760  # 10 MiB
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                log_max_bytes = 10485760  # 10 MiB
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "log_max_bytes": 10485760
+                    }
+                }
+
+.. _log_backup_count_option:
+
+.. option:: log_backup_count
+
+    The number of rotated log files to keep. When :option:`log_file` is
+    rotated, older files are named with a numeric suffix (e.g.
+    ``exosphere.log.1``), and any beyond this count are deleted.
+
+    With the defaults, the total disk used by logs is therefore essentially
+    ``log_max_bytes * (log_backup_count + 1)``.
+
+    This must be a positive integer of ``1`` or more, any lower value is
+    simply clamped to ``1``, and a warning is logged.
+
+    To disable rotation entirely, set :option:`log_max_bytes` to ``0`` instead.
+
+    **Default**: ``3``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  log_backup_count: 5
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                log_backup_count = 5
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "log_backup_count": 5
+                    }
+                }
+
 .. option:: history_file
 
     A filesystem path to a file where Exosphere will store the REPL history.
@@ -407,6 +498,46 @@ and examples of how to set them in the configuration file.
                 {
                     "options": {
                         "history_file": "/home/alice/.exosphere_history"
+                    }
+                }
+
+.. _history_max_entries_option:
+
+.. option:: history_max_entries
+
+    The maximum number of entries to retain in the :option:`history_file`.
+    The history file is trimmed to the most recent entries when the
+    interactive REPL starts, so it cannot grow without bound.
+
+    Set to ``0`` to disable trimming and keep unlimited history.
+
+    **Default**: ``1000``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  history_max_entries: 5000
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                history_max_entries = 5000
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "history_max_entries": 5000
                     }
                 }
 

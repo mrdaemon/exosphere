@@ -42,9 +42,12 @@ class Configuration(dict):
             "log_file": str(
                 fspaths.LOG_DIR / "exosphere.log"
             ),  # Default log file for the application
+            "log_max_bytes": 5 * 1024 * 1024,  # Rotate log file past this size (5 MiB)
+            "log_backup_count": 3,  # Number of rotated log files to keep
             "history_file": str(
                 fspaths.STATE_DIR / "repl_history"
             ),  # Default history file for the repl
+            "history_max_entries": 1000,  # Trim repl history to this many entries
             "cache_autosave": True,  # Automatically save cache to disk after changes
             "cache_autopurge": True,  # Automatically purge hosts removed from inventory
             "cache_file": str(

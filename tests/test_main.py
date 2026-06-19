@@ -353,11 +353,23 @@ class TestMain:
 
     def test_setup_logging_file_handler(self, mocker, tmp_path):
         """
-        Test setup_logging with a log_file (should use FileHandler).
+        Test setup_logging with a log_file
+        Should use a RotatingFileHandler configured from the
+        log_max_bytes / log_backup_count options from config.
         """
+        from logging.handlers import RotatingFileHandler
+
         basic_config = mocker.patch("logging.basicConfig")
         set_level = mocker.patch.object(logging.getLogger("exosphere"), "setLevel")
         log_file = tmp_path / "test.log"
+
+        from exosphere import Configuration
+
+        config = Configuration()
+        config.update_from_mapping(
+            {"options": {"log_max_bytes": 1234, "log_backup_count": 7}}
+        )
+        mocker.patch("exosphere.main.app_config", config)
 
         from exosphere.main import setup_logging
 
@@ -365,6 +377,47 @@ class TestMain:
 
         basic_config.assert_called()
         set_level.assert_called_once_with("DEBUG")
+
+        handler = basic_config.call_args.kwargs["handlers"][0]
+        assert isinstance(handler, RotatingFileHandler)
+        assert handler.maxBytes == 1234
+        assert handler.backupCount == 7
+        handler.close()
+
+    @pytest.mark.parametrize("backup_count", [0, -5])
+    def test_setup_logging_clamps_backup_count(
+        self, mocker, tmp_path, caplog, backup_count
+    ):
+        """
+        Invalid integer values for backup count are clamped to 1
+        """
+        from logging.handlers import RotatingFileHandler
+
+        basic_config = mocker.patch("logging.basicConfig")
+        mocker.patch.object(logging.getLogger("exosphere"), "setLevel")
+        log_file = tmp_path / "test.log"
+
+        from exosphere import Configuration
+
+        config = Configuration()
+        config.update_from_mapping(
+            {"options": {"log_max_bytes": 1234, "log_backup_count": backup_count}}
+        )
+        mocker.patch("exosphere.main.app_config", config)
+
+        caplog.set_level(logging.WARNING, logger="exosphere.main")
+
+        from exosphere.main import setup_logging
+
+        setup_logging("DEBUG", str(log_file))
+
+        handler = basic_config.call_args.kwargs["handlers"][0]
+        assert isinstance(handler, RotatingFileHandler)
+        assert handler.backupCount == 1
+        handler.close()
+
+        # Check that we log a warning
+        assert "log_backup_count must be at least 1" in caplog.text
 
     def test_setup_logging_invalid_log_level(self):
         """

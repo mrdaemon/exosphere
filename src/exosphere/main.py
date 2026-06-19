@@ -18,6 +18,7 @@ import logging
 import os
 import sys
 import tomllib
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Callable
 
@@ -64,8 +65,23 @@ def setup_logging(log_level: str, log_file: str | None = None) -> None:
     # Normalize log level to UPPERCASE
     log_level = log_level.upper()
 
+    # Log message values in case of config clamping
+    clamp_warning: tuple[int, int] | None = None
+
     if log_file:
-        handler = logging.FileHandler(log_file, encoding="utf-8")
+        backup_count = app_config["options"]["log_backup_count"]
+        clamped_backup_count = max(1, backup_count)
+
+        # Set log values for deferred warning
+        if clamped_backup_count != backup_count:
+            clamp_warning = (clamped_backup_count, backup_count)
+
+        handler = RotatingFileHandler(
+            log_file,
+            encoding="utf-8",
+            maxBytes=app_config["options"]["log_max_bytes"],
+            backupCount=clamped_backup_count,
+        )
     else:
         handler = logging.StreamHandler()
         handler.setLevel(log_level)
@@ -77,6 +93,16 @@ def setup_logging(log_level: str, log_file: str | None = None) -> None:
     )
 
     logging.getLogger("exosphere").setLevel(log_level)
+
+    # We don't raise an exception here, and defer this until now
+    # because this function gets called during the "startup exceptions
+    # are FATAL" phase of initialization, so we just log a warning.
+    if clamp_warning is not None:
+        logging.getLogger(__name__).warning(
+            "log_backup_count must be at least 1! using %d instead of %r",
+            *clamp_warning,
+        )
+
     logging.getLogger(__name__).info("Logging initialized with level: %s", log_level)
 
 
