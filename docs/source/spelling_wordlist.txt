@@ -34,6 +34,7 @@ keybinds
 kwargs
 linux
 lstrip
+MiB
 misconfiguration
 nopasswd
 nullable

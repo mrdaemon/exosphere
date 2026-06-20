@@ -666,35 +666,31 @@ class TestSortScreen:
             "default",
         ],
     )
-    def test_quick_key_dismisses_with_field(self, mocker, key, expected_field):
-        """Each quick-key applies its mapped field (default, non-reversed)."""
+    def test_quick_key_selects_field_without_dismissing(
+        self, mocker, key, expected_field
+    ):
+        """Each quick-key selects its field and does not dismiss."""
         screen = SortScreen()
-        mock_checkbox = mocker.Mock()
-        mock_checkbox.value = False
-        mocker.patch.object(screen, "query_one", return_value=mock_checkbox)
+
+        # List will have Default + sortfields, with ids "sort-none" and "sort-{field}"
+        item_ids = ["sort-none"] + [f"sort-{field.value}" for field in SortField]
+        expected_id = (
+            "sort-none" if expected_field is None else f"sort-{expected_field.value}"
+        )
+
+        mock_list = mocker.Mock()
+        mock_list.children = [mocker.Mock(id=item_id) for item_id in item_ids]
+        mocker.patch.object(screen, "query_one", return_value=mock_list)
         mock_dismiss = mocker.patch.object(screen, "dismiss")
 
         event = mocker.Mock()
         event.key = key
         screen.on_key(event)
 
-        mock_dismiss.assert_called_once_with((expected_field, False))
+        assert mock_list.index == item_ids.index(expected_id)
+        mock_list.focus.assert_called_once()
+        mock_dismiss.assert_not_called()  # We shouldn't dismiss here
         event.stop.assert_called_once()
-
-    @pytest.mark.parametrize("reverse", [True, False])
-    def test_quick_key_carries_reverse_state(self, mocker, reverse):
-        """Dismissing via quick key includes reverse checkbox state"""
-        screen = SortScreen()
-        mock_checkbox = mocker.Mock()
-        mock_checkbox.value = reverse
-        mocker.patch.object(screen, "query_one", return_value=mock_checkbox)
-        mock_dismiss = mocker.patch.object(screen, "dismiss")
-
-        event = mocker.Mock()
-        event.key = "h"
-        screen.on_key(event)
-
-        mock_dismiss.assert_called_once_with((SortField.HOST, reverse))
 
     def test_reverse_key_toggles_checkbox_without_dismissing(self, mocker):
         """'r' flips the reverse checkbox and does not dismiss."""

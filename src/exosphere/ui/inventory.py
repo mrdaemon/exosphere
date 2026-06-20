@@ -195,10 +195,17 @@ class SortScreen(Screen):
         self.dismiss((field, reverse))
         event.stop()
 
-    def _apply_sort(self, field: SortField | None, event: Key) -> None:
-        """Read the reverse checkbox and dismiss with the chosen sort."""
-        reverse = self.query_one("#sort-reverse", Checkbox).value
-        self.dismiss((field, reverse))
+    def _select_field(self, field: SortField | None, event: Key) -> None:
+        """Select the enum's corresponding item in the list view"""
+        item_id = "sort-none" if field is None else f"sort-{field.value}"
+        sort_list = self.query_one("#sort-list", ListView)
+
+        for index, item in enumerate(sort_list.children):
+            if item.id == item_id:
+                sort_list.focus()
+                sort_list.index = index
+                break
+
         event.stop()
 
     def on_key(self, event: Key) -> None:
@@ -215,21 +222,21 @@ class SortScreen(Screen):
                 event.stop()
             case "d":
                 # Default Sort (config order)
-                self._apply_sort(None, event)
+                self._select_field(None, event)
             case "h":
-                self._apply_sort(SortField.HOST, event)
+                self._select_field(SortField.HOST, event)
             case "o":
-                self._apply_sort(SortField.OS, event)
+                self._select_field(SortField.OS, event)
             case "f":
-                self._apply_sort(SortField.FLAVOR, event)
+                self._select_field(SortField.FLAVOR, event)
             case "v":
-                self._apply_sort(SortField.VERSION, event)
+                self._select_field(SortField.VERSION, event)
             case "u":
-                self._apply_sort(SortField.UPDATES, event)
+                self._select_field(SortField.UPDATES, event)
             case "s":
-                self._apply_sort(SortField.SECURITY, event)
+                self._select_field(SortField.SECURITY, event)
             case "a":
-                self._apply_sort(SortField.STATUS, event)
+                self._select_field(SortField.STATUS, event)
 
 
 class HostDetailsPanel(Screen):

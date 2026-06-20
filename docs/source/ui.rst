@@ -220,6 +220,10 @@ with the available filters.
 .. image:: /_static/filter_sample.png
    :alt: Example of Exosphere TUI Filter Prompt
 
+.. tip::
+   Each entry also has an underlined quick-select key (``u`` for "Updates Only",
+   for instance) that will **immediately** apply that filter when pressed.
+
 After selecting a filter, only hosts matching the criteria will be displayed.
 The active filter will be shown in the status bar at the bottom of the screen:
 
@@ -237,12 +241,14 @@ columns with the Arrow Keys, toggle reverse by pressing ``r`` (or focusing
 the checkbox with ``Tab`` and pressing ``Space``), and press ``Enter`` to
 apply.
 
-Each entry also has an underlined quick-select key (``H`` for
-*Host*, ``O`` for *OS*, ``S`` for *Security*, etc.) that applies that sort
-**immediately** when pressed.
-
 .. image:: /_static/sort_sample.png
    :alt: Example of Exosphere TUI Sort Prompt
+
+.. tip::
+   Each entry also has an underlined quick-select key (``h`` for
+   *Host*, ``o`` for *OS*, ``s`` for *Security*, etc.) that will select the
+   option when pressed. So to get a reverse sort by Security Updates, it is
+   possible to simply press ``ctrl+s, s, r, enter``.
 
 After applying a sort, the active sort field and direction are shown in
 the status bar alongside any active filter. You can restore the original
