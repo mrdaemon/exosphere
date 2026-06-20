@@ -57,6 +57,7 @@ dev = [
     "sphinx-tabs>=3.4.7",
     "sphinxcontrib-spelling>=8.0.2",
     "textual-dev>=1.7.0",
+    "codespell>=2.4.0",
 ]
 
 [project.optional-dependencies]
@@ -82,6 +83,9 @@ module-name = "exosphere"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.codespell]
+skip = "*.lock,*.woff,*.woff2,*.ttf,*.ttx,*.svg,*.png,*.gif,*.html,*.htm,docs/source/_static"
+
 [tool.poe.tasks]
 lint = "ruff check src tests scripts"
 isort = "ruff check --select I --fix src tests scripts"
@@ -89,9 +93,11 @@ isort-check = "ruff check --select I src tests scripts --diff"
 typecheck = "pyright src tests scripts"
 ruff-format = "ruff format src tests scripts"
 ruff-format-check = "ruff format --check src tests scripts --diff"
+spellcheck = "codespell src tests scripts docs/source README.md"
+spellcheck-fix = "codespell --write-changes src tests scripts docs/source README.md"
 format = ['ruff-format', 'isort']
 format-check = ['ruff-format-check', 'isort-check']
-check = ['format-check', 'lint', 'typecheck']
+check = ['format-check', 'lint', 'typecheck', 'spellcheck']
 test = "pytest -v --ctrf .tests_report.json"
 coverage = "pytest --cov-report term-missing --cov-report html --cov=src tests/"
 docs-build = "sphinx-build -b html docs/source docs/build/html" 
