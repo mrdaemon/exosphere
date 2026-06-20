@@ -23,10 +23,10 @@ are as follows:
 
 .. admonition:: Note
 
-    Exosphere will (through Fabric) absolutely load and honor ssh client configurations
+    Exosphere will (through Fabric) absolutely load and honor SSH client configurations
     from ``~/.ssh/config`` or ``/etc/ssh/ssh_config`` if they exist.
 
-    This means you can set up advanced SSH options, such as host aliases, per-host ssh keys
+    This means you can set up advanced SSH options, such as host aliases, per-host SSH keys
     and even gateways, without relying on Exosphere to provide the functionality you need.
 
 Using SSH Agents
@@ -34,7 +34,7 @@ Using SSH Agents
 
 An SSH agent is a program that loads your SSH keys into memory, usually with your login session
 on your workstation or laptop, allowing you to connect to remote hosts without having to
-enter your passphrase every time. This is instrumental to many ssh automation tools and
+enter your passphrase every time. This is instrumental to many SSH automation tools and
 workflows.
 
 Exosphere relies on the SSH agent to provide the necessary keys for authentication.
@@ -193,7 +193,7 @@ exosphere CLI and its ``sudo`` command. Here is an example below:
     └──────────┴────────────────────────────────┴───────────────────┴─────────────────┘
 
 For instance, we can see here that the ``Apt`` and ``Pkg`` providers require sudo privileges
-to sync repositories, but does not require any privileges to refresh updates.
+to sync repositories, but do not require any privileges to refresh updates.
 
 .. note::
    The table above shows the privilege requirements for each operation type:

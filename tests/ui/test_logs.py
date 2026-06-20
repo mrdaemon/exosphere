@@ -78,7 +78,7 @@ class TestRichLogFormatter:
         assert "(pockets3)" in out
 
     def test_log_formatting_still_applies(self):
-        """Deliberate formatting in non message elemnts should remain"""
+        """Deliberate formatting in non-message elements should remain"""
         formatted = RichLogFormatter().format(self._make_record("SPAGHETT!"))
         level_color = RichLogFormatter.LEVEL_COLORS["WARNING"]
 

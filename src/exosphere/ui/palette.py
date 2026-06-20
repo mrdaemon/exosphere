@@ -117,7 +117,7 @@ class HostCommandProvider(_PaletteProvider):
 
     Hits are score-boosted so they appear above the global
     providers' entries (so the selected host shortcut is at the top
-    of the results, but burried at the bottom of the palette).
+    of the results, but buried at the bottom of the palette).
     """
 
     BOOST = 100.0

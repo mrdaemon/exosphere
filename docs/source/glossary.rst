@@ -9,7 +9,7 @@ Host
     in the inventory.
 
 Inventory
-    The inventory is the collection of Hosts that exosphere knows about.
+    The inventory is the collection of Hosts that Exosphere knows about.
     It is defined through the configuration file, in the Hosts section.
     Commands and functions that operate on the inventory will generally
     target All Hosts.
@@ -23,7 +23,7 @@ Provider
     automatically detected based on the platform.
 
 Update
-    An Update, within exosphere, is an object representing a package that has
+    An Update, within Exosphere, is an object representing a package that has
     a new version available for installation.
 
 Security
@@ -54,11 +54,11 @@ Refresh
     into a single operation depending on context.
 
 Repositories
-    The Repositories are the generic term for the authoritative list of packages on the
-    host platform. This generally consists of repositories. For instance, on Debian
-    and Ubuntu systems, the repositories refer to the remote systems configured in
-    `/etc/apt/sources.list` and friends. On RedHat-likes, it refers to the
-    repositories configured in `/etc/yum.repos.d/` and so on.
+    Repositories is the generic term for the authoritative list of packages on the
+    host platform. For instance, on Debian and Ubuntu systems, it refers
+    to the remote systems configured in `/etc/apt/sources.list` and friends.
+    On RedHat-likes, it refers to the repositories configured in `/etc/yum.repos.d/`,
+    and so on.
 
 Repository Sync
     Synchronizing the repositories is the process of updating the local host cache

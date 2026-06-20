@@ -17,7 +17,7 @@ For instance, for a **YAML** configuration file, the default locations are:
 
         ``~/.config/exosphere/config.yaml``
 
-    .. group-tab:: MacOS
+    .. group-tab:: macOS
 
         ``~/Library/Application Support/exosphere/config.yaml``
 
@@ -74,7 +74,7 @@ file you wish to use.
 
 .. tabs::
 
-    .. group-tab:: Unix/MacOS
+    .. group-tab:: Unix/macOS
 
         .. code-block:: shell
 
@@ -110,7 +110,7 @@ environment variable:
 
 .. tabs::
 
-    .. group-tab:: Unix/MacOS
+    .. group-tab:: Unix/macOS
 
         .. code-block:: shell
 
@@ -246,7 +246,7 @@ and examples of how to set them in the configuration file.
 
     .. admonition:: Note
 
-        Depending your used Providers, you may not need to configure this at all!
+        Depending on the Providers you use, you may not need to configure this at all!
         See the :doc:`providers` documentation for more details.
 
         This is the global value that, by default, applies to all hosts.
@@ -469,7 +469,7 @@ and examples of how to set them in the configuration file.
     file ``repl_history``.
 
     This file is used to persist the command history across executions of Exosphere,
-    allowing you navigate through or search for previously executed commands.
+    allowing you to navigate through or search for previously executed commands.
 
     **Default**: (Platform Default)
 
@@ -693,10 +693,10 @@ and examples of how to set them in the configuration file.
 
 .. option:: stale_threshold
 
-    The number of seconds after which a host data is considered stale.
+    The number of seconds after which a host's data is considered stale.
 
     If a host has not been refreshed in this many seconds, an asterisk or
-    similar flag will be shown in the UIs to indicated that the update count
+    similar flag will be shown in the UIs to indicate that the update count
     may not be accurate, and that the host should be refreshed.
 
     The default is 24 hours, which is reasonable, but you may want a shorter
@@ -1095,7 +1095,7 @@ and examples of how to set them in the configuration file.
 
     .. tip::
 
-        This can be be set contextually with the environment variable
+        This can be set contextually with the environment variable
         ``EXOSPHERE_OPTIONS_NO_BANNER`` set to ``true``.
         For more details see :ref:`config_env_vars`.
 
@@ -1135,7 +1135,7 @@ Inventory
 ---------
 
 The second section of the configuration file is the `Hosts` section, which is
-referred throughout the documentation as **The Inventory**.
+referred to throughout the documentation as **The Inventory**.
 
 The `Hosts` section contains a list of hosts that Exosphere will connect to, as well
 as their connection parameters and any specific option for each host.

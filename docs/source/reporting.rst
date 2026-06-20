@@ -6,9 +6,9 @@ detailed reports of your inventory status and system updates in multiple formats
 
 This functionality **does not require any connectivity or live access to hosts**
 and operates entirely from the Cache, allowing reports or json to be exported on
-a schedule or from a different context where your ssh agent is not available.
+a schedule or from a different context where your SSH agent is not available.
 
-The only requirement is read access to the exosphere cache database.
+The only requirement is read access to the Exosphere cache database.
 (See :doc:`cachefile` for more details.)
 
 
@@ -130,7 +130,7 @@ arguments. For example, to generate a JSON report for just three hosts:
 
 **Updates Available Only**
 
-The report can filtered to only show hosts with updates available using
+The report can be filtered to only show hosts with updates available using
 ``--updates-only``:
 
 .. code-block:: shell
@@ -264,7 +264,7 @@ Integration Examples
 Here are some concrete but deeply uncreative examples of how the reporting
 feature can be used in practice.
 
-If you make a cool thing, please `let us know`_ via a github issue!
+If you make a cool thing, please `let us know`_ via a GitHub issue!
 We'll happily showcase it here.
 
 **Email text report about security updates**

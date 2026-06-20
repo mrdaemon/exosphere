@@ -171,7 +171,7 @@ async def test_sort_screen_list_matches_sortfield():
 
     This assumption is essentially baked into the SortScreen's behavior
     This test is meant to trip if that assumption breaks, and the
-    entries are out of sync/misaligned, and this needs fixed.
+    entries are out of sync/misaligned, and this needs to be fixed.
 
     For the future generations reading this test wondering why
     it's red, and why this idiot didn't dynamically generate

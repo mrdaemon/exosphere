@@ -30,7 +30,7 @@ and **does not** require elevated privileges.
     `Unattended Upgrades`_ to achieve this on a schedule.
 
 
-Exact Commands ran on remote hosts
+Exact Commands run on remote hosts
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``/usr/bin/apt-get update`` **(requires sudo)**
@@ -61,7 +61,7 @@ as the connection user to retrieve the information.
 Updates retrieval is done using ``yum/dnf check-update``, and does *not* require
 elevated privileges.
 
-Exact Commands ran on remote systems
+Exact Commands run on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. note::
@@ -127,7 +127,7 @@ to configure sudo privileges for Exosphere.
 Updates retrieval is done using ``pkg upgrade`` in simulation mode, and **does not**
 require elevated privileges.
 
-Exact Commands ran on remote systems
+Exact Commands run on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``/usr/sbin/pkg update -q`` **(requires sudo)**
@@ -172,11 +172,11 @@ Limitations
 - Handles transitive dependencies without marking them as such, and may,
   in some edge cases, list more packages than strictly necessary for an update.
 
-Exact Commands ran on remote systems
+Exact Commands run on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``/usr/sbin/syspatch -l``
-- ``/usr/sbin/pkg_add -u -v -x -n | grep -e '^Update candidate'"``
+- ``/usr/sbin/pkg_add -u -v -x -n | grep -e '^Update candidate'``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^

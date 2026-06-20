@@ -14,13 +14,13 @@ There are two tiers of effective support in Exosphere.
    Exosphere is limited to basic SSH connectivity checks and presence in
    the dashboard.
 
-Platform support for Patches and Updates are implemented via an extensible
+Platform support for Patches and Updates is implemented via an extensible
 provider system, which allows for new platforms to be added in the future.
 
 **If your remote operating system does not have a provider**, you can still use
 Exosphere for the basic SSH ping connectivity checks and Dashboard. They will
 show up in the inventory, but no patch and update reporting features will be available,
-*as long as it is a unix-like operating system and obeys basic POSIX standards.*
+*as long as it is a Unix-like operating system and obeys basic POSIX standards.*
 
 Unfortunately, this excludes exotic things such as Windows, routers with SSH enabled
 but proprietary, non-Unix-like operating systems, etc. Discovery will not work at all
@@ -50,7 +50,7 @@ Compatibility List
 
 .. admonition:: note
 
-   FreeBSD Optionally requires the ``sudo`` package for repository sync operations.
+   FreeBSD optionally requires the ``sudo`` package for repository sync operations.
    Unfortunately ``doas`` is not supported at this time.
 
 

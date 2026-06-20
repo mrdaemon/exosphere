@@ -248,8 +248,8 @@ class TestStatusCommand:
         assert code == 0
         assert "host8" in out
         assert "exotic-os" in out
-        assert "(unsupport" in out  # May be truncated depending on width
-        assert out.count("(unsupport") == 2
+        assert "(unsupport" in out  # Truncated ; codespell:ignore unsupport
+        assert out.count("(unsupport") == 2  # codespell:ignore unsupport
         assert out.count("—") == 2
 
     @pytest.mark.parametrize("flag", ["--full", "-f"], ids=["long", "short"])

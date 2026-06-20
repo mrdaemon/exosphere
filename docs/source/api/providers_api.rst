@@ -11,7 +11,7 @@ and returning Update objects that can be used to populate state.
 
 Implementing a new provider requires creating a new class under
 ``exosphere.providers`` that inherits from the base provider class
-``exosphere.providers.api.Provider``.
+``exosphere.providers.api.PkgManager``.
 
 This class should implement the methods and members below.
 

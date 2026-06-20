@@ -20,7 +20,7 @@ class PkgAdd(PkgManager):
           as it then behaves like a rolling release and there is no way to tell
         - On stable/release, all updates are assumed to be security updates,
           as OpenBSD only ever updates packages for security issues.
-        - Thouroughly untested on more exotic architectures where syspatch
+        - Thoroughly untested on more exotic architectures where syspatch
           may not be available or fail in different ways. Bug reports welcome!
     """
 

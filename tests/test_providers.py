@@ -349,7 +349,7 @@ class TestPkgProvider:
 
         # Context manager behavior should return the same mock
         mock_cx.__enter__.return_value = mock_cx
-        mock_cx.__exit__.return_value = False  # Don't supress exceptions
+        mock_cx.__exit__.return_value = False  # Don't suppress exceptions
 
         # Default to successful run
         mock_cx.run.return_value.failed = False
@@ -751,7 +751,7 @@ class TestPkgAddProvider:
 
         # Context manager behavior should return the same mock
         mock_cx.__enter__.return_value = mock_cx
-        mock_cx.__exit__.return_value = False  # Don't supress exceptions
+        mock_cx.__exit__.return_value = False  # Don't suppress exceptions
 
         # Default to successful run
         mock_cx.run.return_value.failed = False
@@ -1219,7 +1219,7 @@ class TestDnfProvider:
 
         # Context manager behavior should return the same mock
         mock_cx.__enter__.return_value = mock_cx
-        mock_cx.__exit__.return_value = False  # Don't supress exceptions
+        mock_cx.__exit__.return_value = False  # Don't suppress exceptions
 
         mock_cx.run.return_value.failed = False
         return mock_cx

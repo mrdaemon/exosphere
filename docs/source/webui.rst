@@ -79,7 +79,7 @@ to access the WebUI.
 .. image:: /_static/webui_sample.png
    :alt: Example of Exosphere WebUI
 
-The controls are the exact same as the documented in the :doc:`ui` documentation, so you can
+The controls are the exact same as those documented in the :doc:`ui` documentation, so you can
 use the same keybinds and commands to navigate and perform operations.
 
 The mouse can also be used to select elements from the interface.

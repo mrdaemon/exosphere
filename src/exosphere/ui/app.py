@@ -39,7 +39,7 @@ class ExosphereUi(App):
     as well as the status bar setup and composition.
 
     Since it manages the modal screen state, it is also responsible
-    for tracking which screens need refreshed when the shared data
+    for tracking which screens need to be refreshed when the shared data
     changes via the message system.
     """
 
@@ -78,7 +78,7 @@ class ExosphereUi(App):
         """
         Dispatch a host operation off the UI thread, refresh screens.
 
-        Handles pushing a :class:`ProgressScreen` to run the the
+        Handles pushing a :class:`ProgressScreen` to run the
         ``operation`` on the given hosts (or all hosts, when unspecified).
 
         On completion, unless a custom ``callback`` is specified, runs

@@ -14,7 +14,7 @@ the following platforms:
 
 - Linux (any)
 - FreeBSD
-- MacOS
+- macOS
 - Windows
 
 Platform specific notes will appear whenever relevant, but the process
@@ -93,8 +93,8 @@ Installing from Git Repository
 This is likely the easiest method if you want to track the latest development
 version, or are simply more comfortable with using Git.
 
-The project is setup with `uv`_, which will download and install the necessary
-python runtime and dependencies for you, so you don't have to worry about
+The project is set up with `uv`_, which will download and install the necessary
+Python runtime and dependencies for you, so you don't have to worry about
 any of this.
 
 You will require the following tools installed:
@@ -102,7 +102,7 @@ You will require the following tools installed:
 - `git`_ - to clone the repository
 - `uv`_ - to install the application and manage its dependencies
 
-First, Clone the repository into a directory of your choice.
+First, clone the repository into a directory of your choice.
 
 .. tabs::
 
@@ -139,7 +139,7 @@ If you want the stable version, you can switch to the latest tag.
             git checkout |CurrentVersionTag|
 
         You can substitute |CurrentVersionTag| with a specific tag or
-        version to use a specific release, e.g, `v0.8.1`.
+        version to use a specific release, e.g., `v0.8.1`.
 
         You can find the list of tags on the `GitHub releases page`_.
 
@@ -157,7 +157,7 @@ If you want the stable version, you can switch to the latest tag.
             git checkout main
 
 
-Once that is done, you can simply setup Exosphere using `uv`_:
+Once that is done, you can simply set up Exosphere using `uv`_:
 
 .. code-block:: text
 
@@ -176,7 +176,7 @@ Exosphere directly:
 
 .. tabs::
 
-    .. group-tab:: Unix/MacOS
+    .. group-tab:: Unix/macOS
 
         .. code-block:: text
 
@@ -274,7 +274,7 @@ pulling the latest changes and then syncing with `uv`_:
             uv sync --no-dev
 
         You can substitute |CurrentVersionTag| with the latest tag or
-        specific version you want to use, e.g, `v0.8.1`.
+        specific version you want to use, e.g., `v0.8.1`.
 
         You can find the list of tags on the `GitHub releases page`_.
 

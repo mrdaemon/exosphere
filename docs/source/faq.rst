@@ -24,7 +24,7 @@ Yes, as long as the remote system is a Unix-like operating system.
 In this case, if your remote operating system is not supported, Exosphere will allow
 you to use the dashboard and online checks (ping command, etc) just fine.
 
-You won't be able to perform refresh or sync operation on them, and the update
+You won't be able to perform refresh or sync operations on them, and the update
 counts will be disabled, but this part will remain functional.
 
 If the system in question is not a Unix-like operating system, it will not
@@ -78,7 +78,7 @@ Verify that:
 
 The unhelpful error message is unfortunately `Known Issue`_ in the `paramiko`
 library, which is used internally to handle SSH connections. Whenever
-authentication fails when a SSH agent is used, this is the exception
+authentication fails when an SSH agent is used, this is the exception
 that will be raised, regardless of the actual issue.
 
 Exosphere will generally catch this specific error and rewrite the error message
@@ -141,7 +141,7 @@ without write access errors afterwards.
 I've tuned the timeout but this one host keeps getting flagged offline
 ----------------------------------------------------------------------
 
-Exosphere does use a fairly aggressive timeout value for its ssh connections,
+Exosphere does use a fairly aggressive timeout value for its SSH connections,
 but if you have a host that is consistently supremely slow to respond, yet you
 can connect to it reliably, it is likely you have DNS issues on that server.
 
@@ -250,7 +250,7 @@ them as a synthetic package in the updates view, but this needs more work.
 For the time being, cron reports and mailing lists for `syspatch` and
 `freebsd-update` are recommended to keep tabs on these.
 
-Does FreeBSD support extends to things like OPNSense?
+Does FreeBSD support extend to things like OPNSense?
 -----------------------------------------------------
 
 Since **1.3.4**, the ``pkg`` provider performs repository synchronization in a
@@ -281,7 +281,7 @@ The usual checklist for files in sudoers.d applies here:
 - Must not contain syntax errors (check with `visudo -c -f /etc/sudoers.d/yourfile`)
 
 If you are still having issues, a common problem is another rule matching last.
-Sudo reads rules in lexicographic order (i.e not strictly alphabetical), but does not
+Sudo reads rules in lexicographic order (i.e., not strictly alphabetical), but does not
 merge them, and the last matching rule wins.
 
 You can verify ordering with `visudo -c` and find out which rule is matching
@@ -289,7 +289,7 @@ last with:
 
 .. code-block:: bash
 
-    sudo -l -U youruser /the/sudo/commmand --and --args
+    sudo -l -U youruser /the/sudo/command --and --args
 
 and compare with the output of ``sudo -ll`` to see which rule matched vs which was expected.
 
@@ -319,7 +319,7 @@ or override via :ref:`environment variables <config_env_vars>`, if feasible.
 Is Windows support planned or even possible?
 ------------------------------------------------
 
-The application runs fine on windows, and while managing Windows is something we would love
+The application runs fine on Windows, and while managing Windows is something we would love
 to implement, the connection methods are not incredibly straightforward, and the APIs and
 interfaces for update and patch management are not great. Microsoft continues to hope you
 will buy into their management tools, so the core APIs are not very accessible as a result.

@@ -61,10 +61,10 @@ def discover(*names: HostArg) -> int:
     """
     Gather platform information for hosts
 
-    On a fresh inventory start, this needs done at least once before
-    operations can be performed on the hosts. It can also be used to
-    refresh this information if it has changed, or if a new provider
-    has been added to Exosphere.
+    On a fresh inventory start, this needs to be done at least once
+    before operations can be performed on the hosts. It can also be
+    used to refresh this information if it has changed, or if a new
+    provider has been added to Exosphere.
 
     The discover operation will connect to the specified host(s)
     and gather their current state, including Operating System, flavor,

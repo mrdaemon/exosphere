@@ -1,5 +1,5 @@
 """
-Sphinx extension to render a SVG screenshot of Exosphere CLI help output
+Sphinx extension to render an SVG screenshot of Exosphere CLI help output
 
 Provides a Sphinx directive that renders the Cyclopts --help screen as
 an inline SVG, as a magic, dynamic, regenerates-on-build "screenshot".
@@ -9,7 +9,7 @@ of Sphinx extensions within Exosphere, but it does restore the help
 preview functionality that sphinxcontrib-typer provided previously.
 
 It mainly works through Rich's Console being able to output SVG with
-themeing and window chrome, which we then embed in the page. It uses
+theming and window chrome, which we then embed in the page. It uses
 a StringIO capture, remaining cross-platform and in-memory.
 
 The previous Typer-centric extension had a bit more options to

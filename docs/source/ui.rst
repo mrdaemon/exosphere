@@ -5,7 +5,7 @@ The Text User Interface of Exosphere provides a visual, interactive way of
 accessing the information gathered by Exosphere across your hosts.
 
 It is a modal interface comprised of several screens you can toggle between,
-and allows you perform actions such as:
+and allows you to perform actions such as:
 
 - Viewing the status of all hosts in a Dashboard
 - Viewing the inventory status and drilling down into host details

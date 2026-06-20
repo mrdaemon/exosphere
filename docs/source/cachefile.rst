@@ -27,10 +27,10 @@ If it does not, this is a bug and should be reported.
 
 Clearing the Cache
 ------------------
-If you encounter issues or inconsistencies with cache, you can clear it.
+If you encounter issues or inconsistencies with the cache, you can clear it.
 It can generally safely just be deleted on disk, and will be recreated on next run.
 
-The cache file can also be manually cleared within exosphere in the :doc:`cli`:
+The cache file can also be manually cleared within Exosphere in the :doc:`cli`:
 
 .. code-block:: bash
 

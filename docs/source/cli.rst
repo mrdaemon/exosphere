@@ -175,7 +175,7 @@ Or, in short form:
    exosphere> inventory status -u -o security -r
 
 It will show hosts with updates, sorted by amount of security updates,
-descending, which is a great at a glance view of what to patch first.
+descending, which is a great at-a-glance view of what to patch first.
 
 .. admonition:: Note
 
@@ -359,7 +359,8 @@ errors and specific conditions.
 For instance, ``exosphere version check`` will return 3 if updates are available,
 and the various ``--updates-only`` filters on ``inventory status`` will also
 return 3 if no hosts matched what you requested, and lastly, ``sudo generate``
-will return it as well if no sudoers snippets need generated for that host/provider.
+will return it as well if no sudoers snippet needs to be generated for that
+host/provider.
 
 Commands returning 3 will typically inform you of the meaning in their
 help text.

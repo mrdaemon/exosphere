@@ -16,10 +16,10 @@ Unix-like hosts over SSH.
 ![exosphere demo](./demo.gif)
 
 It is targeted at small to medium sized networks, and is designed to be simple
-to deploy and use, requiring no central server, agents and complex dependencies
+to deploy and use, requiring no central server, agents, or complex dependencies
 on remote hosts.
 
-If you have SSH access to the hosts and your keypairs are loaded in a SSH Agent,
+If you have SSH access to the hosts and your keypairs are loaded in an SSH Agent,
 you are good to go!
 
 Simply follow the [Quickstart Guide](https://exosphere.readthedocs.io/en/stable/quickstart.html),
@@ -34,13 +34,13 @@ or see [the documentation](https://exosphere.readthedocs.io/en/stable/) to get s
   solutions
 - Does not require Python (or anything else) to be installed on remote systems
 - Parallel operations across hosts with optional SSH pipelining
-- Document based reporting in HTML, text or markdown format
+- Document-based reporting in HTML, text or markdown format
 - JSON output for integration with other tools
 
 ## Compatibility
 
 Exosphere itself is written in Python and is compatible with Python 3.13 or later.
-It can run nearly anywhere where Python is available, including Linux, MacOS,
+It can run nearly anywhere where Python is available, including Linux, macOS,
 and Windows (natively).
 
 Supported platforms for remote hosts include:
