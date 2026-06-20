@@ -34,6 +34,7 @@ keybinds
 kwargs
 linux
 lstrip
+macOS
 MiB
 misconfiguration
 nopasswd
