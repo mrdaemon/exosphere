@@ -1,6 +1,6 @@
 [project]
 name = "exosphere-cli"
-version = "3.0.0.dev9"
+version = "3.0.0.dev10"
 description = "CLI/TUI driven patch reporting for remote Unix-like systems."
 readme = "README.md"
 authors = [
@@ -35,6 +35,7 @@ dependencies = [
     "packaging>=24.0",
     "rich>=14.1.0",
     "cyclopts>=4.16.1",
+    "filelock>=3.29.4",
 ]
 
 [dependency-groups]

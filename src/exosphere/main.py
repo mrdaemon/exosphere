@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Callable
 
 import yaml
+from filelock import FileLock, Timeout
 from rich.traceback import install as install_rich_traceback
 
 from exosphere import app_config, cli, context, fspaths
@@ -208,12 +209,37 @@ def cleanup_connections() -> None:
         context.inventory.close_all(clear=True)
 
 
+@atexit.register
+def release_cache_lock() -> None:
+    """
+    Exit handler to release the cache file lock.
+
+    Registered via atexit to ensure the exclusive cache lock is released
+    on program exit. The OS frees the lock on process death regardless,
+    but releasing explicitly is cleaner and removes the sidecar lock
+    file swiftly.
+
+    Safe to call when no lock was ever acquired.
+    """
+    logger.debug("Running exit handler for cache lock release")
+
+    if context.cache_lock is not None and context.cache_lock.is_locked:
+        logger.debug("Releasing cache lock on exit")
+        context.cache_lock.release()
+
+
 def main() -> None:
     """
     Program Entry Point
     """
     # Install rich traceback handler early
     install_rich_traceback(console=err_console, show_locals=False)
+
+    # Fast-path calls to --version/-V to avoid unnecessary
+    # initialization and potential lock contention
+    if {"--version", "-V"} & set(sys.argv[1:]):
+        cli.app()
+        return
 
     # Ensure all required directories exist
     try:
@@ -243,6 +269,23 @@ def main() -> None:
             setup_logging(app_config["options"]["log_level"], log_file)
     except Exception as e:
         print(f"FATAL: Startup Error setting up logging: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Acquire exclusive lock on the cache file before inventory init.
+    # Prevents concurrent instances from sharing the same cache file.
+    # The lock is put on a sidecar .lock file, to avoid locking the
+    # cache file itself.
+    cache_file = app_config["options"]["cache_file"]
+    context.cache_lock = FileLock(f"{cache_file}.lock")
+
+    try:
+        context.cache_lock.acquire(blocking=False)
+    except Timeout:
+        err_console.print(
+            f"[red]FATAL:[/red] Another Exosphere instance is using this cache:\n"
+            f"  {cache_file}\n"
+            "Ensure no other instances with this configuration are running."
+        )
         sys.exit(1)
 
     # Initialize the inventory

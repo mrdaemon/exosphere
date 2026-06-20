@@ -70,6 +70,15 @@ class TestMain:
         mock_cls = mocker.patch("exosphere.main.Inventory")
         return mock_cls.return_value
 
+    @pytest.fixture(autouse=True)
+    def mock_filelock(self, mocker):
+        """
+        Autouse fixture to mock the cache FileLock.
+
+        Creating actual lock sidecars everywhere would be horrifying
+        """
+        return mocker.patch("exosphere.main.FileLock")
+
     def test_main(self, mocker, caplog):
         """
         Test the main function of the Exosphere application.
@@ -202,6 +211,65 @@ class TestMain:
 
         with pytest.raises(SystemExit):
             main()
+
+    def test_main_acquires_cache_lock(self, mocker, mock_filelock):
+        """
+        Test that main acquires an exclusive cache lock on the sidecar file.
+        """
+        from exosphere import app_config
+
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+        mocker.patch("exosphere.main.setup_logging")
+        mocker.patch("exosphere.cli.app")
+
+        from exosphere.main import main
+
+        main()
+
+        cache_file = app_config["options"]["cache_file"]
+        mock_filelock.assert_called_once_with(f"{cache_file}.lock")
+        mock_filelock.return_value.acquire.assert_called_once_with(blocking=False)
+
+    def test_main_cache_lock_contention(self, mocker, mock_filelock):
+        """
+        Test that main exits without building the inventory when the cache
+        lock is already held by another instance.
+        """
+        from filelock import Timeout
+
+        mocker.patch("exosphere.main.load_first_config", return_value=True)
+        mocker.patch("exosphere.main.setup_logging")
+        mocker.patch("exosphere.cli.app")
+
+        mock_inv_cls = mocker.patch("exosphere.main.Inventory")
+        mock_filelock.return_value.acquire.side_effect = Timeout("cache.lock")
+
+        from exosphere.main import main
+
+        with pytest.raises(SystemExit) as excinfo:
+            main()
+
+        assert excinfo.value.code == 1
+        mock_inv_cls.assert_not_called()
+
+    def test_main_version_fast_path(self, mocker, monkeypatch, mock_filelock):
+        """
+        Test that --version flag skips init
+        """
+        monkeypatch.setattr("sys.argv", ["exosphere", "--version"])
+
+        mock_cli_app = mocker.patch("exosphere.cli.app")
+        mock_inv_cls = mocker.patch("exosphere.main.Inventory")
+        mock_load_first_config = mocker.patch("exosphere.main.load_first_config")
+
+        from exosphere.main import main
+
+        main()
+
+        mock_cli_app.assert_called_once_with()
+        mock_filelock.assert_not_called()  # No locks
+        mock_inv_cls.assert_not_called()  # No inventory init
+        mock_load_first_config.assert_not_called()  # No config load
 
     def test_load_first_config(self, mocker, mock_config):
         """
@@ -555,3 +623,37 @@ class TestMain:
             mock_inventory.close_all.assert_called_once_with(clear=True)
         else:
             mock_inventory.close_all.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "lock_present,is_locked,expected_release",
+        [
+            (True, True, True),
+            (True, False, False),
+            (False, False, False),
+        ],
+        ids=["held", "not_held", "no_lock"],
+    )
+    def test_release_cache_lock(
+        self, mocker, lock_present, is_locked, expected_release
+    ):
+        """
+        Test the release_cache_lock atexit handler across lock states.
+        """
+        from exosphere import context
+        from exosphere.main import release_cache_lock
+
+        mock_lock = None
+        if lock_present:
+            mock_lock = mocker.MagicMock()
+            mock_lock.is_locked = is_locked
+            context.cache_lock = mock_lock
+        else:
+            context.cache_lock = None
+
+        release_cache_lock()
+
+        if expected_release:
+            assert mock_lock is not None
+            mock_lock.release.assert_called_once()
+        elif mock_lock is not None:
+            mock_lock.release.assert_not_called()

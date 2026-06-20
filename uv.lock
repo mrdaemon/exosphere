@@ -529,11 +529,12 @@ wheels = [
 
 [[package]]
 name = "exosphere-cli"
-version = "3.0.0.dev9"
+version = "3.0.0.dev10"
 source = { editable = "." }
 dependencies = [
     { name = "cyclopts" },
     { name = "fabric" },
+    { name = "filelock" },
     { name = "jinja2" },
     { name = "packaging" },
     { name = "platformdirs" },
@@ -573,6 +574,7 @@ dev = [
 requires-dist = [
     { name = "cyclopts", specifier = ">=4.16.1" },
     { name = "fabric", specifier = ">=3.2.2" },
+    { name = "filelock", specifier = ">=3.29.4" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "packaging", specifier = ">=24.0" },
     { name = "platformdirs", specifier = ">=4.3.8" },
@@ -623,6 +625,15 @@ wheels = [
 [package.optional-dependencies]
 pytest = [
     { name = "pytest" },
+]
+
+[[package]]
+name = "filelock"
+version = "3.29.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/dc/be6cbe99670cd6e4ad387123647cb08e0c32975e223f82551e914c5568a6/filelock-3.29.4.tar.gz", hash = "sha256:10cdb3656fc44541cdf30652a93fb10ec6b05325620eb316bd26893e4201538a", size = 63028, upload-time = "2026-06-13T16:12:00.744Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/37/a065dc3bd6e49423a6532c642ca7378d3f467b1ef44c2800c937af7f9739/filelock-3.29.4-py3-none-any.whl", hash = "sha256:dac1648087d5115554850d113e7dd8c83ab2d38e3435dde2d4f163847e57b767", size = 42757, upload-time = "2026-06-13T16:11:59.582Z" },
 ]
 
 [[package]]
