@@ -72,9 +72,6 @@ def resolve_editor(command: str | None = None) -> list[str] | None:
         or EDITOR_FALLBACK
     )
 
-    if not editor:
-        return None
-
     # Posix flips on Windows because backslashes and we strayed too far
     # from Pathlib's light at this point.
     argv = shlex.split(editor, posix=(os.name != "nt"))
