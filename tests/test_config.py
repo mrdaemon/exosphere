@@ -350,6 +350,40 @@ class TestConfiguration:
 
         assert result is False
 
+    @pytest.mark.parametrize("content", ["", "   \n  \n"], ids=["empty", "whitespace"])
+    @pytest.mark.parametrize(
+        "suffix, loader",
+        [
+            (".yaml", yaml.safe_load),
+            (".toml", tomllib.load),
+            (".json", json.load),
+        ],
+        ids=["yaml", "toml", "json"],
+    )
+    def test_from_file_empty_is_noop(
+        self, tmp_path, config_defaults, caplog, suffix, loader, content
+    ):
+        """
+        Ensure that an empty/whitespace-only source file is not harmful
+
+        The config is expected to remain with the default values, and a
+        warning should be logged. None of the known loaders handle this
+        the same, so this guards against Weird Shit(tm), and this whole
+        scenario should essentially be a no-op.
+        """
+        import logging
+
+        empty_file = tmp_path / f"empty{suffix}"
+        empty_file.write_text(content)
+
+        config = Configuration()
+        with caplog.at_level(logging.WARNING):
+            result = config.from_file(str(empty_file), loader)
+
+        assert result is True
+        assert config == config_defaults
+        assert "empty" in caplog.text.casefold()
+
     def test_update_from_mapping(self, caplog):
         """
         Ensure that the Configuration object can be updated
@@ -734,6 +768,21 @@ class TestValidate:
         target.write_text("options:\n  debug: true\n")
 
         # Should not raise
+        assert config_module.validate(target) is None
+
+    def test_empty_file_is_valid(self, tmp_path):
+        """Empty config file should be valid, and use defaults"""
+        target = tmp_path / "config.yaml"
+        target.write_text("")
+
+        # Should not raise (empty YAML parses to None)
+        assert config_module.validate(target) is None
+
+    def test_comment_only_file_is_valid(self, tmp_path):
+        """A comment-only config file is also just as valid"""
+        target = tmp_path / "config.yaml"
+        target.write_text("# just a comment, no settings\n")
+
         assert config_module.validate(target) is None
 
     def test_invalid_host_raises(self, tmp_path):

@@ -297,6 +297,24 @@ class TestEditCommand:
         assert "valid" in out.casefold()
         assert "restart" not in out.casefold()  # CLI: no restart notice
 
+    def test_empty_file_is_accepted(self, mocker, tmp_path, capsys):
+        """Saving an empty config is valid (all defaults), not a reopen loop."""
+        target = tmp_path / "config.yaml"
+        mocker.patch(
+            "exosphere.commands.config.context", DummyContext(confpath=str(target))
+        )
+        confirm = mocker.patch("exosphere.commands.config.Confirm.ask")
+        mocker.patch(
+            "exosphere.commands.config.open_in_editor",
+            side_effect=self._writer(""),  # user saves an empty file
+        )
+
+        code = config.app(["edit"], result_action="return_value")
+
+        assert code == 0
+        assert "valid" in capsys.readouterr().out.casefold()
+        assert not confirm.called  # never enters the invalid/re-open path
+
     def test_restart_notice_in_interactive(self, mocker, tmp_path, capsys):
         """In the REPL, a valid edit notes that a restart is needed."""
         target = tmp_path / "config.yaml"

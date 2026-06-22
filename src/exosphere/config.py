@@ -254,6 +254,16 @@ class Configuration(dict):
         """
         try:
             with open(filepath, "rb") as f:
+                # An empty file is technically valid (override nothing,
+                # keep defaults). Given how not all loaders handle this
+                # the same, we handle this explicitly here.
+                if not f.read().strip():
+                    self.logger.warning(
+                        "Configuration file %s is empty, using defaults", filepath
+                    )
+                    return True
+
+                f.seek(0)  # rewind the file
                 data = loader(f)
         except IOError as e:
             if silent and e.errno in (errno.ENOENT, errno.EISDIR):
@@ -262,6 +272,14 @@ class Configuration(dict):
             e.strerror = f"Unable to load config file {filepath}: {e.strerror}"
 
             raise
+
+        # SOME loaders can and will return None for a comments-only file.
+        # This is still technically valid, and is an "empty" file.
+        if data is None:
+            self.logger.warning(
+                "Configuration file %s has no values, using defaults", filepath
+            )
+            return True
 
         return self.update_from_mapping(data)
 
