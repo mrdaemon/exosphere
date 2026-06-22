@@ -53,6 +53,13 @@ def resolve_editor(command: str | None = None) -> list[str] | None:
       a bare CreateProcess does not consult PATHEXT.
     - On resolution failure, the original token is kept so the caller
       can present an error that isn't some goofy internal path.
+    - Non-POSIX splitting keeps backslashes intact but it also keeps
+      the surrounding quotes on a token. We therefore strip the
+      matching outer pair of single or double quotes if present.
+      This allows for a quoted full path with spaces to resolve, e.g.
+      ``"C:\\Program Files\\TurboEdit++\\edit.exe" --wait``.
+      Unquoted strings with spaces remain just as ambiguous as they
+      always were, and will break as expected.
 
     :param command: An explicit editor command, or None to fall back to
         the environment and platform default.
@@ -75,11 +82,28 @@ def resolve_editor(command: str | None = None) -> list[str] | None:
     if not argv:
         return None
 
+    # Non-POSIX split (Windows) keeps the surrounding quotes on a quoted
+    # token, so we strip them so the path resolves.
+    if os.name == "nt":
+        argv = [_strip_quotes(token) for token in argv]
+
     resolved = shutil.which(argv[0])
     if resolved:
         argv[0] = resolved
 
     return argv
+
+
+def _strip_quotes(token: str) -> str:
+    """Strip a single matched pair of surrounding quotes from a token."""
+    if len(token) < 2:
+        return token
+
+    for quote in ('"', "'"):
+        if token.startswith(quote) and token.endswith(quote):
+            return token[1:-1]
+
+    return token
 
 
 def open_in_editor(path: str | Path, *, editor_command: str | None = None) -> None:

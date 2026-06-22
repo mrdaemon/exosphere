@@ -52,6 +52,37 @@ class TestResolveEditor:
 
         assert editor.resolve_editor() == [editor.EDITOR_FALLBACK]
 
+    def test_windows_unquotes_quoted_path(self, mocker, monkeypatch):
+        """On Windows, a double-quoted path with spaces is unquoted and resolved."""
+        monkeypatch.setattr(editor.os, "name", "nt")
+        mocker.patch(
+            "exosphere.editor.shutil.which",
+            return_value=r"C:\Program Files\TurboEdit++\edit.exe",
+        )
+
+        argv = editor.resolve_editor(r'"C:\Program Files\TurboEdit++\edit.exe" --wait')
+
+        assert argv == [r"C:\Program Files\TurboEdit++\edit.exe", "--wait"]
+
+    def test_windows_unquotes_single_quoted_path(self, monkeypatch):
+        """On Windows, a single-quoted path is also unquoted."""
+        monkeypatch.setattr(editor.os, "name", "nt")
+
+        # autouse fixture leaves shutil.which -> None.
+        # Token is kept as-is.
+
+        argv = editor.resolve_editor(r"'C:\Tools\ed.exe' --wait")
+
+        assert argv == [r"C:\Tools\ed.exe", "--wait"]
+
+    def test_windows_preserves_unquoted_backslash_path(self, monkeypatch):
+        """On Windows, backslashes in an unquoted (space-free) path survive."""
+        monkeypatch.setattr(editor.os, "name", "nt")
+
+        argv = editor.resolve_editor(r"C:\Tools\ed.exe --wait")
+
+        assert argv == [r"C:\Tools\ed.exe", "--wait"]
+
 
 class TestOpenInEditor:
     """Tests for editor.open_in_editor."""

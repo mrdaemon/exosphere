@@ -1142,12 +1142,17 @@ and examples of how to set them in the configuration file.
     ``vi`` everywhere else).
 
     The value is a command that may include arguments.
-    
+
     .. attention::
 
         For graphical editors that return immediately, pass the appropriate "wait"
         or "block" flag so Exosphere can validate the file once you are done editing
         (for example: ``code --wait``, ``subl -w``, or ``gvim -f``).
+
+        On Windows, a path that contains spaces must be quoted within the value,
+        or it will be ambiguous and fail to resolve. See the examples below for
+        the correct form in each format. A bare command found on ``PATH`` (like
+        ``code --wait``) needs no quoting.
 
     .. tip::
 
@@ -1163,25 +1168,57 @@ and examples of how to set them in the configuration file.
 
         .. group-tab:: YAML
 
+            Command on path
+
             .. code-block:: yaml
 
                 options:
                   editor: "code --wait"
 
+
+            Windows path with spaces and arguments
+
+            .. code-block:: yaml
+
+                options:
+                  editor: '"C:\Program Files\Editor\ed.exe" --wait'
+
         .. group-tab:: TOML
+
+            Command on path
 
             .. code-block:: toml
 
                 [options]
                 editor = "code --wait"
 
+            Windows path with spaces and arguments
+
+            .. code-block:: toml
+
+                [options]
+                editor = '"C:\Program Files\Editor\ed.exe" --wait'
+
         .. group-tab:: JSON
+
+            Command on path
 
             .. code-block:: json
 
                 {
                     "options": {
                         "editor": "code --wait"
+                    }
+                }
+
+
+            Windows path with spaces and arguments
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "editor": "\"C:\\Program Files\\Editor\\ed.exe\" --wait"
                     }
                 }
 
