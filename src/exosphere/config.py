@@ -35,7 +35,7 @@ def validate(file: str | Path) -> None:
     :raises ValueError: if the file extension has no known loader.
     :raises Exception: any parsing or validation error raised while loading.
     """
-    ext = Path(file).suffix.lstrip(".").lower()
+    ext = Path(file).suffix.removeprefix(".").lower()
     loader = KNOWN_LOADERS.get(ext)
 
     if loader is None:

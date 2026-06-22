@@ -147,7 +147,7 @@ def load_first_config(config: Configuration) -> bool:
             continue
 
         logger.debug("Loading config file from %s", confpath)
-        ext = confpath.suffix[1:].lower()
+        ext = confpath.suffix.removeprefix(".").lower()
         loader = KNOWN_LOADERS.get(ext)
 
         if not loader:
