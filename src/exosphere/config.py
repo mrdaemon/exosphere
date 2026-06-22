@@ -1,5 +1,6 @@
 import copy
 import errno
+import io
 import json
 import logging
 import os
@@ -254,17 +255,7 @@ class Configuration(dict):
         """
         try:
             with open(filepath, "rb") as f:
-                # An empty file is technically valid (override nothing,
-                # keep defaults). Given how not all loaders handle this
-                # the same, we handle this explicitly here.
-                if not f.read().strip():
-                    self.logger.warning(
-                        "Configuration file %s is empty, using defaults", filepath
-                    )
-                    return True
-
-                f.seek(0)  # rewind the file
-                data = loader(f)
+                raw = f.read()
         except IOError as e:
             if silent and e.errno in (errno.ENOENT, errno.EISDIR):
                 return False
@@ -272,6 +263,17 @@ class Configuration(dict):
             e.strerror = f"Unable to load config file {filepath}: {e.strerror}"
 
             raise
+
+        # An empty file is technically valid (override nothing, keep
+        # defaults). Given how not all loaders handle this the same, we
+        # handle it explicitly here.
+        if not raw.strip():
+            self.logger.warning(
+                "Configuration file %s is empty, using defaults", filepath
+            )
+            return True
+
+        data = loader(io.BytesIO(raw))
 
         # SOME loaders can and will return None for a comments-only file.
         # This is still technically valid, and is an "empty" file.
