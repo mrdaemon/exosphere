@@ -384,6 +384,24 @@ class TestConfiguration:
         assert config == config_defaults
         assert "empty" in caplog.text.casefold()
 
+    @pytest.mark.parametrize(
+        "content",
+        ["- a\n- b\n", "42\n"],
+        ids=["list", "scalar"],
+    )
+    def test_from_file_non_mapping_raises(self, tmp_path, content):
+        """
+        A top-level non-mapping (list/scalar) raises a clear error naming
+        the real problem, rather than an opaque unpacking failure deeper in
+        update_from_mapping.
+        """
+        bad_file = tmp_path / "bad.yaml"
+        bad_file.write_text(content)
+
+        config = Configuration()
+        with pytest.raises(ValueError, match="must contain a mapping"):
+            config.from_file(str(bad_file), yaml.safe_load)
+
     def test_update_from_mapping(self, caplog):
         """
         Ensure that the Configuration object can be updated
@@ -797,6 +815,14 @@ class TestValidate:
         target.write_text("{ not valid json")
 
         with pytest.raises(Exception):
+            config_module.validate(target)
+
+    def test_non_mapping_raises(self, tmp_path):
+        """A top-level non-mapping config reports the real problem clearly."""
+        target = tmp_path / "config.yaml"
+        target.write_text("- a\n- b\n")  # a list, not a mapping
+
+        with pytest.raises(ValueError, match="must contain a mapping"):
             config_module.validate(target)
 
     def test_unknown_extension_raises(self, tmp_path):

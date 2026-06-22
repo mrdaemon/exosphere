@@ -283,6 +283,14 @@ class Configuration(dict):
             )
             return True
 
+        # All loaders should return a mapping, but just in case it's done as
+        # a library or at runtime, we check this explicitly here.
+        if not isinstance(data, dict):
+            raise ValueError(
+                f"Configuration file {filepath} must contain a mapping at the "
+                f"top level, got {type(data).__name__}"
+            )
+
         return self.update_from_mapping(data)
 
     def update_from_mapping(self, *mapping: dict, **kwargs: dict) -> bool:
