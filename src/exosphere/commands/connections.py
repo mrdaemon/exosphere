@@ -14,6 +14,7 @@ from exosphere.commands.utils import (
     console,
     err_console,
     get_hosts_or_all,
+    require_interactive,
 )
 
 ROOT_HELP = """
@@ -50,6 +51,7 @@ def _format_duration(seconds: int) -> str:
 
 
 @app.command(synonym=["list", "status"])
+@require_interactive
 def show(
     *names: HostArg,
     active_only: Annotated[
@@ -65,7 +67,9 @@ def show(
     Connections that have been idle for longer than the configured
     maximum age will be marked as "Expiring".
 
-    Only useful when SSH Pipelining is enabled.
+    Only useful when SSH Pipelining is enabled, and exclusively from
+    interactive mode, as connections are not maintained between
+    individual CLI invocations.
 
     Parameters
     ----------
@@ -144,6 +148,7 @@ def show(
 
 
 @app.command
+@require_interactive
 def close(
     *names: HostArg,
     verbose: Annotated[bool, Parameter(name=["--verbose", "-v"], negative="")] = False,
@@ -152,7 +157,10 @@ def close(
     Close SSH connections explicitly
 
     Close SSH connections to specified hosts, or all hosts if none are specified.
-    Only useful when SSH Pipelining is enabled.
+
+    Only useful when SSH Pipelining is enabled, and exclusively from
+    interactive mode, as connections are not maintained between
+    individual CLI invocations.
 
     Parameters
     ----------

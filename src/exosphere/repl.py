@@ -613,6 +613,10 @@ def start_repl(app: App, prompt_text: str = "exosphere> ") -> None:
     :param app: Cyclopts application.
     :param prompt_text: The prompt string to display
     """
+    # Set interactive mode in the application context
+    # Commands can use this to dinstinguish from CLI invocations
+    app_context.interactive = True
+
     repl = ExosphereREPL(app, prompt_text)
     intro = (
         "[cyan]Welcome to the Exosphere interactive shell[/cyan]\n"

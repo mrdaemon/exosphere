@@ -20,14 +20,12 @@ from exosphere.commands.utils import (
     HostArg,
     console,
     err_console,
+    save_inventory_state,
 )
 from exosphere.objects import Host
 
-# Reuse the save function from the inventory command
-from .inventory import save as save_inventory
-
 # Simple spinner layout for long or pre-tasks
-SPINNER_PROGRESS_ARGS = (
+SPINNER_ARGS = (
     SpinnerColumn(),
     TextColumn("[progress.description]{task.description}"),
     TimeElapsedColumn(),
@@ -218,7 +216,7 @@ def discover(host: HostArg, /) -> int:
     host
         Host from inventory to discover
     """
-    with Progress(*SPINNER_PROGRESS_ARGS) as progress:
+    with Progress(*SPINNER_ARGS) as progress:
         progress.add_task(f"Discovering platform for '{host.name}'", total=None)
         try:
             host.discover()
@@ -234,7 +232,7 @@ def discover(host: HostArg, /) -> int:
             return 2  # Application error
 
     if app_config["options"]["cache_autosave"]:
-        save_inventory()
+        save_inventory_state()
 
     return 0
 
@@ -264,7 +262,7 @@ def refresh(
     discover
         Also refresh platform information
     """
-    with Progress(transient=True, *SPINNER_PROGRESS_ARGS) as progress:
+    with Progress(transient=True, *SPINNER_ARGS) as progress:
         if discover:
             task = progress.add_task(
                 f"Refreshing platform information for '{host.name}'", total=None
@@ -321,7 +319,7 @@ def refresh(
             return 2  # Application error
 
     if app_config["options"]["cache_autosave"]:
-        save_inventory()
+        save_inventory_state()
 
     return 0
 
@@ -349,4 +347,4 @@ def ping(host: HostArg, /) -> None:
         console.print(f"Host [bold]{host.name}[/bold] is [red]Offline[/red].")
 
     if app_config["options"]["cache_autosave"]:
-        save_inventory()
+        save_inventory_state()

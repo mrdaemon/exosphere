@@ -546,6 +546,11 @@ class TestStatusCommand:
 class TestSaveCommand:
     """Tests for the save command"""
 
+    @pytest.fixture(autouse=True)
+    def _interactive(self, mocker):
+        """Patch context to simulate interactive mode being used"""
+        mocker.patch.object(utils_module.context, "interactive", True)
+
     def test_success(self, mocker, mock_inventory):
         """
         Test the save command to ensure it calls the save_state method on the inventory.
@@ -572,6 +577,16 @@ class TestSaveCommand:
         assert exc_info.value.code == 2  # Application error
         assert "Error saving inventory state" in out
         assert "Some write problem" in out
+
+    def test_bails_outside_interactive(self, mocker, mock_inventory, capsys):
+        """save refuses to run from a one-shot CLI invocation."""
+        mocker.patch.object(utils_module.context, "interactive", False)
+
+        with pytest.raises(SystemExit) as exc_info:
+            inventory_module.app(["save"])
+
+        assert exc_info.value.code == 2  # Application error: wrong context
+        assert "only available in Interactive Mode" in capsys.readouterr().err
 
 
 class TestClearCommand:
@@ -748,7 +763,7 @@ class TestDiscoverCommand:
         mocker.patch.object(inventory_module, "app_config", test_config)
 
         # Mock save function
-        mock_save = mocker.patch.object(inventory_module, "save")
+        mock_save = mocker.patch.object(inventory_module, "save_inventory_state")
 
         code = inventory_module.app(["discover"], result_action="return_value")
 
@@ -872,7 +887,7 @@ class TestPingCommand:
             (host1, True, None),
         ]
 
-        mock_save = mocker.patch.object(inventory_module, "save")
+        mock_save = mocker.patch.object(inventory_module, "save_inventory_state")
 
         # Mock app_config with the specified autosave setting
         config = {"options": {"cache_autosave": autosave_enabled}}
@@ -1124,7 +1139,7 @@ class TestRefreshCommand:
         )
         mock_run_task_with_progress.return_value = []  # No errors
 
-        mock_save = mocker.patch.object(inventory_module, "save")
+        mock_save = mocker.patch.object(inventory_module, "save_inventory_state")
 
         # Mock app_config with the specified autosave setting
         config = {"options": {"cache_autosave": autosave_enabled}}

@@ -100,9 +100,9 @@ def patch_context_inventory(mocker, fake_inventory):
 @pytest.fixture(autouse=True)
 def patch_save_inventory(mocker):
     """
-    Patch out the save_inventory function to, well not.
+    Patch out the save_inventory_state function to, well, not.
     """
-    mocker.patch.object(host_module, "save_inventory")
+    mocker.patch.object(host_module, "save_inventory_state")
 
 
 class TestShowCommand:

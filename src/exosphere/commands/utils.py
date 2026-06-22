@@ -8,6 +8,8 @@ Contains mostly wrappers around inventory and host retrieval,
 as well as display bits around task execution, errors and status.
 """
 
+import functools
+import logging
 import platform
 import sys
 from collections.abc import Callable
@@ -18,12 +20,26 @@ from rich import box
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from rich.table import Table
 
 from exosphere import __version__, context
 from exosphere.inventory import Inventory
 from exosphere.objects import Host, HostOperation
+
+# Shared spinner progress layout for indeterminate, single-step operations.
+SPINNER_PROGRESS_ARGS = (
+    SpinnerColumn(),
+    TextColumn("[progress.description]{task.description}"),
+    TaskProgressColumn(),
+    TimeElapsedColumn(),
+)
 
 # Constants for display formatting
 STATUS_FORMATS = {
@@ -34,6 +50,37 @@ STATUS_FORMATS = {
 
 console = Console()
 err_console = Console(stderr=True)
+
+
+def require_interactive[**P, R](func: Callable[P, R]) -> Callable[P, R]:
+    """
+    Restrict a command to interactive (REPL) use.
+
+    Decorated command will raise SystemExit with code 2 if invoked from
+    a the CLI in non-interactive mode, where it would make no sense.
+
+    The criteria is typically commands that act on persistent state
+    between commands, which does not occur outside the REPL.
+
+    It must be applied *below* the ``@app.command`` decorator, so that
+    cyclopts registers and introspects the wrapper::
+
+        @app.command(show=False)
+        @require_interactive
+        def save() -> None: ...
+
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        if not context.interactive:
+            err_console.print(
+                "[yellow]This command is only available in Interactive Mode.[/yellow]"
+            )
+            raise SystemExit(2)  # Application error: wrong context
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def resolve_host(type_: type, tokens) -> Host:
@@ -344,3 +391,38 @@ def run_task_with_progress(
             progress.update(task, advance=1)
 
     return errors
+
+
+def save_inventory_state() -> None:
+    """
+    Write the current inventory state to the cache file.
+
+    This is the shared CLI implementation, with indeterminate progress,
+    shared between commands and hooks that need to call
+    inventory.save_state().
+
+    :raises SystemExit: code 2 (application error) if persistence fails.
+    """
+    logger = logging.getLogger(__name__)
+    logger.debug("Starting inventory save operation")
+
+    inventory = get_inventory()
+
+    with Progress(*SPINNER_PROGRESS_ARGS, transient=True) as progress:
+        task = progress.add_task("Saving inventory state to disk", total=None)
+
+        try:
+            inventory.save_state()
+            progress.stop_task(task)
+        except Exception as e:
+            logger.error("Error saving inventory: %s", e)
+            progress.stop_task(task)
+            progress.console.print(
+                Panel.fit(
+                    f"[bold red]Error saving inventory state:[/bold red] {e}",
+                    style="bold red",
+                ),
+            )
+            raise SystemExit(2)  # Application error
+
+    logger.debug("Inventory save operation completed")

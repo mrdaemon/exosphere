@@ -559,3 +559,48 @@ class TestConsoleObjects:
 
         assert isinstance(utils_module.console, Console)
         assert isinstance(utils_module.err_console, Console)
+
+
+class TestRequireInteractive:
+    """Test the require_interactive decorator."""
+
+    def test_passes_through_when_interactive(self, mocker):
+        """Command returns normally when from REPL"""
+        mocker.patch.object(utils_module.context, "interactive", True)
+
+        @utils_module.require_interactive
+        def cmd(a, b=2):
+            return a + b
+
+        assert cmd(1, b=3) == 4
+
+    def test_bails_when_not_interactive(self, mocker, patch_console):
+        """Command bails when launched from CLI"""
+        patch_console(utils_module)
+        mocker.patch.object(utils_module.context, "interactive", False)
+        called = mocker.Mock()
+
+        @utils_module.require_interactive
+        def cmd():
+            called()
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd()
+
+        assert exc_info.value.code == 2
+        assert not called.called
+
+    def test_is_signature_transparent(self):
+        """
+        Ensure the wrapper preserves the original signature
+        We do this mostly to ensure we don't break Cyclopts
+        """
+        import inspect
+
+        def cmd(host, *, verbose: bool = False) -> int:
+            return 0
+
+        wrapped = utils_module.require_interactive(cmd)
+
+        assert wrapped.__name__ == "cmd"
+        assert inspect.signature(wrapped) == inspect.signature(cmd)

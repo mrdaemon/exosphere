@@ -8,25 +8,22 @@ from typing import Annotated
 from cyclopts import App, Group, Parameter, validators
 from rich import box
 from rich.panel import Panel
-from rich.progress import (
-    Progress,
-    SpinnerColumn,
-    TaskProgressColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
+from rich.progress import Progress
 from rich.prompt import Confirm
 from rich.table import Table
 
 from exosphere import app_config
 from exosphere.commands.utils import (
+    SPINNER_PROGRESS_ARGS,
     HostArg,
     arg_requires_arg,
     console,
     err_console,
     get_hosts_or_all,
     get_inventory,
+    require_interactive,
     run_task_with_progress,
+    save_inventory_state,
 )
 from exosphere.inventory import FilterMode, Inventory, SortField
 from exosphere.objects import HostOperation
@@ -36,13 +33,6 @@ ERROR_STYLE = {
     "style": "bold red",
     "title_align": "left",
 }
-
-SPINNER_PROGRESS_ARGS = (
-    SpinnerColumn(),
-    TextColumn("[progress.description]{task.description}"),
-    TaskProgressColumn(),
-    TimeElapsedColumn(),
-)
 
 SORT_COLUMNS = ", ".join(field.value for field in SortField)
 
@@ -108,7 +98,7 @@ def discover(*names: HostArg) -> int:
         console.print(errors_table)
 
     if app_config["options"]["cache_autosave"]:
-        save()
+        save_inventory_state()
 
     return 2 if errors else 0  # Application error if any host failed
 
@@ -225,7 +215,7 @@ def refresh(
     )
 
     if app_config["options"]["cache_autosave"]:
-        save()
+        save_inventory_state()
 
     if errors:
         console.print()
@@ -293,7 +283,7 @@ def ping(*names: HostArg) -> int:
             progress.update(task, advance=1)
 
     if app_config["options"]["cache_autosave"]:
-        save()
+        save_inventory_state()
 
     if error_count > 0:
         return 2  # Application error
@@ -485,6 +475,7 @@ def status(
 
 
 @app.command(show=False)  # Interactive-only command (hidden)
+@require_interactive
 def save() -> None:
     """
     Save the current inventory state to disk
@@ -504,32 +495,7 @@ def save() -> None:
     state is not persisted between separate CLI invocations when autosave
     is disabled.
     """
-    logger = logging.getLogger(__name__)
-    logger.debug("Starting inventory save operation")
-
-    inventory: Inventory = get_inventory()
-
-    with Progress(
-        *SPINNER_PROGRESS_ARGS,
-        transient=True,
-    ) as progress:
-        task = progress.add_task("Saving inventory state to disk", total=None)
-
-        try:
-            inventory.save_state()
-            progress.stop_task(task)
-        except Exception as e:
-            logger.error("Error saving inventory: %s", e)
-            progress.stop_task(task)
-            progress.console.print(
-                Panel.fit(
-                    f"[bold red]Error saving inventory state:[/bold red] {e}",
-                    style="bold red",
-                ),
-            )
-            raise SystemExit(2)  # Application error
-
-    logger.debug("Inventory save operation completed")
+    save_inventory_state()
 
 
 @app.command(synonym="reset")

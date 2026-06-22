@@ -19,3 +19,4 @@ inventory: Inventory | None = None
 reaper: ConnectionReaper | None = None
 confpath: str | None = None
 cache_lock: FileLock | None = None
+interactive: bool = False

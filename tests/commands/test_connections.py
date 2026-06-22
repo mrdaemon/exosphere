@@ -11,6 +11,12 @@ def _console(patch_console):
     patch_console(connections_module)
 
 
+@pytest.fixture(autouse=True)
+def _interactive(mocker):
+    """Patch context to simulate interactive mode being used"""
+    mocker.patch.object(utils_module.context, "interactive", True)
+
+
 @pytest.fixture
 def mock_inventory(mocker):
     """
@@ -332,3 +338,14 @@ class TestConnectionsCommands:
 
         assert exc_info.value.code == 2  # Application error
         assert "Inventory is not initialized" in capsys.readouterr().err
+
+    @pytest.mark.parametrize("command", ["show", "close"], ids=["show", "close"])
+    def test_commands_bail_outside_interactive(self, mocker, command, capsys):
+        """Interactive-only commands refuse to run from a one-shot CLI."""
+        mocker.patch.object(utils_module.context, "interactive", False)
+
+        with pytest.raises(SystemExit) as exc_info:
+            connections_module.app([command])
+
+        assert exc_info.value.code == 2  # Application error: wrong context
+        assert "only available in Interactive Mode" in capsys.readouterr().err
