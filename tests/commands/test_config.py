@@ -264,6 +264,11 @@ class TestDiffCommand:
 class TestEditCommand:
     """Tests for the 'config edit' command."""
 
+    @pytest.fixture(autouse=True)
+    def _tty(self, mocker):
+        """The re-open prompt assumes a human at a terminal by default."""
+        mocker.patch("sys.stdin.isatty", return_value=True)
+
     @staticmethod
     def _writer(*contents: str):
         """
@@ -417,6 +422,21 @@ class TestEditCommand:
         assert code == 1  # Very strictly: an input problem.
         assert opener.call_count == 1
         assert "invalid" in capsys.readouterr().err.casefold()
+
+    def test_non_tty_is_refused(self, mocker, tmp_path, capsys):
+        """config edit refuses to run at all without an interactive terminal."""
+        mocker.patch("sys.stdin.isatty", return_value=False)
+        target = tmp_path / "config.yaml"
+        mocker.patch(
+            "exosphere.commands.config.context", DummyContext(confpath=str(target))
+        )
+        opener = mocker.patch("exosphere.commands.config.open_in_editor")
+
+        code = config.app(["edit"], result_action="return_value")
+
+        assert code == 2  # Application error: wrong context
+        assert not opener.called  # never even opens the editor
+        assert "terminal" in capsys.readouterr().err.casefold()
 
     def test_no_validate_skips_validation(self, mocker, tmp_path, capsys):
         """--no-validate skips validation and never prompts."""

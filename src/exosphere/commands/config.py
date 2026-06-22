@@ -3,6 +3,7 @@ Config command module
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -219,6 +220,13 @@ def edit(
     validate
         Validate the file after editing (default: enabled).
     """
+    # This command is only meaningful in an interactive terminal.
+    # In a Non-TTY context, this is fraught with peril, so we just
+    # refuse to do it entirely, rather than potentially misbehave.
+    if not sys.stdin.isatty():
+        err_console.print("This command requires an interactive terminal.")
+        return 2  # Application error: wrong context
+
     if context.confpath:
         target = Path(context.confpath)
     else:
@@ -261,8 +269,7 @@ def edit(
             if Confirm.ask("Re-open editor to fix?", default=True):
                 continue
             err_console.print(
-                "[yellow]Leaving the file as-is. "
-                "Exosphere may fail to start until it is fixed.[/yellow]"
+                "Exosphere may fail to start until the configuration is valid."
             )
             return 1
 

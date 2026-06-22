@@ -592,6 +592,36 @@ class TestSaveCommand:
 class TestClearCommand:
     """Tests for the clear command"""
 
+    @pytest.fixture(autouse=True)
+    def _tty(self, mocker):
+        """clear's confirmation assumes a human at a terminal by default."""
+        mocker.patch("sys.stdin.isatty", return_value=True)
+
+    def test_no_tty_without_force(self, mocker, mock_inventory, capsys):
+        """Non-TTY without --force refuses, hints at --force, and never prompts."""
+        mocker.patch("sys.stdin.isatty", return_value=False)
+        ask = mocker.patch("exosphere.commands.inventory.Confirm.ask")
+        mock_inventory.clear_state = mocker.Mock()
+
+        code = inventory_module.app(["clear"], result_action="return_value")
+
+        assert code == 1
+        assert not ask.called
+        mock_inventory.clear_state.assert_not_called()
+        assert "not a tty" in capsys.readouterr().err.casefold()
+
+    def test_force_clears_without_tty(self, mocker, mock_inventory):
+        """--force clears without prompting, even when not a TTY."""
+        mocker.patch("sys.stdin.isatty", return_value=False)
+        ask = mocker.patch("exosphere.commands.inventory.Confirm.ask")
+        mock_inventory.clear_state = mocker.Mock()
+
+        code = inventory_module.app(["clear", "--force"], result_action="return_value")
+
+        assert code == 0
+        assert not ask.called
+        mock_inventory.clear_state.assert_called_once()
+
     def test_success(self, mocker, mock_inventory, capsys):
         """
         Test the clear command to ensure it clears the inventory.

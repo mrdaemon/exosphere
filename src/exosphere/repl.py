@@ -8,6 +8,7 @@ maintaining Rich output formatting.
 
 import logging
 import shlex
+import sys
 from collections.abc import Callable, Iterable, Iterator
 from typing import get_args
 
@@ -613,8 +614,15 @@ def start_repl(app: App, prompt_text: str = "exosphere> ") -> None:
     :param app: Cyclopts application.
     :param prompt_text: The prompt string to display
     """
+    # Last ditch check to ensure we're on an interactive terminal
+    if not sys.stdin.isatty():
+        Console(stderr=True).print(
+            "Interactive mode requires a terminal (stdin is not a TTY)."
+        )
+        raise SystemExit(2)  # Application error: wrong context
+
     # Set interactive mode in the application context
-    # Commands can use this to dinstinguish from CLI invocations
+    # Commands can use this to distinguish from CLI invocations
     app_context.interactive = True
 
     repl = ExosphereREPL(app, prompt_text)

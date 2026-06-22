@@ -3,6 +3,7 @@ Inventory command module
 """
 
 import logging
+import sys
 from typing import Annotated
 
 from cyclopts import App, Group, Parameter, validators
@@ -521,6 +522,13 @@ def clear(
         Do not prompt for confirmation
     """
     inventory: Inventory = get_inventory()
+
+    if not force and not sys.stdin.isatty():
+        err_console.print(
+            "Not a TTY - cannot prompt for confirmation. "
+            "Use --force to bypass confirmation in scripted contexts."
+        )
+        return 1  # Input error: cannot prompt
 
     if not force and not Confirm.ask("Clear inventory state?", default=False):
         console.print("Inventory state has [bold]not[/bold] been cleared.")

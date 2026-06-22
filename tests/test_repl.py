@@ -18,7 +18,7 @@ from prompt_toolkit.history import FileHistory, InMemoryHistory
 from exosphere import context as app_context
 from exosphere.commands.utils import HOST_PARAMETER, HostArg
 from exosphere.objects import Host
-from exosphere.repl import ExosphereCompleter, ExosphereREPL
+from exosphere.repl import ExosphereCompleter, ExosphereREPL, start_repl
 
 HOST_NAMES = ["web01", "web02", "db01"]
 
@@ -697,3 +697,30 @@ class TestReplLoop:
         instance.cmdloop()
 
         assert expected_message in capsys.readouterr().out
+
+
+class TestStartRepl:
+    """Tests for the start_repl entry point."""
+
+    def test_exits_when_not_a_tty(self, mocker, capsys):
+        """Non-TTY: refuse to start the REPL instead of spinning/half-starting."""
+        mocker.patch("sys.stdin.isatty", return_value=False)
+        repl_cls = mocker.patch("exosphere.repl.ExosphereREPL")
+
+        with pytest.raises(SystemExit) as exc_info:
+            start_repl(mocker.Mock())
+
+        assert exc_info.value.code == 2
+        assert "terminal" in capsys.readouterr().err.casefold()
+        assert not repl_cls.called
+
+    def test_starts_when_a_tty(self, mocker):
+        """A TTY: mark the session interactive and run the loop."""
+        mocker.patch("sys.stdin.isatty", return_value=True)
+        mocker.patch.object(app_context, "interactive", False)
+        repl_cls = mocker.patch("exosphere.repl.ExosphereREPL")
+
+        start_repl(mocker.Mock())
+
+        repl_cls.return_value.cmdloop.assert_called_once()
+        assert app_context.interactive is True
