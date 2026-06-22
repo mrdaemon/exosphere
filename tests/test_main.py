@@ -396,7 +396,7 @@ class TestMain:
         It should log an error and return False.
         """
         mocker.patch("pathlib.Path.exists", return_value=True)
-        mocker.patch("exosphere.main.LOADERS", {})
+        mocker.patch("exosphere.main.KNOWN_LOADERS", {})
 
         from exosphere.main import load_first_config
 

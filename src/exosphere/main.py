@@ -13,22 +13,18 @@ This module is responsible for:
 """
 
 import atexit
-import json
 import logging
 import os
 import sys
-import tomllib
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Callable
 
-import yaml
 from filelock import FileLock, Timeout
 from rich.traceback import install as install_rich_traceback
 
 from exosphere import app_config, cli, context, fspaths
 from exosphere.commands.utils import err_console
-from exosphere.config import Configuration
+from exosphere.config import KNOWN_LOADERS, Configuration
 from exosphere.inventory import Inventory
 from exosphere.pipelining import ConnectionReaper
 
@@ -42,13 +38,6 @@ CONFIG_FILENAMES: tuple[str, ...] = (
     "config.toml",
     "config.json",
 )
-
-LOADERS: dict[str, Callable] = {
-    "yaml": yaml.safe_load,
-    "yml": yaml.safe_load,
-    "toml": tomllib.load,
-    "json": json.load,
-}
 
 
 def config_paths(base: Path) -> list[Path]:
@@ -159,7 +148,7 @@ def load_first_config(config: Configuration) -> bool:
 
         logger.debug("Loading config file from %s", confpath)
         ext = confpath.suffix[1:].lower()
-        loader = LOADERS.get(ext)
+        loader = KNOWN_LOADERS.get(ext)
 
         if not loader:
             logger.error("No working loaders for extension: %s, skipping.", ext)

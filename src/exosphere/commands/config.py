@@ -3,15 +3,19 @@ Config command module
 """
 
 import os
+from pathlib import Path
 from typing import Annotated
 
 from cyclopts import App, Parameter
 from rich.pretty import Pretty
+from rich.prompt import Confirm
 from rich.text import Text
 
 from exosphere import app_config, context, fspaths
 from exosphere.commands.utils import console, err_console
 from exosphere.config import Configuration
+from exosphere.config import validate as validate_config
+from exosphere.editor import EditorError, open_in_editor
 
 ROOT_HELP = """
 Configuration-related Commands
@@ -185,3 +189,84 @@ def diff(
         console.print("    ", end="")
         console.print(line)
     console.print("}")
+
+
+@app.command
+def edit(
+    *,
+    validate: Annotated[
+        bool, Parameter(name=["--validate"], negative="--no-validate")
+    ] = True,
+) -> int:
+    """
+    Open the current configuration file in an editor.
+
+    Launches your text editor against the currently loaded
+    configuration file. If no configuration file is loaded, the default
+    platform path is opened instead, letting you create one from
+    scratch.
+
+    The editor to use is determined  from the ``editor`` configuration
+    option and then falls back to the ``VISUAL`` and ``EDITOR``
+    environment variables, then finally, a platform default.
+
+    Changes do not affect the running process; they take effect on next
+    startup. After editing, the file is validated and, if invalid, you
+    are offered the chance to re-open the editor and fix it.
+
+    Parameters
+    ----------
+    validate
+        Validate the file after editing (default: enabled).
+    """
+    if context.confpath:
+        target = Path(context.confpath)
+    else:
+        target = Path(fspaths.CONFIG_DIR) / "config.yaml"
+        err_console.print(
+            "[yellow]No configuration file is loaded.[/yellow] Opening default path:"
+        )
+        console.print(f"  {target}\n")
+
+    configured = app_config["options"].get("editor")
+
+    # Only relevant in the REPL: a one-shot CLI invocation exits immediately
+    # and the next run reads the file fresh, so there is nothing to restart.
+    restart_notice = (
+        "Any changes will take effect after you restart Exosphere."
+        if context.interactive
+        else None
+    )
+
+    while True:
+        try:
+            open_in_editor(target, editor_command=configured)
+        except EditorError as e:
+            err_console.print(f"[red]{e}[/red]")
+            return 1
+
+        if not target.exists():
+            console.print("No configuration file was created.")
+            return 0
+
+        if not validate:
+            if restart_notice:
+                console.print(restart_notice)
+            return 0
+
+        try:
+            validate_config(target)
+        except Exception as e:
+            err_console.print(f"[red]Configuration is invalid:[/red] {e}")
+            if Confirm.ask("Re-open editor to fix?", default=True):
+                continue
+            err_console.print(
+                "[yellow]Leaving the file as-is. "
+                "Exosphere may fail to start until it is fixed.[/yellow]"
+            )
+            return 1
+
+        console.print("[green]Configuration is valid.[/green]")
+        if restart_notice:
+            console.print(restart_notice)
+        return 0

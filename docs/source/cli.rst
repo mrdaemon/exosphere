@@ -286,6 +286,41 @@ You can also show exclusively the configuration options that have been changed:
 
 The output will include what the default value originally was.
 
+.. _config_edit_cmd:
+
+Editing the configuration file
+------------------------------
+
+The ``config`` command has a friendly ``edit`` helper subcommand that allows
+you to easily open the configuration file in your preferred text editor, without
+needing to consult ``config paths`` or ``config show`` first.
+
+.. code-block:: exosphere
+
+   exosphere> config edit
+
+This launches your editor against the currently loaded configuration file. If no
+configuration file exists yet, the default platform path is opened instead, so
+you can create one from scratch.
+
+The editor used is determined from the :option:`editor` configuration option.
+In its absence, it will fallback to the ``VISUAL`` and ``EDITOR`` environment
+variables, and finally a platform default (``notepad`` on Windows, ``vi``
+elsewhere).
+
+The command may include arguments: for graphical editors that detach
+immediately, pass the appropriate "wait" flag (for example ``code --wait``) so
+Exosphere can wait until you are done.
+
+.. note::
+
+   Changes do not affect the running process. They take effect on the next
+   start of Exosphere.
+
+After you close the editor, the file is validated. If it is invalid, the error
+is shown and you are offered the chance to re-open the editor and fix it. Pass
+``--no-validate`` to skip this check.
+
 Viewing the state of SSH connections
 ------------------------------------
 

@@ -1,7 +1,10 @@
+from pathlib import Path
+
 import pytest
 
 from exosphere.commands import config
 from exosphere.config import Configuration
+from exosphere.editor import EditorNotFoundError
 
 
 class DummyContext:
@@ -9,8 +12,13 @@ class DummyContext:
     Dummy context class to simulate exosphere.context
     """
 
-    def __init__(self, confpath: str | None = "/fake/path/config.yaml"):
+    def __init__(
+        self,
+        confpath: str | None = "/fake/path/config.yaml",
+        interactive: bool = False,
+    ):
         self.confpath: str | None = confpath
+        self.interactive: bool = interactive
 
 
 @pytest.fixture(autouse=True)
@@ -251,3 +259,162 @@ class TestDiffCommand:
         # Unchanged options should also appear (dim style, but we check presence)
         for key in Configuration.DEFAULTS["options"]:
             assert repr(key) in out
+
+
+class TestEditCommand:
+    """Tests for the 'config edit' command."""
+
+    @staticmethod
+    def _writer(*contents: str):
+        """
+        Build an open_in_editor side effect that writes successive
+        contents to the edited file on each invocation, simulating the
+        user's edits, albeit shittily.
+        """
+        chunks = iter(contents)
+
+        def _open(path, *args, **kwargs):
+            Path(path).write_text(next(chunks))
+
+        return _open
+
+    def test_validates_valid_config(self, mocker, tmp_path, capsys):
+        """A valid edit reports success and exits 0."""
+        target = tmp_path / "config.yaml"
+        mocker.patch(
+            "exosphere.commands.config.context", DummyContext(confpath=str(target))
+        )
+        opener = mocker.patch(
+            "exosphere.commands.config.open_in_editor",
+            side_effect=self._writer("options:\n  debug: true\n"),
+        )
+
+        code = config.app(["edit"], result_action="return_value")
+
+        out = capsys.readouterr().out
+        assert code == 0
+        assert opener.call_args.args[0] == target
+        assert "valid" in out.casefold()
+        assert "restart" not in out.casefold()  # CLI: no restart notice
+
+    def test_restart_notice_in_interactive(self, mocker, tmp_path, capsys):
+        """In the REPL, a valid edit notes that a restart is needed."""
+        target = tmp_path / "config.yaml"
+        mocker.patch(
+            "exosphere.commands.config.context",
+            DummyContext(confpath=str(target), interactive=True),
+        )
+        mocker.patch(
+            "exosphere.commands.config.open_in_editor",
+            side_effect=self._writer("options:\n  debug: true\n"),
+        )
+
+        code = config.app(["edit"], result_action="return_value")
+
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "valid" in out.casefold()
+        assert "restart" in out.casefold()
+
+    def test_opens_default_path_when_no_config(self, mocker, tmp_path, capsys):
+        """With no config loaded, the default platform path is opened."""
+        mocker.patch("exosphere.commands.config.context", DummyContext(confpath=None))
+        mocker.patch("exosphere.commands.config.fspaths.CONFIG_DIR", tmp_path)
+        opener = mocker.patch(
+            "exosphere.commands.config.open_in_editor",
+            side_effect=self._writer("options:\n  debug: false\n"),
+        )
+
+        code = config.app(["edit"], result_action="return_value")
+
+        assert code == 0
+        assert opener.call_args.args[0] == tmp_path / "config.yaml"
+        assert "no configuration file is loaded" in capsys.readouterr().err.casefold()
+
+    def test_editor_error_is_reported(self, mocker, tmp_path, capsys):
+        """An EditorError from the launcher is surfaced and exits 1."""
+        target = tmp_path / "config.yaml"
+        target.write_text("options: {}\n")
+        mocker.patch(
+            "exosphere.commands.config.context", DummyContext(confpath=str(target))
+        )
+        mocker.patch(
+            "exosphere.commands.config.open_in_editor",
+            side_effect=EditorNotFoundError("Editor not found: TurboEdit++"),
+        )
+
+        code = config.app(["edit"], result_action="return_value")
+
+        assert code == 1
+        assert "Editor not found: TurboEdit++" in capsys.readouterr().err
+
+    def test_no_file_created(self, mocker, tmp_path, capsys):
+        """If the file is never written, nothing is validated and exit is 0."""
+        target = tmp_path / "config.yaml"
+        mocker.patch(
+            "exosphere.commands.config.context", DummyContext(confpath=str(target))
+        )
+        mocker.patch("exosphere.commands.config.open_in_editor")
+
+        code = config.app(["edit"], result_action="return_value")
+
+        assert code == 0
+        assert "No configuration file was created" in capsys.readouterr().out
+
+    def test_invalid_then_reopen_and_fix(self, mocker, tmp_path, capsys):
+        """An invalid config offers a re-open; accepting loops until valid."""
+        target = tmp_path / "config.yaml"
+        mocker.patch(
+            "exosphere.commands.config.context", DummyContext(confpath=str(target))
+        )
+        opener = mocker.patch(
+            "exosphere.commands.config.open_in_editor",
+            side_effect=self._writer(
+                "hosts:\n  - name: a\n",  # invalid: missing 'ip'
+                "options:\n  debug: true\n",  # valid
+            ),
+        )
+        mocker.patch("exosphere.commands.config.Confirm.ask", return_value=True)
+
+        code = config.app(["edit"], result_action="return_value")
+
+        assert code == 0
+        assert opener.call_count == 2
+        assert "invalid" in capsys.readouterr().err.casefold()
+
+    def test_invalid_then_decline_reopen(self, mocker, tmp_path, capsys):
+        """Declining the re-open prompt leaves the file and exits 1."""
+        target = tmp_path / "config.yaml"
+        mocker.patch(
+            "exosphere.commands.config.context", DummyContext(confpath=str(target))
+        )
+        opener = mocker.patch(
+            "exosphere.commands.config.open_in_editor",
+            side_effect=self._writer("hosts:\n  - name: a\n"),  # missing 'ip'
+        )
+        mocker.patch("exosphere.commands.config.Confirm.ask", return_value=False)
+
+        code = config.app(["edit"], result_action="return_value")
+
+        assert code == 1  # Very strictly: an input problem.
+        assert opener.call_count == 1
+        assert "invalid" in capsys.readouterr().err.casefold()
+
+    def test_no_validate_skips_validation(self, mocker, tmp_path, capsys):
+        """--no-validate skips validation and never prompts."""
+        target = tmp_path / "config.yaml"
+        mocker.patch(
+            "exosphere.commands.config.context", DummyContext(confpath=str(target))
+        )
+        mocker.patch(
+            "exosphere.commands.config.open_in_editor",
+            side_effect=self._writer("hosts:\n  - name: a\n"),  # would be invalid
+        )
+        confirm = mocker.patch("exosphere.commands.config.Confirm.ask")
+
+        code = config.app(["edit", "--no-validate"], result_action="return_value")
+
+        out = capsys.readouterr().out
+        assert code == 0
+        assert not confirm.called
+        assert "valid" not in out.casefold()

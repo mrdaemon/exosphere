@@ -173,6 +173,7 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`ssh_pipelining_reap_interval`
 - :option:`update_checks`
 - :option:`no_banner`
+- :option:`editor`
 
 Below is a detailed list of all available options, their defaults,
 and examples of how to set them in the configuration file.
@@ -1126,6 +1127,61 @@ and examples of how to set them in the configuration file.
                 {
                     "options": {
                         "no_banner": true
+                    }
+                }
+
+.. _editor_option:
+
+.. option:: editor
+
+    The editor command used by the :ref:`config edit <config_edit_cmd>` command
+    to open the configuration file.
+
+    When unset, Exosphere falls back to the ``VISUAL`` environment variable,
+    then ``EDITOR``, and finally a platform default (``notepad`` on Windows,
+    ``vi`` everywhere else).
+
+    The value is a command that may include arguments.
+    
+    .. attention::
+
+        For graphical editors that return immediately, pass the appropriate "wait"
+        or "block" flag so Exosphere can validate the file once you are done editing
+        (for example: ``code --wait``, ``subl -w``, or ``gvim -f``).
+
+    .. tip::
+
+        This can be set contextually with the environment variable
+        ``EXOSPHERE_OPTIONS_EDITOR``.
+        For more details see :ref:`config_env_vars`.
+
+    **Default**: ``(Unset)`` (use ``VISUAL`` / ``EDITOR`` / platform default)
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  editor: "code --wait"
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                editor = "code --wait"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "editor": "code --wait"
                     }
                 }
 

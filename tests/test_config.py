@@ -6,6 +6,7 @@ import tomllib
 import pytest
 import yaml
 
+from exosphere import config as config_module
 from exosphere.config import Configuration
 
 
@@ -712,3 +713,60 @@ class TestConfiguration:
         # Ensure other default options are still present
         assert "debug" in config["options"]
         assert "cache_file" in config["options"]
+
+
+class TestKnownLoaders:
+    """Tests for the KNOWN_LOADERS mapping."""
+
+    def test_covers_standard_extensions(self):
+        for ext in ("yaml", "yml", "toml", "json"):
+            assert ext in config_module.KNOWN_LOADERS
+
+    def test_yaml_and_yml_share_loader(self):
+        assert config_module.KNOWN_LOADERS["yaml"] is config_module.KNOWN_LOADERS["yml"]
+
+
+class TestValidate:
+    """Tests for the module-level config.validate helper."""
+
+    def test_valid_file_passes(self, tmp_path):
+        target = tmp_path / "config.yaml"
+        target.write_text("options:\n  debug: true\n")
+
+        # Should not raise
+        assert config_module.validate(target) is None
+
+    def test_invalid_host_raises(self, tmp_path):
+        target = tmp_path / "config.yaml"
+        target.write_text("hosts:\n  - name: a\n")  # missing 'ip'
+
+        with pytest.raises(ValueError, match="missing required 'ip' field"):
+            config_module.validate(target)
+
+    def test_malformed_file_raises(self, tmp_path):
+        target = tmp_path / "config.json"
+        target.write_text("{ not valid json")
+
+        with pytest.raises(Exception):
+            config_module.validate(target)
+
+    def test_unknown_extension_raises(self, tmp_path):
+        target = tmp_path / "config.cfg"
+        target.write_text("whatever")
+
+        with pytest.raises(ValueError, match="Unknown configuration file extension"):
+            config_module.validate(target)
+
+    def test_does_not_mutate_app_config(self, tmp_path, mocker):
+        """validate never touches the real, global app_config"""
+        spy = mocker.patch.object(Configuration, "from_file", autospec=True)
+        target = tmp_path / "config.yaml"
+        target.write_text("options:\n  debug: true\n")
+
+        config_module.validate(target)
+
+        # from_file was called on a fresh instance, not the global app_config
+        called_instance = spy.call_args.args[0]
+        from exosphere import app_config
+
+        assert called_instance is not app_config

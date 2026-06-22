@@ -5,11 +5,43 @@ import logging
 import os
 import tomllib
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, BinaryIO
 
 import yaml
 
 from exosphere import fspaths
+
+#: A mapping of the known configuration loaders available out of the box
+#: for the Exosphere configuration system, keyed by file extension.
+#: The configuration system technically allows for any loader callable
+#: to be used, but these are the ones that are wired in by default.
+KNOWN_LOADERS: dict[str, Callable[..., Any]] = {
+    "yaml": yaml.safe_load,
+    "yml": yaml.safe_load,
+    "toml": tomllib.load,
+    "json": json.load,
+}
+
+
+def validate(file: str | Path) -> None:
+    """
+    Validate a configuration file on disk, raising on any problem.
+
+    The provided file must be one of the known formats, dictated by the
+    KNOWN_LOADERS mapping in the same module.
+
+    :param file: Path to the configuration file to validate.
+    :raises ValueError: if the file extension has no known loader.
+    :raises Exception: any parsing or validation error raised while loading.
+    """
+    ext = Path(file).suffix.lstrip(".").lower()
+    loader = KNOWN_LOADERS.get(ext)
+
+    if loader is None:
+        raise ValueError(f"Unknown configuration file extension: {ext!r}")
+
+    Configuration().from_file(str(file), loader)
 
 
 class Configuration(dict):
@@ -63,6 +95,7 @@ class Configuration(dict):
             "ssh_pipelining_reap_interval": 30,  # Interval (secs) between reaper checks
             "update_checks": True,  # Set to false if you want to disable PyPI checks
             "no_banner": False,  # Disable the REPL banner on startup
+            "editor": None,  # Editor command for `config edit` ($VISUAL/$EDITOR if unset)
         },
         "hosts": [],
     }
