@@ -4,7 +4,7 @@ import pytest
 
 from exosphere.commands import config
 from exosphere.config import Configuration
-from exosphere.editor import EditorNotFoundError
+from exosphere.editing import EditorNotFoundError
 
 
 class DummyContext:

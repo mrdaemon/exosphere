@@ -16,7 +16,7 @@ from exosphere import app_config, context, fspaths
 from exosphere.commands.utils import console, err_console
 from exosphere.config import Configuration
 from exosphere.config import validate as validate_config
-from exosphere.editor import EditorError, open_in_editor
+from exosphere.editing import EditorError, open_in_editor
 
 ROOT_HELP = """
 Configuration-related Commands
