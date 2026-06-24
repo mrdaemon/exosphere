@@ -22,7 +22,9 @@ classifiers = [
 ]
 license = "MIT"
 license-files = [
-    "LICENSE"
+    "LICENSE",
+    "LICENSES/*",
+    "COPYRIGHT",
 ]
 
 dependencies = [

@@ -238,3 +238,14 @@ everyone the time.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+The documentation prose is licensed under CC BY 4.0, and the docs bundle a few
+third-party assets (fonts under the SIL OFL 1.1, a CSS file derived from the
+Renku Sphinx Theme under Apache-2.0). The exact per-path licensing is recorded
+in machine-readable form in the [COPYRIGHT](COPYRIGHT) file, with full license
+texts under [LICENSES/](LICENSES/).
+
+The bundled fonts under `docs/source/_static/fonts/` are cosmetic and safe to
+remove for distribution in contexts where SIL OFL 1.1's awkward clauses are a
+problem. The documentation CSS falls back to DejaVu Sans and DejaVu Sans Mono,
+so the docs still build and render sensibly without them.

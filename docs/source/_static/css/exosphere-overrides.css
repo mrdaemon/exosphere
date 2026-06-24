@@ -1,18 +1,24 @@
 /*
  * Exosphere Documentation CSS Overrides
  *
+ * SPDX-License-Identifier: Apache-2.0
+ * SPDX-FileCopyrightText: 2025-2026 Alexandre Gauthier
+ * SPDX-FileCopyrightText: 2017 Swiss Data Science Center (SDSC)
+ *
  * This file contains the CSS for the visual look of the Sphinx Documentation.
  * Profoundly inspired by the Renku Documentation theme, with some tweaks for
- * readability.
- *
- * The fonts used here are all distributed under the SIL Open Font License,
- * Version 1.1 (http://scripts.sil.org/OFL).
- * See LICENSE.txt in the fonts directory for more information.
- *
- * Renku Sphinx Theme, Apache License 2.0
- *   Copyright (c) 2017 Swiss Data Science Center (SDSC)
+ * readability. It shares no verbatim source with the Renku Sphinx Theme but
+ * reuses its color palette and structure, so it is treated as a derivative
+ * work and distributed under Renku's original Apache-2.0 terms.
+ *   Renku Sphinx Theme, Apache License 2.0
  *   https://github.com/SwissDataScienceCenter/renku-sphinx-theme
  *
+ * The bundled fonts are distributed under the SIL Open Font License,
+ * Version 1.1 (http://scripts.sil.org/OFL); see LICENSE.txt in the fonts
+ * directory. The non-bundled DejaVu Sans / DejaVu Sans Mono are specified
+ * only as a convenience fallback and are not distributed with this project.
+ *
+ * See the top-level COPYRIGHT file for the full machine-readable summary.
  */
 
  /* Font definitions, no Google Fonts please */

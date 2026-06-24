@@ -1,0 +1,73 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Exosphere
+Upstream-Contact: Alexandre Gauthier <alex@underwares.org>
+Source: https://github.com/mrdaemon/exosphere
+Comment:
+ Machine-readable summary of the licensing of Exosphere and the assets
+ bundled with its documentation. The full text of every license referenced
+ below lives in the LICENSES/ directory, named by SPDX identifier.
+ .
+ The canonical license of the project is the MIT License, also available as
+ the top-level LICENSE file. This file exists to make the per-path licensing
+ of the documentation and its bundled fonts and CSS unambiguous for
+ packagers and license scanners; it is not a Debian packaging artifact.
+
+Files: *
+Copyright: 2025-2026 Alexandre Gauthier <alex@underwares.org>
+License: MIT
+
+Files: docs/source/*.rst
+Copyright: 2025-2026 Alexandre Gauthier <alex@underwares.org>
+License: CC-BY-4.0
+Comment:
+ The prose documentation text (the "Exosphere Documentation Text").
+
+Files: docs/source/_ext/*
+Copyright: 2025-2026 Alexandre Gauthier <alex@underwares.org>
+License: MIT
+Comment:
+ Sphinx extensions and documentation code examples are MIT-licensed, like
+ the rest of the source tree, not CC-BY-4.0 like the prose around them.
+
+Files: docs/source/_static/css/exosphere-overrides.css
+Copyright: 2025-2026 Alexandre Gauthier <alex@underwares.org>
+           2017 Swiss Data Science Center (SDSC)
+License: Apache-2.0
+Comment:
+ Treated as a derivative work of the Renku Sphinx Theme. The file shares no
+ verbatim source with it, but reuses its color palette and visual structure,
+ so it is distributed under Renku's original Apache-2.0 terms out of caution.
+ Upstream: https://github.com/SwissDataScienceCenter/renku-sphinx-theme
+
+Files: docs/source/_static/fonts/calcutta/*
+Copyright: Indian Type Foundry
+License: OFL-1.1
+Comment:
+ The Calcutta typeface. Per-font copyright and Reserved Font Name notices are
+ embedded in the font metadata; see LICENSE.txt in this directory.
+
+Files: docs/source/_static/fonts/source-code-pro/*
+Copyright: 2010-2019 Adobe Systems Incorporated (https://www.adobe.com/)
+License: OFL-1.1
+Comment:
+ The Source Code Pro typeface; see LICENSE.txt in this directory.
+ .
+ The CSS additionally specifies the non-bundled DejaVu Sans and DejaVu Sans
+ Mono as a convenience fallback. Those fonts are not distributed with this
+ project and so are not covered here; see https://dejavu-fonts.github.io/.
+
+License: MIT
+ The full text of the MIT (Expat) license is in LICENSES/MIT.TXT and in the
+ top level LICENSE file.
+
+License: CC-BY-4.0
+ The full text of the Creative Commons Attribution 4.0 International Public
+ License is in LICENSES/CC-BY-4.0.txt.
+
+License: Apache-2.0
+ The full text of the Apache License, Version 2.0 is in
+ LICENSES/Apache-2.0.txt.
+
+License: OFL-1.1
+ The full text of the SIL Open Font License, Version 1.1 is in
+ LICENSES/OFL-1.1.txt.
