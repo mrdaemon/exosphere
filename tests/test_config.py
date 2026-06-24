@@ -468,55 +468,6 @@ class TestConfiguration:
         with pytest.raises(TypeError):
             config.update_from_mapping({}, {}, {})
 
-    def test_update_from_mapping_unique_constraints(self):
-        """
-        Ensure that the Configuration object raises a ValueError
-        when duplicate host names are found in the configuration.
-        """
-        config = Configuration()
-
-        with pytest.raises(ValueError, match="Duplicate host names found"):
-            config.update_from_mapping(
-                {
-                    "hosts": [
-                        {"name": "host1", "ip": "127.0.0.4"},
-                        {"name": "host1", "ip": "172.0.0.3"},
-                    ]
-                }
-            )
-
-    @pytest.mark.parametrize(
-        "hosts_data,expected_error_match",
-        [
-            # Missing required fields
-            (
-                [{"ip": "127.0.0.4"}],
-                "missing required 'name' field",
-            ),
-            (
-                [{"name": "host4"}],
-                "missing required 'ip' field",
-            ),
-            # Invalid characters in fields
-            (
-                [{"name": "host1", "ip": "user@127.0.0.1"}],
-                "invalid hostname or ip.*'@' character is not allowed",
-            ),
-        ],
-        ids=["missing_name", "missing_ip", "at_in_ip"],
-    )
-    def test_update_from_mapping_validation_errors(
-        self, hosts_data, expected_error_match
-    ):
-        """
-        Ensure that the configuration object raises appropriate ValueError
-        for various validation failures in the host section.
-        """
-        config = Configuration()
-
-        with pytest.raises(ValueError, match=expected_error_match):
-            config.update_from_mapping({"hosts": hosts_data})
-
     def test_update_from_env(self, mocker, monkeypatch):
         """
         Ensure that the Configuration object can be updated
@@ -554,53 +505,119 @@ class TestConfiguration:
         assert "invalid_key" not in config["options"]
         assert "is not a valid options key" in caplog.text
 
-    def test_update_from_env_nested_dicts(self, mocker, monkeypatch):
+    def test_update_from_env_nested_dicts_ignored(self, monkeypatch, caplog):
         """
-        Ensure that the Configuration object can be updated
-        from environment variables with nested dictionaries using
-        double underscore (__) as a separator.
+        Unknown nested level keys in environment variables are ignored.
+
+        We currently don't make use of these structures in the options
+        schema yet, but they are supported by the Configuration system.
+
+        Env overrides are applied best-effort, so an unknown nested key does
+        not abort: the whole subtree is dropped with a warning, leaving the
+        rest of the configuration valid.
+
+        This should be revisited if we ever add nested dicts to the schema.
         """
         # Mock environment variables for nested dict structure
         monkeypatch.setenv("EXOSPHERE_OPTIONS_NESTED__LEVEL1__KEY1", "value1")
-        monkeypatch.setenv("EXOSPHERE_OPTIONS_NESTED__LEVEL1__KEY2", "42")
-        monkeypatch.setenv("EXOSPHERE_OPTIONS_NESTED__LEVEL2__SUBKEY", "true")
-        monkeypatch.setenv("EXOSPHERE_OPTIONS_DEEP__VERY__NESTED__KEY", "deep_value")
+
+        config = Configuration()
+
+        with caplog.at_level("WARNING"):
+            result = config.from_env()
+
+        assert result is True
+        assert "nested" not in config["options"]
+        assert "nested subtree dropped" in caplog.text
+
+    def test_update_from_env_invalid_value_ignored(self, monkeypatch, caplog):
+        """Bad values from env are ignored, rest of config valid"""
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_MAX_THREADS", "7")  # yes
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_LOG_LEVEL", "BERSERK")  # NO!
+
+        config = Configuration()
+
+        with caplog.at_level("WARNING"):
+            result = config.from_env()
+
+        assert result is True
+        assert config["options"]["max_threads"] == 7
+        assert config["options"]["log_level"] == config.DEFAULTS["options"]["log_level"]
+        assert "Ignoring invalid environment override for 'log_level'" in caplog.text
+
+    def test_update_from_mapping_rolls_back_on_invalid(self):
+        """Failed validation does not leave config partially updated"""
+        config = Configuration()
+        before = copy.deepcopy(dict(config))
+
+        with pytest.raises(ValueError):
+            config.update_from_mapping({"options": {"max_threads": "not a number"}})
+
+        assert dict(config) == before
+
+    def test_update_from_mapping_rolls_back_hosts_on_invalid(self):
+        """A hosts-section validation failure restores the prior hosts list."""
+        config = Configuration()
+        config.update_from_mapping({"hosts": [{"name": "keep", "ip": "10.0.0.1"}]})
+        before = copy.deepcopy(config["hosts"])
+
+        # Duplicate names fail at the ConfigModel level; the prior hosts list
+        # must be left intact rather than replaced by the rejected one.
+        with pytest.raises(ValueError, match="Duplicate host names"):
+            config.update_from_mapping(
+                {"hosts": [{"name": "dup", "ip": "1"}, {"name": "dup", "ip": "2"}]}
+            )
+
+        assert config["hosts"] == before
+
+    def test_from_env_keeps_interdependent_overrides_together(
+        self, monkeypatch, caplog
+    ):
+        """A pair of related overrides are not dropped by an unrelated invalid key"""
+
+        # reap<=lifetime holds for 400<=600, but only if applied together
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_SSH_PIPELINING_REAP_INTERVAL", "400")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_SSH_PIPELINING_LIFETIME", "600")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_LOG_LEVEL", "BOGUS")  # the real culprit
+
+        config = Configuration()
+        with caplog.at_level("WARNING"):
+            config.from_env()
+
+        # The boys are still here, gloriously valid together
+        assert config["options"]["ssh_pipelining_reap_interval"] == 400
+        assert config["options"]["ssh_pipelining_lifetime"] == 600
+        # And the paste eating entry isn't
+        assert config["options"]["log_level"] == config.DEFAULTS["options"]["log_level"]
+        assert "log_level" in caplog.text
+
+    def test_from_env_drops_genuine_cross_field_conflict(self, monkeypatch):
+        """
+        Related overrides that are invalid as a pair are dropped wholesale.
+
+        This is a corner case, but in the scenario where two related
+        overrides have a mutual constraint, and they are both present
+        but violate the constraint, we don't apply either of them and
+        drop them as a package deal.
+        """
+
+        # interval >= lifetime, a nonsensical configuration
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_SSH_PIPELINING_REAP_INTERVAL", "900")
+        monkeypatch.setenv("EXOSPHERE_OPTIONS_SSH_PIPELINING_LIFETIME", "500")
 
         config = Configuration()
         result = config.from_env()
 
+        # Did not abort, and both overrides reverted to their defaults
         assert result is True
-
-        # Check nested structure was created correctly
-        assert "nested" in config["options"]
-        assert "level1" in config["options"]["nested"]
-        assert "level2" in config["options"]["nested"]
-        assert config["options"]["nested"]["level1"]["key1"] == "value1"
-        assert config["options"]["nested"]["level1"]["key2"] == 42
-        assert config["options"]["nested"]["level2"]["subkey"] is True
-
-        # Check deeply nested structure
-        assert "deep" in config["options"]
-        assert "very" in config["options"]["deep"]
-        assert "nested" in config["options"]["deep"]["very"]
-        assert config["options"]["deep"]["very"]["nested"]["key"] == "deep_value"
-
-    def test_update_from_env_nested_dicts_custom_parser(self, mocker, monkeypatch):
-        """
-        Ensure that nested dicts work with custom parsers in from_env.
-        """
-
-        # Use a simple parser that just converts to uppercase
-        def uppercase_parser(value):
-            return value.upper()
-
-        monkeypatch.setenv("EXOSPHERE_OPTIONS_CUSTOM__NESTED__VALUE", "lowercase")
-
-        config = Configuration()
-        result = config.from_env(parser=uppercase_parser)
-
-        assert result is True
-        assert config["options"]["custom"]["nested"]["value"] == "LOWERCASE"
+        assert (
+            config["options"]["ssh_pipelining_reap_interval"]
+            == config.DEFAULTS["options"]["ssh_pipelining_reap_interval"]
+        )
+        assert (
+            config["options"]["ssh_pipelining_lifetime"]
+            == config.DEFAULTS["options"]["ssh_pipelining_lifetime"]
+        )
 
     def test_deep_update_simple_merge(self):
         """
@@ -724,47 +741,250 @@ class TestConfiguration:
 
     def test_update_from_mapping_uses_deep_update(self):
         """
-        Ensure that update_from_mapping correctly uses deep_update
-        for nested dictionary structures.
+        Ensure that update_from_mapping merges the option section
+        rather than replace it wholesale.
         """
         config = Configuration()
 
-        # Set up initial state with nested options
-        config["options"]["custom_section"] = {
-            "existing_key": "original",
-            "nested": {"deep_key": "deep_original"},
-        }
+        # First update sets one option
+        config.update_from_mapping({"options": {"log_level": "DEBUG"}})
+        # Second update sets a different option
+        config.update_from_mapping({"options": {"max_threads": 42}})
 
-        # Update with overlapping nested structure
-        mapping = {
-            "options": {
-                "log_level": "DEBUG",  # Update existing top-level key
-                "custom_section": {
-                    "existing_key": "updated",  # Update existing nested key
-                    "new_key": "added",  # Add new nested key
-                    "nested": {
-                        "deep_key": "deep_updated",  # Update deep nested key
-                        "deep_new": "deep_added",  # Add new deep nested key
-                    },
-                },
-            }
-        }
-
-        result = config.update_from_mapping(mapping)
-        assert result is True
-
-        # Check that deep_update was used (values were merged, not replaced)
+        # Both updates survive (deep merge, not replacement)
         assert config["options"]["log_level"] == "DEBUG"
-        assert config["options"]["custom_section"]["existing_key"] == "updated"
-        assert config["options"]["custom_section"]["new_key"] == "added"
-        assert (
-            config["options"]["custom_section"]["nested"]["deep_key"] == "deep_updated"
-        )
-        assert config["options"]["custom_section"]["nested"]["deep_new"] == "deep_added"
+        assert config["options"]["max_threads"] == 42
 
-        # Ensure other default options are still present
-        assert "debug" in config["options"]
+        # Ensure other default options are still present and untouched
+        assert config["options"]["debug"] is False
         assert "cache_file" in config["options"]
+
+
+class TestSchemaValidation:
+    """Test suite for config schema validation and related behaviors."""
+
+    def test_host_model_mirrors_host_constructor(self):
+        """
+        HostModel must match the Host object constructor at all times
+
+        Most of our instantiation code simply dumps it wholesale into the
+        Host constructor as kwargs, so they should not drift.
+        """
+        import inspect
+
+        from exosphere.config import HostModel
+        from exosphere.objects import Host
+
+        ctor_params = {
+            name
+            for name in inspect.signature(Host.__init__).parameters
+            if name != "self"
+        }
+
+        assert set(HostModel.model_fields) == ctor_params
+
+    def test_defaults_derived_from_options_model(self):
+        """Class option defaults are the canonical dump of OptionsModel."""
+        from exosphere.config import OptionsModel
+
+        assert Configuration.DEFAULTS["options"] == OptionsModel().model_dump()
+
+    def test_unknown_option_is_rejected(self):
+        """Unknown option keys hard fail with a ValueError"""
+        config = Configuration()
+
+        with pytest.raises(ValueError, match="Extra inputs are not permitted"):
+            config.update_from_mapping({"options": {"max_trheads": 4}})
+
+    def test_deprecated_option_is_dropped_with_warning(self, mocker, caplog):
+        """Deprecated options are tolerated but dropped"""
+        from exosphere.config import OptionsModel
+
+        mocker.patch.dict(
+            OptionsModel.DEPRECATED_OPTIONS,
+            {"legacy_option": "removed in 4.2.0; use modern_option instead"},
+        )
+
+        config = Configuration()
+
+        with caplog.at_level("WARNING"):
+            result = config.update_from_mapping({"options": {"legacy_option": 123}})
+
+        assert result is True
+        # The deprecated key is dropped, not retained
+        assert "legacy_option" not in config["options"]
+        # And a warning naming it (and the migration note) is logged
+        assert "legacy_option" in caplog.text
+        assert "removed in 4.2.0; use modern_option instead" in caplog.text
+
+    @pytest.mark.parametrize("backup_count", [0, -5])
+    def test_log_backup_count_below_one_rejected(self, backup_count):
+        """
+        Log backup count must be >=1
+        Otherwise, the rotating file handler will just disable rotation
+        entirely, which is surprising, and counterproductive.
+        """
+        config = Configuration()
+
+        with pytest.raises(ValueError, match="greater than or equal to 1"):
+            config.update_from_mapping({"options": {"log_backup_count": backup_count}})
+
+    @pytest.mark.parametrize(
+        "mapping",
+        [
+            {"hosts": [{"name": "", "ip": "127.0.0.1"}]},
+            {"hosts": [{"name": "   ", "ip": "127.0.0.1"}]},
+            {"hosts": [{"name": "a", "ip": ""}]},
+            {"hosts": [{"name": "a", "ip": "127.0.0.1", "username": ""}]},
+            {"options": {"default_username": ""}},
+            {"options": {"editor": ""}},
+        ],
+        ids=["name", "name_ws", "ip", "host_user", "default_user", "editor"],
+    )
+    def test_empty_string_fields_rejected(self, mapping):
+        """
+        Identifier/credential string fields reject empty or whitespace-only
+        values rather than silently accepting them.
+        """
+        config = Configuration()
+
+        with pytest.raises(ValueError, match="should have at least 1 character"):
+            config.update_from_mapping(mapping)
+
+    def test_identifier_whitespace_is_stripped(self):
+        """Surrounding whitespace on name/ip is normalized away."""
+        config = Configuration()
+
+        config.update_from_mapping(
+            {"hosts": [{"name": "  web1  ", "ip": "  10.0.0.1  "}]}
+        )
+
+        assert config["hosts"][0] == {"name": "web1", "ip": "10.0.0.1"}
+
+    def test_duplicate_host_names_rejected(self):
+        """Duplicate host names are rejected: the inventory requires unique names."""
+        config = Configuration()
+
+        with pytest.raises(ValueError, match="Duplicate host names found"):
+            config.update_from_mapping(
+                {
+                    "hosts": [
+                        {"name": "host1", "ip": "127.0.0.4"},
+                        {"name": "host1", "ip": "172.0.0.3"},
+                    ]
+                }
+            )
+
+    @pytest.mark.parametrize(
+        "hosts_data,expected_error_match",
+        [
+            # Missing name: no name to show, so the list index is used
+            (
+                [{"ip": "127.0.0.4"}],
+                r"hosts\.0\.name: Field required",
+            ),
+            # Missing ip: the host is identified by its name, not its index
+            (
+                [{"name": "host4"}],
+                r"hosts\.host4\.ip: Field required",
+            ),
+            # Invalid characters in fields
+            (
+                [{"name": "host1", "ip": "user@127.0.0.1"}],
+                "'@' character is not allowed in hostname or ip",
+            ),
+        ],
+        ids=["missing_name", "missing_ip", "at_in_ip"],
+    )
+    def test_host_field_validation_errors(self, hosts_data, expected_error_match):
+        """
+        Host entries raise an appropriate ValueError for missing required
+        fields and for an '@' in the ip field.
+        """
+        config = Configuration()
+
+        with pytest.raises(ValueError, match=expected_error_match):
+            config.update_from_mapping({"hosts": hosts_data})
+
+    def test_host_error_identifies_host_by_name(self):
+        """
+        A field error on one host among many is located by the host's name,
+        not its list index, so operators can find it without counting entries.
+        """
+        config = Configuration()
+
+        with pytest.raises(ValueError, match=r"hosts\.web3\.ip: Field required"):
+            config.update_from_mapping(
+                {
+                    "hosts": [
+                        {"name": "web1", "ip": "10.0.0.1"},
+                        {"name": "web2", "ip": "10.0.0.2"},
+                        {"name": "web3"},  # missing ip, third in the list
+                    ]
+                }
+            )
+
+    @pytest.mark.parametrize("port", [0, 65536])
+    def test_host_port_out_of_range_rejected(self, port):
+        """Port must be within 1-65535."""
+        config = Configuration()
+
+        with pytest.raises(ValueError, match="hosts.a.port"):
+            config.update_from_mapping(
+                {"hosts": [{"name": "a", "ip": "h", "port": port}]}
+            )
+
+    @pytest.mark.parametrize("port", [1, 65535])
+    def test_host_port_boundaries_accepted(self, port):
+        """The 1 and 65535 boundaries are valid ports."""
+        config = Configuration()
+
+        config.update_from_mapping({"hosts": [{"name": "a", "ip": "h", "port": port}]})
+
+        assert config["hosts"][0]["port"] == port
+
+    @pytest.mark.parametrize(
+        "given,expected",
+        [("NOPASSWD", "nopasswd"), ("Skip", "skip"), ("SKIP", "skip")],
+    )
+    def test_sudo_policy_normalized_case_insensitively(self, given, expected):
+        """Sudo policies are accepted in any case and stored lowercased."""
+        config = Configuration()
+
+        config.update_from_mapping(
+            {
+                "options": {"default_sudo_policy": given},
+                "hosts": [{"name": "a", "ip": "h", "sudo_policy": given}],
+            }
+        )
+
+        assert config["options"]["default_sudo_policy"] == expected
+        assert config["hosts"][0]["sudo_policy"] == expected
+
+    def test_unknown_host_key_dropped_with_warning(self, caplog):
+        """
+        Unknown keys in a host entry are dropped with a warning
+        We don't hard fail to be reasonably forward compatible, and
+        we should be more forgiving towards big inventories.
+        """
+        config = Configuration()
+
+        with caplog.at_level("WARNING"):
+            result = config.update_from_mapping(
+                {"hosts": [{"name": "host1", "ip": "127.0.0.1", "wrong_key": "oops"}]}
+            )
+
+        assert result is True
+        # Unknown key is dropped from the normalized host entry
+        assert "typo" not in config["hosts"][0]
+        assert config["hosts"][0] == {"name": "host1", "ip": "127.0.0.1"}
+        # And a warning is logged naming the offending key and host
+        # Long enough have we stood by and watched ourselves not
+        # include WHAT generated the error as part of the error.
+        assert (
+            "Unknown host configuration option 'wrong_key' for host 'host1'"
+            in caplog.text
+        )
 
 
 class TestKnownLoaders:
@@ -807,7 +1027,7 @@ class TestValidate:
         target = tmp_path / "config.yaml"
         target.write_text("hosts:\n  - name: a\n")  # missing 'ip'
 
-        with pytest.raises(ValueError, match="missing required 'ip' field"):
+        with pytest.raises(ValueError):
             config_module.validate(target)
 
     def test_malformed_file_raises(self, tmp_path):
@@ -819,6 +1039,8 @@ class TestValidate:
 
     def test_non_mapping_raises(self, tmp_path):
         """A top-level non-mapping config reports the real problem clearly."""
+        # This test is yaml-specific but it is the easiest way
+        # to express this mistake in the context of the test
         target = tmp_path / "config.yaml"
         target.write_text("- a\n- b\n")  # a list, not a mapping
 

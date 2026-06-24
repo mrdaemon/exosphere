@@ -453,41 +453,6 @@ class TestMain:
         assert handler.backupCount == 7
         handler.close()
 
-    @pytest.mark.parametrize("backup_count", [0, -5])
-    def test_setup_logging_clamps_backup_count(
-        self, mocker, tmp_path, caplog, backup_count
-    ):
-        """
-        Invalid integer values for backup count are clamped to 1
-        """
-        from logging.handlers import RotatingFileHandler
-
-        basic_config = mocker.patch("logging.basicConfig")
-        mocker.patch.object(logging.getLogger("exosphere"), "setLevel")
-        log_file = tmp_path / "test.log"
-
-        from exosphere import Configuration
-
-        config = Configuration()
-        config.update_from_mapping(
-            {"options": {"log_max_bytes": 1234, "log_backup_count": backup_count}}
-        )
-        mocker.patch("exosphere.main.app_config", config)
-
-        caplog.set_level(logging.WARNING, logger="exosphere.main")
-
-        from exosphere.main import setup_logging
-
-        setup_logging("DEBUG", str(log_file))
-
-        handler = basic_config.call_args.kwargs["handlers"][0]
-        assert isinstance(handler, RotatingFileHandler)
-        assert handler.backupCount == 1
-        handler.close()
-
-        # Check that we log a warning
-        assert "log_backup_count must be at least 1" in caplog.text
-
     def test_setup_logging_invalid_log_level(self):
         """
         Test setup_logging with an invalid log level.

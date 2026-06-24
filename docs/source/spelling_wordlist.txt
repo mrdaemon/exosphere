@@ -58,6 +58,7 @@ subclass
 subclasses
 subcommand
 subcommands
+subtree
 sudo
 sudoers
 syspatch

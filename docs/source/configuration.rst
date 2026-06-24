@@ -429,7 +429,7 @@ and examples of how to set them in the configuration file.
     ``log_max_bytes * (log_backup_count + 1)``.
 
     This must be a positive integer of ``1`` or more, any lower value is
-    simply clamped to ``1``, and a warning is logged.
+    rejected as invalid.
 
     To disable rotation entirely, set :option:`log_max_bytes` to ``0`` instead.
 

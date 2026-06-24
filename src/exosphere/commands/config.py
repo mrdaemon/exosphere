@@ -265,7 +265,7 @@ def edit(
         try:
             validate_config(target)
         except Exception as e:
-            err_console.print(f"[red]Configuration is invalid:[/red] {e}")
+            err_console.print(f"[red]Configuration is invalid:[/red]\n{e}")
             if Confirm.ask("Re-open editor to fix?", default=True):
                 continue
             err_console.print(

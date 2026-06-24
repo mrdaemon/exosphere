@@ -451,41 +451,6 @@ class TestInventory:
         assert result.supported is True
         assert result.online is True
 
-    def test_load_or_create_host_with_unknown_option(
-        self, mocker, mock_diskcache, caplog
-    ):
-        """
-        Test that load_or_create_host ignores unknown options in host configuration.
-        """
-        from exosphere.objects import Host
-
-        inventory = Inventory(Configuration())
-        cache_mock = mock_diskcache.return_value.__enter__.return_value
-        cache_mock.__contains__.return_value = False
-
-        host_cfg = {
-            "name": "host5",
-            "ip": "127.0.0.8",
-            "port": 22,
-            "unknown_option": "should_be_ignored",
-        }
-        with caplog.at_level("WARNING"):
-            result = inventory.load_or_create_host("host5", host_cfg, cache_mock)
-
-        # Ensure the host is created without the unknown option
-        assert isinstance(result, Host)
-        assert result.name == "host5"
-        assert result.ip == "127.0.0.8"
-        assert result.port == 22
-        assert not hasattr(result, "unknown_option")
-
-        # Ensure the warning is logged
-        assert any(
-            "Invalid host configuration option 'unknown_option' for host 'host5', ignoring."
-            in message
-            for message in caplog.messages
-        )
-
     def test_load_or_create_host_with_minimal_state(self, mocker, mock_diskcache):
         """
         Test that a HostState with all None values can be loaded.
