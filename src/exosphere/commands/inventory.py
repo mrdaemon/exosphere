@@ -416,13 +416,14 @@ def status(
     table = Table(
         *columns,
         title=f"Host Status {table_suffix}",
-        caption="* indicates stale data",
+        caption="Legend: * stale data, ! pending reboot",
         caption_justify="right",
     )
 
     for host in hosts:
         # Prepare some rendering data for suffixes and placeholders
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
+        reboot_suffix = " [red]![/red]" if host.needs_reboot else ""
         undiscovered_status = "[dim](undiscovered)[/dim]"
         unsupported_status = "[dim](unsupported)[/dim]"
         empty_placeholder = "[dim]—[/dim]"
@@ -443,7 +444,7 @@ def status(
 
         online_status = (
             "[bold green]Online[/bold green]" if host.online else "[red]Offline[/red]"
-        )
+        ) + reboot_suffix
 
         # Helper function to get platform info with appropriate
         # handling for unsupported and undiscovered hosts

@@ -61,9 +61,12 @@ class HostState:
     updates: tuple["Update", ...]
     last_refresh: UtcDateTime | None
 
+    # V2 Host State
+    needs_reboot: bool | None
+
     # Version of state structure for compatibility checks
     # This should be incremented whenever the structure changes.
-    schema_version: int = 1
+    schema_version: int = 2
 
 
 @dataclass(frozen=True)

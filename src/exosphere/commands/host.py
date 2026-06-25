@@ -61,6 +61,13 @@ def _format_last_refresh(host: Host) -> str:
         return host.last_refresh.astimezone().strftime("%a %b %d %H:%M:%S %Y")
 
 
+def _format_reboot_status(host: Host) -> str:
+    """Format reboot-required indicator for display."""
+    if host.needs_reboot is None:
+        return "[dim](Unknown)[/dim]"
+    return "[red]Yes[/red]" if host.needs_reboot else "No"
+
+
 def _make_host_panel_content(host: Host) -> str:
     """Compose the main panel content for host details."""
 
@@ -91,6 +98,7 @@ def _make_supported_host_content(host: Host) -> str:
     security_count = _format_security_count(host)
     os_details = _format_os_details(host)
     last_refresh = _format_last_refresh(host)
+    reboot_status = _format_reboot_status(host)
 
     return (
         f"[bold]Operating System:[/bold]\n"
@@ -98,6 +106,7 @@ def _make_supported_host_content(host: Host) -> str:
         "\n"
         f"[bold]Last Refreshed:[/bold] {last_refresh}\n"
         f"[bold]Stale:[/bold] {'[yellow]Yes[/yellow]' if host.is_stale else 'No'}\n"
+        f"[bold]Reboot Pending:[/bold] {reboot_status}\n"
         "\n"
         f"[bold]Updates Available:[/bold] {len(host.updates)} updates, {security_count} security\n"
     )

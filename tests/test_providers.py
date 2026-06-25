@@ -335,6 +335,23 @@ class TestAptProvider:
 
         assert results == []
 
+    @pytest.mark.parametrize(
+        "file_present, expected",
+        [(True, True), (False, False)],
+        ids=["reboot-required", "no-reboot"],
+    )
+    def test_get_reboot_status(self, mock_connection, file_present, expected):
+        """
+        Reboot status is driven by the presence of /var/run/reboot-required.
+        """
+        apt = Apt()
+        mock_connection.run.return_value.ok = file_present
+
+        assert apt.get_reboot_status(mock_connection) is expected
+        mock_connection.run.assert_called_with(
+            "test -f /var/run/reboot-required", hide=True, warn=True
+        )
+
 
 class TestPkgProvider:
     @pytest.fixture
@@ -736,6 +753,60 @@ class TestPkgProvider:
                 str(e.value)
                 == "Failed to get vulnerable packages from pkg: Generic error"
             )
+
+    @pytest.mark.parametrize(
+        "installed_kernel, running_kernel, expected",
+        [
+            ("14.1-RELEASE-p6\n", "14.1-RELEASE-p6\n", False),
+            ("14.1-RELEASE-p6\n", "14.1-RELEASE-p3\n", True),
+        ],
+        ids=["matching", "diverging"],
+    )
+    def test_get_reboot_status(
+        self, mock_connection, mocker, installed_kernel, running_kernel, expected
+    ):
+        """
+        Reboot status compares the installed kernel (freebsd-version -k)
+        with the running kernel (freebsd-version -r).
+        """
+        pkg = Pkg()
+
+        mock_connection.run.side_effect = [
+            mocker.Mock(failed=False, stdout=installed_kernel),
+            mocker.Mock(failed=False, stdout=running_kernel),
+        ]
+
+        assert pkg.get_reboot_status(mock_connection) is expected
+
+    @pytest.mark.parametrize(
+        "installed, running",
+        [
+            (
+                {"failed": True, "stdout": "", "stderr": "it's dead jim"},
+                {"failed": False, "stdout": "14.1-RELEASE-p6\n"},
+            ),
+            (
+                {"failed": False, "stdout": "\n"},
+                {"failed": False, "stdout": "14.1-RELEASE-p6\n"},
+            ),
+        ],
+        ids=["command-failed", "empty-output"],
+    )
+    def test_get_reboot_status_unknown(
+        self, mock_connection, mocker, installed, running
+    ):
+        """
+        Reboot status degrades to unknown (None) when freebsd-version fails
+        or returns an empty kernel version string.
+        """
+        pkg = Pkg()
+
+        mock_connection.run.side_effect = [
+            mocker.Mock(**installed),
+            mocker.Mock(**running),
+        ]
+
+        assert pkg.get_reboot_status(mock_connection) is None
 
 
 class TestPkgAddProvider:
@@ -1202,6 +1273,18 @@ class TestPkgAddProvider:
         result = pkg_add.reposync(mock_connection)
 
         assert result is True
+        mock_connection.run.assert_not_called()
+        mock_connection.sudo.assert_not_called()
+
+    def test_get_reboot_status(self, mock_connection):
+        """
+        Test the get_reboot_status method for the PkgAdd provider.
+        It is, once more, a big no-op that returns None
+        """
+        pkg_add = PkgAdd()
+        result = pkg_add.get_reboot_status(mock_connection)
+
+        assert result is None
         mock_connection.run.assert_not_called()
         mock_connection.sudo.assert_not_called()
 
@@ -1770,3 +1853,95 @@ class TestDnfProvider:
         # Ensure we do not perform the expensive installed packages query
         command_calls = [call[0][0] for call in mock_connection.run.call_args_list]
         assert not any("list installed" in cmd for cmd in command_calls)
+
+    @pytest.mark.parametrize(
+        "provider_cls, expected_cmd",
+        [(Dnf, "dnf needs-restarting -r"), (Yum, "needs-restarting -r")],
+        ids=["dnf", "yum"],
+    )
+    @pytest.mark.parametrize(
+        "return_code, expected",
+        [(0, False), (1, True)],
+        ids=["no-reboot", "reboot-required"],
+    )
+    def test_get_reboot_status(
+        self, mock_connection, provider_cls, expected_cmd, return_code, expected
+    ):
+        """
+        Test the reboot status detection across backends
+
+        Reboot status is driven by the exit code:
+        0 = no reboot
+        1 = reboot recommended
+
+        The command differs by backend (the dnf subcommand vs the
+        standalone needs-restarting for yum).
+        """
+        provider = provider_cls()
+        mock_connection.run.return_value.return_code = return_code
+        mock_connection.run.return_value.stderr = ""
+
+        assert provider.get_reboot_status(mock_connection) is expected
+        mock_connection.run.assert_called_with(expected_cmd, hide=True, warn=True)
+
+    def test_get_reboot_status_dnf4_missing_plugin(self, mock_connection, caplog):
+        """
+        Test that dnf4 with missing needs-restarting plugin degrades to unknown
+        and logs the helpful stderr message.
+        """
+        dnf = Dnf()
+        mock_connection.run.return_value.return_code = 1
+        mock_connection.run.return_value.stderr = (
+            "No such command: needs-restarting. Please do the needful etc"
+        )
+
+        with caplog.at_level(logging.WARNING):
+            assert dnf.get_reboot_status(mock_connection) is None
+
+        assert "No such command" in caplog.text
+
+    def test_get_reboot_status_dnf5_missing_subcommand(self, mock_connection, caplog):
+        """
+        Test that dnf5 with missing needs-restarting subcommand degrades to unknown
+        and logs the helpful stderr message.
+        """
+        dnf = Dnf()
+        mock_connection.run.return_value.return_code = 2
+        mock_connection.run.return_value.stderr = (
+            'Unknown argument "needs-restarting" for command "dnf5". '
+            "Do the needful etc."
+        )
+
+        with caplog.at_level(logging.WARNING):
+            assert dnf.get_reboot_status(mock_connection) is None
+
+        assert "exit 2" in caplog.text
+
+    def test_get_reboot_status_yum_missing_package_warns(self, mock_connection, caplog):
+        """
+        Test that yum with missing needs-restarting binary degrades to unknown
+        and logs a warning pointing the user at yum-utils.
+        """
+        yum = Yum()
+        mock_connection.run.return_value.return_code = 127
+        mock_connection.run.return_value.stderr = "needs-restarting: command not found"
+
+        with caplog.at_level(logging.WARNING):
+            assert yum.get_reboot_status(mock_connection) is None
+
+        assert "yum-utils" in caplog.text
+
+    def test_get_reboot_status_unexpected_failure_warns(self, mock_connection, caplog):
+        """
+        Any other non-zero exit code degrades to unknown and logs the exit
+        code and stderr for diagnosis.
+        """
+        dnf = Dnf()
+        mock_connection.run.return_value.return_code = 5
+        mock_connection.run.return_value.stderr = "oh no THE BEANS HAVE SPILLED!"
+
+        with caplog.at_level(logging.WARNING):
+            assert dnf.get_reboot_status(mock_connection) is None
+
+        assert "exit 5" in caplog.text
+        assert "oh no THE BEANS HAVE SPILLED!" in caplog.text

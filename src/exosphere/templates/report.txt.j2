@@ -41,7 +41,9 @@ Summary:
 
   System: {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif +%}
   Package Manager: {{ host.package_manager or 'None' }}
-  Last Refresh: {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} (Stale, needs refresh){% endif %}
+  Last Refresh: {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} (Stale, needs refresh){% endif +%}
+{% if host.needs_reboot %}  ** Reboot Pending **
+{% endif %}
     {% set updates_list = host.security_updates if report_type == report_type.security_only else host.updates %}
     {% if updates_list +%}
         {% set main_title = "Security Updates" if report_type == report_type.security_only else "Updates" %}
@@ -52,6 +54,7 @@ Summary:
         {% set regular_updates = updates_list|selectattr('security', 'equalto', false)|list %}
         {% if security_updates and not (report_type == report_type.security_only) %}
     Security Updates ({{ security_updates|length }}):
+
 {{ render_update_list(security_updates) }}
         {% elif security_updates and (report_type == report_type.security_only) %}
 {{ render_update_list(security_updates) }}
@@ -59,6 +62,7 @@ Summary:
         {% if regular_updates %}
             {% if security_updates %}
     Regular Updates ({{ regular_updates|length }}):
+
             {% endif %}
 {{ render_update_list(regular_updates) }}
         {% endif %}

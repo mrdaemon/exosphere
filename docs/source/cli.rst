@@ -77,10 +77,10 @@ Any errors will be printed to the console as well as the log file.
 
    You can find the path under the ``Log:`` section of the output.
 
-Refreshing Update Status
-------------------------
+Refreshing Host State
+---------------------
 
-Once you have discovered your hosts, you can refresh their update status
+Once you have discovered your hosts, you can refresh their state
 by running:
 
 .. code-block:: exosphere
@@ -89,6 +89,10 @@ by running:
 
 This will connect to each host in parallel, and fetch what updates are
 available, categorizing them, and storing the metadata in the cache file.
+
+As part of the process, Exosphere will also attempt to check if the
+host has a pending reboot - for example, following a previously
+applied kernel or core library update.
 
 If you want to also synchronize the repositories on each host to ensure
 the latest package lists are available, you can run:
@@ -113,6 +117,9 @@ You can also do it all at the same time, including discovery, by running:
 
    exosphere> inventory refresh --discover --sync
 
+
+For details on how any of this is implemented, see the :doc:`providers` page.
+
 Viewing Inventory Status
 ------------------------
 
@@ -127,6 +134,15 @@ available.
 
 .. image:: /_static/status_sample.png
    :alt: Example output of `exosphere inventory status`
+
+.. admonition:: Status indicators
+
+   Two markers may appear in the table, as noted in its legend:
+
+   - ``*`` next to the update counts marks **stale** data — the host has not
+     been refreshed in a while (configurable, see :option:`stale_threshold`).
+   - ``!`` next to a host's status marks a **pending reboot** — the host needs
+     to be rebooted (for example after a kernel update).
 
 You can also select one or more specific hosts by providing their names as arguments:
 
@@ -208,7 +224,7 @@ list of available updates, you can run:
 
 This will display detailed information about the host, including all of the
 useful metadata. This includes the last refresh timestamp, which provider
-it is using, etc.
+it is using, whether a reboot is pending, etc.
 
 It also will display a table of all available updates.
 

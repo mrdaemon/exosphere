@@ -261,6 +261,7 @@ class TestInventory:
                     online=False,
                     updates=(),
                     last_refresh=None,
+                    needs_reboot=None,
                 )
             )
 
@@ -382,6 +383,7 @@ class TestInventory:
             online=True,
             updates=(),
             last_refresh=None,
+            needs_reboot=True,
         )
 
         cache_mock.__contains__.return_value = True
@@ -402,6 +404,7 @@ class TestInventory:
         assert result.package_manager == "apt"
         assert result.supported is True
         assert result.online is True
+        assert result.needs_reboot is True
 
     def test_load_or_create_host_with_legacy_host_in_cache(
         self, mocker, mock_diskcache
@@ -436,6 +439,7 @@ class TestInventory:
             online=True,
             updates=(),
             last_refresh=None,
+            needs_reboot=None,
         )
 
         host_cfg = {"name": "oldhost", "ip": "192.168.1.50"}
@@ -471,6 +475,7 @@ class TestInventory:
             online=False,
             updates=(),
             last_refresh=None,
+            needs_reboot=None,
         )
 
         cache_mock.__getitem__.return_value = minimal_state
@@ -504,6 +509,7 @@ class TestInventory:
             online=False,
             updates=(),
             last_refresh=None,
+            needs_reboot=None,
         )
 
         cache_mock.__getitem__.return_value = state
@@ -535,6 +541,7 @@ class TestInventory:
             online=True,
             updates=(),
             last_refresh=None,
+            needs_reboot=None,
         )
 
         cache_mock.__getitem__.return_value = state
@@ -569,6 +576,7 @@ class TestInventory:
             online=True,
             updates=(),
             last_refresh=None,
+            needs_reboot=None,
         )
 
         cache_mock.__getitem__.return_value = state

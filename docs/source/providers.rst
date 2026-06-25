@@ -23,6 +23,10 @@ to configure sudoers appropriately before changing the Sudo Policy.
 Updates retrieval is done using ``apt-get dist-upgrade`` in simulation mode,
 and **does not** require elevated privileges.
 
+Pending reboot detection checks for the presence of ``/var/run/reboot-required``,
+which the system creates after applying updates that need a reboot to take effect
+(such as kernel or libc upgrades). This **does not** require elevated privileges.
+
 .. admonition:: Note
 
     If you want repo sync without sudo privileges, you can also just
@@ -35,6 +39,7 @@ Exact Commands run on remote hosts
 
 - ``/usr/bin/apt-get update`` **(requires sudo)**
 - ``apt-get dist-upgrade -s | grep -e '^Inst'``
+- ``test -f /var/run/reboot-required``
 
 
 Command dependencies
@@ -61,6 +66,19 @@ as the connection user to retrieve the information.
 Updates retrieval is done using ``yum/dnf check-update``, and does *not* require
 elevated privileges.
 
+Pending reboot detection uses ``needs-restarting -r``, which reports whether a
+reboot is recommended following kernel or core library updates, and **does not**
+require elevated privileges. The exact invocation depends on the backend:
+
+- On **dnf**, the ``dnf needs-restarting`` subcommand is used. It is built in to
+  dnf5 and provided by the ``python3-dnf-plugins-core`` plugin on dnf4 (installed
+  by default on RHEL 8/9).
+- On **yum**, the standalone ``needs-restarting`` command is used, shipped with
+  the ``yum-utils`` package.
+
+If the command or plugin is unavailable, the reboot status is reported as
+*unknown* rather than failing the refresh, making this feature entirely optional.
+
 Exact Commands run on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -72,11 +90,16 @@ Exact Commands run on remote systems
 - ``dnf --quiet -y check-update``
 - ``dnf --quiet -y check-update --security``
 - ``dnf --quiet -y list installed <package_name> [<package_name> ...]``
+- ``dnf needs-restarting -r`` **or** ``needs-restarting -r`` (dnf vs yum)
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
 
 - `yum` or `dnf`
+- For updates (optional):
+
+  - `python3-dnf-plugins-core` on dnf4 (installed by default on RHEL 8/9)
+  - `yum-utils` on yum
 
 Usage Notes and Issues
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -127,6 +150,11 @@ to configure sudo privileges for Exosphere.
 Updates retrieval is done using ``pkg upgrade`` in simulation mode, and **does not**
 require elevated privileges.
 
+Pending reboot detection compares the installed kernel version
+(``freebsd-version -k``) with the running kernel (``freebsd-version -r``).
+A mismatch indicates a kernel update that has been installed but not yet booted.
+This is intentionally kernel-only, and **does not** require elevated privileges.
+
 Exact Commands run on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -134,12 +162,15 @@ Exact Commands run on remote systems
 - ``/usr/sbin/pkg audit -qF`` **(requires sudo)**
 - ``/usr/sbin/pkg audit -q`` for security updates
 - ``/usr/sbin/pkg upgrade -qn | grep -e '^\\s'``
+- ``freebsd-version -k``
+- ``freebsd-version -r``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
 
 - `pkg`
 - `grep`
+- `freebsd-version`
 
 OpenBSD (pkg_add)
 -----------------
@@ -158,6 +189,12 @@ Branch detection is done using ``syspatch -l``, which is in turn used to
 determine whether updates should be considered security updates or not.
 This **does not** require elevated privileges either.
 
+Pending reboot detection is **not implemented** for OpenBSD, as it does not
+really provide any useful tooling around this.
+
+Additionally, as the provider only handles binary packages and not ``syspatch``
+or system updates, reboot status is always reported as *unknown*.
+
 Limitations
 ^^^^^^^^^^^
 
@@ -171,6 +208,7 @@ Limitations
 - Only handles binary packages, does not support ports or syspatch/system updates.
 - Handles transitive dependencies without marking them as such, and may,
   in some edge cases, list more packages than strictly necessary for an update.
+- Reboot status is always reported as *unknown*
 
 Exact Commands run on remote systems
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

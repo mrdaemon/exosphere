@@ -21,6 +21,7 @@
         "supported",
         "stale",
         "online",
+        "needs_reboot",
         "package_manager",
         "updates",
         "last_refresh"
@@ -67,6 +68,10 @@
         "online": {
           "type": "boolean",
           "description": "Whether the host was last reachable"
+        },
+        "needs_reboot": {
+          "type": ["boolean", "null"],
+          "description": "Whether the host requires a system reboot. null if undetermined or not tracked."
         },
         "package_manager": {
           "type": ["string", "null"],

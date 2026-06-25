@@ -60,6 +60,7 @@ def create_host(mocker):
         is_stale=False,
         supported=True,
         description=None,
+        needs_reboot=None,
     ):
         host = mocker.create_autospec(Host, instance=True)
         host.name = name
@@ -72,6 +73,7 @@ def create_host(mocker):
         host.is_stale = is_stale
         host.supported = supported
         host.description = description
+        host.needs_reboot = needs_reboot
         return host
 
     return _create_host
@@ -121,6 +123,19 @@ class TestStatusCommand:
         assert code == 0
         assert "4 *" in out  # Stale hosts marked with *
         assert "1 *" in out  # Stale hosts marked with *
+
+    def test_with_pending_reboot(self, create_host, mock_inventory, capsys):
+        """
+        A host pending a reboot is flagged with a '!' marker in the status table.
+        """
+        host = create_host(name="host1", needs_reboot=True)
+        mock_inventory.hosts = [host]
+
+        code = inventory_module.app(["status"], result_action="return_value")
+
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "!" in out
 
     def test_no_hosts(self, mock_inventory, capsys):
         """

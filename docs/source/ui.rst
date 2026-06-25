@@ -195,7 +195,9 @@ The following operations can be performed from the Inventory screen:
    host specifications.
 
 It functions almost identically to the ``inventory status`` command in the CLI,
-but it allows you to navigate the rows with the Arrow Keys.
+but it allows you to navigate the rows with the Arrow Keys. The same status
+indicators apply, with ``*`` marking stale data and ``!`` marking a pending
+reboot, as shown in the table legend.
 
 You can select a host with ``Enter``, which will open a panel with more details:
 

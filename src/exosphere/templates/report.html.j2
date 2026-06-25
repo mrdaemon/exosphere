@@ -62,6 +62,10 @@
             font-style: italic;
             font-weight: normal;
         }
+        .reboot {
+            color: #c0392b;
+            font-weight: bold;
+        }
         .meta {
             color: #7f8c8d;
             font-size: 0.9em;
@@ -179,7 +183,8 @@
             <p>
                 <strong>OS:</strong> {{ host.os }}{% if host.flavor and host.flavor != host.os %} {{ host.flavor }}{% endif %}{% if host.version %} {{ host.version }}{% endif %}<br>
                 <strong>Package Manager:</strong> {{ host.package_manager or 'N/A' }}<br>
-                <strong>Last Refresh:</strong> {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} <span class="stale">(stale, needs refresh)</span>{% endif %}
+                <strong>Last Refresh:</strong> {% if host.last_refresh %}{{ host.last_refresh.astimezone().strftime('%Y-%m-%d %H:%M:%S %z') }}{% else %}Never{% endif %}{% if host.is_stale %} <span class="stale">(stale, needs refresh)</span>{% endif %}{% if host.needs_reboot %}<br>
+                <strong>Reboot Pending:</strong> <span class="reboot">Yes</span>{% endif %}
             </p>
 
             {%- set updates_list = host.security_updates if report_type == report_type.security_only else host.updates %}

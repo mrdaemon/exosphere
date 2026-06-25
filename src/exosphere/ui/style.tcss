@@ -216,7 +216,7 @@ SortScreen {
     text-opacity: 30%;
 }
 
-#inventory-stale-label {
+#inventory-legend-label {
     text-style: italic;
     column-span: 1;
     text-align: right;

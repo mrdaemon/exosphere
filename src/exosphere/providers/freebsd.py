@@ -162,6 +162,52 @@ class Pkg(PkgManager):
 
         return updates
 
+    def get_reboot_status(self, cx: Connection) -> bool | None:
+        """
+        Determine whether the host requires a reboot.
+
+        The viable criteria on FreeBSD is to compare the installed
+        kernel version with the currently kernel version, and if they
+        differ, a reboot is deemed required.
+
+        This is a simple and reliable check, as it clearly indicates a
+        kernel being updated but not yet booted. We intentionally do
+        not concern ourselves with the userland or services, as those
+        can be checked and restarted as part of the update workflow,
+        using their own tooling (e.g. checkrestart).
+
+        Additionally, userland patch levels can legitimately diverge
+        from the kernel without requiring a reboot, and tracking these
+        would be a fool's errand, so we just don't.
+
+        :param cx: Fabric Connection object
+        :return: True if the running kernel differs from the installed one,
+                 False if they match, None if it could not be determined.
+        """
+        self.logger.debug("Checking reboot status via freebsd-version")
+
+        installed_result = cx.run("freebsd-version -k", hide=True, warn=True)
+        running_result = cx.run("freebsd-version -r", hide=True, warn=True)
+
+        if installed_result.failed or running_result.failed:
+            self.logger.warning(
+                "Could not determine reboot status via freebsd-version: %s",
+                (installed_result.stderr or running_result.stderr).strip(),
+            )
+            return None
+
+        installed_kernel = installed_result.stdout.strip()
+        running_kernel = running_result.stdout.strip()
+
+        if not installed_kernel or not running_kernel:
+            self.logger.warning(
+                "freebsd-version returned an empty kernel version, "
+                "cannot determine reboot status."
+            )
+            return None
+
+        return installed_kernel != running_kernel
+
     def _parse_line(self, line: str) -> Update | None:
         """
         Parse a line from the output of pkg upgrade.

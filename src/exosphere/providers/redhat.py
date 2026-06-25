@@ -155,6 +155,71 @@ class Dnf(PkgManager):
 
         return updates
 
+    def get_reboot_status(self, cx: Connection) -> bool | None:
+        """
+        Determine whether the host requires a reboot.
+
+        Uses "needs-restarting -r", which reports whether a reboot is
+        recommended (kernel or core libraries updated since boot).
+
+        It exits with 0 when no reboot is needed and 1 when one is
+        recommended. It does not require elevated privileges.
+
+        The exact command differs by backend:
+
+        - dnf: "dnf needs-restarting" -- built in to dnf5, and provided
+          by the "python3-dnf-plugins-core" plugin on dnf4 (present by
+          default on RHEL 8/9).
+        - yum: the standalone "needs-restarting", shipped with the
+          "yum-utils" package.
+
+        In case anything is missing, a helpful warning will be emitted
+        and the return value will be None, degrading gracefully.
+
+        Support for this feature is considered optional on rhel-like
+        systems.
+
+        :param cx: Fabric Connection object.
+        :return: True if reboot required, False if not, None if undeterminable.
+        """
+
+        cmd = "dnf needs-restarting -r"
+
+        # Yum compat command
+        if self.pkgbin == "yum":
+            cmd = "needs-restarting -r"
+
+        self.logger.debug("Checking reboot status via %s", cmd)
+
+        result = cx.run(cmd, hide=True, warn=True)
+
+        if result.return_code == 0:
+            return False
+
+        # DNF 4 can return 1 when subcommand is not found, which is not
+        # the signal we want, so we account for this.
+        if result.return_code == 1 and "No such command" not in result.stderr:
+            return True
+
+        # If the entire command is not found, inform user via warning
+        # This is specifically handling yum/legacy "needs-restarting"
+        if result.return_code == 127 and self.pkgbin == "yum":
+            self.logger.warning(
+                "Could not determine reboot status: "
+                "Please install the yum-utils package to enable this feature."
+            )
+            return None
+
+        # Any other failure just degrades to unknown
+        # This includes dnf4/dnf5 returning 2 for invalid subcommand.
+        # They provide helpful stderr output by default, conveniently.
+        self.logger.warning(
+            "Could not determine reboot status (exit %d): %s",
+            result.return_code,
+            result.stderr.strip(),
+        )
+        return None
+
     def _get_security_updates(self, cx: Connection) -> list[str]:
         """
         Get updates marked as security from dnf

@@ -804,6 +804,52 @@ class TestHostObject:
         assert host.updates == []
         assert "No updates available for test_host" in caplog.text
 
+    def test_refresh_updates_sets_needs_reboot(
+        self, mocker, mock_connection, mock_config_with_sudopolicy_nopasswd
+    ):
+        """
+        Test that refresh_updates records the reboot status reported by the
+        provider, reusing the same connection.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+        host.supported = True
+
+        pkg_manager = mocker.Mock()
+        pkg_manager.get_updates.return_value = []
+        pkg_manager.get_reboot_status.return_value = True
+        host._pkginst = pkg_manager
+
+        host.refresh_updates()
+
+        pkg_manager.get_reboot_status.assert_called_once_with(host.connection)
+        assert host.needs_reboot is True
+
+    def test_refresh_updates_reboot_status_degrades_on_error(
+        self, mocker, mock_connection, caplog, mock_config_with_sudopolicy_nopasswd
+    ):
+        """
+        A failure to determine reboot status must not abort the updates
+        refresh: it degrades to None (unknown) and is logged.
+        """
+        host = Host(name="test_host", ip="127.0.0.1")
+        host.online = True
+        host.supported = True
+        host.needs_reboot = True  # stale prior value, should be cleared
+
+        updates_list = [mocker.Mock()]
+        pkg_manager = mocker.Mock()
+        pkg_manager.get_updates.return_value = updates_list
+        pkg_manager.get_reboot_status.side_effect = RuntimeError("oh no MY SPAGHETT")
+        host._pkginst = pkg_manager
+
+        caplog.set_level("WARNING")
+        host.refresh_updates()  # must not raise
+
+        assert host.updates == updates_list
+        assert host.needs_reboot is None
+        assert "Could not determine reboot status" in caplog.text
+
     def test_refresh_updates_offline_raises(
         self, mocker, mock_config_with_sudopolicy_nopasswd
     ):
@@ -1314,6 +1360,7 @@ class TestHostStateSerialization:
         host.online = True
         host.updates = []
         host.last_refresh = None
+        host.needs_reboot = True
 
         state = host.to_state()
 
@@ -1327,6 +1374,7 @@ class TestHostStateSerialization:
         assert isinstance(state.updates, tuple)
         assert len(state.updates) == 0
         assert state.last_refresh is None
+        assert state.needs_reboot is True
 
     def test_to_state_with_updates(self, mocker):
         """Test conversion with updates list"""
@@ -1385,6 +1433,7 @@ class TestHostStateSerialization:
             online=True,
             updates=(),
             last_refresh=None,
+            needs_reboot=True,
         )
 
         host.from_state(state)
@@ -1395,6 +1444,7 @@ class TestHostStateSerialization:
         assert host.package_manager == "apt"
         assert host.supported is True
         assert host.online is True
+        assert host.needs_reboot is True
         assert isinstance(host.updates, list)
         assert len(host.updates) == 0
 
@@ -1426,6 +1476,7 @@ class TestHostStateSerialization:
             online=True,
             updates=(update1, update2),
             last_refresh=None,
+            needs_reboot=None,
         )
 
         host.from_state(state)
@@ -1454,6 +1505,7 @@ class TestHostStateSerialization:
             online=True,
             updates=(),
             last_refresh=None,
+            needs_reboot=None,
         )
 
         host.from_state(state)
@@ -1478,6 +1530,7 @@ class TestHostStateSerialization:
             online=True,
             updates=(),
             last_refresh=None,
+            needs_reboot=None,
         )
 
         host.from_state(state)
@@ -1500,6 +1553,7 @@ class TestHostStateSerialization:
             online=True,
             updates=(),
             last_refresh=None,
+            needs_reboot=None,
             schema_version=999,  # Future version
         )
 
@@ -1510,6 +1564,31 @@ class TestHostStateSerialization:
             "HostState schema version 999 is newer" in message
             for message in caplog.messages
         )
+
+    def test_from_state_ignores_needs_reboot_on_pre_v2_schema(self, mocker):
+        """
+        Test that from_state ignores needs_reboot when schema version is < 2
+        """
+        from exosphere.data import HostState
+
+        host = Host(name="test_host", ip="127.0.0.1")
+
+        state = HostState(
+            os="linux",
+            version="12",
+            flavor="debian",
+            package_manager="apt",
+            supported=True,
+            online=True,
+            updates=(),
+            last_refresh=None,
+            needs_reboot=True,
+            schema_version=1,  # Predates reboot tracking
+        )
+
+        host.from_state(state)
+
+        assert host.needs_reboot is None
 
     def test_roundtrip_preserves_data(self, mocker):
         """Verify Host → HostState → Host preserves all data"""

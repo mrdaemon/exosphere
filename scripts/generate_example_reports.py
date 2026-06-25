@@ -47,6 +47,7 @@ def create_sample_hosts() -> list[Host]:
     web_server.supported = True
     web_server.online = True
     web_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(hours=2)
+    web_server.needs_reboot = False
     web_server.updates = [
         Update("apache2", "2.4.52-1ubuntu4.6", "2.4.52-1ubuntu4.7", True, "security"),
         Update("php8.1", "8.1.2-1ubuntu2.13", "8.1.2-1ubuntu2.14", True, "security"),
@@ -68,6 +69,7 @@ def create_sample_hosts() -> list[Host]:
     db_server.supported = True
     db_server.online = True
     db_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(hours=1)
+    db_server.needs_reboot = True
     db_server.updates = [
         Update("postgresql-14", "14.9-0+deb12u1", "14.10-0+deb12u1", True, "security"),
         Update("openssl", "3.0.9-1+deb12u3", "3.0.11-1+deb12u2", True, "security"),
@@ -85,6 +87,7 @@ def create_sample_hosts() -> list[Host]:
     admin_server.supported = True
     admin_server.online = True
     admin_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(hours=3)
+    admin_server.needs_reboot = False
     admin_server.updates = [
         Update("en-freebsd-doc", "20250814,1", "20250920,1", False, "FreeBSD"),
         Update("expat", "2.7.1", "2.7.2", False, "FreeBSD"),
@@ -100,6 +103,7 @@ def create_sample_hosts() -> list[Host]:
     lb_server.supported = True
     lb_server.online = True
     lb_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(minutes=30)
+    lb_server.needs_reboot = False
     lb_server.updates = []  # No updates available
     hosts.append(lb_server)
 

@@ -146,3 +146,27 @@ class PkgManager(ABC):
         :return: List of available updates as Update objects.
         """
         raise NotImplementedError("get_updates method is not implemented.")
+
+    @abstractmethod
+    def get_reboot_status(self, cx: Connection) -> bool | None:
+        """
+        Determine whether the host requires a reboot.
+
+        This method should be implemented by subclasses to detect a
+        pending *system* reboot (for example following a kernel or libc
+        update). It must be read-only and, like the other query methods,
+        avoid elevated privileges wherever possible.
+
+        It should return a boolean corresponding the "has pending
+        reboot" status of the host, or ``None`` if the status cannot be
+        determined, or if the platform does not have a sensible signal
+        for this information.
+
+        Implementations should avoid raising exceptions in failure
+        cases, and prefer returning ``None`` instead. Exceptions should
+        be reserved for genuine connection-level failures.
+
+        :param cx: Fabric Connection object
+        :return: True if a reboot is required, False if not, None if unknown.
+        """
+        raise NotImplementedError("get_reboot_status method is not implemented.")

@@ -109,6 +109,25 @@ class Apt(PkgManager):
 
         return updates
 
+    def get_reboot_status(self, cx: Connection) -> bool | None:
+        """
+        Determine whether the host requires a reboot.
+
+        On Debian/Ubuntu, we check for the existence of the file
+        /var/run/reboot-required, which is created by hooks when the
+        package manager flags that a reboot is needed.
+
+        The presence of the file reliably indicates a pending reboot.
+
+        :param cx: Fabric Connection object.
+        :return: True if a reboot is required, False otherwise.
+        """
+        self.logger.debug("Checking for pending reboot via /var/run/reboot-required")
+
+        result = cx.run("test -f /var/run/reboot-required", hide=True, warn=True)
+
+        return result.ok
+
     def _parse_line(self, line: str) -> Update | None:
         """
         Parse a line from the APT update output.

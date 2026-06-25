@@ -300,6 +300,10 @@ class HostDetailsPanel(Screen):
                     id="host-stale",
                 ),
                 Label(
+                    f"[i]Reboot Pending:[/i]\n  {'[dim](Unknown)[/dim]' if self.host.needs_reboot is None else ('[$text-warning]Yes[/]' if self.host.needs_reboot else 'No')}",
+                    id="host-reboot",
+                ),
+                Label(
                     f"[i]Available Updates:[/i]\n  {len(self.host.updates)} updates, {security_updates} security",
                     id="host-updates-count",
                 ),
@@ -460,7 +464,10 @@ class InventoryScreen(DataScreen):
                     yield Label("", id="inventory-spacer")
                     yield Label("", id="inventory-filter-label")
                     yield Label("│", id="inventory-separator")
-                    yield Label("* indicates stale data", id="inventory-stale-label")
+                    yield Label(
+                        "Legend: * stale data, ! pending reboot",
+                        id="inventory-legend-label",
+                    )
 
         yield Footer(compact=True)
 
@@ -757,6 +764,11 @@ class InventoryScreen(DataScreen):
             status_str = (
                 "[green]Online[/green]" if host.online else "[red]Offline[/red]"
             )
+
+            # Append reboot indicator if state indicates it. Kept off the
+            # name column, which is used verbatim as the row selection key.
+            if host.needs_reboot:
+                status_str += " [red]![/red]"
 
             table.add_row(
                 host.name,

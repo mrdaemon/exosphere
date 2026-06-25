@@ -127,6 +127,21 @@ class PkgAdd(PkgManager):
 
         return updates
 
+    def get_reboot_status(self, cx: Connection) -> bool | None:
+        """
+        Determine whether the host requires a reboot.
+
+        OpenBSD does not offer a reliable mechanism for this out of the
+        box, and we only track packages, not the base system.
+
+        This method is essentially a no-op and always returns None.
+
+        :param cx: Fabric Connection object
+        :return: None (reboot state is not tracked on OpenBSD).
+        """
+        self.logger.debug("OpenBSD reboot status is not tracked, reporting unknown.")
+        return None
+
     def _parse_line(self, line: str, is_current: bool = False) -> Update | None:
         """
         Parse a line of pkg_add output to extract update information.

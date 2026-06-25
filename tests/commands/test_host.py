@@ -31,6 +31,7 @@ def mock_host(mocker):
     instance.version = "22.04"
     instance.package_manager = "apt"
     instance.last_refresh = None
+    instance.needs_reboot = None
 
     instance.updates = [
         Update(
@@ -211,6 +212,27 @@ class TestShowCommand:
 
         assert code == 0
         assert "irix (Unsupported OS)" in capsys.readouterr().out
+
+    @pytest.mark.parametrize(
+        "needs_reboot, expected",
+        [
+            (True, "Reboot Pending: Yes"),
+            (False, "Reboot Pending: No"),
+            (None, "Reboot Pending: (Unknown)"),
+        ],
+        ids=["pending", "not-pending", "unknown"],
+    )
+    def test_show_reboot_status(self, mock_host, capsys, needs_reboot, expected):
+        """
+        Test host show with host with a pending reboot status
+        """
+        mock_host.needs_reboot = needs_reboot
+
+        code = host_module.app(["show", mock_host.name], result_action="return_value")
+
+        out = capsys.readouterr().out
+        assert code == 0
+        assert expected in out
 
     def test_unsupported_host_no_updates_display(self, mock_host, capsys):
         """

@@ -46,4 +46,6 @@ def migrate_from_host(host: Host) -> HostState:
         online=host.online,
         updates=tuple(host.updates),
         last_refresh=host.last_refresh,
+        # V2 schema additions
+        needs_reboot=getattr(host, "needs_reboot", None),
     )

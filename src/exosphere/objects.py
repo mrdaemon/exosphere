@@ -161,6 +161,11 @@ class Host:
         # This should be a timezone-aware UTC datetime!
         self.last_refresh: UtcDateTime | None = None
 
+        # Whether the host has a pending reboot required
+        # Defaults to None, which is unknown/"haven't looked"
+        # None is also the degraded state, in case of errors.
+        self.needs_reboot: bool | None = None
+
     def from_state(self, state: HostState) -> None:
         """
         Update the Host object from a HostState dataclass instance.
@@ -187,6 +192,10 @@ class Host:
         self.online = state.online
         self.updates = list(state.updates)
         self.last_refresh = state.last_refresh
+
+        # V2 state mapping
+        if state.schema_version >= 2:
+            self.needs_reboot = state.needs_reboot
 
         # NOTE: For future schema versions involving simple new fields,
         # a simple check for state.schema_version to skip loading those
@@ -219,6 +228,7 @@ class Host:
             online=self.online,
             updates=tuple(self.updates),
             last_refresh=self.last_refresh,
+            needs_reboot=self.needs_reboot,
         )
 
     def to_dict(self) -> dict:
@@ -246,6 +256,7 @@ class Host:
             "supported": self.supported,
             "stale": self.is_stale,
             "online": self.online,
+            "needs_reboot": self.needs_reboot,
             "package_manager": self.package_manager,
             "updates": [update.__dict__.copy() for update in self.updates],
             "last_refresh": self.last_refresh.isoformat(
@@ -551,9 +562,12 @@ class Host:
 
     def refresh_updates(self) -> None:
         """
-        Refresh the list of available updates on the host.
+        Refresh the state of updates for the host.
         This method retrieves the list of available updates and
         populates the `updates` attribute.
+
+        It also handles updating various host state attributes, such
+        as the last refresh timestamp and pending reboot status.
 
         """
         if not self.online:
@@ -587,6 +601,7 @@ class Host:
         try:
             pkg_manager = self._pkginst
             self.updates = pkg_manager.get_updates(self.connection)
+            self._refresh_reboot_status(pkg_manager)
         finally:
             if not app_config["options"]["ssh_pipelining"]:
                 self.close()
@@ -602,6 +617,26 @@ class Host:
 
         # Update the last refresh timestamp
         self.last_refresh = datetime.now(timezone.utc)
+
+    def _refresh_reboot_status(self, pkg_manager: PkgManager) -> None:
+        """
+        Refresh the pending reboot status of the host.
+
+        It is intended to be called as part of refresh_updates, and is
+        a secondary operation that may fail without affecting the main
+        update refresh.
+
+        It is considered part of the host state to be refreshed.
+
+        :param pkg_manager: The host's resolved package manager provider.
+        """
+        try:
+            self.needs_reboot = pkg_manager.get_reboot_status(self.connection)
+        except Exception as e:
+            self.logger.warning(
+                "Could not determine reboot status for %s: %s", self.name, e
+            )
+            self.needs_reboot = None
 
     def close(self, clear: bool = False) -> None:
         """

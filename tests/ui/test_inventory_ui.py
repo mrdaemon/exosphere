@@ -81,6 +81,7 @@ def mock_inventory(mocker):
     host1.updates = [update1, update2]  # 2 updates
     host1.security_updates = [update1]  # 1 security update
     host1.is_stale = False
+    host1.needs_reboot = None
     host1.last_refresh = mocker.Mock()
 
     host2 = mocker.Mock(spec=Host)
@@ -96,6 +97,7 @@ def mock_inventory(mocker):
     host2.updates = []  # No updates
     host2.security_updates = []
     host2.is_stale = False
+    host2.needs_reboot = True
     host2.last_refresh = mocker.Mock()
 
     host3 = mocker.Mock(spec=Host)
@@ -111,6 +113,7 @@ def mock_inventory(mocker):
     host3.updates = [update3]  # 1 update
     host3.security_updates = [update3]  # 1 security update
     host3.is_stale = True
+    host3.needs_reboot = False
     host3.last_refresh = mocker.Mock()
 
     inventory.hosts = [host1, host2, host3]
@@ -519,6 +522,33 @@ class TestRefreshRows:
         # Updates column should have stale indicator
         updates_col = row_data[4]  # 5th column (0-indexed)
         assert "*" in updates_col  # Stale indicator
+
+    def test_refresh_rows_keeps_name_selectable(
+        self, inventory_screen, setup_inventory_mock, mocker
+    ):
+        """Regression test: don't dick with the name column"""
+        mock_table = mocker.Mock(spec=DataTable)
+        mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
+        mock_app = mocker.Mock()
+        mocker.patch.object(
+            type(inventory_screen),
+            "app",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_app,
+        )
+
+        # Flag the first host as needing a reboot, simulating a change
+        assert context.inventory is not None
+        first_host = context.inventory.hosts[0]
+        first_host.needs_reboot = True
+
+        inventory_screen.refresh_rows()
+
+        first_row = mock_table.add_row.call_args_list[0][0]
+        name_col = first_row[0]
+
+        # Did you dick with the name column?
+        assert name_col == first_host.name
 
     def test_refresh_rows_no_matching_hosts(
         self, inventory_screen, setup_inventory_mock, mocker
