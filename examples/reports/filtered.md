@@ -1,6 +1,6 @@
 # System Updates Report
 
-Full Report, filtered, generated on 2026-01-31 03:01:51 -0500
+Full Report, filtered, generated on 2026-06-25 15:44:01 -0400
 
 - **Selected hosts:** 5
 - **Hosts with updates:** 2
@@ -14,7 +14,8 @@ Full Report, filtered, generated on 2026-01-31 03:01:51 -0500
 - **Description**: Web Server
 - **OS**: linux ubuntu 22.04
 - **Package Manager**: apt
-- **Last Refresh**: 2026-01-31 01:01:51 -0500
+- **Last Refresh**: 2026-06-25 13:44:01 -0400
+
 
 **Available Updates (4):**
 
@@ -32,7 +33,8 @@ Full Report, filtered, generated on 2026-01-31 03:01:51 -0500
 - **Description**: PostgreSQL database server
 - **OS**: linux debian 12
 - **Package Manager**: apt
-- **Last Refresh**: 2026-01-31 02:01:51 -0500
+- **Last Refresh**: 2026-06-25 14:44:01 -0400
+- **Reboot Pending**: Yes
 
 **Available Updates (4):**
 
@@ -45,4 +47,4 @@ Full Report, filtered, generated on 2026-01-31 03:01:51 -0500
 
 ---
 
-*Generated with [Exosphere](https://github.com/mrdaemon/exosphere) version 2.2.1.dev0*
+*Generated with [Exosphere](https://github.com/mrdaemon/exosphere) version 3.0.0.dev13*

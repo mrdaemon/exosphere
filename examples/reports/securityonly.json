@@ -10,6 +10,7 @@
     "supported": true,
     "stale": false,
     "online": true,
+    "needs_reboot": false,
     "package_manager": "apt",
     "updates": [
       {
@@ -27,7 +28,7 @@
         "source": "security"
       }
     ],
-    "last_refresh": "2026-01-31T06:01:51.649Z"
+    "last_refresh": "2026-06-25T17:44:01.517Z"
   },
   {
     "name": "db-01",
@@ -40,6 +41,7 @@
     "supported": true,
     "stale": false,
     "online": true,
+    "needs_reboot": true,
     "package_manager": "apt",
     "updates": [
       {
@@ -57,7 +59,7 @@
         "source": "security"
       }
     ],
-    "last_refresh": "2026-01-31T07:01:51.649Z"
+    "last_refresh": "2026-06-25T18:44:01.517Z"
   },
   {
     "name": "admin-01",
@@ -70,9 +72,10 @@
     "supported": true,
     "stale": false,
     "online": true,
+    "needs_reboot": false,
     "package_manager": "pkg",
     "updates": [],
-    "last_refresh": "2026-01-31T05:01:51.649Z"
+    "last_refresh": "2026-06-25T16:44:01.517Z"
   },
   {
     "name": "lb-01",
@@ -85,9 +88,10 @@
     "supported": true,
     "stale": false,
     "online": true,
+    "needs_reboot": false,
     "package_manager": "dnf",
     "updates": [],
-    "last_refresh": "2026-01-31T07:31:51.649Z"
+    "last_refresh": "2026-06-25T19:14:01.517Z"
   },
   {
     "name": "dev-staging",
@@ -100,8 +104,9 @@
     "supported": true,
     "stale": true,
     "online": false,
+    "needs_reboot": null,
     "package_manager": "apt",
     "updates": [],
-    "last_refresh": "2026-01-28T08:01:51.649Z"
+    "last_refresh": "2026-06-22T19:44:01.517Z"
   }
 ]
