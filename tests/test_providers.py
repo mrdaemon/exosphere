@@ -1860,45 +1860,74 @@ class TestDnfProvider:
         ids=["dnf", "yum"],
     )
     @pytest.mark.parametrize(
-        "return_code, expected",
-        [(0, False), (1, True)],
+        "return_code, stdout, expected",
+        [
+            (
+                0,
+                "No core libraries or services have been updated since boot-up.",
+                False,
+            ),
+            (
+                1,
+                "Core libraries or services have been updated since boot-up:\n"
+                "  * kernel-core\n"
+                "Reboot is required to fully utilize these updates.",
+                True,
+            ),
+        ],
         ids=["no-reboot", "reboot-required"],
     )
     def test_get_reboot_status(
-        self, mock_connection, provider_cls, expected_cmd, return_code, expected
+        self,
+        mock_connection,
+        provider_cls,
+        expected_cmd,
+        return_code,
+        stdout,
+        expected,
     ):
         """
-        Test the reboot status detection across backends
+        Test the reboot status detection across backends.
 
-        Reboot status is driven by the exit code:
-        0 = no reboot
-        1 = reboot recommended
-
-        The command differs by backend (the dnf subcommand vs the
-        standalone needs-restarting for yum).
+        A reboot is reported only when the exit code is 1 AND the output
+        carries the positive 'Reboot is required' signal (identical on dnf4,
+        dnf5 and yum); exit 0 means no reboot. The command differs by backend
+        (the dnf subcommand vs the standalone needs-restarting for yum).
         """
         provider = provider_cls()
         mock_connection.run.return_value.return_code = return_code
+        mock_connection.run.return_value.stdout = stdout
         mock_connection.run.return_value.stderr = ""
 
         assert provider.get_reboot_status(mock_connection) is expected
         mock_connection.run.assert_called_with(expected_cmd, hide=True, warn=True)
 
-    def test_get_reboot_status_dnf4_missing_plugin(self, mock_connection, caplog):
+    @pytest.mark.parametrize(
+        "stderr",
+        [
+            "No such command: needs-restarting. Please do the needful etc",
+            "Error: rpmdb open failed",
+        ],
+        ids=["dnf4-missing-plugin", "generic-error"],
+    )
+    def test_get_reboot_status_exit1_without_signal_unknown(
+        self, mock_connection, caplog, stderr
+    ):
         """
-        Test that dnf4 with missing needs-restarting plugin degrades to unknown
-        and logs the helpful stderr message.
+        Exit 1 alone is not trusted as a reboot. dnf overloads exit 1 for its
+        own errors (notably a missing plugin on dnf4), so without the positive
+        'Reboot is required' signal in the output the result degrades to
+        unknown rather than a false 'reboot pending'.
         """
         dnf = Dnf()
         mock_connection.run.return_value.return_code = 1
-        mock_connection.run.return_value.stderr = (
-            "No such command: needs-restarting. Please do the needful etc"
-        )
+        mock_connection.run.return_value.stdout = ""
+        mock_connection.run.return_value.stderr = stderr
 
         with caplog.at_level(logging.WARNING):
             assert dnf.get_reboot_status(mock_connection) is None
 
-        assert "No such command" in caplog.text
+        assert "Could not determine reboot status" in caplog.text
 
     def test_get_reboot_status_dnf5_missing_subcommand(self, mock_connection, caplog):
         """

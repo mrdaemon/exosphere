@@ -196,9 +196,17 @@ class Dnf(PkgManager):
         if result.return_code == 0:
             return False
 
-        # DNF 4 can return 1 when subcommand is not found, which is not
-        # the signal we want, so we account for this.
-        if result.return_code == 1 and "No such command" not in result.stderr:
+        # DNF4 can return 1 for two different cases, unfortunately:
+        #  1. A reboot is recommended (exit 1, no stderr)
+        #  2. The needs-restarting plugin is missing or other root error
+        # DNF5 returns 1 for a recommended reboot, but 2 for an unknown
+        # subcommand. So we have to scrape stdout to ascertain, and
+        # luckily, even though the wording changes, this below is
+        # always reliably present when a reboot is required.
+        if (
+            result.return_code == 1
+            and "reboot is required" in (result.stderr + result.stdout).casefold()
+        ):
             return True
 
         # If the entire command is not found, inform user via warning
