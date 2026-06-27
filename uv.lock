@@ -532,7 +532,7 @@ wheels = [
 
 [[package]]
 name = "exosphere-cli"
-version = "3.0.0.dev14"
+version = "3.0.0.dev15"
 source = { editable = "." }
 dependencies = [
     { name = "cyclopts" },

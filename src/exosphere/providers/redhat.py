@@ -292,10 +292,15 @@ class Dnf(PkgManager):
         # Repository source component is usually in the form of "reponame"
         # but can be prefixed with "@" or in the case of missing metadata,
         # be the string "<unknown>" or similar. We account for these here.
+        #
+        # The version/release fields can contain any of the RPM-legal version
+        # characters: alphanumerics plus ".+_~^". The caret "^" in particular
+        # marks a post-release snapshot.
+        # Leading "epoch:" only appears on the version side.
         if self.line_pattern is None:
             self.line_pattern = re.compile(
                 r"^(?P<name>[a-z0-9][\w+.-]*\.\w+)\s+"  # Package (name.arch)
-                r"(?P<version>[\w.+~:-]+-[\w.+~]+)\s+"  # RPM version-release
+                r"(?P<version>[\w.+~^:-]+-[\w.+~^]+)\s+"  # RPM version-release
                 r"(?P<source>@?[a-z0-9][\w.:+/-]*|<[^>\s]+>)$",  # Repo source (optional @ or <>
                 re.ASCII | re.IGNORECASE,
             )

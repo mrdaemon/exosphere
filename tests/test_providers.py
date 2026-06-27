@@ -1786,6 +1786,51 @@ class TestDnfProvider:
         assert updates[0].new_version == "3.16.2-6.fc42"
         assert updates[0].source == "updates"
 
+    def test_get_updates_snapshot_caret_version(
+        self, mock_dnf_command_scenario, caplog
+    ):
+        """
+        Regression: Parser should handle post-release snapshot versions
+
+        Test that packages carrying an RPM post-release snapshot version (the
+        "^" separator, e.g. "0^20260611.ga9c61ff-1.fc44") are parsed instead
+        of being discarded as garbage. These are common on Fedora packages
+        built from a git checkout.
+        """
+        dnf = Dnf()
+
+        mock_connection = mock_dnf_command_scenario(
+            regular_updates="""
+            cockpit.x86_64         0^20260611.ga9c61ff-1.fc44       updates
+            usbmuxd.x86_64         1.1.1^20251205git3ded00c-1.fc44  updates
+            """,
+            regular_updates_failed=True,
+            regular_updates_code=100,
+            installed_packages="""
+            Installed Packages
+            cockpit.x86_64         0^20260601.gdeadbee-1.fc44       @updates
+            usbmuxd.x86_64         1.1.1^20251101gitcafef00-1.fc44  @updates
+            """,
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            updates = dnf.get_updates(mock_connection)
+
+        assert len(updates) == 2
+
+        update_by_name = {u.name: u for u in updates}
+
+        cockpit = update_by_name["cockpit.x86_64"]
+        assert cockpit.new_version == "0^20260611.ga9c61ff-1.fc44"
+        assert cockpit.current_version == "0^20260601.gdeadbee-1.fc44"
+
+        usbmuxd = update_by_name["usbmuxd.x86_64"]
+        assert usbmuxd.new_version == "1.1.1^20251205git3ded00c-1.fc44"
+        assert usbmuxd.current_version == "1.1.1^20251101gitcafef00-1.fc44"
+
+        # None of these should have been logged as unparsable garbage
+        assert "garbage line" not in caplog.text.casefold()
+
     def test_get_updates_security_annotation_lines_skipped(
         self, mock_dnf_command_scenario, caplog
     ):
