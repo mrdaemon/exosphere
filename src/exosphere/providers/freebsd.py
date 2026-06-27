@@ -186,13 +186,21 @@ class Pkg(PkgManager):
         """
         self.logger.debug("Checking reboot status via freebsd-version")
 
+        # We run both checks separately (within the same connection)
+        # to avoid having to rely on whatever shell is configured on
+        # the remote system.
         installed_result = cx.run("freebsd-version -k", hide=True, warn=True)
         running_result = cx.run("freebsd-version -r", hide=True, warn=True)
 
-        if installed_result.failed or running_result.failed:
+        # Handle potential failures in either command
+        if failures := [
+            f"{flag}: {result.stderr.strip()}"
+            for flag, result in (("-k", installed_result), ("-r", running_result))
+            if result.failed
+        ]:
             self.logger.warning(
-                "Could not determine reboot status via freebsd-version: %s",
-                (installed_result.stderr or running_result.stderr).strip(),
+                "Could not determine reboot status via freebsd-version (%s)",
+                "; ".join(failures),
             )
             return None
 

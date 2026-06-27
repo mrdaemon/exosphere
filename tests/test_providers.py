@@ -786,11 +786,15 @@ class TestPkgProvider:
                 {"failed": False, "stdout": "14.1-RELEASE-p6\n"},
             ),
             (
+                {"failed": False, "stdout": "14.1-RELEASE-p6\n"},
+                {"failed": True, "stdout": "", "stderr": "it died"},
+            ),
+            (
                 {"failed": False, "stdout": "\n"},
                 {"failed": False, "stdout": "14.1-RELEASE-p6\n"},
             ),
         ],
-        ids=["command-failed", "empty-output"],
+        ids=["installed-failed", "running-failed", "empty-output"],
     )
     def test_get_reboot_status_unknown(
         self, mock_connection, mocker, installed, running
