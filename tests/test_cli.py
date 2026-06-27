@@ -1,6 +1,4 @@
 import logging
-import sys
-import types
 
 import pytest
 from cyclopts import Group
@@ -99,50 +97,27 @@ def test_unused_tokens_error_is_reworded(capsys) -> None:
     assert "Unused Tokens" not in err
 
 
-def test_ui_start(mocker, caplog) -> None:
+def test_ui(mocker, caplog) -> None:
     """UI entrypoint starts the UI"""
     from exosphere.commands import ui
 
     caplog.set_level(logging.INFO, logger="exosphere.commands.ui")
     mock_ui = mocker.patch("exosphere.commands.ui.ExosphereUi")
 
-    code = ui.app(["start"], result_action="return_value")
+    code = ui.app([], result_action="return_value")
 
     assert code is None
     mock_ui.return_value.run.assert_called_once()
     assert "Starting Exosphere UI" in caplog.text
 
 
-def test_ui_webstart(mocker, caplog, monkeypatch) -> None:
-    """Webstart entrypoints starts the web UI when extras are installed"""
+def test_ui_start_compat(mocker) -> None:
+    """UI entrypoint accepts 'start' as argument for compatibility."""
     from exosphere.commands import ui
 
-    caplog.set_level(logging.INFO, logger="exosphere.commands.ui")
+    mock_ui = mocker.patch("exosphere.commands.ui.ExosphereUi")
 
-    # Mock textual_serve and patch it to simulate extras being installed
-    fake_server_mod = types.ModuleType("textual_serve.server")
-    mock_server_class = mocker.Mock()
-    setattr(fake_server_mod, "Server", mock_server_class)
-    monkeypatch.setitem(sys.modules, "textual_serve.server", fake_server_mod)
+    code = ui.app(["start"], result_action="return_value")
 
-    code = ui.app(["webstart"], result_action="return_value")
-
-    assert code == 0
-    mock_server_class.return_value.serve.assert_called_once()
-    assert "Starting Exosphere Web UI Server" in caplog.text
-
-
-def test_ui_webstart_without_extras(mocker, caplog, monkeypatch, capsys) -> None:
-    """Webstart entrypoint handles missing extras gracefully."""
-    from exosphere.commands import ui
-
-    # Patch textual_serve.server to simulate it not being installed
-    monkeypatch.setitem(sys.modules, "textual_serve.server", None)
-
-    code = ui.app(["webstart"], result_action="return_value")
-
-    assert code == 2
-    assert (
-        "not installed" in capsys.readouterr().err.lower()
-        or "not installed" in caplog.text.lower()
-    )
+    assert code is None
+    mock_ui.return_value.run.assert_called_once()

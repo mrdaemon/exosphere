@@ -63,10 +63,8 @@ _STATIC_SUB_COMMANDS = {
     "save",
     "show",
     "source",
-    "start",
     "status",
     "sync",
-    "webstart",
 }
 
 

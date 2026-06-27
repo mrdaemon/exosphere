@@ -102,13 +102,12 @@ uv sync --dev
 # In a separate terminal, run the console
 uv run textual console
 # In another terminal, run the UI
-uv run textual run --dev -c exosphere ui start
+uv run textual run --dev -c exosphere ui
 ```
 
 Congratulations! Editing any of the `.tcss` files in the `ui/` directory will
 reflect changes immediately.
 
-Make sure you run Exosphere UI with `exosphere ui start`.
 
 ### Documentation Editing Quick Start
 

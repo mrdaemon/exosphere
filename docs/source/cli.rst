@@ -370,7 +370,7 @@ You can launch the text-based user interface (TUI) by running:
 
 .. code-block:: exosphere
 
-   exosphere> ui start
+   exosphere> ui
 
 
 This will start the TUI, which provides a more interactive way to view and manage

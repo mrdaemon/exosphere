@@ -628,6 +628,6 @@ def start_repl(app: App, prompt_text: str = "exosphere> ") -> None:
     repl = ExosphereREPL(app, prompt_text)
     intro = (
         "[cyan]Welcome to the Exosphere interactive shell[/cyan]\n"
-        "Type 'help' for commands or 'ui start' to start the UI."
+        "Type 'help' for commands or 'ui' to start the UI."
     )
     repl.cmdloop(intro=intro)

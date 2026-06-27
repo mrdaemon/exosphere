@@ -103,7 +103,7 @@ Or start the full :doc:`ui` for a more interactive experience:
 
 .. code-block:: shell
 
-    $ exosphere ui start
+    $ exosphere ui
 
 .. tip::
 

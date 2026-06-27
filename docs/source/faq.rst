@@ -338,6 +338,19 @@ happy, if at all possible.
 They all de-serialize to exactly the same data structure (and this is validated with unit tests),
 so you can use whichever of the formats you feel strongest about, or hate the least.
 
+Didn't Exosphere used to have a Web UI? What happened to it?
+------------------------------------------------------------
+
+It was removed in version 3.0. The Web UI started as a neat curiosity more than
+a feature, but never left the experimental stage.
+
+It was always provided as a separate, opt-in, extra for the python packages,
+and installed and used by few, least of all the author.
+
+As the project matured, and new features started clashing with the way it was
+implemented, it became clear it should be removed instead of being left to rot
+in its current, janky, underdeveloped state.
+
 Why Python 3.13?
 ----------------
 

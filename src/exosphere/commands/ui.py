@@ -6,21 +6,28 @@ import logging
 
 from cyclopts import App
 
-from exosphere.commands.utils import err_console
 from exosphere.ui.app import ExosphereUi
 
 ROOT_HELP = """
-Exosphere User Interface
+Start the Exosphere User Interface
 
-Commands to start the Text-based or Web-based User Interface.
+Launches the Text-based User Interface (TUI). When started from
+interactive mode, quitting the UI returns you to the prompt.
+
+Takes no arguments; the 'start' subcommand is an alias kept for
+backward compatibility with older versions of Exosphere.
 """
 
 app = App(name="ui", help=ROOT_HELP, help_flags=["--help"])
 
 
-@app.command
-def start() -> None:
-    """Start the Exosphere UI."""
+@app.default
+def run_tui() -> None:
+    """
+    Start the Exosphere Text-based User Interface (TUI).
+
+    This is the entry point for the 'ui' command.
+    """
     logger = logging.getLogger(__name__)
     logger.info("Starting Exosphere UI")
 
@@ -29,22 +36,13 @@ def start() -> None:
 
 
 @app.command
-def webstart() -> int:
-    """Start the Exosphere Web UI."""
-    logger = logging.getLogger(__name__)
+def start() -> None:
+    """
+    Start the UI (compatibility alias)
 
-    try:
-        from textual_serve.server import Server
-    except ImportError:
-        logger.error("Web UI component is not installed.")
-        err_console.print(
-            "The Exosphere Web UI component is not installed. "
-            r"Please install 'exosphere-cli\[web]' to use this feature."
-        )
-        return 2  # Application error: component not installed
-    else:
-        logger.info("Starting Exosphere Web UI Server")
-        server = Server(command="exosphere ui start")
-        server.serve()
-
-    return 0
+    This subcommand is kept for backwards compatibility with older
+    versions of Exosphere, to preserve the muscle memory of users who
+    have relied on it since 1.0.0. It simply launches the UI, exactly
+    like invoking 'ui' with no arguments.
+    """
+    run_tui()

@@ -58,7 +58,6 @@ with the :doc:`quickstart` to get an overview of how to use Exosphere.
    configuration
    cli
    ui
-   webui
    reporting
    cachefile
    providers

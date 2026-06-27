@@ -75,7 +75,6 @@ uncreative
 unicity
 unix
 webserver
-webstart
 writeout
 zigbee
 zsh

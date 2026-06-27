@@ -25,14 +25,14 @@ You can launch the UI by running:
 
 .. code-block:: shell
 
-    $ exosphere ui start
+    $ exosphere ui
 
 
 Or, from interactive mode:
 
 .. code-block:: exosphere
 
-    exosphere> ui start
+    exosphere> ui
 
 
 .. tip::
@@ -40,6 +40,11 @@ Or, from interactive mode:
     Launching the UI from interactive mode will allow you to return to the CLI
     when exiting the UI, making it possible to switch back and forth between
     the two interfaces seamlessly.
+
+.. note::
+
+    The ``ui start`` command used in previous versions of Exosphere is still
+    accepted as an alias for ``ui``, for backward compatibility.
 
 Interface Navigation
 --------------------
