@@ -83,7 +83,14 @@ entirely through SSH connections and standard system utilities.
 
 - **SSH access** to the remote host (with an SSH `agent`_ for authentication)
 - **Package manager binaries** installed and available in ``$PATH`` (typically pre-installed)
-- **Standard UNIX utilities** such as ``grep``, ``awk``, and ``cut`` (universally available)
+- **A POSIX Shell** [#binsh]_ (present on every supported platform)
+- **Standard UNIX utilities** such as ``grep``, ``awk``, and ``cut`` (POSIX-compliant, typically available by default)
+
+.. [#binsh]
+    Exosphere runs all remote queries through the POSIX standard ``/bin/sh``
+    shell, which is present on all supported platforms, ensuring consistent
+    behavior across them.
+
 
 **Optional Requirements**
 

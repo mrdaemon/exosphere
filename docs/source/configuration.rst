@@ -167,6 +167,7 @@ These options are applied globally, and affect how Exosphere behaves at runtime.
 - :option:`stale_threshold`
 - :option:`default_timeout`
 - :option:`default_username`
+- :option:`default_ssh_locale`
 - :option:`max_threads`
 - :option:`ssh_pipelining`
 - :option:`ssh_pipelining_lifetime`
@@ -829,6 +830,60 @@ and examples of how to set them in the configuration file.
                     }
                 }
 
+.. _default_ssh_locale_option:
+
+.. option:: default_ssh_locale
+
+    The locale forced on every command Exosphere runs on a remote host.
+
+    Some exosphere providers have to rely on parsing the human-readable output
+    of remote commands to determine the state of the host.
+
+    Since many of these commands are subject to gettext translation, which
+    changes on the remote host depending on the locale, this can lead to
+    non-deterministic results.
+
+    In order to prevent this scenario, Exosphere, by default, forces the locale
+    on the remote host to ``C`` (POSIX locale), which is guaranteed to be available
+    and will always produce canonical, untranslated output.
+
+    A reasonable alternative, if available, is ``C.UTF-8``.
+
+    .. attention::
+        Unless you have a very specific reason to do so, we do not recommend
+        changing this value from the default, as it may break functionality in
+        some providers.
+
+    **Default**: ``C``
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                options:
+                  default_ssh_locale: C.UTF-8
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [options]
+                default_ssh_locale = "C.UTF-8"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "options": {
+                        "default_ssh_locale": "C.UTF-8"
+                    }
+                }
+
 .. _max_threads_option:
 
 .. option:: max_threads
@@ -1294,6 +1349,7 @@ has a custom connection timeout value set, overriding :option:`default_timeout`.
 - :option:`description`: A short string describing the host, to be displayed in UIs
 - :option:`connect_timeout`: The number of seconds to wait for a response from the host over SSH
 - :option:`sudo_policy`: The sudo policy to use when running commands on the host
+- :option:`ssh_locale`: The locale forced on remote commands run against the host
 
 Below is the detailed list of all available host options and their defaults.
 
@@ -1628,6 +1684,63 @@ Below is the detailed list of all available host options and their defaults.
                             "name": "myhost",
                             "ip": "myhost.example.com",
                             "sudo_policy": "nopasswd"
+                        }
+                    ]
+                }
+
+.. _hosts_ssh_locale_option:
+
+.. option:: ssh_locale
+
+    The locale forced on remote commands run against this host.
+
+    .. admonition:: Note
+
+        This option has precedence over the global option,
+        see :option:`default_ssh_locale` for documentation and
+        usage detail.
+
+    .. attention::
+
+        Unless you have a very specific reason to do so, we do not recommend
+        changing this value from the default, as it may break functionality in
+        some providers.
+
+
+    **Default**: Value of :option:`default_ssh_locale`
+
+    **Example**:
+
+    .. tabs::
+
+        .. group-tab:: YAML
+
+            .. code-block:: yaml
+
+                hosts:
+                  - name: myhost
+                    ip: myhost.example.com
+                    ssh_locale: C.UTF-8
+
+        .. group-tab:: TOML
+
+            .. code-block:: toml
+
+                [[hosts]]
+                name = "myhost"
+                ip = "myhost.example.com"
+                ssh_locale = "C.UTF-8"
+
+        .. group-tab:: JSON
+
+            .. code-block:: json
+
+                {
+                    "hosts": [
+                        {
+                            "name": "myhost",
+                            "ip": "myhost.example.com",
+                            "ssh_locale": "C.UTF-8"
                         }
                     ]
                 }
