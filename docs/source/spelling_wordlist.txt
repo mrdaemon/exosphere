@@ -27,6 +27,7 @@ hostname
 init
 installonly
 ip
+janky
 jinja
 jinja2
 json

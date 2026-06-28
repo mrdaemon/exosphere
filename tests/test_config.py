@@ -851,6 +851,38 @@ class TestSchemaValidation:
         with pytest.raises(ValueError, match="should have at least 1 character"):
             config.update_from_mapping(mapping)
 
+    @pytest.mark.parametrize(
+        "bad_locale",
+        ["C; rm -rf /", "en_US.UTF-8 extra", "C && evil", "$(evil)", "C|x"],
+        ids=["semicolon", "space", "and", "subshell", "pipe"],
+    )
+    def test_ssh_locale_rejects_shell_unsafe_values(self, bad_locale):
+        """
+        Locale options are exported verbatim into a remote shell command, so
+        values with shell metacharacters or whitespace are rejected outright.
+        """
+        config = Configuration()
+
+        with pytest.raises(ValueError, match="should match pattern"):
+            config.update_from_mapping({"options": {"default_ssh_locale": bad_locale}})
+
+        with pytest.raises(ValueError, match="should match pattern"):
+            config.update_from_mapping(
+                {"hosts": [{"name": "a", "ip": "h", "ssh_locale": bad_locale}]}
+            )
+
+    @pytest.mark.parametrize(
+        "good_locale",
+        ["C", "POSIX", "C.UTF-8", "en_US.UTF-8", "de_DE.UTF-8@euro", "  C.UTF-8  "],
+    )
+    def test_ssh_locale_accepts_valid_values(self, good_locale):
+        """Valid locale names are accepted, with surrounding whitespace stripped."""
+        config = Configuration()
+
+        config.update_from_mapping({"options": {"default_ssh_locale": good_locale}})
+
+        assert config["options"]["default_ssh_locale"] == good_locale.strip()
+
     def test_identifier_whitespace_is_stripped(self):
         """Surrounding whitespace on name/ip is normalized away."""
         config = Configuration()

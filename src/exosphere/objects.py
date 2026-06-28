@@ -5,7 +5,7 @@ from enum import Enum
 from threading import RLock
 from typing import TypeAlias
 
-from fabric import Connection
+from fabric import Config, Connection
 from paramiko.ssh_exception import PasswordRequiredException
 
 from exosphere import app_config
@@ -18,6 +18,7 @@ from exosphere.errors import (
 )
 from exosphere.providers import PkgManagerFactory
 from exosphere.providers.api import PkgManager
+from exosphere.runners import ExosphereRemote
 from exosphere.security import SudoPolicy, check_sudo_policy
 from exosphere.setup import detect
 
@@ -84,6 +85,7 @@ class Host:
         description: str | None = None,
         connect_timeout: int | None = None,
         sudo_policy: str | None = None,
+        ssh_locale: str | None = None,
     ) -> None:
         """
         Create a new Host Object
@@ -95,8 +97,6 @@ class Host:
         Keep in mind the need to verify this process if you make
         changes to the constructor signature or default values.
 
-        Intended to be serializable!
-
         :param name: Name of the host
         :param ip: IP address or FQDN of the host
         :param port: Port number for SSH connection (default is 22)
@@ -104,6 +104,7 @@ class Host:
         :param description: Optional description for the host
         :param connect_timeout: Connection timeout in seconds (optional)
         :param sudo_policy: Sudo policy for package manager operations (skip, nopasswd)
+        :param ssh_locale: Locale forced on remote commands (optional, default is C)
         """
         # Setup logging
         self.logger = logging.getLogger(__name__)
@@ -135,6 +136,11 @@ class Host:
         # Sudo Policy for package manager operations
         target_policy: str = sudo_policy or app_config["options"]["default_sudo_policy"]
         self.sudo_policy: SudoPolicy = SudoPolicy(target_policy.lower())
+
+        # Locale forced on remote commands.
+        # Some providers scrape human-readable output, and gettext
+        # localization must remain consistent for that to work.
+        self.ssh_locale: str = ssh_locale or app_config["options"]["default_ssh_locale"]
 
         # online status, defaults to False
         # until first discovery.
@@ -274,6 +280,15 @@ class Host:
 
         Connection objects are recycled if already created.
 
+        The connection is setup with an environment override that
+        forces two things on all commands run through it:
+
+        1. The locale is set to the configured value (default is C)
+        2. The command is explicitly ran under /bin/sh (POSIX)
+
+        This allows consistent, deterministic output and behavior,
+        regardless of the user's login shell or locale.
+
         If you work with Host objects directly, make sure to call
         `host.close()` when done with operations (such as discover,
         refresh_updates, etc) to avoid leaving ssh connections open.
@@ -291,6 +306,14 @@ class Host:
                     "host": self.ip,
                     "port": self.port,
                     "connect_timeout": self.connect_timeout,
+                    # Use Exosphere runner and locale config to ensure
+                    # a normalized execution environment
+                    "config": Config(
+                        overrides={
+                            "runners": {"remote": ExosphereRemote},
+                            "exosphere_locale": self.ssh_locale,
+                        }
+                    ),
                 }
 
                 # Determine which username to use for the connection.

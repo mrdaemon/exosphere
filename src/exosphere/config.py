@@ -53,6 +53,11 @@ SudoPolicyName = Annotated[str, AfterValidator(_normalize_sudo_policy)]
 # Reusable string type for fields where an empty value is always a mistake
 NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
+# Reusable string type for a locale name (e.g. "C", "C.UTF-8", "en_US.UTF-8").
+LocaleName = Annotated[
+    str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z0-9._@-]+$")
+]
+
 
 class OptionsModel(BaseModel):
     """
@@ -109,6 +114,7 @@ class OptionsModel(BaseModel):
     )
     default_username: NonEmptyStr | None = None  # Default global SSH username
     default_sudo_policy: SudoPolicyName = "skip"  # Global sudo policy for pkg ops
+    default_ssh_locale: LocaleName = "C"  # Locale forced on remote commands
     max_threads: int = Field(default=15, ge=1)  # Max threads for parallel ops
     ssh_pipelining: bool = False  # Enable SSH pipelining for SSH connections
     ssh_pipelining_lifetime: int = Field(  # Max lifetime (secs) of SSH connections
@@ -176,6 +182,7 @@ class HostModel(BaseModel):
     description: str | None = None
     connect_timeout: int | None = Field(default=None, ge=1)
     sudo_policy: SudoPolicyName | None = None
+    ssh_locale: LocaleName | None = None
 
     @model_validator(mode="before")
     @classmethod

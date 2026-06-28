@@ -7,6 +7,7 @@ from exosphere.data import HostInfo, Update
 from exosphere.errors import DataRefreshError, OfflineHostError
 from exosphere.objects import Host, HostOperation
 from exosphere.providers.api import requires_sudo
+from exosphere.runners import ExosphereRemote
 from exosphere.security import SudoPolicy
 
 
@@ -204,6 +205,7 @@ class TestHostObject:
             port=host.port,
             user=host.username,
             connect_timeout=host.connect_timeout,
+            config=mocker.ANY,
         )
 
     def test_host_connection_defaults(self, mocker, mock_connection):
@@ -222,6 +224,7 @@ class TestHostObject:
             host=host.ip,
             port=22,  # Default port
             connect_timeout=10,  # Default connect timeout
+            config=mocker.ANY,
         )
 
     def test_host_connection_global_username(
@@ -242,6 +245,7 @@ class TestHostObject:
             port=22,  # Default port
             user="test_user",  # Global username from config
             connect_timeout=10,  # Default connect timeout
+            config=mocker.ANY,
         )
 
     def test_host_connection_username_overrides_global(
@@ -263,7 +267,33 @@ class TestHostObject:
             port=22,  # Default port
             user="specific_user",  # Specific username overrides global
             connect_timeout=10,  # Default connect timeout
+            config=mocker.ANY,
         )
+
+    def test_host_connection_locale_default(self, mocker, mock_connection):
+        """
+        The connection uses the ExosphereRemote runner and carries the default
+        locale (C) for it via connection config.
+        """
+        host = Host(name="test_host", ip="127.0.0.8")
+
+        _ = host.connection
+
+        config = mock_connection.call_args.kwargs["config"]
+        assert config.runners.remote is ExosphereRemote
+        assert config.exosphere_locale == "C"
+
+    def test_host_connection_locale_override(self, mocker, mock_connection):
+        """
+        A per-host ssh_locale overrides the global default and is carried to
+        the connection config for the runner to apply.
+        """
+        host = Host(name="test_host", ip="127.0.0.8", ssh_locale="C.UTF-8")
+
+        _ = host.connection
+
+        config = mock_connection.call_args.kwargs["config"]
+        assert config.exosphere_locale == "C.UTF-8"
 
     def test_host_config_sudo_policy(self, mocker):
         """
@@ -390,7 +420,10 @@ class TestHostObject:
 
         # Ensure the connection was established
         mock_connection.assert_called_once_with(
-            host=host.ip, port=host.port, connect_timeout=host.connect_timeout
+            host=host.ip,
+            port=host.port,
+            connect_timeout=host.connect_timeout,
+            config=mocker.ANY,
         )
 
     def test_host_discovery_offline(self, mocker, mock_connection):
