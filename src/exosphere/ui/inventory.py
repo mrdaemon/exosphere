@@ -3,6 +3,8 @@ Inventory Screen Module
 """
 
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -565,6 +567,57 @@ class InventoryScreen(DataScreen):
             self.refresh_rows()
             screenflags.flag_screen_clean("inventory")
 
+    @contextmanager
+    def save_cursor(self, table: DataTable) -> Iterator[None]:
+        """
+        Save and restore cursor/scroll positions during table rebuilds.
+
+        Due to the way the DataTable widget works in our current
+        implementation, we favor rebuilding the table entirely from
+        scratch every time the data it displays is refreshed, due to
+        filtering, sorting, and updates being made complex in the
+        context of modal/suspended screens.
+
+        Clearing the table resets the row cursor and scroll to 0.
+        This context manager captures these values and attempts to
+        restore them after the table is rebuilt, if at all possible.
+        """
+        try:
+            selected = table.coordinate_to_cell_key(
+                Coordinate(table.cursor_row, 0)
+            ).row_key.value
+        except (CellDoesNotExist, RowDoesNotExist):
+            logger.debug(
+                "Cursor row %s is not valid, nothing to save.",
+                table.cursor_row,
+            )
+            selected = None
+
+        scroll_y = table.scroll_y
+
+        yield
+
+        if selected is None:
+            logger.debug("No current selection, nothing to restore.")
+            return
+
+        try:
+            row_index = table.get_row_index(selected)
+        except RowDoesNotExist:
+            logger.debug(
+                "Previously selected host '%s' is no longer in the table, "
+                "not restoring cursor.",
+                selected,
+            )
+            return
+
+        # Textual auto-clamps scroll_y to max scrollable so we can
+        # restore it directly without worrying about the table being
+        # shorter than before. It also will bring the select row into
+        # view if it is outside the current scroll window on its own.
+        table.move_cursor(row=row_index, scroll=False)
+        table.scroll_y = scroll_y
+
     def refresh_rows(self, task: str | None = None, notify: bool = True) -> None:
         """Repopulate all rows in the data table from the inventory."""
 
@@ -600,11 +653,11 @@ class InventoryScreen(DataScreen):
 
         table = self.query_one(DataTable)
 
-        # Clear table but keep columns
-        table.clear(columns=False)
-
-        # Repopulate with filtered hosts
-        self._populate_table(table, hosts)
+        # Rebuild the table with the refreshed data, attempting to
+        # preserve the selected row and scroll position if possible.
+        with self.save_cursor(table):
+            table.clear(columns=False)
+            self._populate_table(table, hosts)
 
         if task:
             logger.debug("Updated data table due to task: %s", task)

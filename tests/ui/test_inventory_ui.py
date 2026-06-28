@@ -943,8 +943,6 @@ class TestSelectedHost:
         self, exc, mocker, setup_inventory_mock, inventory_screen
     ):
         """An out-of-range cursor row yields None rather than raising."""
-        from textual.widgets.data_table import RowDoesNotExist
-
         mock_table = mocker.Mock()
         mock_table.row_count = 3
         mock_table.cursor_row = 99
@@ -952,3 +950,52 @@ class TestSelectedHost:
         mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
 
         assert inventory_screen.get_selected_host() is None
+
+
+class TestSaveCursor:
+    """The cursor and scroll positions are preserved across table rebuilds."""
+
+    def _table(self, mocker, *, selected: str, scroll: float = 7.0):
+        """Build a DataTable mock whose cursor is a selection"""
+        table = mocker.Mock(spec=DataTable)
+        table.cursor_row = 0
+        cell_key = mocker.Mock()
+        cell_key.row_key.value = selected
+        table.coordinate_to_cell_key.return_value = cell_key
+        table.scroll_y = scroll
+        return table
+
+    def test_restores_cursor_and_scroll(self, inventory_screen, mocker):
+        """The selected host and scroll offset survive a rebuild."""
+        table = self._table(mocker, selected="server3", scroll=7.0)
+        table.get_row_index.return_value = 5
+
+        with inventory_screen.save_cursor(table):
+            table.scroll_y = 0.0  # simulate resetting the scroll
+
+        table.get_row_index.assert_called_once_with("server3")
+        table.move_cursor.assert_called_once_with(row=5, scroll=False)
+        assert table.scroll_y == 7.0
+
+    def test_host_no_longer_displayed(self, inventory_screen, mocker):
+        """A host filtered out by the rebuild leaves the cursor alone."""
+        table = self._table(mocker, selected="gone")
+        table.get_row_index.side_effect = RowDoesNotExist("gone")
+
+        with inventory_screen.save_cursor(table):
+            pass
+
+        table.move_cursor.assert_not_called()
+
+    def test_no_selection(self, inventory_screen, mocker):
+        """An empty/invalid cursor before the rebuild restores nothing."""
+        table = mocker.Mock(spec=DataTable)
+        table.cursor_row = 0
+        table.coordinate_to_cell_key.side_effect = CellDoesNotExist("empty")
+        table.scroll_y = 0.0
+
+        with inventory_screen.save_cursor(table):
+            pass
+
+        table.get_row_index.assert_not_called()
+        table.move_cursor.assert_not_called()
