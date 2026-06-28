@@ -567,7 +567,7 @@ class ExosphereREPL:
                 title_align="left",
                 border_style="dim",
             )
-            self.console.print("\nAvailable modules during interactive use:\n")
+            self.console.print("\nAvailable commands during interactive use:\n")
             self.console.print(panel)
 
         # Spacing for better readability

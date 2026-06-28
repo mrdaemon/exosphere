@@ -17,10 +17,20 @@ from exosphere.providers.factory import PkgManagerFactory
 from exosphere.security import SudoPolicy, check_sudo_policy, has_sudo_flag
 
 ROOT_HELP = """
-Sudo Policy Management
+Sudo Policy Management Commands
 
-Commands to view Sudo Policies, check resultant host policies,
-list provider requirements, and generate sudoers snippets.
+Exosphere providers may require sudo privileges to execute certain
+operations on remote systems. These commands allow you to inspect,
+validate and generate suitable sudoers configurations.
+
+Exosphere has a global Sudo Policy that dictates how operations
+requiring those privileges are handled (the default is to skip them).
+
+Individual hosts may override the global Sudo Policy with their own
+Sudo Policy in the inventory configuration.
+
+For more details, see the ``Sudo Policies and Privileges`` section of
+the Exosphere documentation.
 """
 
 app = App(name="sudo", help=ROOT_HELP, help_flags=["--help"])
@@ -129,7 +139,7 @@ def _get_username(user: str | None, host: Host | None = None) -> str:
 @app.command
 def policy() -> None:
     """
-    Show the current global Sudo Policy.
+    Show the current global Sudo Policy
 
     This command will display the current global Sudo Policy in effect.
     Individual hosts may override this with their own Sudo Policy.
@@ -140,7 +150,7 @@ def policy() -> None:
 @app.command
 def check(host: HostArg, /) -> int:
     """
-    Check the effective Sudo Policies for a given host.
+    Check the effective Sudo Policies for a given host
 
     The command will take in consideration the current global Sudo Policy and the
     host-specific Sudo Policy (if defined) to determine if the host can execute
@@ -243,10 +253,11 @@ def check(host: HostArg, /) -> int:
 @app.command
 def providers(name: str | None = None, /) -> int:
     """
-    Show Sudo Policy requirements for available providers.
+    Show Sudo Policy requirements for available providers
 
     Some providers require sudo privileges to execute certain operations.
-    You can use this command to what they are, if applicable.
+    You can use this command to enumerate these requirements, if
+    applicable.
 
     Parameters
     ----------
@@ -305,7 +316,7 @@ def generate(
     user: Annotated[str | None, Parameter(name=["--user", "-u"])] = None,
 ) -> int:
     """
-    Generate a sudoers configuration for passwordless operations.
+    Generate a sudoers configuration for passwordless operations
 
     Creates snippet suitable for /etc/sudoers.d/* on target systems.
 

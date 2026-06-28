@@ -35,7 +35,7 @@ DOCS_URL = (
 @app.default
 def version_default() -> None:
     """
-    Show the current version of Exosphere.
+    Show the current version of Exosphere
 
     Displays the currently installed version. Use 'version check' to check
     for updates on PyPI.

@@ -21,7 +21,7 @@ from exosphere.editing import EditorError, open_in_editor
 ROOT_HELP = """
 Configuration-related Commands
 
-Commands to inspect the currently loaded configuration.
+Commands to inspect or modify the currently loaded configuration.
 """
 
 app = App(name="config", help=ROOT_HELP, help_flags=["--help"])
@@ -35,7 +35,7 @@ def show(
     full: Annotated[bool, Parameter(name=["--full", "-f"], negative="")] = False,
 ) -> int:
     """
-    Show the current configuration.
+    Show the current configuration
 
     Displays the current configuration options, or the value of a specific option
     if specified.
@@ -79,7 +79,7 @@ def show(
 @app.command
 def source(*, env: bool = True) -> None:
     """
-    Show the configuration source, where it was loaded from.
+    Show the configuration source, where it was loaded from
 
     Displays the path of the configuration file loaded, if any, and
     any environment variables that affect the configuration.
@@ -119,7 +119,7 @@ def source(*, env: bool = True) -> None:
 @app.command
 def paths() -> None:
     """
-    Show the paths of application directories.
+    Show the paths of application directories
 
     Will display the platform-specific filesystem paths that exosphere
     uses for configuration, state, logs, and cache.
@@ -144,7 +144,7 @@ def diff(
     full: Annotated[bool, Parameter(name=["--full", "-f"], negative="")] = False,
 ) -> None:
     """
-    Show the differences between the current configuration and the defaults.
+    Show the differences between the current configuration and the defaults
 
     Exosphere follows convention over configuration, so your configuration
     file can exclusively contain the options you want to change.
@@ -200,14 +200,14 @@ def edit(
     ] = True,
 ) -> int:
     """
-    Open the current configuration file in an editor.
+    Open the current configuration file in an editor
 
     Launches your text editor against the currently loaded
     configuration file. If no configuration file is loaded, the default
     platform path is opened instead, letting you create one from
     scratch.
 
-    The editor to use is determined  from the ``editor`` configuration
+    The editor to use is determined from the ``editor`` configuration
     option and then falls back to the ``VISUAL`` and ``EDITOR``
     environment variables, then finally, a platform default.
 

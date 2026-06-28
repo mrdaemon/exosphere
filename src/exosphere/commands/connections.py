@@ -59,7 +59,7 @@ def show(
     ] = False,
 ) -> int:
     """
-    Show SSH connection state for inventory hosts.
+    Show SSH connection state for inventory hosts
 
     Display the current SSH connection state for specified hosts, or
     all hosts if none are specified.

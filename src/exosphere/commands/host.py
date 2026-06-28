@@ -32,9 +32,12 @@ SPINNER_ARGS = (
 )
 
 ROOT_HELP = """
-Host Management Commands
+Host Operations Commands
 
 Commands to query, refresh and discover individual hosts.
+
+``show`` is the primary command to display the current state of a host
+in the inventory.
 """
 
 app = App(name="host", help=ROOT_HELP, help_flags=["--help"])
@@ -163,10 +166,10 @@ def show(
     ] = False,
 ) -> int:
     """
-    Show details of a specific host.
+    Show detailed state of a specific host
 
     This command retrieves the host by name from the inventory
-    and displays its details in a rich format.
+    and displays its details in a rich format on the terminal.
 
     Parameters
     ----------
@@ -214,7 +217,7 @@ def show(
 @app.command
 def discover(host: HostArg, /) -> int:
     """
-    Gather platform data for host.
+    Detect and gather platform data for a host
 
     This command retrieves the host by name from the inventory
     and synchronizes its platform data, such as OS, version and
@@ -251,22 +254,25 @@ def refresh(
     host: HostArg,
     /,
     *,
-    full: Annotated[bool, Parameter(name=["--sync", "-s"], negative="")] = False,
+    sync: Annotated[bool, Parameter(name=["--sync", "-s"], negative="")] = False,
     discover: Annotated[
         bool, Parameter(name=["--discover", "-d"], negative="")
     ] = False,
 ) -> int:
     """
-    Refresh the updates for a specific host.
+    Refresh the state and update data for a specific host
 
     This command retrieves the host by name from the inventory
-    and refreshes its available updates.
+    and refreshes its state and available updates.
+
+    If `--sync` is specified, the package repositories will also be
+    synchronized remotely.
 
     Parameters
     ----------
     host
         Host from inventory to refresh
-    full
+    sync
         Also sync package repositories
     discover
         Also refresh platform information
@@ -292,7 +298,7 @@ def refresh(
 
             progress.stop_task(task)
 
-        if full:
+        if sync:
             task = progress.add_task(
                 f"Syncing package repositories for '{host.name}'", total=None
             )
@@ -336,12 +342,10 @@ def refresh(
 @app.command
 def ping(host: HostArg, /) -> None:
     """
-    Ping a specific host to check its reachability.
+    Ping a specific host to check connectivity and online status
 
-    This command will also update a host's online status
-    based on the ping result.
-
-    The ping status is based on ssh connectivity.
+    The ping status is based on ssh connectivity, and will update
+    the host's online status in the inventory accordingly.
 
     Parameters
     ----------

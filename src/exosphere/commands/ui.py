@@ -24,7 +24,7 @@ app = App(name="ui", help=ROOT_HELP, help_flags=["--help"])
 @app.default
 def run_tui() -> None:
     """
-    Start the Exosphere Text-based User Interface (TUI).
+    Start the Exosphere Text-based User Interface (TUI)
 
     This is the entry point for the 'ui' command.
     """

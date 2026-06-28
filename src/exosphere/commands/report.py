@@ -89,7 +89,7 @@ def generate(
     navigation: Annotated[bool, Parameter(group=OUTPUT_GROUP)] = True,
 ) -> int:
     """
-    Generate a report of the current inventory state.
+    Generate a report of the current inventory state
 
     The report can be generated in various formats, including html for
     for a pretty self-contained document, json for easy integration

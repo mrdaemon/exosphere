@@ -38,10 +38,13 @@ ERROR_STYLE = {
 SORT_COLUMNS = ", ".join(field.value for field in SortField)
 
 ROOT_HELP = """
-Inventory and Bulk Management Commands
+Inventory and Bulk Operations Commands
 
 Commands to bulk query, discover and refresh hosts in the inventory.
 Most commands accept an optional list of host names to operate on.
+
+``status`` is the primary command to display the current state of hosts
+in the inventory.
 """
 
 app = App(name="inventory", help=ROOT_HELP, help_flags=["--help"])
@@ -50,7 +53,7 @@ app = App(name="inventory", help=ROOT_HELP, help_flags=["--help"])
 @app.command
 def discover(*names: HostArg) -> int:
     """
-    Gather platform information for hosts
+    Detect and gather platform information for hosts
 
     On a fresh inventory start, this needs to be done at least once
     before operations can be performed on the hosts. It can also be
@@ -114,7 +117,7 @@ def refresh(
     verbose: Annotated[bool, Parameter(name=["--verbose", "-v"], negative="")] = False,
 ) -> int:
     """
-    Refresh the update data for all hosts
+    Refresh the state and update data for hosts
 
     Connects to hosts in the inventory and retrieves pending package
     updates.
@@ -123,9 +126,10 @@ def refresh(
     System flavor, version, package manager) will also be refreshed.
     Also refreshes the online status in the process.
 
-    If `--sync` is specified, the package repositories will also be synced.
+    If `--sync` is specified, the package repositories will also be
+    synchronized remotely.
 
-    Syncing the package repositories involves invoking whatever mechanism
+    Synchronizing the package repositories involves invoking whatever mechanism
     the package manager uses to achieve this, and can be a very expensive
     operation, which may take a long time, especially on large inventories
     with a handful of slow hosts.
@@ -233,7 +237,7 @@ def refresh(
 @app.command
 def ping(*names: HostArg) -> int:
     """
-    Ping all hosts in the inventory
+    Check connectivity and online status of hosts
 
     Attempts to connect to all hosts in the inventory.
     On failure, the affected host will be marked as offline.
@@ -241,9 +245,12 @@ def ping(*names: HostArg) -> int:
     You can use this command to quickly check whether or not
     hosts are reachable and online.
 
-    Invoke this to update the online status of hosts if
-    any have gone offline and exosphere refuses to run
-    an operation on them.
+    You can also invoke this command to explicitly refresh the Online
+    status of hosts in the inventory.
+
+    The connectivity check is based on SSH reachability, and the
+    criteria for a host being considered online is "ready to execute
+    commands via SSH".
 
     Parameters
     ----------
@@ -335,7 +342,7 @@ def status(
     full: Annotated[bool, Parameter(name=["--full", "-f"], negative="")] = False,
 ) -> int:
     """
-    Show hosts and their status
+    Show inventory hosts and their status
 
     Display a nice table with the current state of all the hosts
     in the inventory, including their package update counts, their
@@ -493,9 +500,9 @@ def save() -> None:
     Since this is enabled by default, you will rarely need to invoke this
     manually.
 
-    This command is only available in interactive mode, as the inventory
-    state is not persisted between separate CLI invocations when autosave
-    is disabled.
+    This command is only available in interactive mode, as the
+    inventory state is not persisted between separate CLI invocations
+    when autosave is disabled.
     """
     save_inventory_state()
 
@@ -506,7 +513,7 @@ def clear(
     force: Annotated[bool, Parameter(name=["--force", "-f"], negative="")] = False,
 ) -> int:
     """
-    Clear the inventory state and cache file
+    Clear the inventory state and cache file (reset state)
 
     This will empty the inventory cache file and re-initialize
     all hosts from scratch.
