@@ -11,6 +11,7 @@ accept it into my heart just yet.
 
 import pytest
 from textual.widgets import DataTable
+from textual.widgets.data_table import CellDoesNotExist, RowDoesNotExist
 
 from exosphere import context
 from exosphere.data import Update
@@ -523,10 +524,10 @@ class TestRefreshRows:
         updates_col = row_data[4]  # 5th column (0-indexed)
         assert "*" in updates_col  # Stale indicator
 
-    def test_refresh_rows_keeps_name_selectable(
+    def test_refresh_rows_keys_rows_by_host_name(
         self, inventory_screen, setup_inventory_mock, mocker
     ):
-        """Regression test: don't dick with the name column"""
+        """Rows are keyed by host name so selection resolves via RowKey."""
         mock_table = mocker.Mock(spec=DataTable)
         mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
         mock_app = mocker.Mock()
@@ -537,18 +538,13 @@ class TestRefreshRows:
             return_value=mock_app,
         )
 
-        # Flag the first host as needing a reboot, simulating a change
-        assert context.inventory is not None
-        first_host = context.inventory.hosts[0]
-        first_host.needs_reboot = True
-
         inventory_screen.refresh_rows()
 
-        first_row = mock_table.add_row.call_args_list[0][0]
-        name_col = first_row[0]
-
-        # Did you dick with the name column?
-        assert name_col == first_host.name
+        assert context.inventory is not None
+        for call, host in zip(
+            mock_table.add_row.call_args_list, context.inventory.hosts, strict=True
+        ):
+            assert call.kwargs["key"] == host.name
 
     def test_refresh_rows_no_matching_hosts(
         self, inventory_screen, setup_inventory_mock, mocker
@@ -902,16 +898,20 @@ class TestSelectedHost:
         self, mocker, setup_inventory_mock, inventory_screen
     ):
         """The host under the row cursor is resolved from the inventory."""
+        from textual.coordinate import Coordinate
+
         mock_table = mocker.Mock()
         mock_table.row_count = 3
         mock_table.cursor_row = 1
-        mock_table.get_row_at.return_value = ["testserver2", "linux", "debian"]
+        cell_key = mocker.Mock()
+        cell_key.row_key.value = "testserver2"
+        mock_table.coordinate_to_cell_key.return_value = cell_key
         mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
 
         host = inventory_screen.get_selected_host()
 
         assert host is setup_inventory_mock.get_host("testserver2")
-        mock_table.get_row_at.assert_called_once_with(1)
+        mock_table.coordinate_to_cell_key.assert_called_once_with(Coordinate(1, 0))
 
     def test_get_selected_host_no_inventory(self, mocker, inventory_screen):
         """No inventory yields None."""
@@ -938,8 +938,9 @@ class TestSelectedHost:
         )
         assert inventory_screen.get_selected_host() is None
 
+    @pytest.mark.parametrize("exc", [CellDoesNotExist, RowDoesNotExist])
     def test_get_selected_host_invalid_cursor_row(
-        self, mocker, setup_inventory_mock, inventory_screen
+        self, exc, mocker, setup_inventory_mock, inventory_screen
     ):
         """An out-of-range cursor row yields None rather than raising."""
         from textual.widgets.data_table import RowDoesNotExist
@@ -947,7 +948,7 @@ class TestSelectedHost:
         mock_table = mocker.Mock()
         mock_table.row_count = 3
         mock_table.cursor_row = 99
-        mock_table.get_row_at.side_effect = RowDoesNotExist("bad row")
+        mock_table.coordinate_to_cell_key.side_effect = exc("bad row")
         mocker.patch.object(inventory_screen, "query_one", return_value=mock_table)
 
         assert inventory_screen.get_selected_host() is None

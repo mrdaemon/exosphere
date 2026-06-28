@@ -3,11 +3,11 @@ Inventory Screen Module
 """
 
 import logging
-import re
 
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Center, Container, Grid, Vertical
+from textual.coordinate import Coordinate
 from textual.css.query import NoMatches
 from textual.events import Key
 from textual.screen import Screen
@@ -20,7 +20,7 @@ from textual.widgets import (
     ListItem,
     ListView,
 )
-from textual.widgets.data_table import RowDoesNotExist
+from textual.widgets.data_table import CellDoesNotExist, RowDoesNotExist, RowKey
 
 from exosphere import context
 from exosphere.inventory import FilterMode, SortField
@@ -247,6 +247,8 @@ class HostDetailsPanel(Screen):
     def __init__(self, host: Host) -> None:
         super().__init__()
         self.host = host
+        # Updates table row keys mapping
+        self._row_updates: dict[RowKey, Update] = {}
 
     def compose(self) -> ComposeResult:
         """Compose the host details layout."""
@@ -339,11 +341,15 @@ class HostDetailsPanel(Screen):
             "Package Update",
         )
 
-        # Populate the updates table with available updates
+        # Populate the updates table with available updates.
+        # We store the auto key for each row in a mapping to facilitate
+        # retrieval in later calls and event handling.
+        self._row_updates.clear()
         for update in update_list:
-            updates_table.add_row(
+            row_key = updates_table.add_row(
                 f"[red]{update.name}[/red]" if update.security else update.name
             )
+            self._row_updates[row_key] = update
 
     def on_key(self, event: Key) -> None:
         """Handle key presses to return to the inventory screen."""
@@ -353,24 +359,9 @@ class HostDetailsPanel(Screen):
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the updates data table."""
 
-        # Retrieve the selected row by automatically generated key
-        table = self.query_one(DataTable)
-        row_data = table.get_row(event.row_key)
-
-        # Extract the update name, removing Rich markup if present
-        update_display_name = row_data[0]  # First column
-        update_name = re.sub(r"\[/?[^\]]*\]", "", update_display_name)
-
-        logger.debug("Selected update name: %s", update_name)
-
-        if not self.host:
-            logger.error("Host is not initialized, cannot select update.")
-            self.app.push_screen(ErrorScreen("Host is not initialized."))
-            return
-
-        update: Update | None = next(
-            (u for u in self.host.updates if u.name == update_name), None
-        )
+        # Resolve the selected row via its RowKey, set up when the table
+        # was populated.
+        update = self._row_updates.get(event.row_key)
 
         if update is None:
             logger.error("Update not found for host '%s'.", self.host.name)
@@ -520,24 +511,33 @@ class InventoryScreen(DataScreen):
             return None
 
         try:
-            row = table.get_row_at(table.cursor_row)
-        except RowDoesNotExist:
+            cell_key = table.coordinate_to_cell_key(Coordinate(table.cursor_row, 0))
+        except (CellDoesNotExist, RowDoesNotExist):
             logger.debug(
                 "Cursor row %s is not valid, no host to select.", table.cursor_row
             )
             return None
 
-        # First column is the (plain, unmarked) host name.
-        return context.inventory.get_host(str(row[0]))
+        # Rows are keyed by host name (the inventory's primary key).
+        # Unlike textual ids, the row key has no specific rules for
+        # allowed character, so we can use it verbatim.
+        host_name = cell_key.row_key.value
+        if host_name is None:
+            logger.debug("Cursor row has no host-name key, no host to select.")
+            return None
+
+        return context.inventory.get_host(host_name)
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection in the data table."""
 
-        # Retrieve the selected row by automatically generated key
-        table = self.query_one(DataTable)
-        row_data = table.get_row(event.row_key)
+        # Rows are keyed by host name (the inventory's primary key).
+        host_name = event.row_key.value
 
-        host_name = row_data[0]  # First column is the host name
+        if not host_name:
+            logger.error("Selected row has no host-name key, cannot select row.")
+            self.app.push_screen(ErrorScreen("Selected row has no usable host name!"))
+            return
 
         if not context.inventory:
             logger.error("Inventory is not initialized, cannot select row.")
@@ -765,11 +765,13 @@ class InventoryScreen(DataScreen):
                 "[green]Online[/green]" if host.online else "[red]Offline[/red]"
             )
 
-            # Append reboot indicator if state indicates it. Kept off the
-            # name column, which is used verbatim as the row selection key.
+            # Append reboot indicator if state indicates it.
             if host.needs_reboot:
                 status_str += " [red]![/red]"
 
+            # Key each row by host name (the inventory's primary key) so
+            # selection survives sorting/filtering and is decoupled from
+            # the displayed cell text.
             table.add_row(
                 host.name,
                 maybe_unknown(host.os, host.supported),
@@ -778,4 +780,5 @@ class InventoryScreen(DataScreen):
                 updates,
                 security_updates,
                 status_str,
+                key=host.name,
             )
