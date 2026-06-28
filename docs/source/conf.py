@@ -35,6 +35,7 @@ extensions = [
     'exosphere_lexer',  # Custom Exosphere CLI lexer
     'exosphere_help',  # Custom Exosphere CLI help SVG renderer
     'exosphere_artifacts',  # Custom extension to copy artifacts to _static
+    'exosphere_cli_format',  # Custom extension to reshape CLI help summaries
     'jsonschema_doc',  # Custom extension for JSON Schema documentation
 ]
 
