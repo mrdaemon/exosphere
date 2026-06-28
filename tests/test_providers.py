@@ -1220,15 +1220,15 @@ class TestPkgAddProvider:
         with pytest.raises(DataRefreshError, match=exception_expected):
             pkg_add.get_updates(mock_connection)
 
-    def test_get_updates_weird_output(
+    def test_get_updates_name_change(
         self, mocker, mock_connection, mock_system_stable_or_release, caplog
     ):
         """
         Test the get_updates method of the PkgAdd provider with a package
-        that unexpectedly changes names between versions.
+        that changes names between versions (e.g. a quirks-driven rename).
 
-        That is weird but "legal" and should be a handled case.
-        Which we handle by skipping it entirely and logging a warning.
+        The new stem is not installed under that name, so we report it as a
+        new install (current_version=None) and log a debug note.
         """
 
         output = "Update candidates: oldname-1.0 -> newname-2.0"
@@ -1246,12 +1246,58 @@ class TestPkgAddProvider:
 
         pkg_add = PkgAdd()
 
+        with caplog.at_level(logging.DEBUG):
+            results = pkg_add.get_updates(mock_connection)
+
+        assert len(results) == 1
+        assert results[0].name == "newname"
+        assert results[0].current_version is None
+        assert results[0].new_version == "2.0"
+
+        assert "changed name to newname" in caplog.text
+
+    def test_get_updates_flavored_version_bump(
+        self, mocker, mock_connection, mock_system_stable_or_release, caplog
+    ):
+        """
+        Test that flavored packages with an actual version bump are reported.
+
+        Regression test: We previous accidentally swallowed the last
+        hyphen in the parser, which caused flavored packages to be
+        dropped from the update list entirely.
+        """
+
+        output = (
+            "Update candidates: vim-9.2.699-no_x11 -> vim-9.2.738-no_x11\n"
+            "Update candidates: sudo-1.9.17.1p0-gettext -> sudo-1.9.17.2p0-gettext\n"
+        )
+
+        def side_effects(cmd, *args, **kwargs):
+            if "syspatch" in cmd:
+                return mock_system_stable_or_release
+            mock_packages = mocker.MagicMock()
+            mock_packages.failed = False
+            mock_packages.stdout = output
+            return mock_packages
+
+        mock_connection.run.side_effect = side_effects
+
+        pkg_add = PkgAdd()
+
         with caplog.at_level(logging.WARNING):
             results = pkg_add.get_updates(mock_connection)
 
-        assert results == []
-        assert "Unexpected package name change" in caplog.text
-        assert "ignoring" in caplog.text
+        assert "Unexpected package name change" not in caplog.text
+
+        assert len(results) == 2
+
+        assert results[0].name == "vim"
+        assert results[0].current_version == "9.2.699"
+        assert results[0].new_version == "9.2.738"
+
+        assert results[1].name == "sudo"
+        assert results[1].current_version == "1.9.17.1p0"
+        assert results[1].new_version == "1.9.17.2p0"
 
     def test_get_updates_invalid_output(
         self, mock_connection_pkg_add_invalid_output, caplog

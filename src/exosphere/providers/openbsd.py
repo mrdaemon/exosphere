@@ -156,9 +156,16 @@ class PkgAdd(PkgManager):
         """
 
         # Compile the regex pattern on first use
+        # Follows OpenBSD::PackageName parsing rules for package names.
+        # Special care needs to be taken to avoid splitting on the
+        # flavor part, if present.
         if self.line_pattern is None:
             self.line_pattern = re.compile(
-                r"^Update candidates: ([\w\-.+]+)-([^\s]+) -> ([\w\-.+]+)-([^\s]+)$"
+                r"^Update candidates: "
+                r"(?P<name>.*?)-(?P<version>\d[^\s-]*)(?:-\S+)?"  # name-version[-flavor]
+                r" -> "
+                r"(?P<new_name>.*?)-(?P<new_version>\d[^\s-]*)(?:-\S+)?"  # new of the same
+                r"$"
             )
 
         match = self.line_pattern.match(line)
@@ -167,18 +174,27 @@ class PkgAdd(PkgManager):
             self.logger.debug("Could not parse: %s", line)
             return None
 
-        package_name = match.group(1)
-        current_version = match.group(2)
-        new_name = match.group(3)
-        new_version = match.group(4)
+        package_name = match["name"]
+        current_version = match["version"]
+        new_name = match["new_name"]
+        new_version = match["new_version"]
 
+        # If the package name has changed, given the strict regex
+        # above, this is likely a quirks-based package rename, and we
+        # should report it as a new install, especially on -current.
         if package_name != new_name:
-            self.logger.warning(
-                "Unexpected package name change: %s -> %s , ignoring.",
+            self.logger.debug(
+                "Package %s changed name to %s, reporting as new install.",
                 package_name,
                 new_name,
             )
-            return None
+            return Update(
+                name=new_name,
+                current_version=None,
+                new_version=new_version,
+                security=not is_current,  # All updates are security unless on -current
+                source="Packages Mirror",
+            )
 
         if current_version == new_version:
             self.logger.debug(
