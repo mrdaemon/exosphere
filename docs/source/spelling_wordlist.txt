@@ -35,6 +35,7 @@ keybind
 keybinds
 kwargs
 libc
+lifecycle
 linux
 lstrip
 macOS

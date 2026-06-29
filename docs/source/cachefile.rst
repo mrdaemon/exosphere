@@ -1,5 +1,5 @@
 Managing Cache
-===============
+==============
 
 Exosphere saves the state of all hosts in a cache file, stored on disk.
 This allows the software to remember the state of hosts and updates between runs.

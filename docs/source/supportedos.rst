@@ -61,7 +61,8 @@ Compatibility List
 - Other Unix-like systems (e.g., Solaris, AIX, IRIX, Mac OS)
 
 The bar for entry is fairly low to fit this description, as long as it can be connected
-to via SSH and returns something useful via ``uname -s``, it will work here.
+to via SSH, has a POSIX shell available [#binsh]_ and returns something useful via
+``uname -s``, it will work here.
 
 ❌ Exosphere explicitly **does not support** the following platforms:
 
@@ -95,7 +96,7 @@ entirely through SSH connections and standard system utilities.
 **Optional Requirements**
 
 - **Elevated privileges** for certain operations on some platforms (i.e. `root`)
-- ``sudo`` installed on the remote host (if needed) and :ref:`configured properly <sudo-policies-and-privileges>`
+- ``sudo`` installed on the remote host (if needed) and :doc:`configured properly <sudo>`
 
 See below for more details.
 
@@ -107,7 +108,8 @@ See below for more details.
 Some providers may require elevated privileges to perform certain operations, but this is
 entirely optional.
 
-More details about all of this are available in the :doc:`connections` section.
+More details about all of this are available in the :doc:`connections` and
+:doc:`sudo` sections.
 
 .. note::
 

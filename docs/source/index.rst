@@ -49,25 +49,49 @@ with the :doc:`quickstart` to get an overview of how to use Exosphere.
 
 .. toctree::
    :maxdepth: 2
-   :caption: User Documentation:
+   :caption: Getting Started
 
+   concepts
    installation
    quickstart
    supportedos
-   connections
-   configuration
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Using Exosphere
+
    cli
    ui
    reporting
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Administration
+
+   connections
+   configuration
+   sudo
    cachefile
-   providers
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Support
+
+   troubleshooting
    faq
+   gettinghelp
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
+
+   providers
    command_reference
    glossary
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Documentation:
+   :caption: Developer Documentation
 
    api/index
 

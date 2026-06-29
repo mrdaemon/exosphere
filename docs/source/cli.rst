@@ -107,7 +107,7 @@ repositories on each host, before fetching the update status.
 .. admonition:: Note
 
    The ``--sync`` option may require elevated privileges (sudo) on some platforms.
-   See the :doc:`connections` page for more details on how to configure this.
+   See the :doc:`sudo` page for more details on how to configure this.
    This operation may also take quite a long time, depending on the number of
    hosts and their specifications, as well as the network speed.
 
@@ -139,9 +139,9 @@ available.
 
    Two markers may appear in the table, as noted in its legend:
 
-   - ``*`` next to the update counts marks **stale** data — the host has not
+   - ``*`` next to the update counts marks **stale** data --- the host has not
      been refreshed in a while (configurable, see :option:`stale_threshold`).
-   - ``!`` next to a host's status marks a **pending reboot** — the host needs
+   - ``!`` next to a host's status marks a **pending reboot** --- the host needs
      to be rebooted (for example after a kernel update).
 
 You can also select one or more specific hosts by providing their names as arguments:

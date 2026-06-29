@@ -243,7 +243,7 @@ and examples of how to set them in the configuration file.
     you must configure your sudoers file to allow the user Exosphere connects as
     to run those commands with ``NOPASSWD:`` in the sudoers file.
 
-    More details on how to configure this can be found in the :doc:`connections`
+    More details on how to configure this can be found in the :doc:`sudo`
     documentation.
 
     .. admonition:: Note

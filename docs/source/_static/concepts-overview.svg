@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" font-family="'Segoe UI','DejaVu Sans',Verdana,sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#566673"/>
+    </marker>
+  </defs>
+
+  <!-- Your machine group -->
+  <rect x="40" y="92" width="232" height="176" rx="12" fill="#edf4f0" stroke="#cdddd5" stroke-width="1.5"/>
+  <text x="156" y="116" text-anchor="middle" font-size="15" font-weight="600" fill="#009568">Your machine</text>
+
+  <!-- SSH Agent -->
+  <rect x="71" y="132" width="170" height="46" rx="6" fill="#e8f4ef" stroke="#009568" stroke-width="1.5"/>
+  <text x="156" y="160" text-anchor="middle" font-size="14" fill="#3d3d3d">SSH Agent</text>
+
+  <!-- Exosphere -->
+  <rect x="71" y="198" width="170" height="46" rx="6" fill="#009568" stroke="#00795a" stroke-width="1.5"/>
+  <text x="156" y="226" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">Exosphere</text>
+
+  <!-- Hosts -->
+  <rect x="498" y="40" width="182" height="56" rx="6" fill="#e8f4ef" stroke="#009568" stroke-width="1.5"/>
+  <text x="589" y="73" text-anchor="middle" font-size="14" fill="#3d3d3d">Debian host</text>
+
+  <rect x="498" y="152" width="182" height="56" rx="6" fill="#e8f4ef" stroke="#009568" stroke-width="1.5"/>
+  <text x="589" y="185" text-anchor="middle" font-size="14" fill="#3d3d3d">FreeBSD host</text>
+
+  <rect x="498" y="264" width="182" height="56" rx="6" fill="#e8f4ef" stroke="#009568" stroke-width="1.5"/>
+  <text x="589" y="297" text-anchor="middle" font-size="14" fill="#3d3d3d">RHEL host</text>
+
+  <!-- SSH connections from the "Your machine" box -->
+  <line x1="272" y1="180" x2="496" y2="68" stroke="#566673" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="272" y1="180" x2="496" y2="180" stroke="#566673" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="272" y1="180" x2="496" y2="292" stroke="#566673" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <!-- SSH labels -->
+  <g font-size="12" fill="#566673">
+    <rect x="366" y="115" width="36" height="18" rx="3" fill="#f5f5f5"/>
+    <text x="384" y="128" text-anchor="middle">SSH</text>
+    <rect x="366" y="171" width="36" height="18" rx="3" fill="#f5f5f5"/>
+    <text x="384" y="184" text-anchor="middle">SSH</text>
+    <rect x="366" y="227" width="36" height="18" rx="3" fill="#f5f5f5"/>
+    <text x="384" y="240" text-anchor="middle">SSH</text>
+  </g>
+</svg>

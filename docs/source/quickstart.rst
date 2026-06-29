@@ -73,13 +73,17 @@ You can also explore the interactive help system in the CLI by running:
 This will detect the platform and package manager for each host.
 It only needs to be done once, or if something changes on the host.
 
-**Refresh Updates**
+If you encounter issues at this step, see the :doc:`connections`
+and :doc:`supportedos` pages for more details.
+
+**Refresh Hosts**
 
 .. code-block:: exosphere
 
     exosphere> inventory refresh
 
-This will retrieve the available updates and patches for each host.
+This will refresh the state of each host and collect information about
+available updates.
 
 **View Status and Host Details**
 
@@ -93,6 +97,8 @@ updates all in one place.
 
 Next Steps
 ----------
+
+For more fundamental details, you could have a look at :doc:`concepts`.
 
 To go further, you can:
 
