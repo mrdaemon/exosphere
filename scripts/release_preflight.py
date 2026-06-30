@@ -92,24 +92,17 @@ def project_version() -> str:
 ## THE GATES ##
 
 
-def gate_version_stable(version: str) -> tuple[GateOutcome, str]:
-    try:
-        v = Version(version)
-    except InvalidVersion:
+def gate_version_stable(version: Version) -> tuple[GateOutcome, str]:
+    if version.is_devrelease or version.is_prerelease:
         return (
             GateOutcome.FAIL,
-            f"'{version!r}' is not a valid version - check pyproject.toml",
+            f"'{version}' is a dev/pre-release - bump to a stable version",
         )
-    if v.is_devrelease or v.is_prerelease:
-        return (
-            GateOutcome.FAIL,
-            f"'{version}' is a dev version - bump to a stable version",
-        )
-    return GateOutcome.PASS, version
+    return GateOutcome.PASS, str(version)
 
 
-def gate_changelog_present(version: str) -> tuple[GateOutcome, str]:
-    base = Version(version).base_version
+def gate_changelog_present(version: Version) -> tuple[GateOutcome, str]:
+    base = version.base_version
     path = CHANGELOG_DIR / f"{base}.md"
     rel = path.relative_to(ROOT).as_posix()
     if path.exists():
@@ -145,8 +138,8 @@ def gate_on_main_branch() -> tuple[GateOutcome, str]:
     return GateOutcome.FAIL, f"on '{branch}' - merge the prep first"
 
 
-def gate_tag_signed(version: str) -> tuple[GateOutcome, str]:
-    tag = f"v{Version(version).base_version}"
+def gate_tag_signed(version: Version) -> tuple[GateOutcome, str]:
+    tag = f"v{version.base_version}"
     exists = (
         _run("git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}").returncode == 0
     )
@@ -167,9 +160,24 @@ def gate_tag_signed(version: str) -> tuple[GateOutcome, str]:
 
 
 def main() -> int:
-    version = project_version()
+    raw_version = project_version()
+
+    # Validate version string up front, so it doesn't break all the
+    # gates at runtime because there's garbage in it.
+    try:
+        version = Version(raw_version)
+    except InvalidVersion:
+        console.rule("[dark_orange3]Exosphere release preflight[/dark_orange3]")
+        console.print(
+            "  [red]FAIL[/]  [bold]Version is stable:[/] "
+            f"{raw_version!r} is not a valid version - check pyproject.toml"
+        )
+        console.print("\n[red]  1 gate(s) failed - not ready for release.[/]\n")
+        console.print("All remaining gates skipped due to invalid version string.")
+        return 1
+
     console.rule(
-        f"[dark_orange3]Exosphere release preflight - 'v{Version(version).base_version}'[/dark_orange3]"
+        f"[dark_orange3]Exosphere release preflight - 'v{version.base_version}'[/dark_orange3]"
     )
 
     gates = [
