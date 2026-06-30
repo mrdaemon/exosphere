@@ -49,8 +49,13 @@ class JsonSchemaDocDirective(Directive):
         title = self.options.get("title", "Schema Documentation")
 
         # Resolve schema path relative to source directory
-        source_dir = Path(self.state.document.settings.env.srcdir)
+        env = self.state.document.settings.env
+        source_dir = Path(env.srcdir)
         schema_file = source_dir.parent.parent / schema_path
+
+        # Ensure the document is re-read whenever the schema file changes
+        # Prevents incremental builds from not picking it up
+        env.note_dependency(str(schema_file))
 
         if not schema_file.exists():
             logger.error(f"Schema file not found: {schema_file}")

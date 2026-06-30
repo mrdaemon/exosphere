@@ -104,9 +104,18 @@ class ChangelogLatest(SphinxDirective):
         return container.children
 
 
+MANAGED_PAGES = ("changelog/index", "changelog/latest")
+
+
+def outdated_changelog_pages(app, env, added, changed, removed) -> list[str]:
+    """Force the generated index/latest pages to be re-read every build."""
+    return [docname for docname in MANAGED_PAGES if docname in env.found_docs]
+
+
 def setup(app):
     """Sphinx extension setup."""
     logger.info("Initializing exosphere_changelog extension")
     app.add_directive("changelog-toctree", ChangelogToctree)
     app.add_directive("changelog-latest", ChangelogLatest)
+    app.connect("env-get-outdated", outdated_changelog_pages)
     return {"parallel_read_safe": True, "parallel_write_safe": True}
