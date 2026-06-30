@@ -2,6 +2,9 @@
 Tests for the report command module.
 """
 
+import json
+from datetime import datetime, timezone
+
 import pytest
 
 from exosphere.commands import report
@@ -10,6 +13,7 @@ from exosphere.data import Update
 from exosphere.inventory import Inventory
 from exosphere.objects import Host
 from exosphere.reporting import ReportScope, ReportType
+from exosphere.schema import get_host_report_schema
 
 
 @pytest.fixture(autouse=True)
@@ -118,6 +122,26 @@ def mock_get_hosts(mocker):
         )
 
     return _patch_hosts
+
+
+def _status_host(
+    name: str,
+    updates: list[Update] | None = None,
+    needs_reboot: bool | None = None,
+    stale: bool = False,
+    supported: bool = True,
+) -> Host:
+    """Build a Host with controlled state for status summary tests."""
+    host = Host(name=name, ip="10.0.0.1")
+    host.supported = supported
+    host.os = "linux"
+    host.package_manager = "apt"
+    host.updates = updates or []
+    host.needs_reboot = needs_reboot
+
+    host.last_refresh = None if stale else datetime.now(timezone.utc)
+
+    return host
 
 
 class TestGenerateCommand:
@@ -499,3 +523,92 @@ class TestGenerateCommand:
 
         assert exc_info.value.code == 1
         assert "Mutually exclusive arguments" in capsys.readouterr().err
+
+
+class TestSchemaCommand:
+    """Tests for the report schema command."""
+
+    def test_schema_to_stdout(self, capsys):
+        """Schema is printed to stdout as valid JSON matching the canonical schema."""
+        code = report.app(["schema"], result_action="return_value")
+        assert code == 0
+
+        # Rich pretty-prints the JSON; reparsing confirms validity and identity.
+        data = json.loads(capsys.readouterr().out)
+        assert data == get_host_report_schema()
+
+    def test_schema_to_file(self, tmp_path):
+        """--output writes the schema verbatim to a file."""
+        target = tmp_path / "host-report.schema.json"
+
+        code = report.app(
+            ["schema", "--output", str(target)], result_action="return_value"
+        )
+        assert code == 0
+
+        data = json.loads(target.read_text(encoding="utf-8"))
+        assert data == get_host_report_schema()
+
+    def test_schema_load_failure(self, mocker, capsys):
+        """A schema load error surfaces as an application error (exit 2)."""
+        mocker.patch(
+            "exosphere.commands.report.get_host_report_schema",
+            side_effect=FileNotFoundError("Oops everything broke"),
+        )
+
+        code = report.app(["schema"], result_action="return_value")
+        assert code == 2
+        assert "Failed to load JSON schema" in capsys.readouterr().err
+
+
+class TestStatusCommand:
+    """Tests for the report status command."""
+
+    def test_empty_inventory(self, mock_inventory, capsys):
+        """An empty inventory reports as such and exits cleanly."""
+        mock_inventory.hosts = []
+
+        code = report.app(["status"], result_action="return_value")
+        assert code == 0
+        assert "No hosts in inventory." in capsys.readouterr().out
+
+    def test_all_up_to_date(self, mock_inventory, capsys):
+        """With no pending updates, the summary states everything is current."""
+        mock_inventory.hosts = [_status_host("a"), _status_host("b")]
+
+        code = report.app(["status"], result_action="return_value")
+        assert code == 0
+
+        out = capsys.readouterr().out
+        assert "All hosts are up to date." in out
+
+    def test_pending_updates_and_security(self, mock_inventory, capsys):
+        """Update counts and security host count are summarized."""
+        sec = Update(name="curl", current_version="1", new_version="2", security=True)
+        reg = Update(name="vim", current_version="1", new_version="2", security=False)
+        mock_inventory.hosts = [
+            _status_host("a", updates=[sec, reg]),
+            _status_host("b", updates=[reg]),
+            _status_host("c"),
+        ]
+
+        code = report.app(["status"], result_action="return_value")
+        assert code == 0
+
+        out = capsys.readouterr().out
+        assert "2 of 3 hosts have pending updates" in out
+        assert "1 with security updates" in out
+
+    def test_reboot_and_stale_lines(self, mock_inventory, capsys):
+        """Pending reboot and stale data each produce their own line."""
+        mock_inventory.hosts = [
+            _status_host("a", needs_reboot=True),
+            _status_host("b", stale=True),
+        ]
+
+        code = report.app(["status"], result_action="return_value")
+        assert code == 0
+
+        out = capsys.readouterr().out
+        assert "1 host has a pending reboot." in out
+        assert "1 host has stale data" in out

@@ -193,6 +193,30 @@ remains consistent across all output types.
     For detailed information about all available options and flags,
     see :doc:`command_reference` or run ``exosphere report generate --help``.
 
+Status Summary
+--------------
+
+For a quick, at-a-glance overview rather than a full report, ``report status``
+prints a condensed, plain-text summary of the entire inventory:
+
+.. code-block:: console
+
+    $ exosphere report status
+    15 of 25 hosts have pending updates, 10 with security updates
+    2 hosts have a pending reboot.
+    1 host has stale data, consider running a refresh.
+
+The reboot and stale lines only appear when there is something to report, and
+when nothing is pending the summary simply reads ``All hosts are up to date.``.
+Hosts that have not yet been discovered contribute nothing to the counts, as
+they have no known state.
+
+Like the rest of the reporting commands, this operates entirely from the cache
+and requires no connectivity. Color is automatically dropped when the output is
+not a terminal, which makes it well suited to non-interactive uses, such as
+redirecting it into a MOTD or similar through a user cronjob, timer, or periodic
+task.
+
 .. _json-schema:
 
 JSON Schema Details
@@ -214,6 +238,15 @@ but is also made available here, corresponding to the version this documentation
 for:
 
 :download:`host-report.schema.json <_static/host-report.schema.json>` as of |CurrentVersionTag|
+
+You can also emit the schema for your installed version directly from the CLI with
+``report schema`` (printed to stdout, or written to a file with ``--output``), which is
+handy for validating or integrating with the JSON output offline.
+
+.. code-block:: console
+
+    $ exosphere report schema --output host-report.schema.json
+
 
 Structure Overview
 ^^^^^^^^^^^^^^^^^^

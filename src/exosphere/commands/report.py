@@ -2,6 +2,7 @@
 Reporting command module
 """
 
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -18,6 +19,7 @@ from exosphere.commands.utils import (
 )
 from exosphere.inventory import FilterMode
 from exosphere.reporting import OutputFormat, ReportRenderer, ReportScope, ReportType
+from exosphere.schema import get_host_report_schema
 
 ROOT_HELP = """
 Reporting Commands
@@ -221,5 +223,125 @@ def generate(
             # Rich will write to stderr anyways to notify of the error,
             # this just prevents the humongous backtrace.
             pass
+
+    return 0
+
+
+@app.command
+def schema(
+    output: Annotated[
+        Path | None,
+        Parameter(
+            name=["--output", "-o"],
+            validator=validators.Path(dir_okay=False),
+        ),
+    ] = None,
+) -> int:
+    """
+    Show or write the JSON Schema for the current version of Exosphere
+
+    Emits the JSON Schema (draft-07) describing the structure produced
+    by `report generate --format json`, for the currently running
+    version of Exosphere.
+
+    This allows anyone to easily get an overview of the structure,
+    validate and integrate, offline, without a local source tree or
+    access to the online documentation.
+
+    By default the schema is printed to stdout. Use `--output` to
+    write it to a file instead.
+
+    Parameters
+    ----------
+    output
+        Write the schema to a file (defaults to stdout)
+    """
+    try:
+        schema_data = get_host_report_schema()
+    except (FileNotFoundError, ValueError) as e:
+        err_console.print(f"[red]Failed to load JSON schema: {e}[/red]")
+        return 2  # Application error
+
+    content = json.dumps(schema_data, indent=2)
+
+    if output:
+        try:
+            output.write_text(content, encoding="utf-8")
+        except Exception as e:
+            err_console.print(f"[red]Failed to write to {output}: {e}[/red]")
+            return 2  # Application error
+
+        err_console.print(f"JSON schema saved to [green]{output}[/green].")
+        return 0
+
+    try:
+        console.print(JSON(content))
+    except (BrokenPipeError, OSError):
+        # See note in `generate` about Windows broken pipe behavior.
+        pass
+
+    return 0
+
+
+@app.command
+def status() -> int:
+    """
+    Show a brief, condensed status summary of the inventory.
+
+    Prints a short, executive-summary overview of the whole inventory: how
+    many hosts have pending updates (and how many of those include security
+    updates), how many are awaiting a reboot, and whether any host data has
+    gone stale.
+
+    The output is plain and compact, suitable as an at-a-glance overview or
+    for inclusion in a system MOTD (e.g. by redirecting it to a file).
+
+    Color is automatically dropped when the output is not a terminal.
+
+    Hosts that have not yet been discovered contribute nothing to the update
+    and reboot counts, as they have no known state.
+    """
+    inventory = get_inventory()
+    hosts = list(inventory.hosts)
+
+    total = len(hosts)
+    if total == 0:
+        console.print("No hosts in inventory.")
+        return 0
+
+    def plural(n: int) -> str:
+        return "host" if n == 1 else "hosts"
+
+    def have(n: int) -> str:
+        return "has" if n == 1 else "have"
+
+    with_updates = [h for h in hosts if h.updates]
+    with_security = [h for h in hosts if h.security_updates]
+    needing_reboot = [h for h in hosts if h.needs_reboot]
+    stale = [h for h in hosts if h.is_stale]
+
+    if with_updates:
+        security_note = (
+            f", [red]{len(with_security)}[/red] with security updates"
+            if with_security
+            else ""
+        )
+        console.print(
+            f"[yellow]{len(with_updates)}[/yellow] of {total} {plural(total)} "
+            f"have pending updates{security_note}"
+        )
+    else:
+        console.print("[green]All hosts are up to date.[/green]")
+
+    if needing_reboot:
+        n = len(needing_reboot)
+        console.print(f"[red]{n}[/red] {plural(n)} {have(n)} a pending reboot.")
+
+    if stale:
+        n = len(stale)
+        console.print(
+            f"[dim]{n} {plural(n)} {have(n)} stale data, consider running a "
+            f"refresh.[/dim]"
+        )
 
     return 0
