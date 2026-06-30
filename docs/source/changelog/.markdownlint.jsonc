@@ -1,0 +1,6 @@
+{
+  // Our release notes drop a nice italic subtitle for the release date.
+  // Markdown linters think we're trying to do a shitty heading.
+  // We're not, so we turn that off for this directory.
+  "MD036": false
+}

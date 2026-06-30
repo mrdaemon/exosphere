@@ -38,6 +38,7 @@ extensions = [
     'exosphere_artifacts',  # Custom extension to copy artifacts to _static
     'exosphere_cli_format',  # Custom extension to reshape CLI help summaries
     'jsonschema_doc',  # Custom extension for JSON Schema documentation
+    'exosphere_changelog',  # Custom directives for release-notes index/latest pages
 ]
 
 templates_path = ['_templates']

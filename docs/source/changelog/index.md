@@ -1,35 +1,8 @@
 # Release Notes
 
-What's new in each release of Exosphere, newest first. Full per-PR
-changelogs and any video walkthroughs live on the [GitHub Releases](https://github.com/mrdaemon/exosphere/releases) page.
+Historical release notes for Exosphere can be found here.
 
-```{toctree}
-:maxdepth: 1
+For the highlights of the current release, see the [What's New](latest.md) page.
 
-2.4.3
-2.4.2
-2.4.1
-2.4.0
-2.3.0
-2.2.0
-2.1.2
-2.1.1
-2.1.0
-2.0.1
-2.0.0
-1.5.1
-1.5.0
-1.4.1
-1.4.0
-1.3.5
-1.3.4
-1.3.3
-1.3.2
-1.3.1
-1.3.0
-1.2.0
-1.1.0
-1.0.1
-1.0.0
-0.9.9
+```{changelog-toctree}
 ```
