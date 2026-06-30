@@ -61,6 +61,7 @@ dev = [
     "sphinxcontrib-spelling>=8.0.2",
     "textual-dev>=1.7.0",
     "codespell>=2.4.0",
+    "myst-parser[linkify]>=4.0.0",
 ]
 
 [project.urls]

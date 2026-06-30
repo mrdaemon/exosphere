@@ -67,6 +67,8 @@ a password.
     This can potentially expose your system to security risks if not configured properly.
     See the section below for details on how to configure this safely.
 
+.. _generating-a-sudoers-configuration:
+
 Generating a Sudoers configuration
 ----------------------------------
 

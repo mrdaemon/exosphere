@@ -120,6 +120,8 @@ You can also do it all at the same time, including discovery, by running:
 
 For details on how any of this is implemented, see the :doc:`providers` page.
 
+.. _viewing-inventory-status:
+
 Viewing Inventory Status
 ------------------------
 
@@ -389,6 +391,8 @@ allowing you to run more targeted or specialized commands.
    logs, and includes a nice built-in scrollable viewer.
 
 For more details on the TUI, continue on to the :doc:`ui` page.
+
+.. _return-codes:
 
 Return Codes
 ------------

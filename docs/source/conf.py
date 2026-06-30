@@ -27,6 +27,7 @@ release = __version__
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
@@ -40,7 +41,22 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = []
+
+# _static holds copied/generated artifacts (see exosphere_artifacts.py)
+# Now that we have a Markdown parser for release notes, those get
+# unfortunately picked up as source documents, which they really aren't.
+# Ignoring them here does not prevent them from being used as static
+# assets for download.
+exclude_patterns = ['_static/**']
+
+# -- MyST (Markdown) configuration --------------------------------------------
+# Release notes under changelog/ are authored in Markdown. Screenshots are
+# committed under changelog/_assets/ and referenced as managed images, so the
+# docs never depend on external (GitHub CDN) assets. linkify autolinks bare
+# URLs (e.g. PyPI links) the way GitHub does.
+myst_enable_extensions = [
+    'linkify',
+]
 
 # Use a dark-friendly Pygments token palette to match dark code blocks.
 pygments_style = 'nord-darker'

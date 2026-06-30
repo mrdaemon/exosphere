@@ -55,6 +55,7 @@ with the :doc:`quickstart` to get an overview of how to use Exosphere.
    installation
    quickstart
    supportedos
+   changelog/latest
 
 .. toctree::
    :maxdepth: 2
@@ -88,6 +89,7 @@ with the :doc:`quickstart` to get an overview of how to use Exosphere.
    providers
    command_reference
    glossary
+   changelog/index
 
 .. toctree::
    :maxdepth: 2
