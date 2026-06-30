@@ -366,14 +366,15 @@ class TestRunTaskWithProgress:
         mock_progress_instance.add_task.assert_called_once_with("Testing task", total=2)
         assert mock_progress_instance.update.call_count == 2
 
-    def test_run_task_displays_skipped_hosts(
-        self, mock_inventory, mock_console, mocker
+    @pytest.mark.parametrize("operation", [HostOperation.REFRESH, HostOperation.SYNC])
+    def test_run_task_skips_unsupported_hosts(
+        self, mock_inventory, mock_console, mocker, operation
     ):
-        """Skipped hosts are displayed separately from total progress"""
-        host1 = mocker.Mock()
+        """Operations requiring supported hosts should skip unsupported ones."""
+        host1 = mocker.Mock(supported=True)
         host1.name = "host1"
-        skipped_host = mocker.Mock()
-        skipped_host.name = "irixbox"
+        unsupported = mocker.Mock(supported=False)
+        unsupported.name = "irixbox"
 
         mock_inventory.run_task.return_value = [(host1, None, None)]
 
@@ -383,19 +384,18 @@ class TestRunTaskWithProgress:
 
         result = utils_module.run_task_with_progress(
             inventory=mock_inventory,
-            hosts=[host1],
-            operation=HostOperation.REFRESH,
-            task_description="Refreshing",
+            hosts=[host1, unsupported],
+            operation=operation,
+            task_description=f"Running {operation.label}",
             display_hosts=True,
-            skipped=[skipped_host],
         )
 
         assert result == []
-        # Only the runnable host is dispatched; total excludes the skipped one.
-        mock_inventory.run_task.assert_called_once_with(
-            HostOperation.REFRESH, hosts=[host1]
+        # Only the supported host is dispatched; total excludes the skipped one.
+        mock_inventory.run_task.assert_called_once_with(operation, hosts=[host1])
+        mock_progress_instance.add_task.assert_called_once_with(
+            f"Running {operation.label}", total=1
         )
-        mock_progress_instance.add_task.assert_called_once_with("Refreshing", total=1)
 
         # The skipped host is rendered with a SKIPPED status.
         rendered = [
@@ -405,6 +405,47 @@ class TestRunTaskWithProgress:
         ]
         assert any("SKIPPED" in chunk for chunk in rendered)
         assert any("irixbox" in chunk for chunk in rendered)
+
+    @pytest.mark.parametrize("operation", [HostOperation.DISCOVER, HostOperation.PING])
+    def test_run_task_does_not_skip_unsupported_hosts(
+        self, mock_inventory, mock_console, mocker, operation
+    ):
+        """Operations that don't require supported hosts should not skip any."""
+        host1 = mocker.Mock(supported=True)
+        host1.name = "host1"
+        unsupported = mocker.Mock(supported=False)
+        unsupported.name = "irixbox"
+
+        mock_inventory.run_task.return_value = [
+            (host1, None, None),
+            (unsupported, None, None),
+        ]
+
+        mock_progress = mocker.patch("exosphere.commands.utils.Progress")
+        mock_progress_instance = mock_progress.return_value.__enter__.return_value
+        mock_progress_instance.add_task.return_value = "task_id"
+
+        utils_module.run_task_with_progress(
+            inventory=mock_inventory,
+            hosts=[host1, unsupported],
+            operation=operation,
+            task_description="Working",
+            display_hosts=True,
+        )
+
+        # Both hosts are dispatched to and nothing is filtered out.
+        mock_inventory.run_task.assert_called_once_with(
+            operation, hosts=[host1, unsupported]
+        )
+        mock_progress_instance.add_task.assert_called_once_with("Working", total=2)
+
+        # Nothing should be rendered with a SKIPPED status.
+        rendered = [
+            str(renderable)
+            for call in mock_progress_instance.console.print.call_args_list
+            for renderable in getattr(call.args[0], "renderables", [])
+        ]
+        assert not any("SKIPPED" in chunk for chunk in rendered)
 
     def test_run_task_with_errors(self, mock_inventory, mock_console, mocker):
         """Test task execution with some errors."""

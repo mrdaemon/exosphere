@@ -316,7 +316,6 @@ def run_task_with_progress(
     immediate_error_display: bool = False,
     transient: bool = True,
     progress_args: tuple = (),
-    skipped: list[Host] | None = None,
 ) -> list[tuple[str, Exception]]:
     """
     Run a task on selected hosts with progress display.
@@ -347,12 +346,17 @@ def run_task_with_progress(
     :param transient: Whether progress bar disappears after completion
     :param progress_args: List of renderables to compose the Progress
         layout
-    :param skipped: Hosts that were skipped, to display with the
-        skipped status, when display_host is True. Purely for display.
     :return: List of (hostname, exception objects) tuples for any failed
         hosts
     """
     errors: list[tuple[str, Exception]] = []
+
+    # Pre-filter hosts based on whether or not they can run the operation
+    if operation.requires_supported:
+        skipped = [host for host in hosts if not host.supported]
+        hosts = [host for host in hosts if host.supported]
+    else:
+        skipped = []
 
     with Progress(transient=transient, *progress_args) as progress:
         task = progress.add_task(task_description, total=len(hosts))

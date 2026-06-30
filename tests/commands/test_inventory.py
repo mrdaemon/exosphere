@@ -984,30 +984,7 @@ class TestRefreshCommand:
             display_hosts=False,
             collect_errors=True,
             immediate_error_display=False,
-            skipped=[],
         )
-
-    def test_refresh_skips_unsupported_hosts(self, mocker, mock_inventory, create_host):
-        """Refresh command skips unsupported hosts and informs"""
-        supported = create_host("supportedguy", supported=True)
-        unsupported = create_host("irixguy", supported=False)
-        mock_inventory.hosts = [supported, unsupported]
-
-        mock_run = mocker.patch.object(inventory_module, "run_task_with_progress")
-        mock_run.return_value = []
-
-        test_config = Configuration()
-        test_config.update_from_mapping({"options": {"cache_autosave": False}})
-        mocker.patch.object(inventory_module, "app_config", test_config)
-
-        code = inventory_module.app(["refresh", "--sync"], result_action="return_value")
-        assert code == 0
-
-        # Unsupported hosts should be sent to runner as skipped
-        assert mock_run.call_count == 2
-        for call in mock_run.call_args_list:
-            assert call.kwargs["hosts"] == [supported]
-            assert call.kwargs["skipped"] == [unsupported]
 
     def test_refresh_with_discover(self, mocker, mock_inventory, create_host):
         """Test refresh command with --discover option."""

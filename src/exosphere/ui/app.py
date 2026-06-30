@@ -71,7 +71,6 @@ class ExosphereUi(App):
         hosts: list[Host] | None = None,
         *,
         message: str,
-        no_hosts_message: str,
         callback: Callable | None = None,
         report_result: bool = True,
     ) -> None:
@@ -94,7 +93,6 @@ class ExosphereUi(App):
         :param operation: The :class:`HostOperation` to run.
         :param hosts: Hosts to target, defaults to all hosts.
         :param message: Message to display in the progress screen.
-        :param no_hosts_message: Message shown if no hosts are available.
         :param callback: Optional callback to run after the task instead of
                          the default refresh bookkeeping.
         :param report_result: Whether a single-host task should report
@@ -112,8 +110,39 @@ class ExosphereUi(App):
         target_hosts = hosts if hosts is not None else inventory.hosts
         if not target_hosts:
             logging.warning("No hosts available to run task '%s'.", operation.value)
-            self.push_screen(ErrorScreen(no_hosts_message))
+            self.push_screen(ErrorScreen("No hosts available."))
             return
+
+        # Pre-filter unsupported hosts out of the target list if the
+        # requested operation requires it.
+        if operation.requires_supported:
+            skipped = [host for host in target_hosts if not host.supported]
+            if skipped:
+                logging.debug(
+                    "Skipping %d unsupported host(s) for task '%s': %s",
+                    len(skipped),
+                    operation.value,
+                    ", ".join(host.name for host in skipped),
+                )
+            supported_hosts = [host for host in target_hosts if host.supported]
+
+            # If nothing supported remains, the hosts exist but can't run
+            # this operation. Use a dedicated message to explain why.
+            if not supported_hosts:
+                logging.warning(
+                    "No supported hosts available to run task '%s'.", operation.value
+                )
+                if len(target_hosts) == 1:
+                    reason = (
+                        f"Host '{target_hosts[0].name}' is not running a "
+                        f"supported OS, cannot {operation.label.lower()}."
+                    )
+                else:
+                    reason = f"No supported hosts available for {operation.label}."
+                self.push_screen(ErrorScreen(reason))
+                return
+
+            target_hosts = supported_hosts
 
         # Generate default callback
         bookkeeping = self._after_task(operation)
@@ -141,7 +170,7 @@ class ExosphereUi(App):
         """
         Helper function that generates the default callback for the
         task runner in the TUI, which handles the bookkeeping
-        described above in :meth:`run_host_task`.
+        described above in run_host_task.
         """
 
         def callback(_) -> None:
@@ -234,7 +263,6 @@ class ExosphereUi(App):
             operation=operation,
             hosts=[host],
             message=f"Running {operation.label} on {host.name}...",
-            no_hosts_message=f"Host '{host.name}' is not available.",
         )
 
     def run_host_sync_refresh(self, host: Host) -> None:
@@ -258,7 +286,6 @@ class ExosphereUi(App):
             operation=HostOperation.SYNC,
             hosts=[host],
             message=f"Syncing repositories on {host.name}...",
-            no_hosts_message=f"Host '{host.name}' is not available.",
             callback=after_sync,
             report_result=False,
         )
@@ -268,7 +295,6 @@ class ExosphereUi(App):
         self.run_host_task(
             operation=operation,
             message=f"Running {operation.label} on all hosts...",
-            no_hosts_message="No hosts available.",
         )
 
     def run_sync_refresh_all(self) -> None:
@@ -289,7 +315,6 @@ class ExosphereUi(App):
         self.run_host_task(
             operation=HostOperation.SYNC,
             message="Syncing repositories on all hosts.\nThis may take a long time!",
-            no_hosts_message="No hosts available.",
             callback=after_sync,
             report_result=False,
         )

@@ -43,23 +43,38 @@ class HostOperation(Enum):
     If the operation does not (for instance, syncing repositories),
     this should be set to False, which allows operations to skip the
     cache writeout steps after completion.
+
+    The requires_supported boolean indicates whether the operation can
+    only run against a host on a supported platform. Host object level
+    implementations check this and return before dispatching, but
+    also documenting this here allows callers to pre-filter based on the
+    operation type, instead of just going for it, which saves threads
+    and potential false success/failure reports.
     """
 
-    # Tuple is (Host method name, display label, modifies local state)
-    PING = ("ping", "Ping", True)
-    DISCOVER = ("discover", "Discover", True)
-    REFRESH = ("refresh_updates", "Refresh Updates", True)
-    SYNC = ("sync_repos", "Sync Repositories", False)
+    # Tuple is (Host method, display label, modifies local state, needs support)
+    PING = ("ping", "Ping", True, False)
+    DISCOVER = ("discover", "Discover", True, False)
+    REFRESH = ("refresh_updates", "Refresh Updates", True, True)
+    SYNC = ("sync_repos", "Sync Repositories", False, True)
 
     # Annotations, not members
     label: str
     modifies_state: bool
+    requires_supported: bool
 
-    def __new__(cls, method: str, label: str, modifies_state: bool) -> "HostOperation":
+    def __new__(
+        cls,
+        method: str,
+        label: str,
+        modifies_state: bool,
+        requires_supported: bool,
+    ) -> "HostOperation":
         member = object.__new__(cls)
         member._value_ = method
         member.label = label
         member.modifies_state = modifies_state
+        member.requires_supported = requires_supported
         return member
 
 

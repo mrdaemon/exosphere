@@ -174,25 +174,19 @@ def refresh(
         )
         console.print() if verbose else None
 
-    # Unsupported hosts can't sync or refresh, partition them off
-    # This is handed to the task runner which will handle display
-    runnable = [host for host in hosts if host.supported]
-    skipped = [host for host in hosts if not host.supported]
-
     # If sync is requested, we will run the sync_repos task
     # Same as discovery, simple spinner
     if sync:
         console.print("[dim]Repository Sync:[/dim]") if verbose else None
         run_task_with_progress(
             inventory=inventory,
-            hosts=runnable,
+            hosts=hosts,
             operation=HostOperation.SYNC,
             task_description="Syncing package repositories",
             display_hosts=verbose,
             collect_errors=False,
             immediate_error_display=True,
             progress_args=SPINNER_PROGRESS_ARGS,
-            skipped=skipped,
         )
         console.print() if verbose else None
 
@@ -201,13 +195,12 @@ def refresh(
     console.print("[dim]Updates Refresh:[/dim]") if verbose else None
     errors = run_task_with_progress(
         inventory=inventory,
-        hosts=runnable,
+        hosts=hosts,
         operation=HostOperation.REFRESH,
         task_description="Refreshing package updates",
         display_hosts=verbose,
         collect_errors=True,
         immediate_error_display=False,
-        skipped=skipped,
     )
 
     errors_table = Table(

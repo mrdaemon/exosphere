@@ -86,6 +86,21 @@ class TestHostOperation:
         """Sync should be stateless always"""
         assert HostOperation.SYNC.modifies_state is False
 
+    @pytest.mark.parametrize("op", list(HostOperation))
+    def test_requires_supported_is_bool(self, op):
+        """Each member exposes a boolean requires_supported flag."""
+        assert isinstance(op.requires_supported, bool)
+
+    def test_discover_and_ping_run_on_unsupported(self):
+        """Discovery and ping must reach hosts regardless of support."""
+        assert HostOperation.DISCOVER.requires_supported is False
+        assert HostOperation.PING.requires_supported is False
+
+    def test_sync_and_refresh_require_supported(self):
+        """Sync and refresh only make sense on supported hosts."""
+        assert HostOperation.SYNC.requires_supported is True
+        assert HostOperation.REFRESH.requires_supported is True
+
 
 class TestHostObject:
     @pytest.fixture(autouse=True)

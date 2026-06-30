@@ -258,7 +258,7 @@ class TestExosphereUi:
         mock_context.inventory = None
         push = mocker.patch.object(app, "push_screen")
 
-        app.run_host_task(HostOperation.PING, message="m", no_hosts_message="nh")
+        app.run_host_task(HostOperation.PING, message="m")
 
         push.assert_called_once()
         pushed = push.call_args[0][0]
@@ -266,18 +266,16 @@ class TestExosphereUi:
         assert "not initialized" in pushed.message.lower()
 
     def test_run_host_task_no_hosts_pushes_error(self, app, mocker, mock_context):
-        """run_host_task pushes an ErrorScreen with the no_hosts message."""
+        """run_host_task pushes an ErrorScreen when no hosts are available."""
         mock_context.inventory = mocker.Mock(hosts=[])
         push = mocker.patch.object(app, "push_screen")
 
-        app.run_host_task(
-            HostOperation.PING, message="m", no_hosts_message="No hosts here!"
-        )
+        app.run_host_task(HostOperation.PING, message="m")
 
         push.assert_called_once()
         pushed = push.call_args[0][0]
         assert isinstance(pushed, ErrorScreen)
-        assert pushed.message == "No hosts here!"
+        assert pushed.message == "No hosts available."
 
     def test_run_host_task_pushes_progress_screen(self, app, mocker, mock_context):
         """run_host_task pushes a ProgressScreen carrying the operation."""
@@ -285,9 +283,7 @@ class TestExosphereUi:
         mock_context.inventory = mocker.Mock(hosts=[host])
         push = mocker.patch.object(app, "push_screen")
 
-        app.run_host_task(
-            HostOperation.REFRESH, message="Refreshing", no_hosts_message="nh"
-        )
+        app.run_host_task(HostOperation.REFRESH, message="Refreshing")
 
         push.assert_called_once()
         pushed = push.call_args[0][0]
@@ -302,12 +298,81 @@ class TestExosphereUi:
         mock_context.inventory = mocker.Mock(hosts=[h1, h2, h3])
         push = mocker.patch.object(app, "push_screen")
 
-        app.run_host_task(
-            HostOperation.PING, hosts=[h2], message="m", no_hosts_message="nh"
-        )
+        app.run_host_task(HostOperation.PING, hosts=[h2], message="m")
 
         pushed = push.call_args[0][0]
         assert pushed.hosts == [h2]
+
+    @pytest.mark.parametrize(
+        "operation, keeps_unsupported",
+        [
+            (HostOperation.REFRESH, False),
+            (HostOperation.SYNC, False),
+            (HostOperation.DISCOVER, True),
+            (HostOperation.PING, True),
+        ],
+        ids=[
+            "refresh_drops_unsupported",
+            "sync_drops_unsupported",
+            "discover_keeps_unsupported",
+            "ping_keeps_unsupported",
+        ],
+    )
+    def test_run_host_task_filters_unsupported(
+        self, app, mocker, mock_context, operation, keeps_unsupported
+    ):
+        """Unsupported hosts are dropped only for support-requiring ops."""
+        supported = mocker.Mock(supported=True)
+
+        unsupported = mocker.Mock(supported=False)
+        unsupported.name = "unsupported"
+
+        mock_context.inventory = mocker.Mock(hosts=[supported, unsupported])
+        push = mocker.patch.object(app, "push_screen")
+
+        app.run_host_task(operation, message="m")
+
+        pushed = push.call_args[0][0]
+        assert isinstance(pushed, ProgressScreen)
+        expected = [supported, unsupported] if keeps_unsupported else [supported]
+        assert pushed.hosts == expected
+
+    def test_run_host_task_all_unsupported_single_host_names_reason(
+        self, app, mocker, mock_context
+    ):
+        """A single unsupported host errors with a message naming the host."""
+        unsupported = mocker.Mock(supported=False)
+        unsupported.name = "irixbox"
+        mock_context.inventory = mocker.Mock(hosts=[unsupported])
+        push = mocker.patch.object(app, "push_screen")
+
+        # The host exists, it's just unsupported: the dedicated message
+        # names the real reason rather than a generic "no hosts" one.
+        app.run_host_task(HostOperation.SYNC, message="m")
+
+        push.assert_called_once()
+        pushed = push.call_args[0][0]
+        assert isinstance(pushed, ErrorScreen)
+        assert "irixbox" in pushed.message
+        assert "supported" in pushed.message.lower()
+
+    def test_run_host_task_all_unsupported_many_hosts_generic_reason(
+        self, app, mocker, mock_context
+    ):
+        """Multiple unsupported hosts get a generic supported-hosts message."""
+        h1 = mocker.Mock(supported=False)
+        h1.name = "irixbox"
+        h2 = mocker.Mock(supported=False)
+        h2.name = "vaxen"
+        mock_context.inventory = mocker.Mock(hosts=[h1, h2])
+        push = mocker.patch.object(app, "push_screen")
+
+        app.run_host_task(HostOperation.SYNC, message="m")
+
+        push.assert_called_once()
+        pushed = push.call_args[0][0]
+        assert isinstance(pushed, ErrorScreen)
+        assert "No supported hosts" in pushed.message
 
     def test_run_host_task_invokes_custom_callback_on_complete(
         self, app, mocker, mock_context
@@ -317,9 +382,7 @@ class TestExosphereUi:
         push = mocker.patch.object(app, "push_screen")
         custom = mocker.Mock()
 
-        app.run_host_task(
-            HostOperation.PING, message="m", no_hosts_message="nh", callback=custom
-        )
+        app.run_host_task(HostOperation.PING, message="m", callback=custom)
 
         # push_screen gets a wrapper; invoking it with an outcome runs the
         # custom callback (after rendering feedback).
@@ -337,7 +400,6 @@ class TestExosphereUi:
         app.run_host_task(
             HostOperation.REFRESH,
             message="a message",
-            no_hosts_message="no boys here",
             report_result=False,
         )
 
