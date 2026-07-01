@@ -3,7 +3,7 @@ import pytest
 from exosphere.commands import inventory as inventory_module
 from exosphere.commands import utils as utils_module
 from exosphere.config import Configuration
-from exosphere.objects import Host, HostOperation
+from exosphere.objects import HostOperation
 
 
 @pytest.fixture(autouse=True)
@@ -13,7 +13,7 @@ def _console(patch_console):
 
 
 @pytest.fixture(autouse=True)
-def mock_inventory(mocker):
+def mock_inventory(mocker, wire_get_host):
     """
     Patch context inventory for all tests.
 
@@ -27,9 +27,7 @@ def mock_inventory(mocker):
 
     # Resolve names off the current hosts list so the HostArg converter
     # (which calls get_host) works for commands invoked with explicit names.
-    fake_inventory.get_host.side_effect = lambda name: next(
-        (h for h in fake_inventory.hosts if h.name == name), None
-    )
+    wire_get_host(fake_inventory)
 
     real = inventory_module.Inventory
     fake_inventory.filter_hosts.side_effect = lambda mode, hosts=None: (
@@ -44,9 +42,12 @@ def mock_inventory(mocker):
 
 
 @pytest.fixture
-def create_host(mocker):
+def create_host(make_host):
     """
     Factory fixture to create Host autospec mocks with default values.
+
+    Thin wrapper over the shared ``make_host`` factory that supplies this
+    module's domain defaults (a discovered Debian 12 host).
     """
 
     def _create_host(
@@ -62,19 +63,19 @@ def create_host(mocker):
         description=None,
         needs_reboot=None,
     ):
-        host = mocker.create_autospec(Host, instance=True)
-        host.name = name
-        host.os = os
-        host.flavor = flavor
-        host.version = version
-        host.updates = updates if updates is not None else []
-        host.security_updates = security_updates if security_updates is not None else []
-        host.online = online
-        host.is_stale = is_stale
-        host.supported = supported
-        host.description = description
-        host.needs_reboot = needs_reboot
-        return host
+        return make_host(
+            name,
+            os=os,
+            flavor=flavor,
+            version=version,
+            updates=updates if updates is not None else [],
+            security_updates=security_updates if security_updates is not None else [],
+            online=online,
+            is_stale=is_stale,
+            supported=supported,
+            description=description,
+            needs_reboot=needs_reboot,
+        )
 
     return _create_host
 

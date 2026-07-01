@@ -37,7 +37,7 @@ def _wire_query_methods(inventory) -> None:
 
 
 @pytest.fixture
-def mock_inventory(mocker):
+def mock_inventory(mocker, make_host, wire_get_host):
     """
     Create a mock inventory with test hosts.
     """
@@ -66,61 +66,61 @@ def mock_inventory(mocker):
         source="updates",
     )
 
-    # Create a series of mock hosts with pre-populated data.
-    # This is super brittle and will ruin christmas the second
-    # the Host class changes, but it will do for now.
-    host1 = mocker.Mock(spec=Host)
-    host1.name = "testserver1"
-    host1.ip = "127.0.0.1"
-    host1.port = 22
-    host1.os = "linux"
-    host1.flavor = "rhel"
-    host1.version = "9.3"
-    host1.description = "Production server"
-    host1.online = True
-    host1.supported = True
-    host1.updates = [update1, update2]  # 2 updates
-    host1.security_updates = [update1]  # 1 security update
-    host1.is_stale = False
-    host1.needs_reboot = None
-    host1.last_refresh = mocker.Mock()
+    # A series of mock hosts with pre-populated data, covering the
+    # attribute surface the inventory screen reads back.
+    host1 = make_host(
+        "testserver1",
+        ip="127.0.0.1",
+        port=22,
+        os="linux",
+        flavor="rhel",
+        version="9.3",
+        description="Production server",
+        online=True,
+        supported=True,
+        updates=[update1, update2],  # 2 updates
+        security_updates=[update1],  # 1 security update
+        is_stale=False,
+        needs_reboot=None,
+        last_refresh=mocker.Mock(),
+    )
 
-    host2 = mocker.Mock(spec=Host)
-    host2.name = "testserver2"
-    host2.ip = "127.0.0.2"
-    host2.port = 22
-    host2.os = "linux"
-    host2.flavor = "debian"
-    host2.version = "12"
-    host2.description = "Test server"
-    host2.online = True
-    host2.supported = True
-    host2.updates = []  # No updates
-    host2.security_updates = []
-    host2.is_stale = False
-    host2.needs_reboot = True
-    host2.last_refresh = mocker.Mock()
+    host2 = make_host(
+        "testserver2",
+        ip="127.0.0.2",
+        port=22,
+        os="linux",
+        flavor="debian",
+        version="12",
+        description="Test server",
+        online=True,
+        supported=True,
+        updates=[],  # No updates
+        security_updates=[],
+        is_stale=False,
+        needs_reboot=True,
+        last_refresh=mocker.Mock(),
+    )
 
-    host3 = mocker.Mock(spec=Host)
-    host3.name = "testserver3"
-    host3.ip = "127.0.0.3"
-    host3.port = 22
-    host3.os = "freebsd"
-    host3.flavor = "freebsd"
-    host3.version = "14.0"
-    host3.description = None
-    host3.online = False
-    host3.supported = True
-    host3.updates = [update3]  # 1 update
-    host3.security_updates = [update3]  # 1 security update
-    host3.is_stale = True
-    host3.needs_reboot = False
-    host3.last_refresh = mocker.Mock()
+    host3 = make_host(
+        "testserver3",
+        ip="127.0.0.3",
+        port=22,
+        os="freebsd",
+        flavor="freebsd",
+        version="14.0",
+        description=None,
+        online=False,
+        supported=True,
+        updates=[update3],  # 1 update
+        security_updates=[update3],  # 1 security update
+        is_stale=True,
+        needs_reboot=False,
+        last_refresh=mocker.Mock(),
+    )
 
     inventory.hosts = [host1, host2, host3]
-    inventory.get_host = lambda name: next(
-        (h for h in inventory.hosts if h.name == name), None
-    )
+    wire_get_host(inventory)
     _wire_query_methods(inventory)
 
     return inventory

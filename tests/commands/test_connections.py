@@ -18,7 +18,7 @@ def _interactive(mocker):
 
 
 @pytest.fixture
-def mock_inventory(mocker):
+def mock_inventory(mocker, wire_get_host):
     """
     Create a fake inventory with test hosts wired into the context.
 
@@ -48,9 +48,7 @@ def mock_inventory(mocker):
 
     mock_inventory = mocker.Mock()
     mock_inventory.hosts = [mock_host1, mock_host2, mock_host3]
-    mock_inventory.get_host.side_effect = lambda name: next(
-        (h for h in mock_inventory.hosts if h.name == name), None
-    )
+    wire_get_host(mock_inventory)
 
     mocker.patch.object(utils_module.context, "inventory", mock_inventory)
     return mock_inventory

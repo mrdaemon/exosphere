@@ -6,6 +6,7 @@ from fabric.testing.fixtures import connection  # noqa: F401
 from rich.console import Console
 
 from exosphere.commands import utils as utils_module
+from exosphere.objects import Host
 
 
 def _make_console(stderr: bool = False) -> Console:
@@ -86,3 +87,79 @@ def patch_console(mocker, request):
             request.addfinalizer(_restore)
 
     return _install
+
+
+@pytest.fixture
+def make_host(mocker):
+    """
+    Factory fixture for mock ``Host`` objects.
+
+    Returns a callable that uses autospec to build an instance with the
+    canonical attributes of the Host class used throughout the test
+    suite.
+
+    The ``updates`` and ``security_updates`` attributes can be set to
+    either an int (which will fill it that many mocks) or an explicit
+    list of objects.
+
+    Everything else can be kwargs overridden.
+
+    Defaults mock a plain, online, discovered host with no pending
+    updates.
+    """
+
+    def _make(
+        name: str = "test-host",
+        *,
+        updates: int | list = 0,
+        security_updates: int | list = 0,
+        **attrs,
+    ) -> Host:
+        host = mocker.create_autospec(Host, instance=True)
+        host.name = name
+        host.updates = (
+            list(updates)
+            if isinstance(updates, list)
+            else [mocker.Mock() for _ in range(updates)]
+        )
+        host.security_updates = (
+            list(security_updates)
+            if isinstance(security_updates, list)
+            else [mocker.Mock() for _ in range(security_updates)]
+        )
+
+        defaults = {
+            "os": "linux",
+            "flavor": None,
+            "version": None,
+            "online": True,
+            "supported": True,
+            "is_stale": False,
+            "description": None,
+            "needs_reboot": None,
+        }
+        for key, value in {**defaults, **attrs}.items():
+            setattr(host, key, value)
+
+        return host
+
+    return _make
+
+
+@pytest.fixture
+def wire_get_host():
+    """
+    Mock inventory wiring fixture, for get_host resolution by name.
+
+    Essentially mocks just enough of the get_host method, in a way
+    that mirrors the real HostArg converter path, so commands and
+    screens invoked with explicit host names find their target.
+    """
+
+    def _wire(inventory):
+        inventory.get_host.side_effect = lambda name: next(
+            (h for h in inventory.hosts if h.name == name), None
+        )
+        return inventory
+
+    return _wire

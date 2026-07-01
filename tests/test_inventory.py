@@ -65,37 +65,8 @@ class TestInventory:
         mock_dc = mocker.patch("exosphere.inventory.DiskCache")
         return mock_dc
 
-    @staticmethod
-    def _mkhost(
-        mocker,
-        name,
-        os: str | None = "linux",
-        flavor=None,
-        version=None,
-        updates=0,
-        security=0,
-        online=True,
-        supported=True,
-    ):
-        """
-        Create a lightweight mock Host for filter/sort tests.
-
-        Hosts default to a discovered state.
-        Pass ``os=None`` to mock an undiscovered host.
-        """
-        host = mocker.Mock(spec=Host)
-        host.name = name
-        host.os = os
-        host.flavor = flavor
-        host.version = version
-        host.online = online
-        host.supported = supported
-        host.updates = [mocker.Mock() for _ in range(updates)]
-        host.security_updates = [mocker.Mock() for _ in range(security)]
-        return host
-
     @pytest.fixture
-    def view_inventory(self, mock_config, mocker):
+    def view_inventory(self, mock_config, make_host):
         """
         An inventory with crafted hosts for filter/sort tests.
 
@@ -105,44 +76,40 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
         inventory.hosts = [
-            self._mkhost(
-                mocker,
+            make_host(
                 "alpha",
                 os="linux",
                 flavor="debian",
                 version="12",
                 updates=3,
-                security=1,
+                security_updates=1,
                 online=True,
             ),
-            self._mkhost(
-                mocker,
+            make_host(
                 "bravo",
                 os="linux",
                 flavor="debian",
                 version="9",
                 updates=0,
-                security=0,
+                security_updates=0,
                 online=True,
             ),
-            self._mkhost(
-                mocker,
+            make_host(
                 "charlie",
                 os="freebsd",
                 flavor="freebsd",
                 version="14.0",
                 updates=5,
-                security=2,
+                security_updates=2,
                 online=False,
             ),
-            self._mkhost(
-                mocker,
+            make_host(
                 "delta",
                 os="plan9",
                 flavor=None,
                 version=None,
                 updates=0,
-                security=0,
+                security_updates=0,
                 online=False,
                 supported=False,
             ),
@@ -320,7 +287,6 @@ class TestInventory:
         """
         Test that load_or_create_host creates a new Host on cache miss.
         """
-        from exosphere.objects import Host
 
         inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
@@ -341,7 +307,6 @@ class TestInventory:
         """
         Test that load_or_create_host creates a new Host when cache read fails.
         """
-        from exosphere.objects import Host
 
         inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
@@ -369,7 +334,6 @@ class TestInventory:
         """
         Test that load_or_create_host loads HostState from cache correctly.
         """
-        from exosphere.objects import Host
 
         inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
@@ -413,7 +377,6 @@ class TestInventory:
         Test that load_or_create_host calls migration for legacy Host objects.
         This ensures the inventory layer properly invokes the migration system.
         """
-        from exosphere.objects import Host
 
         inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
@@ -460,7 +423,6 @@ class TestInventory:
         Test that a HostState with all None values can be loaded.
         This represents a host that was never discovered.
         """
-        from exosphere.objects import Host
 
         inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
@@ -494,7 +456,6 @@ class TestInventory:
         Test that an unsupported host with package_manager doesn't crash.
         The from_state logic should not instantiate pkginst when supported=False.
         """
-        from exosphere.objects import Host
 
         inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
@@ -526,7 +487,6 @@ class TestInventory:
         This should not crash even though it's logically inconsistent,
         and a new Discover call will clean it right up anyways.
         """
-        from exosphere.objects import Host
 
         inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
@@ -561,7 +521,6 @@ class TestInventory:
         When PkgManagerFactory.create raises an error during from_state,
         load_or_create_host should catch it and create a fresh host.
         """
-        from exosphere.objects import Host
 
         inventory = Inventory(Configuration())
         cache_mock = mock_diskcache.return_value.__enter__.return_value
@@ -691,7 +650,7 @@ class TestInventory:
         result = view_inventory.sort_hosts(field)
         assert result[-1].name == "delta"
 
-    def test_sort_hosts_os_includes_unsupported(self, mock_config, mocker):
+    def test_sort_hosts_os_includes_unsupported(self, mock_config, make_host):
         """
         Test that sorting by OS includes unsupported hosts.
 
@@ -701,10 +660,10 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
         inventory.hosts = [
-            self._mkhost(mocker, "z-discovered", os="ubuntu"),
-            self._mkhost(mocker, "unsupported", os="arch", supported=False),
-            self._mkhost(mocker, "a-discovered", os="debian"),
-            self._mkhost(mocker, "undiscovered", os=None),
+            make_host("z-discovered", os="ubuntu"),
+            make_host("unsupported", os="arch", supported=False),
+            make_host("a-discovered", os="debian"),
+            make_host("undiscovered", os=None),
         ]
 
         result = inventory.sort_hosts(SortField.OS)
@@ -718,7 +677,9 @@ class TestInventory:
             "undiscovered",
         ]
 
-    def test_sort_hosts_pins_undiscovered_above_unsupported(self, mock_config, mocker):
+    def test_sort_hosts_pins_undiscovered_above_unsupported(
+        self, mock_config, make_host
+    ):
         """
         Test the no-data hosts ordering on data columns.
 
@@ -730,10 +691,10 @@ class TestInventory:
         # intentionally high, something that would never happen in a
         # real inventory, to ensure they are properly ignored.
         inventory.hosts = [
-            self._mkhost(mocker, "unsupported", os="plan9", supported=False, updates=9),
-            self._mkhost(mocker, "undiscovered", os=None, updates=9),
-            self._mkhost(mocker, "alpha", updates=5),
-            self._mkhost(mocker, "bravo", updates=1),
+            make_host("unsupported", os="plan9", supported=False, updates=9),
+            make_host("undiscovered", os=None, updates=9),
+            make_host("alpha", updates=5),
+            make_host("bravo", updates=1),
         ]
 
         result = inventory.sort_hosts(SortField.UPDATES)
@@ -761,7 +722,7 @@ class TestInventory:
         # Online (alpha, bravo) sort before offline (charlie, delta)
         assert [h.online for h in result] == [True, True, False, False]
 
-    def test_sort_hosts_status_orders_all_hosts(self, mock_config, mocker):
+    def test_sort_hosts_status_orders_all_hosts(self, mock_config, make_host):
         """
         Test that STATUS sorting never pins hosts.
 
@@ -770,9 +731,9 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
         inventory.hosts = [
-            self._mkhost(mocker, "offline", os=None, online=False),
-            self._mkhost(mocker, "alpha", os="plan9", supported=False, online=True),
-            self._mkhost(mocker, "bravo", online=True),
+            make_host("offline", os=None, online=False),
+            make_host("alpha", os="plan9", supported=False, online=True),
+            make_host("bravo", online=True),
         ]
 
         result = inventory.sort_hosts(SortField.STATUS)
@@ -780,7 +741,7 @@ class TestInventory:
         assert [h.online for h in result] == [True, True, False]
         assert result[-1].name == "offline"
 
-    def test_sort_hosts_stable_preserves_config_order(self, mock_config, mocker):
+    def test_sort_hosts_stable_preserves_config_order(self, mock_config, make_host):
         """
         Test that sorts hosts preserves config order when values compare equal
 
@@ -788,15 +749,15 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
         inventory.hosts = [
-            self._mkhost(mocker, "first", updates=2),
-            self._mkhost(mocker, "second", updates=2),
-            self._mkhost(mocker, "third", updates=2),
+            make_host("first", updates=2),
+            make_host("second", updates=2),
+            make_host("third", updates=2),
         ]
 
         result = inventory.sort_hosts(SortField.UPDATES)
         assert [h.name for h in result] == ["first", "second", "third"]
 
-    def test_sort_hosts_by_version_compound(self, mock_config, mocker):
+    def test_sort_hosts_by_version_compound(self, mock_config, make_host):
         """
         Test that sorting by version compounds with flavor
 
@@ -806,10 +767,10 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
         inventory.hosts = [
-            self._mkhost(mocker, "deb-9", flavor="debian", version="9"),
-            self._mkhost(mocker, "deb-12", flavor="debian", version="12"),
-            self._mkhost(mocker, "ubu-22", flavor="ubuntu", version="22.04"),
-            self._mkhost(mocker, "ubu-8", flavor="ubuntu", version="8"),
+            make_host("deb-9", flavor="debian", version="9"),
+            make_host("deb-12", flavor="debian", version="12"),
+            make_host("ubu-22", flavor="ubuntu", version="22.04"),
+            make_host("ubu-8", flavor="ubuntu", version="8"),
         ]
 
         result = inventory.sort_hosts(SortField.VERSION)
@@ -817,7 +778,7 @@ class TestInventory:
         # debian group first (deb-9 < deb-12 naturally), then ubuntu group
         assert [h.name for h in result] == ["deb-9", "deb-12", "ubu-8", "ubu-22"]
 
-    def test_sort_hosts_by_flavor_groups_by_os(self, mock_config, mocker):
+    def test_sort_hosts_by_flavor_groups_by_os(self, mock_config, make_host):
         """
         Test that sorting by flavor groups by OS first.
 
@@ -827,9 +788,9 @@ class TestInventory:
         """
         inventory = Inventory(mock_config)
         inventory.hosts = [
-            self._mkhost(mocker, "ubuntu-host", os="linux", flavor="ubuntu"),
-            self._mkhost(mocker, "freebsd-host", os="freebsd", flavor="freebsd"),
-            self._mkhost(mocker, "debian-host", os="linux", flavor="debian"),
+            make_host("ubuntu-host", os="linux", flavor="ubuntu"),
+            make_host("freebsd-host", os="freebsd", flavor="freebsd"),
+            make_host("debian-host", os="linux", flavor="debian"),
         ]
 
         result = inventory.sort_hosts(SortField.FLAVOR)
@@ -863,7 +824,7 @@ class TestInventory:
         ],
     )
     def test_sort_hosts_version_natural_order(
-        self, mock_config, mocker, earlier, later
+        self, mock_config, make_host, earlier, later
     ):
         """
         Test that version sorting compares in natural order, not lexical.
@@ -874,8 +835,8 @@ class TestInventory:
         # absolutely fail here.
         inventory = Inventory(mock_config)
         inventory.hosts = [
-            self._mkhost(mocker, "beta", flavor="generic", version=later),
-            self._mkhost(mocker, "alpha", flavor="generic", version=earlier),
+            make_host("beta", flavor="generic", version=later),
+            make_host("alpha", flavor="generic", version=earlier),
         ]
 
         result = inventory.sort_hosts(SortField.VERSION)
@@ -939,21 +900,16 @@ class TestInventory:
 
         mock_run.assert_called_once_with(HostOperation.PING)
 
-    def test_run_task_with_custom_host_list(self, mocker, mock_config):
+    def test_run_task_with_custom_host_list(self, mocker, mock_config, make_host):
         """
         Test that run_task works with a custom list of hosts.
         """
-        from exosphere.objects import Host
-
         inventory = Inventory(mock_config)
 
         # Create hosts but only run task on subset
-        mock_host1 = mocker.create_autospec(Host, instance=True)
-        mock_host1.name = "host1"
-        mock_host2 = mocker.create_autospec(Host, instance=True)
-        mock_host2.name = "host2"
-        mock_host3 = mocker.create_autospec(Host, instance=True)
-        mock_host3.name = "host3"
+        mock_host1 = make_host("host1")
+        mock_host2 = make_host("host2")
+        mock_host3 = make_host("host3")
 
         inventory.hosts = [mock_host1, mock_host2, mock_host3]
 
@@ -995,21 +951,17 @@ class TestInventory:
         "method_name",
         ["discover", "sync_repos", "refresh_updates", "ping"],
     )
-    def test_run_task(self, mocker, mock_config, caplog, method_name):
+    def test_run_task(self, mocker, mock_config, caplog, method_name, make_host):
         """
         Test run_task behavior with success and failure cases.
         """
-        from exosphere.objects import Host
-
         operation = HostOperation(method_name)
 
         inventory = Inventory(mock_config)
 
         # Create two mock hosts
-        mock_host1 = mocker.create_autospec(Host, instance=True)
-        mock_host1.name = "host1"
-        mock_host2 = mocker.create_autospec(Host, instance=True)
-        mock_host2.name = "host2"
+        mock_host1 = make_host("host1")
+        mock_host2 = make_host("host2")
 
         # host1: method succeeds, host2: method raises exception
         mocker.patch.object(mock_host1, method_name, return_value="ok")
@@ -1090,19 +1042,16 @@ class TestInventory:
         success_log,
         failure_log,
         completion_log,
+        make_host,
     ):
         """
         Test that *_all methods log individual host results appropriately.
         """
-        from exosphere.objects import Host
-
         inventory = Inventory(mock_config)
 
         # Create mock hosts with different outcomes
-        mock_host1 = mocker.create_autospec(Host, instance=True)
-        mock_host1.name = "host1"
-        mock_host2 = mocker.create_autospec(Host, instance=True)
-        mock_host2.name = "host2"
+        mock_host1 = make_host("host1")
+        mock_host2 = make_host("host2")
 
         # host1 succeeds, host2 fails
         if not should_raise:
@@ -1127,16 +1076,15 @@ class TestInventory:
         assert any(failure_log in m for m in caplog.messages)
         assert any(completion_log in m for m in caplog.messages)
 
-    def test_ping_all_handles_unexpected_exceptions(self, mocker, mock_config, caplog):
+    def test_ping_all_handles_unexpected_exceptions(
+        self, mocker, mock_config, caplog, make_host
+    ):
         """
         Test that ping_all handles unexpected exceptions gracefully.
         """
-        from exosphere.objects import Host
-
         inventory = Inventory(mock_config)
 
-        mock_host = mocker.create_autospec(Host, instance=True)
-        mock_host.name = "host1"
+        mock_host = make_host("host1")
         # Force an exception that shouldn't normally happen
         mocker.patch.object(
             mock_host, "ping", side_effect=RuntimeError("unexpected error")
@@ -1152,18 +1100,17 @@ class TestInventory:
         )
         assert any("Pinged all hosts" in m for m in caplog.messages)
 
-    def test_run_task_uses_max_threads_configuration(self, mocker, mock_config):
+    def test_run_task_uses_max_threads_configuration(
+        self, mocker, mock_config, make_host
+    ):
         """
         Test that run_task uses max_threads from configuration.
         """
         # Set specific max_threads value
         mock_config["options"]["max_threads"] = 5
 
-        from exosphere.objects import Host
-
         inventory = Inventory(mock_config)
-        mock_host = mocker.create_autospec(Host, instance=True)
-        mock_host.name = "host1"
+        mock_host = make_host("host1")
         inventory.hosts = [mock_host]
 
         # Mock ThreadPoolExecutor to verify max_workers
@@ -1185,19 +1132,14 @@ class TestInventory:
         # Verify ThreadPoolExecutor was called with correct max_workers
         mock_executor.assert_called_once_with(max_workers=5)
 
-    def test_close_all_closes_all_hosts(self, mocker, mock_config):
+    def test_close_all_closes_all_hosts(self, mocker, mock_config, make_host):
         """
         Test that close_all() calls close() on all hosts.
         """
-        from exosphere.objects import Host
-
         inventory = Inventory(mock_config)
-        mock_host = mocker.create_autospec(Host, instance=True)
-        mock_host.name = "host1"
-        mock_host2 = mocker.create_autospec(Host, instance=True)
-        mock_host2.name = "host2"
-        mock_host3 = mocker.create_autospec(Host, instance=True)
-        mock_host3.name = "host3"
+        mock_host = make_host("host1")
+        mock_host2 = make_host("host2")
+        mock_host3 = make_host("host3")
         inventory.hosts = [mock_host, mock_host2, mock_host3]
 
         mocker.patch.object(mock_host, "close")
@@ -1210,17 +1152,13 @@ class TestInventory:
         mock_host2.close.assert_called_once_with(clear=False)
         mock_host3.close.assert_called_once_with(clear=False)
 
-    def test_close_all_with_clear(self, mocker, mock_config):
+    def test_close_all_with_clear(self, mocker, mock_config, make_host):
         """
         Test that close_all(clear=True) passes clear flag to hosts.
         """
-        from exosphere.objects import Host
-
         inventory = Inventory(mock_config)
-        mock_host = mocker.create_autospec(Host, instance=True)
-        mock_host.name = "host1"
-        mock_host2 = mocker.create_autospec(Host, instance=True)
-        mock_host2.name = "host2"
+        mock_host = make_host("host1")
+        mock_host2 = make_host("host2")
         inventory.hosts = [mock_host, mock_host2]
 
         mocker.patch.object(mock_host, "close")

@@ -21,14 +21,9 @@ def mock_inventory(mocker):
 
 
 @pytest.fixture
-def mock_host(mocker):
+def mock_host(make_host):
     """Create a mock host instance."""
-    host = mocker.create_autospec(Host, instance=True)
-    host.name = "test-host"
-    host.ip = "192.168.1.100"
-    host.port = 22
-    host.online = True
-    return host
+    return make_host("test-host", ip="192.168.1.100", port=22, online=True)
 
 
 @pytest.fixture
