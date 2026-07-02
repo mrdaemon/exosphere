@@ -7,7 +7,7 @@
 # Windows batch scripts require CRLF
 *.bat text eol=crlf
 
-# Binary assets — never apply text or EOL conversion.
+# Binary assets -- never apply text or EOL conversion.
 *.png   binary
 *.gif   binary
 *.ttf   binary

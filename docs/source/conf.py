@@ -59,6 +59,12 @@ myst_enable_extensions = [
     'linkify',
 ]
 
+# Generate GitHub-style slug anchors for headings so in-page links like
+# [Section](#section-title) resolve in the docs the same way they do in the
+# manual GitHub release post. Depth 3 covers changelog sections even when the
+# changelog-latest directive includes them with a heading offset.
+myst_heading_anchors = 3
+
 # Use a dark-friendly Pygments token palette to match dark code blocks.
 pygments_style = 'nord-darker'
 
