@@ -1,4 +1,5 @@
 anyways
+auth
 autobuild
 autoescaping
 autosave
@@ -41,6 +42,7 @@ filesystem
 filesystems
 flatpak
 flatpaks
+formatter
 freebsd
 github
 hostname
@@ -72,6 +74,7 @@ onboarding
 passwordless
 poe
 pre
+preselect
 pyproject
 pytest
 pyyaml
@@ -114,6 +117,7 @@ typer
 ubuntu
 uncreative
 unicity
+uniformize
 unix
 uv
 uvx
