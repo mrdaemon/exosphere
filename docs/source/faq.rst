@@ -318,6 +318,8 @@ that ensures it is loaded and matched last, for instance:
 
 ``/etc/sudoers.d/zz-exosphere``
 
+.. _faq-completion-upgrade:
+
 After upgrading to 3.0, my old shell completion misbehaves
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

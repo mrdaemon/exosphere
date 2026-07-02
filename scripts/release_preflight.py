@@ -30,6 +30,7 @@ christmas.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tomllib
@@ -41,6 +42,9 @@ from rich.console import Console
 
 ROOT = Path(__file__).resolve().parent.parent
 CHANGELOG_DIR = ROOT / "docs" / "source" / "changelog"
+
+# Release date regex for previous changelogs gate
+RELEASED_RE = re.compile(r"^\*Released\b[^\n]*\*\s*$", re.MULTILINE)
 
 console = Console()
 
@@ -108,6 +112,36 @@ def gate_changelog_present(version: Version) -> tuple[GateOutcome, str]:
     if path.exists():
         return GateOutcome.PASS, rel
     return GateOutcome.FAIL, f"missing '{rel}' - write the release notes first"
+
+
+def gate_previous_releases_dated(version: Version) -> tuple[GateOutcome, str]:
+    """
+    Every published release except the one being cut must carry a
+    '*Released ...*' date line. Current release is allowed undated
+    because chicken and egg problem.
+    """
+    current = version.base_version
+    undated: list[str] = []
+
+    for md in CHANGELOG_DIR.glob("*.md"):
+        if md.stem in ("index", "latest"):
+            continue
+        try:
+            entry = Version(md.stem)
+        except InvalidVersion:
+            continue
+        if entry.base_version == current:
+            continue  # the release being cut is allowed to be dateless
+        if not RELEASED_RE.search(md.read_text(encoding="utf-8")):
+            undated.append(md.stem)
+
+    if undated:
+        listed = ", ".join(sorted(undated, key=Version))
+        return (
+            GateOutcome.FAIL,
+            f"missing '*Released ...*' line: {listed} - backfill the date(s)",
+        )
+    return GateOutcome.PASS, "all prior releases carry a release date"
 
 
 def gate_lockfile_current() -> tuple[GateOutcome, str]:
@@ -183,6 +217,7 @@ def main() -> int:
     gates = [
         ("Version is stable", gate_version_stable(version)),
         ("Changelog present", gate_changelog_present(version)),
+        ("Prior releases dated", gate_previous_releases_dated(version)),
         ("Lockfile current", gate_lockfile_current()),
         ("Working tree clean", gate_worktree_clean()),
         ("On main branch", gate_on_main_branch()),
