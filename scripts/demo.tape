@@ -64,8 +64,26 @@ Sleep 500ms
 Enter
 Sleep 2s
 
+# Show host list sorted
+Type "inventory status --upd"
+Tab
+Sleep 500ms
+Type "--sort"
+Tab
+Tab
+Sleep 2s
+Type "secu"
+Sleep 500ms
+Tab
+Type "--rev"
+Sleep 500ms
+Tab
+Sleep 1s
+Enter
+Sleep 2s
+
 # Start UI
-Type "ui start"
+Type "ui"
 Sleep 500ms
 Enter
 
@@ -86,11 +104,19 @@ Sleep 500ms
 Up 2
 Sleep 2s
 
-# Filter hosts with security updates
+# Filter hosts with updates
 Ctrl+F
-Down
 Sleep 500ms
 Down
+Sleep 2s
+Enter
+
+# Sort by security updates, reversed
+Ctrl+S
+Sleep 500ms
+Type "s"
+Sleep 500ms
+Type "r"
 Sleep 2s
 Enter
 
@@ -113,7 +139,27 @@ Sleep 3s
 
 # Back out to main inventory
 Escape
+Sleep 500ms
 Escape
+Sleep 500ms
+
+# Pop open command palette, refresh current host
+Ctrl+P
+Type "refr"
+Sleep 500ms
+Down
+Sleep 500ms
+Down
+Sleep 500ms
+Down
+Sleep 500ms
+Enter
+Type "kam"
+Sleep 1s
+Enter
+
+# Wait for everything to finish
+Sleep 5s
 
 # Quit
 Ctrl+Q
