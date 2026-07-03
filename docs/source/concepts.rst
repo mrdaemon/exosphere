@@ -37,7 +37,7 @@ Three concepts carry most of the weight:
     One remote system Exosphere connects to.
 
 **Inventory**
-    The full collection of hosts, defined in your :doc:`configuration`.
+    The full collection of hosts, which are defined in your :doc:`configuration <configuration>`.
     Most commands operate on the whole inventory unless you name specific hosts.
 
 **Provider**

@@ -15,7 +15,7 @@ Create ``config.yaml`` in the `Config` directory shown here.
 .. tip::
 
     You can also use `config.toml` or `config.json` if you prefer those formats.
-    See the :doc:`configuration` page for more details.
+    See the :doc:`configuration <configuration>` page for more details.
 
 
 **Basic configuration**
@@ -114,7 +114,7 @@ Or start the full :doc:`ui` for a more interactive experience:
 .. tip::
 
    For more advanced configuration options, authentication details, and troubleshooting,
-   see the full :doc:`configuration` and :doc:`connections` documentation.
+   see the full :doc:`configuration <configuration>` and :doc:`connections <connections>` documentation.
 
    The :doc:`faq` section may also be helpful for common questions and issues.
 
