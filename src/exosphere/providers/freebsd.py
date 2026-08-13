@@ -3,6 +3,7 @@ FreeBSD Pkg Package Manager Provider
 """
 
 import re
+from typing import ClassVar
 
 from fabric import Connection
 
@@ -24,7 +25,7 @@ class Pkg(PkgManager):
           anyways, when properly configured, and it's easier to track.
     """
 
-    SUDOERS_COMMANDS: list[str] | None = [
+    SUDOERS_COMMANDS: ClassVar[list[str] | None] = [
         "/usr/sbin/pkg update -q",
         "/usr/sbin/pkg audit -qF",
     ]
@@ -95,14 +96,13 @@ class Pkg(PkgManager):
         # Collect vulnerable packages first
         audit_result = cx.run("pkg audit -q", hide=True, warn=True)
 
-        if audit_result.failed:
-            # We check for stderr here, as pkg audit will return
-            # non-zero exit code if vulnerable packages are found.
-            if audit_result.stderr:
-                self.logger.error("pkg audit failed: %s", audit_result.stderr)
-                raise DataRefreshError(
-                    f"Failed to get vulnerable packages from pkg: {audit_result.stdout} {audit_result.stderr}"
-                )
+        # We check for stderr here, as pkg audit will return
+        # non-zero exit code if vulnerable packages are found.
+        if audit_result.failed and audit_result.stderr:
+            self.logger.error("pkg audit failed: %s", audit_result.stderr)
+            raise DataRefreshError(
+                f"Failed to get vulnerable packages from pkg: {audit_result.stdout} {audit_result.stderr}"
+            )
 
         # Check pkg audit output for known vulnerable packages
         for line in audit_result.stdout.splitlines():

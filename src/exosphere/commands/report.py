@@ -200,7 +200,7 @@ def generate(
     if output:
         try:
             output.write_text(content, encoding="utf-8")
-        except Exception as e:
+        except (OSError, UnicodeEncodeError) as e:
             err_console.print(f"[red]Failed to write to {output}: {e}[/red]")
             return 2  # Application error
 
@@ -267,7 +267,7 @@ def schema(
     if output:
         try:
             output.write_text(content, encoding="utf-8")
-        except Exception as e:
+        except (OSError, UnicodeEncodeError) as e:
             err_console.print(f"[red]Failed to write to {output}: {e}[/red]")
             return 2  # Application error
 

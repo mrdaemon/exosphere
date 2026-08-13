@@ -19,7 +19,7 @@ module will result in changes needing to be made here as well.
 I'm sorry.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -46,7 +46,7 @@ def create_sample_hosts() -> list[Host]:
     web_server.package_manager = "apt"
     web_server.supported = True
     web_server.online = True
-    web_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(hours=2)
+    web_server.last_refresh = datetime.now(tz=UTC) - timedelta(hours=2)
     web_server.needs_reboot = False
     web_server.updates = [
         Update("apache2", "2.4.52-1ubuntu4.6", "2.4.52-1ubuntu4.7", True, "security"),
@@ -68,7 +68,7 @@ def create_sample_hosts() -> list[Host]:
     db_server.package_manager = "apt"
     db_server.supported = True
     db_server.online = True
-    db_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(hours=1)
+    db_server.last_refresh = datetime.now(tz=UTC) - timedelta(hours=1)
     db_server.needs_reboot = True
     db_server.updates = [
         Update("postgresql-14", "14.9-0+deb12u1", "14.10-0+deb12u1", True, "security"),
@@ -86,7 +86,7 @@ def create_sample_hosts() -> list[Host]:
     admin_server.package_manager = "pkg"
     admin_server.supported = True
     admin_server.online = True
-    admin_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(hours=3)
+    admin_server.last_refresh = datetime.now(tz=UTC) - timedelta(hours=3)
     admin_server.needs_reboot = False
     admin_server.updates = [
         Update("en-freebsd-doc", "20250814,1", "20250920,1", False, "FreeBSD"),
@@ -102,7 +102,7 @@ def create_sample_hosts() -> list[Host]:
     lb_server.package_manager = "dnf"
     lb_server.supported = True
     lb_server.online = True
-    lb_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(minutes=30)
+    lb_server.last_refresh = datetime.now(tz=UTC) - timedelta(minutes=30)
     lb_server.needs_reboot = False
     lb_server.updates = []  # No updates available
     hosts.append(lb_server)
@@ -119,7 +119,7 @@ def create_sample_hosts() -> list[Host]:
     dev_server.package_manager = "apt"
     dev_server.supported = True
     dev_server.online = False  # Currently offline
-    dev_server.last_refresh = datetime.now(tz=timezone.utc) - timedelta(days=3)
+    dev_server.last_refresh = datetime.now(tz=UTC) - timedelta(days=3)
     dev_server.updates = [
         # Has some cached updates from last time it was online
         Update("git", "1:2.34.1-1ubuntu1.9", "1:2.34.1-1ubuntu1.10", False, "updates"),

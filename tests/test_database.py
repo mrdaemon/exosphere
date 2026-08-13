@@ -49,9 +49,8 @@ def test_key_error_on_missing_key(tmp_db):
     """
     Test that accessing a missing key raises KeyError
     """
-    with DiskCache(tmp_db) as cache:
-        with pytest.raises(KeyError):
-            _ = cache["notfound"]
+    with DiskCache(tmp_db) as cache, pytest.raises(KeyError):
+        _ = cache["notfound"]
 
 
 @pytest.mark.parametrize(

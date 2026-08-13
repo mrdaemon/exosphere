@@ -1,3 +1,6 @@
+from datetime import UTC, datetime
+from typing import ClassVar
+
 import pytest
 
 from exosphere.commands import host as host_module
@@ -80,7 +83,7 @@ def fake_inventory(mock_host):
     """The vaguest simulacrum of an inventory"""
 
     class FakeInventory:
-        hosts = [mock_host]
+        hosts: ClassVar[list] = [mock_host]
 
         def get_host(self, name):
             if name == mock_host.name:
@@ -152,10 +155,8 @@ class TestShowCommand:
         """
         Test showing a host with a last refresh date displayed.
         """
-        from datetime import datetime, timezone
-
         # Set a UTC datetime on the mock host
-        utc_time = datetime(2025, 7, 22, 14, 30, 45, tzinfo=timezone.utc)
+        utc_time = datetime(2025, 7, 22, 14, 30, 45, tzinfo=UTC)
         mock_host.last_refresh = utc_time
 
         code = host_module.app(["show", mock_host.name], result_action="return_value")

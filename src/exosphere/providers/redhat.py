@@ -84,11 +84,10 @@ class Dnf(PkgManager):
             self.logger.debug("No updates available")
             return updates
 
-        if raw_query.failed:
-            if raw_query.return_code != 100:
-                raise DataRefreshError(
-                    f"Failed to retrieve updates from DNF: {raw_query.stderr}"
-                )
+        if raw_query.failed and raw_query.return_code != 100:
+            raise DataRefreshError(
+                f"Failed to retrieve updates from DNF: {raw_query.stderr}"
+            )
 
         parsed_tuples: list[tuple[str, str, str]] = []
 
@@ -130,7 +129,8 @@ class Dnf(PkgManager):
         if not parsed_tuples:
             self.logger.warning(
                 "%s reported updates, but none were extracted! "
-                "This is likely a bug, consider filing an issue." % self.pkgbin.upper()
+                "This is likely a bug, consider filing an issue.",
+                self.pkgbin.upper(),
             )
             return updates
 
@@ -246,11 +246,10 @@ class Dnf(PkgManager):
             self.logger.debug("No security updates available")
             return updates
 
-        if raw_query.failed:
-            if raw_query.return_code != 100:
-                raise DataRefreshError(
-                    f"Failed to retrieve security updates from DNF: {raw_query.stderr}"
-                )
+        if raw_query.failed and raw_query.return_code != 100:
+            raise DataRefreshError(
+                f"Failed to retrieve security updates from DNF: {raw_query.stderr}"
+            )
 
         self.logger.debug("Parsing security updates")
         for line in raw_query.stdout.splitlines():
@@ -273,7 +272,7 @@ class Dnf(PkgManager):
 
             parsed = self._parse_line(line)
             if parsed:
-                name, version, source = parsed
+                name, _version, _source = parsed
                 updates.append(name)
 
         self.logger.debug("Found %d security updates", len(updates))

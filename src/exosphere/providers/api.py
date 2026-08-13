@@ -10,7 +10,7 @@ import functools
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable, MutableMapping
-from typing import Any
+from typing import Any, ClassVar
 
 from fabric import Connection
 from invoke.exceptions import AuthFailure
@@ -90,7 +90,7 @@ class PkgManager(ABC):
     #:
     #: If you do not require elevated privileges at all, omit it
     #: entirely from your implementation or set it to `None`.
-    SUDOERS_COMMANDS: list[str] | None = None
+    SUDOERS_COMMANDS: ClassVar[list[str] | None] = None
 
     def __init__(self) -> None:
         """

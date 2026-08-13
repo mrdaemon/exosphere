@@ -11,11 +11,11 @@ exchange or configuration purposes.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TypeAlias
+from typing import Annotated
 
-# Define a type alias for timezone-aware UTC datetime
-# This is to help communicate intent better in type hints
-UtcDateTime: TypeAlias = datetime
+# Define a type for timezone-aware UTC datetime
+# This is purely to help communicate intent in type hints.
+type UtcDateTime = Annotated[datetime, "timezone-aware, UTC"]
 
 
 @dataclass(frozen=True)

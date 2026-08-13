@@ -3,9 +3,10 @@ Dashboard Screen module
 """
 
 import logging
+from typing import ClassVar
 
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Container, ItemGrid, VerticalScroll
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Label
@@ -95,7 +96,7 @@ class DashboardScreen(DataScreen):
 
     CSS_PATH = "style.tcss"
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("d", "app.none", show=False),
         ("P", "ping_all_hosts", "Ping All"),
         ("ctrl+d", "discover_hosts", "Discover All"),
@@ -110,20 +111,24 @@ class DashboardScreen(DataScreen):
 
         # "No hosts available" box
         if not hosts:
-            with VerticalScroll(id="hosts-scroll"):
-                with Container(id="empty-container"):
-                    yield Label("No hosts available.", classes="empty-message")
+            with (
+                VerticalScroll(id="hosts-scroll"),
+                Container(id="empty-container"),
+            ):
+                yield Label("No hosts available.", classes="empty-message")
             yield Footer()
             return
 
         # Grid container for host widgets
-        with VerticalScroll(id="hosts-scroll"):
-            with ItemGrid(
+        with (
+            VerticalScroll(id="hosts-scroll"),
+            ItemGrid(
                 id="hosts-container",
                 min_column_width=MIN_WIDGET_WIDTH,
-            ):
-                for host in hosts:
-                    yield HostWidget(host)
+            ),
+        ):
+            for host in hosts:
+                yield HostWidget(host)
 
         yield Footer()
 

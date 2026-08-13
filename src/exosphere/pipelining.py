@@ -170,12 +170,12 @@ class ConnectionReaper:
                 try:
                     host.close(clear=False)
                     reaped_count += 1
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
+                    # Last resort catch-all, considered non-fatal
                     self.logger.error(
                         "Error closing connection to %s: %s",
                         host.name,
-                        e,
-                        exc_info=True,
+                        type(e).__name__ + ": " + str(e),
                     )
 
         if reaped_count > 0:

@@ -129,7 +129,7 @@ class TestMain:
         mocker.patch("exosphere.main.load_first_config", return_value=True)
 
         mock_ensuredirs = mocker.patch(
-            "exosphere.main.fspaths.ensure_dirs", side_effect=Exception("Test error")
+            "exosphere.main.fspaths.ensure_dirs", side_effect=OSError("Test error")
         )
 
         from exosphere.main import main
@@ -474,7 +474,7 @@ class TestMain:
         from exosphere.main import setup_logging
 
         # FileHandler should raise an exception for invalid path
-        with pytest.raises(Exception):
+        with pytest.raises(OSError):
             setup_logging("INFO", str(invalid_log_file))
 
     def test_setup_logging_lowercase_log_level(self, mocker):

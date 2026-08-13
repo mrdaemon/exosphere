@@ -9,7 +9,10 @@ useful since Textual's helpers require full asyncio, and I am not ready to
 accept it into my heart just yet.
 """
 
+import logging
+
 import pytest
+from textual.css.query import NoMatches, WrongType
 from textual.widgets import DataTable
 from textual.widgets.data_table import CellDoesNotExist, RowDoesNotExist
 
@@ -889,6 +892,25 @@ class TestActionSortView:
         text = mock_label.update.call_args[0][0]
         assert "Filtered: Updates" in text
         assert "Sorted: OS ↑" in text
+
+    @pytest.mark.parametrize(
+        "error",
+        [NoMatches("no such node"), WrongType("wrong type")],
+        ids=["missing", "wrong-type"],
+    )
+    def test_status_bar_tolerates_unresolvable_label(
+        self, inventory_screen, mocker, caplog, error
+    ):
+        """Unresolvable status label is cleanly handled without crash"""
+        mocker.patch.object(inventory_screen, "query_one", side_effect=error)
+
+        with caplog.at_level(logging.ERROR, logger="exosphere.ui.inventory"):
+            inventory_screen._update_status_bar()
+
+        records = [r for r in caplog.records if r.name == "exosphere.ui.inventory"]
+        assert len(records) == 1
+        assert "Status label not found" in records[0].getMessage()
+        assert records[0].exc_info is not None
 
 
 class TestSelectedHost:

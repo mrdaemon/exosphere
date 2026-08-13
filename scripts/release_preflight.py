@@ -11,7 +11,7 @@ a state suitable to publish a release, and if it is, it will print
 a neat manual checklist of all the stuff the maintainer still has to do
 by hand like a caveman banging rocks together.
 
-It is especially useful for ensure the docs and changelog were not
+It is especially useful for ensuring the docs and changelog were not
 forgotten, and avoiding small details that generate the "oh fuck"
 moments 3 hours after a release while I'm on the couch.
 
@@ -62,19 +62,25 @@ class GateOutcome(Enum):
 # A dirty human still has to do these at this point in time.
 # They will be printed at the end of the preflight if it is ready.
 MANUAL_STEPS = [
-    "Do a final compat pass against the LATEST dependency versions - pipx/uv "
-    "tool installs do not pin, so `uv lock --upgrade` then `poe test` now, not "
-    "after release.",
+    (
+        "Do a final compat pass against the LATEST dependency versions - pipx/uv "
+        "tool installs do not pin, so `uv lock --upgrade` then `poe test` now, not "
+        "after release."
+    ),
     "Confirm the documentation covers any new features or options.",
     "Create a [red]SIGNED[/red] tag `git tag -s vX.Y.Z`.",
     "[red]Rerun the preflight[/red]",
     "Push the tag to origin",
-    "Once CI is green on the tag, draft the GitHub release: paste "
-    "changelog/<version>.md as the body and attach screenshots/video.",
+    (
+        "Once CI is green on the tag, draft the GitHub release: paste "
+        "changelog/<version>.md as the body and attach screenshots/video."
+    ),
     "Once satisfied, publish the GitHub Release.",
     "Check build actions for release",
-    "Approve the PyPI publish in the GitHub environment (or wait out the "
-    "'oh fuck' timer and confirm).",
+    (
+        "Approve the PyPI publish in the GitHub environment (or wait out the "
+        "'oh fuck' timer and confirm)."
+    ),
     "Check the release on PyPI.",
     "Check the live documentation on Read the Docs.",
     "Do a test upgrade on a real system.",
@@ -84,7 +90,7 @@ MANUAL_STEPS = [
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
     """Run a command at the repo root, capturing output."""
-    return subprocess.run(args, cwd=ROOT, capture_output=True, text=True)
+    return subprocess.run(args, cwd=ROOT, capture_output=True, text=True, check=False)
 
 
 def project_version() -> str:

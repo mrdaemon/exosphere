@@ -224,6 +224,9 @@ class ExosphereCompleter(Completer):
         try:
             ac = self._argument_collection(node)
         except Exception:  # noqa: BLE001
+            # Any sort of completion failure here does not really have
+            # a recovery path, nor does it actually matters, so we just
+            # swallow and return no completions.
             return
 
         used_opts = {token for token in unused if token.startswith("-")}
@@ -339,6 +342,11 @@ class ExosphereREPL:
             )
             return FileHistory(history_file)
         except Exception as e:  # noqa: BLE001
+            # Any failure here must be non-fatal, because we're not
+            # hard crashing over history file issues. This is also
+            # very unlikely to be hit, given lazy loads and helpers
+            # dealing with their own errors.
+            # We simply fallback to in-memory history and move on.
             logger.warning("Could not setup persistent history: %s", e)
             logger.warning("REPL is falling back to in-memory history")
 
@@ -391,7 +399,7 @@ class ExosphereREPL:
                 # Ctrl+D exits gracefully
                 self.console.print("Exiting Interactive mode")
                 break
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 # Catch-all for unexpected crashes
                 self.console.print(f"[red]Unexpected error in REPL: {e}[/red]")
                 logger.exception("Unexpected error in REPL")
@@ -427,7 +435,7 @@ class ExosphereREPL:
             # Re-raise EOFError so it reaches the main loop
             # Allows Ctrl+D to exit gracefully
             raise
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.console.print(f"[red]Error executing command: {e}[/red]")
             logger.exception("Error executing command: %s", line)
 
@@ -599,9 +607,12 @@ def _unhide(app: App) -> None:
 
         sub = app[name]
 
+        # Not every entry in an App is a command/sub-app with a settable
+        # "show" attribute. The ones that aren't simply have nothing to
+        # unhide, so failing to set it is not an error worth surfacing.
         try:
             sub.show = True
-        except Exception:  # noqa: BLE001
+        except AttributeError:
             pass
 
         _unhide(sub)

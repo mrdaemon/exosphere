@@ -232,10 +232,15 @@ def discover(host: HostArg, /) -> int:
         progress.add_task(f"Discovering platform for '{host.name}'", total=None)
         try:
             host.discover()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose: providers hand the Connection to fabric
+            # directly, so paramiko/invoke errors (SSHException,
+            # NoValidConnectionsError, AuthFailure) leak past
+            # DataRefreshError on a host that dies mid-operation.
+            # FIXME: This handling should be moved at the Host boundary
             progress.console.print(
                 Panel.fit(
-                    f"{str(e)}",
+                    f"{e!s}",
                     title="[red]Error[/red]",
                     style="red",
                     title_align="left",
@@ -277,17 +282,18 @@ def refresh(
     discover
         Also refresh platform information
     """
-    with Progress(transient=True, *SPINNER_ARGS) as progress:
+    with Progress(*SPINNER_ARGS, transient=True) as progress:
         if discover:
             task = progress.add_task(
                 f"Refreshing platform information for '{host.name}'", total=None
             )
             try:
                 host.discover()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
+                # Broad on purpose, see discover() above.
                 progress.console.print(
                     Panel.fit(
-                        f"{str(e)}",
+                        f"{e!s}",
                         title="[red]Error[/red]",
                         style="red",
                         title_align="left",
@@ -304,10 +310,11 @@ def refresh(
             )
             try:
                 host.sync_repos()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
+                # Broad on purpose, see discover() above.
                 progress.console.print(
                     Panel.fit(
-                        f"{str(e)}",
+                        f"{e!s}",
                         title="[red]Error[/red]",
                         style="red",
                         title_align="left",
@@ -321,10 +328,11 @@ def refresh(
         task = progress.add_task(f"Refreshing updates for '{host.name}'", total=None)
         try:
             host.refresh_updates()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose, see discover() above.
             progress.console.print(
                 Panel.fit(
-                    f"{str(e)}",
+                    f"{e!s}",
                     title="[red]Error[/red]",
                     style="red",
                     title_align="left",

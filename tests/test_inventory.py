@@ -264,10 +264,8 @@ class TestInventory:
         cache_mock = mock_diskcache.return_value.__enter__.return_value
         cache_mock.clear.side_effect = FileNotFoundError
 
-        try:
-            inventory.clear_state()
-        except Exception as e:
-            pytest.fail(f"Unexpected exception raised: {e}")
+        # Should not raise
+        inventory.clear_state()
 
     def test_clear_state_raises_on_other_exception(
         self, mocker, mock_config, mock_diskcache

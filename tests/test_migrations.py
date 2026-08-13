@@ -5,7 +5,7 @@ Tests for the cache file format migration functions.
 Ensures backward compatibility with older cache formats, in general.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from exosphere.data import HostState, Update
 from exosphere.migrations import migrate_from_host
@@ -66,7 +66,8 @@ class TestMigrations:
         host.updates = []
 
         # Create naive datetime (old cache format)
-        naive_dt = datetime(2026, 1, 6, 10, 30, 0)  # No timezone
+        # We noqa it because the missing tzinfo is on purpose
+        naive_dt = datetime(2026, 1, 6, 10, 30, 0)  # noqa: DTZ001
         host.last_refresh = naive_dt
 
         with caplog.at_level("DEBUG"):
@@ -74,7 +75,7 @@ class TestMigrations:
 
         # Should be converted to UTC
         assert state.last_refresh is not None
-        assert state.last_refresh.tzinfo == timezone.utc
+        assert state.last_refresh.tzinfo == UTC
         assert any(
             "Converting timezone-naive last_refresh" in message
             for message in caplog.messages
@@ -90,7 +91,7 @@ class TestMigrations:
         host.updates = []
 
         # Create timezone-aware datetime (newer cache format)
-        aware_dt = datetime(2026, 1, 6, 10, 30, 0, tzinfo=timezone.utc)
+        aware_dt = datetime(2026, 1, 6, 10, 30, 0, tzinfo=UTC)
         host.last_refresh = aware_dt
 
         state = migrate_from_host(host)
@@ -98,7 +99,7 @@ class TestMigrations:
         # Should be preserved as-is
         assert state.last_refresh == aware_dt
         assert state.last_refresh is not None
-        assert state.last_refresh.tzinfo == timezone.utc
+        assert state.last_refresh.tzinfo == UTC
 
     def test_migrate_from_host_with_updates(self, mocker):
         """Verify migration handles updates list"""

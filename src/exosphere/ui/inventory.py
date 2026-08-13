@@ -3,14 +3,16 @@ Inventory Screen Module
 """
 
 import logging
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from typing import ClassVar
 
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
+from textual.command import Provider
 from textual.containers import Center, Container, Grid, Vertical
 from textual.coordinate import Coordinate
-from textual.css.query import NoMatches
+from textual.css.query import NoMatches, WrongType
 from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import (
@@ -423,9 +425,11 @@ class InventoryScreen(DataScreen):
     CSS_PATH = "style.tcss"
 
     # Register command palette provider for the inventory screen
-    COMMANDS = {HostCommandProvider}
+    COMMANDS: ClassVar[set[type[Provider] | Callable[[], type[Provider]]]] = {
+        HostCommandProvider
+    }
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("i", "app.none", show=False),
         ("ctrl+r", "refresh_updates_all", "Refresh Updates"),
         ("ctrl+x", "sync_and_refresh_all", "Sync & Refresh"),
@@ -447,9 +451,8 @@ class InventoryScreen(DataScreen):
         hosts = getattr(context.inventory, "hosts", []) or []
 
         if not hosts:
-            with Vertical():
-                with Container(id="empty-container"):
-                    yield Label("No hosts in inventory.", classes="empty-message")
+            with Vertical(), Container(id="empty-container"):
+                yield Label("No hosts in inventory.", classes="empty-message")
         else:
             with Vertical(id="inventory-container"):
                 yield DataTable(id="inventory-table")
@@ -744,8 +747,10 @@ class InventoryScreen(DataScreen):
         """
         try:
             status_label = self.query_one("#inventory-filter-label", Label)
-        except Exception:
-            logger.error("Status label not found, this is unexpected and likely a bug.")
+        except (NoMatches, WrongType):
+            logger.exception(
+                "Status label not found, this is unexpected and likely a bug."
+            )
             return
 
         parts: list[str] = []

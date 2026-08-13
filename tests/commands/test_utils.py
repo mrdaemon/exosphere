@@ -110,7 +110,7 @@ class TestRequires:
 
     @staticmethod
     def _app():
-        from typing import Annotated, Optional
+        from typing import Annotated
 
         from cyclopts import App, Group, Parameter
 
@@ -125,7 +125,7 @@ class TestRequires:
                 bool, Parameter(name=["--dependent"], negative="", group=group)
             ] = False,
             required: Annotated[
-                Optional[str], Parameter(name=["--required"], group=group)
+                str | None, Parameter(name=["--required"], group=group)
             ] = None,
         ) -> int:
             return 0
@@ -329,8 +329,6 @@ class TestRunTaskWithProgress:
 
     def test_run_task_success_no_errors(self, mock_inventory, mock_console, mocker):
         """Test successful task execution with no errors."""
-        console_mock, err_console_mock = mock_console
-
         # Mock hosts
         host1 = mocker.Mock()
         host1.name = "host1"
@@ -444,8 +442,6 @@ class TestRunTaskWithProgress:
 
     def test_run_task_with_errors(self, mock_inventory, mock_console, mocker):
         """Test task execution with some errors."""
-        console_mock, err_console_mock = mock_console
-
         # Mock hosts
         host1 = mocker.Mock()
         host1.name = "host1"
@@ -481,8 +477,6 @@ class TestRunTaskWithProgress:
         self, mock_inventory, mock_console, mocker
     ):
         """Test immediate error display option."""
-        console_mock, err_console_mock = mock_console
-
         # Mock hosts
         host1 = mocker.Mock()
         host1.name = "host1"
@@ -514,8 +508,6 @@ class TestRunTaskWithProgress:
 
     def test_run_task_no_host_display(self, mock_inventory, mock_console, mocker):
         """Test with display_hosts=False."""
-        console_mock, err_console_mock = mock_console
-
         # Mock hosts
         host1 = mocker.Mock()
         host1.name = "host1"
@@ -544,8 +536,6 @@ class TestRunTaskWithProgress:
 
     def test_run_task_custom_progress_args(self, mock_inventory, mock_console, mocker):
         """Test with custom progress arguments."""
-        console_mock, err_console_mock = mock_console
-
         # Mock hosts
         host1 = mocker.Mock()
         host1.name = "host1"
@@ -566,7 +556,7 @@ class TestRunTaskWithProgress:
         )
 
         # Check that custom args were passed to Progress
-        mock_progress.assert_called_once_with(transient=True, *custom_args)
+        mock_progress.assert_called_once_with(*custom_args, transient=True)
 
 
 class TestStatusFormats:

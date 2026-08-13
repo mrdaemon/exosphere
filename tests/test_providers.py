@@ -1964,9 +1964,11 @@ class TestDnfProvider:
             ),
             (
                 1,
-                "Core libraries or services have been updated since boot-up:\n"
-                "  * kernel-core\n"
-                "Reboot is required to fully utilize these updates.",
+                (
+                    "Core libraries or services have been updated since boot-up:\n"
+                    "  * kernel-core\n"
+                    "Reboot is required to fully utilize these updates."
+                ),
                 True,
             ),
         ],

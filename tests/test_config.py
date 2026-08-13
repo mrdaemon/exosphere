@@ -345,7 +345,7 @@ class TestConfiguration:
             result = config.from_file(
                 "non_existent_file.toml", tomllib.load, silent=True
             )
-        except IOError:
+        except OSError:
             pytest.fail("IOError should not have been raised with silent=True")
 
         assert result is False

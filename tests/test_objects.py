@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -389,10 +389,8 @@ class TestHostObject:
 
         host = Host(name="test_host", ip="127.0.0.1")
 
-        try:
-            host.ping()
-        except Exception as e:
-            pytest.fail(f"Ping should not raise an exception, but we got a: {e}")
+        # Should not raise
+        host.ping()
 
         assert host.online is False  # Should be False on failure
 
@@ -599,7 +597,7 @@ class TestHostObject:
         )
 
         # Set last_refresh to 20 seconds ago
-        host.last_refresh = datetime.now(timezone.utc) - timedelta(seconds=20)
+        host.last_refresh = datetime.now(UTC) - timedelta(seconds=20)
 
         assert host.is_stale is True
 
@@ -615,7 +613,7 @@ class TestHostObject:
         )
 
         # Set last_refresh to 30 seconds ago
-        host.last_refresh = datetime.now(timezone.utc) - timedelta(seconds=30)
+        host.last_refresh = datetime.now(UTC) - timedelta(seconds=30)
 
         assert host.is_stale is False
 
@@ -631,7 +629,7 @@ class TestHostObject:
             "exosphere.objects.app_config", {"options": {"stale_threshold": 60}}
         )
 
-        host.last_refresh = datetime.now(timezone.utc) - timedelta(seconds=30)
+        host.last_refresh = datetime.now(UTC) - timedelta(seconds=30)
 
         assert host.is_stale is False
 
@@ -655,7 +653,7 @@ class TestHostObject:
         complete_host.flavor = "ubuntu"
         complete_host.version = "22.04"
         complete_host.package_manager = "apt"
-        complete_host.last_refresh = datetime.now(timezone.utc)
+        complete_host.last_refresh = datetime.now(UTC)
         complete_host.supported = True
         complete_host.online = True
         complete_host.updates = [
@@ -709,7 +707,7 @@ class TestHostObject:
 
         # Test stale detection with old last_refresh
         stale_host = Host(name="stale-host", ip="192.168.1.2")
-        stale_host.last_refresh = datetime.now(timezone.utc) - timedelta(hours=25)
+        stale_host.last_refresh = datetime.now(UTC) - timedelta(hours=25)
         stale_host.supported = True
 
         stale_result = stale_host.to_dict()
@@ -823,9 +821,9 @@ class TestHostObject:
         pkg_manager.get_updates.return_value = updates_list
         host._pkginst = pkg_manager
 
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         host.refresh_updates()
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         pkg_manager.get_updates.assert_called_once_with(host.connection)
         assert host.updates == updates_list
@@ -1260,7 +1258,7 @@ class TestHostObject:
             t.join()
 
         # All threads should get the same connection object
-        assert len(set(id(c) for c in connections)) == 1
+        assert len({id(c) for c in connections}) == 1
 
         # Connection should only be created once
         assert mock_connection.call_count == 1
@@ -1440,7 +1438,7 @@ class TestHostStateSerialization:
                 name="pkg2", current_version="2.0", new_version="2.1", security=True
             ),
         ]
-        host.last_refresh = datetime.now(timezone.utc)
+        host.last_refresh = datetime.now(UTC)
 
         state = host.to_state()
 
@@ -1458,13 +1456,13 @@ class TestHostStateSerialization:
         host.online = True
         host.updates = []
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         host.last_refresh = now
 
         state = host.to_state()
 
         assert state.last_refresh == now
-        assert state.last_refresh.tzinfo == timezone.utc  # type: ignore
+        assert state.last_refresh.tzinfo == UTC  # type: ignore
 
     def test_from_state_basic(self, mocker):
         """Test basic loading of state into Host"""
@@ -1658,7 +1656,7 @@ class TestHostStateSerialization:
                 name="pkg2", current_version="2.0", new_version="2.1", security=True
             ),
         ]
-        host1.last_refresh = datetime(2026, 1, 6, 10, 30, 0, tzinfo=timezone.utc)
+        host1.last_refresh = datetime(2026, 1, 6, 10, 30, 0, tzinfo=UTC)
 
         # Serialize to state
         state = host1.to_state()
@@ -1678,9 +1676,7 @@ class TestHostStateSerialization:
         assert host2.updates[0].name == "pkg1"
         assert host2.updates[1].name == "pkg2"
         assert host2.updates[1].security is True
-        assert host2.last_refresh == datetime(
-            2026, 1, 6, 10, 30, 0, tzinfo=timezone.utc
-        )
+        assert host2.last_refresh == datetime(2026, 1, 6, 10, 30, 0, tzinfo=UTC)
 
     def test_roundtrip_with_minimal_state(self, mocker):
         """Verify round-trip works with minimal state"""

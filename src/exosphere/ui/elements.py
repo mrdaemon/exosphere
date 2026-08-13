@@ -240,7 +240,7 @@ class ProgressScreen(Screen[TaskOutcome]):
                     exc_count += 1
                     logger.error(
                         f"Error running {self.operation.value} on host "
-                        f"{host.name}: {str(exc)}"
+                        f"{host.name}: {exc!s}"
                     )
                 else:
                     logger.debug(
@@ -266,8 +266,10 @@ class ProgressScreen(Screen[TaskOutcome]):
                 try:
                     inventory.save_state()
                     logger.debug("Inventory state saved successfully.")
-                except Exception as e:
-                    logger.error("Failed to save inventory state: %s", str(e))
+                except Exception as e:  # noqa: BLE001
+                    # Exceptions are handed back to the caller via
+                    # TaskOutcome, and logged here for visibility.
+                    logger.error("Failed to save inventory state: %s", e)
                     save_error = e
         finally:
             outcome = TaskOutcome(

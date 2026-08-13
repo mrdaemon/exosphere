@@ -11,8 +11,12 @@ Acts as the entrypoint for the UI component of Exosphere.
 
 import logging
 from collections.abc import Callable
+from typing import ClassVar
 
 from textual.app import App, ComposeResult
+from textual.binding import BindingType
+from textual.command import Provider
+from textual.screen import Screen
 from textual.widgets import Footer, Header
 
 from exosphere import context
@@ -28,6 +32,8 @@ from exosphere.ui.elements import (
 from exosphere.ui.inventory import InventoryScreen
 from exosphere.ui.logs import LogsScreen, RichLogFormatter, UILogHandler
 from exosphere.ui.palette import GlobalAllHostsProvider, GlobalHostCommandProvider
+
+logger = logging.getLogger("exosphere.ui.app")
 
 
 class ExosphereUi(App):
@@ -48,18 +54,20 @@ class ExosphereUi(App):
     # Register global command palette providers, available on every
     # screen throughout the app. Some screens may register their own
     # scoped providers, with extra picker steps (e.g. InventoryScreen)
-    COMMANDS = App.COMMANDS | {GlobalHostCommandProvider, GlobalAllHostsProvider}
+    COMMANDS: ClassVar[set[type[Provider] | Callable[[], type[Provider]]]] = (
+        App.COMMANDS | {GlobalHostCommandProvider, GlobalAllHostsProvider}
+    )
 
     # Global Bindings - These are available in all modes,
     # unless overridden by a mode-specific binding.
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         ("d", "switch_mode('dashboard')", "Dashboard"),
         ("i", "switch_mode('inventory')", "Inventory"),
         ("l", "switch_mode('logs')", "Logs"),
         ("^q", "quit", "Quit"),
     ]
 
-    MODES = {
+    MODES: ClassVar[dict[str, str | Callable[[], Screen]]] = {
         "dashboard": DashboardScreen,
         "inventory": InventoryScreen,
         "logs": LogsScreen,
@@ -109,7 +117,7 @@ class ExosphereUi(App):
 
         target_hosts = hosts if hosts is not None else inventory.hosts
         if not target_hosts:
-            logging.warning("No hosts available to run task '%s'.", operation.value)
+            logger.warning("No hosts available to run task '%s'.", operation.value)
             self.push_screen(ErrorScreen("No hosts available."))
             return
 
@@ -118,7 +126,7 @@ class ExosphereUi(App):
         if operation.requires_supported:
             skipped = [host for host in target_hosts if not host.supported]
             if skipped:
-                logging.debug(
+                logger.debug(
                     "Skipping %d unsupported host(s) for task '%s': %s",
                     len(skipped),
                     operation.value,
@@ -129,7 +137,7 @@ class ExosphereUi(App):
             # If nothing supported remains, the hosts exist but can't run
             # this operation. Use a dedicated message to explain why.
             if not supported_hosts:
-                logging.warning(
+                logger.warning(
                     "No supported hosts available to run task '%s'.", operation.value
                 )
                 if len(target_hosts) == 1:
@@ -151,7 +159,7 @@ class ExosphereUi(App):
             # If screen did not return with an outcome, bail
             # as every next move would be wrong.
             if outcome is None:
-                logging.warning(
+                logger.warning(
                     "Task runner did not return an outcome, skipping callback"
                 )
                 return
@@ -179,7 +187,7 @@ class ExosphereUi(App):
             if isinstance(screen, DataScreen):
                 name = screen.get_screen_name()
                 if name in screenflags.registered_screens:
-                    logging.debug(
+                    logger.debug(
                         "Task %s done; refreshing active screen %s, flagging others.",
                         operation.value,
                         name,
@@ -189,7 +197,7 @@ class ExosphereUi(App):
                     screenflags.flag_screen_dirty_except(name)
                     return
 
-            logging.debug(
+            logger.debug(
                 "Task %s done from non-data screen; flagging all data screens.",
                 operation.value,
             )
@@ -347,7 +355,7 @@ class ExosphereUi(App):
             self.ui_log_handler.close()
             self.ui_log_handler = None
 
-        logging.debug("UI log handler cleaned up on unmount.")
+        logger.debug("UI log handler cleaned up on unmount.")
 
     def action_none(self) -> None:
         """
@@ -361,4 +369,3 @@ class ExosphereUi(App):
         across modal screens in Textual, so this is the least
         horrifying solution I could think of.
         """
-        pass

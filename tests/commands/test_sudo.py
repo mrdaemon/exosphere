@@ -56,13 +56,16 @@ def dummy_host(mocker):
 
 def make_package_provider(
     classname="Apt",
-    sudoers_command=["/bin/test-command"],
+    sudoers_command=None,
     sudo_sync=True,
     sudo_updates=False,
 ):
     """
     Fixture to mock the package provider for testing.
     """
+
+    if sudoers_command is None:
+        sudoers_command = ["/bin/test-command"]
 
     mock_provider = MagicMock(name=classname, isinstance=False)
     mock_provider.SUDOERS_COMMANDS = sudoers_command

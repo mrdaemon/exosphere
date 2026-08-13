@@ -126,7 +126,10 @@ def open_in_editor(path: str | Path, *, editor_command: str | None = None) -> No
         )
 
     try:
-        subprocess.run([*argv, str(path)])
+        # We don't particularly care about the exit code here
+        # There is too much variance between editors, so we just check
+        # the results.
+        subprocess.run([*argv, str(path)], check=False)
     except FileNotFoundError as e:
         raise EditorNotFoundError(
             f"Editor not found: {argv[0]}. Check the 'editor' option or your "

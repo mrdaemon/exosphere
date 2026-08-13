@@ -358,7 +358,7 @@ def run_task_with_progress(
     else:
         skipped = []
 
-    with Progress(transient=transient, *progress_args) as progress:
+    with Progress(*progress_args, transient=transient) as progress:
         task = progress.add_task(task_description, total=len(hosts))
 
         # Surface skipped hosts up front, if any. It is easier to do
@@ -381,7 +381,7 @@ def run_task_with_progress(
             if exc:
                 if immediate_error_display:
                     progress.console.print(
-                        f"{operation.label}: [red]{str(exc)}[/red]",
+                        f"{operation.label}: [red]{exc!s}[/red]",
                     )
 
                 if collect_errors:
@@ -418,7 +418,8 @@ def save_inventory_state() -> None:
         try:
             inventory.save_state()
             progress.stop_task(task)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
+            # Persistence failure is terminal for the caller either way
             logger.error("Error saving inventory: %s", e)
             progress.stop_task(task)
             progress.console.print(

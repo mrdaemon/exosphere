@@ -4,11 +4,11 @@ Logs Screen module
 
 import logging
 import threading
-from typing import cast
+from typing import ClassVar, cast
 
 from rich.markup import escape
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.screen import Screen
 from textual.widgets import Footer, Header, RichLog
 
@@ -18,7 +18,7 @@ logger = logging.getLogger("exosphere.ui.logs")
 class RichLogFormatter(logging.Formatter):
     """Custom formatter that adds Rich markup with level-specific colors."""
 
-    LEVEL_COLORS = {
+    LEVEL_COLORS: ClassVar[dict[str, str]] = {
         "DEBUG": "dim",
         "INFO": "green",
         "WARNING": "yellow",
@@ -40,8 +40,7 @@ class RichLogFormatter(logging.Formatter):
         message = escape(record.getMessage())
 
         # Strip "exosphere." prefix to save space
-        if logger_name.startswith("exosphere."):
-            logger_name = logger_name[10:]  # Remove "exosphere."
+        logger_name = logger_name.removeprefix("exosphere.")
 
         # Truncate logger name if still too long, keeping the most relevant part
         if len(logger_name) > 15:
@@ -77,7 +76,7 @@ class UILogHandler(logging.Handler):
 
     # Class level buffer shared across instances, holds logs until
     # the widget is available and ready to receive them.
-    _buffer: list[str] = []
+    _buffer: ClassVar[list[str]] = []
     _buffer_lock = threading.RLock()
 
     @classmethod
@@ -131,9 +130,12 @@ class UILogHandler(logging.Handler):
             for msg in self._buffer:
                 try:
                     self.log_widget.write(msg)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
+                    # Inside a logging handler: raising here would recurse
+                    # back into logging and take the log pane with it.
+                    # Logging handler does not need full traceback
                     logging.getLogger("exosphere.ui").error(
-                        f"Error writing buffered log message to log pane!: {str(e)}"
+                        f"Error writing buffered log message to log pane!: {e!s}"
                     )
 
             self._buffer.clear()
@@ -144,7 +146,7 @@ class LogsScreen(Screen):
 
     CSS_PATH = "style.tcss"
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("l", "app.none", show=False),
     ]
 

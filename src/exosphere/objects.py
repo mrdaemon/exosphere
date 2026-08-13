@@ -1,15 +1,15 @@
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from threading import RLock
-from typing import TypeAlias
+from typing import Self
 
 from fabric import Config, Connection
 from paramiko.ssh_exception import PasswordRequiredException
 
 from exosphere import app_config
-from exosphere.data import HostInfo, HostState, Update
+from exosphere.data import HostInfo, HostState, Update, UtcDateTime
 from exosphere.errors import (
     AUTH_FAILURE_MESSAGE,
     DataRefreshError,
@@ -21,10 +21,6 @@ from exosphere.providers.api import PkgManager
 from exosphere.runners import ExosphereRemote
 from exosphere.security import SudoPolicy, check_sudo_policy
 from exosphere.setup import detect
-
-# Define a type alias for timezone-aware UTC datetime
-# This is to help communicate intent better in type hints
-UtcDateTime: TypeAlias = datetime
 
 
 class HostOperation(Enum):
@@ -69,7 +65,7 @@ class HostOperation(Enum):
         label: str,
         modifies_state: bool,
         requires_supported: bool,
-    ) -> "HostOperation":
+    ) -> Self:
         member = object.__new__(cls)
         member._value_ = method
         member.label = label
@@ -434,7 +430,7 @@ class Host:
             return True
 
         stale_threshold = app_config["options"]["stale_threshold"]
-        timedelta = datetime.now(timezone.utc) - self.last_refresh
+        timedelta = datetime.now(UTC) - self.last_refresh
 
         return timedelta.total_seconds() > stale_threshold
 
@@ -654,7 +650,7 @@ class Host:
             )
 
         # Update the last refresh timestamp
-        self.last_refresh = datetime.now(timezone.utc)
+        self.last_refresh = datetime.now(UTC)
 
     def _refresh_reboot_status(self, pkg_manager: PkgManager) -> None:
         """
@@ -670,9 +666,14 @@ class Host:
         """
         try:
             self.needs_reboot = pkg_manager.get_reboot_status(self.connection)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
+            # Failure modes are Provider-defined, and thus open ended
+            # Non-fatal by design -- any problem here should not abort
+            # refresh_updates, and just log a warning.
             self.logger.warning(
-                "Could not determine reboot status for %s: %s", self.name, e
+                "Could not determine reboot status for %s: %s",
+                self.name,
+                e,
             )
             self.needs_reboot = None
 
@@ -705,10 +706,14 @@ class Host:
                         self.ip,
                         self.port,
                     )
-                except Exception as e:
-                    # Errors here are non-fatal, just log them
+                except Exception as e:  # noqa: BLE001
+                    # Cleanup path from atexit handler
+                    # Log problems, but should stay entirely non-fatal
+                    # We're exiting anyways.
                     self.logger.warning(
-                        "Error closing connection to %s: %s", self.name, e
+                        "Error closing connection to %s: %s",
+                        self.name,
+                        type(e).__name__ + ": " + str(e),
                     )
                 finally:
                     self._connection_last_used = None

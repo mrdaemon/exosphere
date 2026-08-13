@@ -3,7 +3,7 @@ Tests for the report command module.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -139,7 +139,7 @@ def _status_host(
     host.updates = updates or []
     host.needs_reboot = needs_reboot
 
-    host.last_refresh = None if stale else datetime.now(timezone.utc)
+    host.last_refresh = None if stale else datetime.now(UTC)
 
     return host
 

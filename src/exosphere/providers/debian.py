@@ -3,6 +3,7 @@ Debian/Ubuntu Apt Package Manager Provider
 """
 
 import re
+from typing import ClassVar
 
 from fabric import Connection
 
@@ -18,7 +19,7 @@ class Apt(PkgManager):
     Implements the Apt package manager interface.
     """
 
-    SUDOERS_COMMANDS: list[str] | None = [
+    SUDOERS_COMMANDS: ClassVar[list[str] | None] = [
         "/usr/bin/apt-get update",
     ]
 

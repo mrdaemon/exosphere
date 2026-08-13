@@ -27,7 +27,7 @@ from exosphere.commands.utils import (
     save_inventory_state,
 )
 from exosphere.inventory import FilterMode, Inventory, SortField
-from exosphere.objects import HostOperation
+from exosphere.objects import Host, HostOperation
 
 # Constants for display
 ERROR_STYLE = {
@@ -274,7 +274,7 @@ def ping(*names: HostArg) -> int:
                 error_count += 1
                 if exc:
                     progress.console.print(
-                        f"  Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {str(exc)}",
+                        f"  Host [bold]{host.name}[/bold]: [bold red]ERROR[/bold red] - {exc!s}",
                     )
                 else:
                     progress.console.print(
@@ -420,12 +420,22 @@ def status(
         caption_justify="right",
     )
 
+    def get_platform_value(host: Host, value: str | None) -> str:
+        """
+        Retrieve display value for host platform.
+        Will return appropriate placeholders as fallback.
+        """
+        if value:
+            return value
+        elif not host.supported:
+            return "[dim](unsupported)[/dim]"
+        else:
+            return "[dim](undiscovered)[/dim]"
+
     for host in hosts:
-        # Prepare some rendering data for suffixes and placeholders
+        # Prepare some rendering data for suffixes
         stale_suffix = " [dim]*[/dim]" if host.is_stale else ""
         reboot_suffix = " [red]![/red]" if host.needs_reboot else ""
-        undiscovered_status = "[dim](undiscovered)[/dim]"
-        unsupported_status = "[dim](unsupported)[/dim]"
         empty_placeholder = "[dim]—[/dim]"
 
         # Prepare table row data
@@ -446,22 +456,12 @@ def status(
             "[bold green]Online[/bold green]" if host.online else "[red]Offline[/red]"
         ) + reboot_suffix
 
-        # Helper function to get platform info with appropriate
-        # handling for unsupported and undiscovered hosts
-        def get_platform_info(value):
-            if value:
-                return value
-            elif not host.supported:
-                return unsupported_status
-            else:
-                return undiscovered_status
-
         # Construct table row for host
         row = [
             host.name,
-            get_platform_info(host.os),
-            get_platform_info(host.flavor),
-            get_platform_info(host.version),
+            get_platform_value(host, host.os),
+            get_platform_value(host, host.flavor),
+            get_platform_value(host, host.version),
             updates,
             security_updates,
             online_status,
@@ -537,7 +537,10 @@ def clear(
 
     try:
         inventory.clear_state()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
+        # clear_state wraps cache errors as RuntimeError, but also
+        # re-runs init_all() afterwards, which reopens the full config
+        # and host construction surfaces, so this is broad on purpose.
         err_console.print(
             Panel.fit(
                 f"[bold red]Error clearing inventory state:[/bold red] {e}",

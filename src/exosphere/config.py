@@ -283,7 +283,7 @@ class Configuration(dict):
     #: used as a base for what the configuration object contains.
     #: This can be accessed to get the default values for any config key.
     #: It is derived directly from the :class:`OptionsModel` schema.
-    DEFAULTS: dict[str, Any] = {
+    DEFAULTS: ClassVar[dict[str, Any]] = {
         "options": OptionsModel().model_dump(),
         "hosts": [],
     }
@@ -342,7 +342,11 @@ class Configuration(dict):
 
             try:
                 value = parser(value)
-            except Exception:
+            except Exception:  # noqa: BLE001
+                # Since the parser is caller-supplied, failure modes
+                # are unknowable at this point. We fall back to
+                # treating any exception here as failure to parse, and
+                # keep the value as a string.
                 self.logger.debug(
                     "Could not parse environment variable %s: %s, keeping as string",
                     key,
@@ -386,7 +390,7 @@ class Configuration(dict):
         # overrides are bad and drop them, keeping the rest.
         try:
             return self.update_from_mapping({"options": options})
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Fall through to best-effort recovery below. A bad env override
             # must never be fatal, so we deliberately swallow anything here.
             self.logger.debug(
@@ -524,7 +528,7 @@ class Configuration(dict):
         try:
             with open(filepath, "rb") as f:
                 raw = f.read()
-        except IOError as e:
+        except OSError as e:
             if silent and e.errno in (errno.ENOENT, errno.EISDIR):
                 return False
 
@@ -553,8 +557,13 @@ class Configuration(dict):
 
         # All loaders should return a mapping, but just in case it's done as
         # a library or at runtime, we check this explicitly here.
+        #
+        # We suppress TRY004 here because this checks for a malformed
+        # *config file*, semantically, not a bad argument from a
+        # caller, which would be profoundly silly. This matches the
+        # public API, so ValueError is the correct exception to raise.
         if not isinstance(data, dict):
-            raise ValueError(
+            raise ValueError(  # noqa: TRY004
                 f"Configuration file {filepath} must contain a mapping at the "
                 f"top level, got {type(data).__name__}"
             )
@@ -614,8 +623,8 @@ class Configuration(dict):
 
         try:
             # Parse and filter mappings
-            for mapping in mappings:
-                for k, v in mapping:
+            for entries in mappings:
+                for k, v in entries:
                     if k in self.DEFAULTS:
                         if isinstance(self[k], dict) and isinstance(v, dict):
                             # deep merge the dicts

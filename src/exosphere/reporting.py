@@ -7,7 +7,7 @@ using Jinja2 templates.
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -82,7 +82,7 @@ class ReportRenderer:
         logger.debug("Setting up utility functions and filters for templates")
 
         # Add utility functions to the global context
-        env.globals["now"] = lambda: datetime.now(tz=timezone.utc).astimezone()
+        env.globals["now"] = lambda: datetime.now(tz=UTC).astimezone()
         env.globals["exosphere_version"] = __version__
 
         # Add custom filters for table formatting

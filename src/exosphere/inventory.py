@@ -1,9 +1,9 @@
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum, StrEnum
-from typing import Any, Generator, assert_never
+from typing import Any, Self, assert_never
 
 from exosphere import migrations
 from exosphere.config import Configuration
@@ -92,7 +92,7 @@ class SortField(Enum):
         label: str,
         key: Callable[[Host], tuple],
         has_value: Callable[[Host], bool],
-    ) -> "SortField":
+    ) -> Self:
         member = object.__new__(cls)
         member._value_ = token
         member.label = label
@@ -202,7 +202,7 @@ class Inventory:
         except Exception as e:
             self.logger.error("Failed to clear cache file: %s", str(e))
             raise RuntimeError(
-                f"Failed to clear cache file {self.cache_file}: {str(e)}"
+                f"Failed to clear cache file {self.cache_file}: {e!s}"
             ) from e
 
         # Re-initialize the inventory
@@ -291,7 +291,11 @@ class Inventory:
             host_obj = Host(**host_cfg)
             host_obj.from_state(host_state)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
+            # Deserializing arbitrary cached state through migrations can
+            # raise essentially anything (lzma, pickle, AttributeError on
+            # schema drift). Any error here is considered non-fatal, on
+            # purpose: we just rebuild the host from config.
             self.logger.warning(
                 "Failed to load host state for %s from cache: %s, recreating anew.",
                 name,
@@ -545,7 +549,9 @@ class Inventory:
                         "Successfully executed %s on %s", method, host.name
                     )
                     yield (host, result, None)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
+                    # Worker boundary, except handed back to caller
+                    # through generator yield. Non-fatal by design.
                     self.logger.error(
                         "Failed to run %s on %s: %s", method, host.name, e
                     )

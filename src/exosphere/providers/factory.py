@@ -8,6 +8,8 @@ It is used through the application resolve a package name to a concrete
 class of a package manager provider implementation.
 """
 
+from typing import ClassVar
+
 from exosphere.providers.api import PkgManager
 from exosphere.providers.debian import Apt
 from exosphere.providers.freebsd import Pkg
@@ -20,7 +22,7 @@ class PkgManagerFactory:
     Factory class for creating package manager instances.
     """
 
-    _REGISTRY = {
+    _REGISTRY: ClassVar[dict[str, type[PkgManager]]] = {
         "apt": Apt,
         "pkg": Pkg,
         "pkg_add": PkgAdd,
@@ -29,11 +31,11 @@ class PkgManagerFactory:
     }
 
     @staticmethod
-    def get_registry() -> dict[str, PkgManager]:
+    def get_registry() -> dict[str, type[PkgManager]]:
         """
         Get the registry of available package manager implementations.
 
-        :return: Dictionary of package manager class names keyed by their names.
+        :return: Dictionary of package manager classes keyed by their names.
         """
         return PkgManagerFactory._REGISTRY.copy()
 

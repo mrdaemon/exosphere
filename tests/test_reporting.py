@@ -3,7 +3,7 @@ Tests for the reporting module.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import jinja2
 import jsonschema
@@ -35,7 +35,7 @@ class TestReportRenderer:
         host.flavor = "ubuntu"
         host.version = "22.04"
         host.package_manager = "apt"
-        host.last_refresh = datetime.now(tz=timezone.utc)
+        host.last_refresh = datetime.now(tz=UTC)
         host.supported = True
 
         # Add some test updates
@@ -87,7 +87,7 @@ class TestReportRenderer:
         host.version = "22.04"
         host.package_manager = "apt"
         # Set last_refresh to 25 hours ago (past default 24h stale threshold)
-        host.last_refresh = datetime.now(tz=timezone.utc) - timedelta(hours=25)
+        host.last_refresh = datetime.now(tz=UTC) - timedelta(hours=25)
         host.supported = True
         host.updates = [
             Update(
@@ -533,7 +533,7 @@ class TestJSONSchemaValidation:
         host1.flavor = "ubuntu"
         host1.version = "22.04"
         host1.package_manager = "apt"
-        host1.last_refresh = datetime.now(tz=timezone.utc)
+        host1.last_refresh = datetime.now(tz=UTC)
         host1.supported = True
         host1.online = True
         host1.updates = [
@@ -606,10 +606,10 @@ class TestJSONSchemaValidation:
         schema = get_host_report_schema()
 
         host_with_desc = Host("test1", "1.1.1.1", description="Test host")
-        host_with_desc.last_refresh = datetime.now(tz=timezone.utc)
+        host_with_desc.last_refresh = datetime.now(tz=UTC)
 
         host_without_desc = Host("test2", "2.2.2.2")  # No description
-        host_without_desc.last_refresh = datetime.now(tz=timezone.utc)
+        host_without_desc.last_refresh = datetime.now(tz=UTC)
 
         json_output = renderer.render_json(
             [host_with_desc, host_without_desc], ReportType.full

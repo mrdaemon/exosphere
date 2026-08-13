@@ -96,7 +96,7 @@ class TestOpenInEditor:
 
         editing.open_in_editor("/tmp/config.yaml", editor_command="myeditor")
 
-        run.assert_called_once_with(["myeditor", "/tmp/config.yaml"])
+        run.assert_called_once_with(["myeditor", "/tmp/config.yaml"], check=False)
 
     def test_no_editor_raises(self, mocker):
         """When nothing resolves, EditorNotFoundError is raised."""

@@ -77,7 +77,7 @@ def setup_logging(log_level: str, log_file: str | None = None) -> None:
         handler.setLevel(log_level)
 
     logging.basicConfig(
-        level=logging.WARN,  # Default to WARN for root logger, avoid library noise
+        level=logging.WARNING,  # Default to WARN for root logger, avoid noise
         handlers=[handler],
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
@@ -239,7 +239,10 @@ def main() -> None:
             logger.warning("Debug mode enabled! Logs may flood console!")
         else:
             setup_logging(app_config["options"]["log_level"], log_file)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
+        # Last-resort startup boundary: this is the one place that cannot
+        # route failures through the logger, for obvious reasons, so it
+        # swallows everything and exits with a plain message.
         print(f"FATAL: Startup Error setting up logging: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -263,7 +266,9 @@ def main() -> None:
     # Initialize the inventory
     try:
         context.inventory = Inventory(app_config)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
+        # Inventory() runs init_all, host construction and cache load in
+        # one call, so the failure surface is the whole startup path.
         logger.error("Startup Error loading inventory: %s", e)
         print(f"FATAL: Startup Error loading inventory: {e}", file=sys.stderr)
         sys.exit(1)

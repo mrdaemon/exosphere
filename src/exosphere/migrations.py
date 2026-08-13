@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from exosphere.data import HostState
 from exosphere.objects import Host
@@ -28,14 +28,17 @@ def migrate_from_host(host: Host) -> HostState:
 
     # Ensure last_refresh is timezone-aware in UTC
     # Much earlier versions of Exosphere stored it as naive datetimes.
-    if hasattr(host, "last_refresh") and host.last_refresh is not None:
-        if host.last_refresh.tzinfo is None:
-            logger.debug(
-                "Converting timezone-naive last_refresh datetime to UTC for host %s",
-                host.name,
-            )
-            local_timestamp = host.last_refresh.timestamp()
-            host.last_refresh = datetime.fromtimestamp(local_timestamp, tz=timezone.utc)
+    if (
+        hasattr(host, "last_refresh")
+        and host.last_refresh is not None
+        and host.last_refresh.tzinfo is None
+    ):
+        logger.debug(
+            "Converting timezone-naive last_refresh datetime to UTC for host %s",
+            host.name,
+        )
+        local_timestamp = host.last_refresh.timestamp()
+        host.last_refresh = datetime.fromtimestamp(local_timestamp, tz=UTC)
 
     return HostState(
         os=host.os,

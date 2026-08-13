@@ -131,6 +131,9 @@ def check(
             f"[red]Error:[/red] Unexpected response from PyPI API (missing key: {e})"
         )
         return 2  # Application error
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
+        # Tail catch for any unexpected failures, covers json garbage,
+        # network issues, or anything else under the sun.
+        # "Is there an update" shouldn't just raise at runtime.
         err_console.print(f"[red]Error:[/red] Failed to check for updates: {e}")
         return 2  # Application error
