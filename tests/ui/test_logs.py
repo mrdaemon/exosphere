@@ -152,7 +152,7 @@ class TestUILogHandler:
         ui_log_handler.set_log_widget(None)
         assert ui_log_handler.log_widget is None
 
-    def test_set_log_widget_flushes_buffer(self, ui_log_handler, mock_rich_log, mocker):
+    def test_set_log_widget_flushes_buffer(self, ui_log_handler, mock_rich_log, caplog):
         """Test that setting a log widget flushes the buffer."""
         # Add some messages to the buffer first by emitting logs
         for i in range(1, 4):
@@ -167,11 +167,9 @@ class TestUILogHandler:
             )
             ui_log_handler.emit(record)
 
-        # Mock the logger to avoid actual log output during test
-        mock_logger = mocker.patch("exosphere.ui.logs.logging.getLogger")
-
         # Set the log widget
-        ui_log_handler.set_log_widget(mock_rich_log)
+        with caplog.at_level(logging.DEBUG, logger="exosphere.ui"):
+            ui_log_handler.set_log_widget(mock_rich_log)
 
         # Check that all buffered messages were written
         assert mock_rich_log.write.call_count == 3
@@ -183,14 +181,16 @@ class TestUILogHandler:
         # Check that buffer is now empty
         assert UILogHandler.get_buffer_size() == 0
 
-        # Check that debug message was logged
-        mock_logger.assert_called_with("exosphere.ui")
-        mock_logger.return_value.debug.assert_called_with(
-            "Flushing buffered logs to the log widget."
+        # Check that debug message was logged on the "exosphere.ui" logger
+        assert any(
+            record.name == "exosphere.ui"
+            and record.levelno == logging.DEBUG
+            and record.getMessage() == "Flushing buffered logs to the log widget."
+            for record in caplog.records
         )
 
     def test_set_log_widget_handles_write_exception(
-        self, ui_log_handler, mock_rich_log, mocker
+        self, ui_log_handler, mock_rich_log, caplog
     ):
         """Test that exceptions during buffer flush are handled gracefully."""
         record = logging.LogRecord(
@@ -207,15 +207,17 @@ class TestUILogHandler:
         # Make the log widget throw an exception
         mock_rich_log.write.side_effect = Exception("Write failed")
 
-        # Mock the logger
-        mock_logger = mocker.patch("exosphere.ui.logs.logging.getLogger")
-
         # Set the log widget - should not raise an exception
-        ui_log_handler.set_log_widget(mock_rich_log)
+        with caplog.at_level(logging.ERROR, logger="exosphere.ui"):
+            ui_log_handler.set_log_widget(mock_rich_log)
 
-        # Check that error was logged
-        mock_logger.return_value.error.assert_called_with(
-            "Error writing buffered log message to log pane!: Write failed"
+        # Check that error was logged on the "exosphere.ui" logger
+        assert any(
+            record.name == "exosphere.ui"
+            and record.levelno == logging.ERROR
+            and record.getMessage()
+            == "Error writing buffered log message to log pane!: Write failed"
+            for record in caplog.records
         )
 
         # Buffer should still be cleared even though write failed
@@ -397,10 +399,8 @@ class TestLogBufferGlobals:
 class TestIntegration:
     """Integration tests for the logging system."""
 
-    def test_full_logging_workflow(self, ui_log_handler, mock_rich_log, mocker):
+    def test_full_logging_workflow(self, ui_log_handler, mock_rich_log):
         """Test the complete workflow from buffering to widget display."""
-        # Mock the logger to avoid actual output
-        mocker.patch("exosphere.ui.logs.logging.getLogger")
 
         # Step 1: Emit logs without widget (should buffer)
         record1 = logging.LogRecord(
