@@ -142,9 +142,11 @@ def load_first_config(config: Configuration) -> bool:
                 return True
             else:
                 logger.warning("Failed to load config file from %s", confpath)
-        except Exception as e:
-            # Abort brutally in case of non-standard load failure
-            # Exception will contain the actual error message
+        except (ValueError, OSError) as e:
+            # Abort brutally on any other load error, since it implies
+            # the configuration file is broken or somehow unreadable.
+            # The configuration subsystem normalizes load errors to
+            # ValueError, making this a catch-all for those cases.
             logger.error("Startup error: %s", e)
             sys.exit(1)
 
@@ -214,7 +216,7 @@ def main() -> None:
     # Ensure all required directories exist
     try:
         fspaths.ensure_dirs()
-    except Exception as e:
+    except OSError as e:
         logger.error("Failed to create required directories: %s", e)
         sys.exit(1)
 

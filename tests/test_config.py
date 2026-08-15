@@ -276,10 +276,21 @@ class TestConfiguration:
     def test_invalid_config(self, tmp_path, loader):
         config = Configuration()
         invalid_file = tmp_path / "invalid_config.cfg"
-        invalid_file.write_text("invalid content")
+        invalid_file.write_text("{ invalid content")
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             config.from_file(invalid_file, loader)
+
+    def test_invalid_config_chains_loader_error(self, tmp_path):
+        """Loader parse errors are normalized to ValueError, cause preserved."""
+        config = Configuration()
+        invalid_file = tmp_path / "invalid_config.yaml"
+        invalid_file.write_text("{ invalid content")
+
+        with pytest.raises(ValueError) as exc_info:
+            config.from_file(invalid_file, yaml.safe_load)
+
+        assert isinstance(exc_info.value.__cause__, yaml.YAMLError)
 
     @pytest.mark.parametrize(
         "config_file_extra, loader",
@@ -1066,7 +1077,7 @@ class TestValidate:
         target = tmp_path / "config.json"
         target.write_text("{ not valid json")
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             config_module.validate(target)
 
     def test_non_mapping_raises(self, tmp_path):

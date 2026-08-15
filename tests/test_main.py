@@ -23,11 +23,14 @@ class TestMain:
     def mock_config_exception(self, mocker):
         """
         Fixture to create a mock configuration object that raises an exception.
+
+        Raises ValueError specifically, since that is what from_file
+        normalizes every loader parse failure to.
         """
         from exosphere.config import Configuration
 
         mock_config = mocker.create_autospec(Configuration, instance=True)
-        mock_config.from_file.side_effect = Exception("Test exception")
+        mock_config.from_file.side_effect = ValueError("Test exception")
         mock_config.from_env.return_value = True
 
         return mock_config

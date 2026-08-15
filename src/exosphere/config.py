@@ -245,8 +245,9 @@ def validate(file: str | Path) -> None:
     KNOWN_LOADERS mapping in the same module.
 
     :param file: Path to the configuration file to validate.
-    :raises ValueError: if the file extension has no known loader.
-    :raises Exception: any parsing or validation error raised while loading.
+    :raises ValueError: if the file extension has no known loader, if the
+                        file cannot be parsed, or if it fails to validate.
+    :raises OSError: if the file cannot be read.
     """
     ext = Path(file).suffix.removeprefix(".").lower()
     loader = KNOWN_LOADERS.get(ext)
@@ -524,6 +525,12 @@ class Configuration(dict):
         :param loader: A callable that takes a file handle and returns a dict
         :param silent: If True, suppress IOError exceptions for missing files
         :return: True if the configuration was successfully updated
+        :raises ValueError: if the file cannot be parsed by the loader, or
+                            does not contain a mapping at the top level.
+                            Loader-specific parse errors are normalized to
+                            ValueError and chained as the cause.
+        :raises OSError: if the file cannot be read and silent is False, or
+                         the failure is something other than a missing file.
         """
         try:
             with open(filepath, "rb") as f:
@@ -545,7 +552,14 @@ class Configuration(dict):
             )
             return True
 
-        data = loader(io.BytesIO(raw))
+        # Loaders are not guaranteed to raise homogeneous exceptions,
+        # so we normalize this here to ValueError for the public API.
+        try:
+            data = loader(io.BytesIO(raw))
+        except Exception as e:
+            raise ValueError(
+                f"Configuration file {filepath} could not be parsed: {e}"
+            ) from e
 
         # SOME loaders can and will return None for a comments-only file.
         # This is still technically valid, and is an "empty" file.
