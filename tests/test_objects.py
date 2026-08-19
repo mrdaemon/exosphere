@@ -310,6 +310,22 @@ class TestHostObject:
         config = mock_connection.call_args.kwargs["config"]
         assert config.exosphere_locale == "C.UTF-8"
 
+    def test_host_connection_disables_stdin(self, mocker, mock_connection):
+        """
+        The connection disables stdin forwarding, so that Fabric never spawns
+        a stdin handling thread contending over the local terminal.
+
+        This is in response to an upstream Fabric bug that can trigger
+        a buffer overflow on Python 3.14 when the local terminal is used
+        concurrently during discovery or refresh operations.
+        """
+        host = Host(name="test_host", ip="127.0.0.8")
+
+        _ = host.connection
+
+        config = mock_connection.call_args.kwargs["config"]
+        assert config.run.in_stream is False
+
     def test_host_config_sudo_policy(self, mocker):
         """
         Test that the Host object uses the sudo policy from the configuration.

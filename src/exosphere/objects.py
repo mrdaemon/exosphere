@@ -292,13 +292,19 @@ class Host:
         Connection objects are recycled if already created.
 
         The connection is setup with an environment override that
-        forces two things on all commands run through it:
+        forces three things on all commands run through it:
 
         1. The locale is set to the configured value (default is C)
         2. The command is explicitly ran under /bin/sh (POSIX)
+        3. Local stdin is never forwarded to the remote command
 
-        This allows consistent, deterministic output and behavior,
-        regardless of the user's login shell or locale.
+        The first two allow consistent, deterministic output and
+        behavior, regardless of the user's login shell or locale.
+
+        The third avoids contention for the local terminal, which has
+        a history of triggering bugs in Fabric/Invoke, and is not
+        needed at all for operation, since all Exosphere commands
+        are fully expected to be non-interactive.
 
         If you work with Host objects directly, make sure to call
         `host.close()` when done with operations (such as discover,
@@ -323,6 +329,7 @@ class Host:
                         overrides={
                             "runners": {"remote": ExosphereRemote},
                             "exosphere_locale": self.ssh_locale,
+                            "run": {"in_stream": False},
                         }
                     ),
                 }
