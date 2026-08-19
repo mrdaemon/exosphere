@@ -98,6 +98,7 @@ solaris
 sortable
 sqlite
 sshd
+stdin
 stdout
 subclass
 subclasses
