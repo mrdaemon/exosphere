@@ -1,8 +1,9 @@
 Welcome to Exosphere
 =====================
 
-Exosphere offers aggregated patch and security update reporting as
-well as basic system status across multiple Unix-like hosts via SSH.
+Exosphere is a CLI and Text UI driven application that offers aggregated patch
+and security update reporting as well as basic system status across multiple
+Unix-like hosts over SSH.
 
 .. figure:: _static/demo.gif
    :alt: Exosphere demo
@@ -15,7 +16,8 @@ It is targeted at small to medium sized networks.
 It is meant to be simple to deploy and use, requiring no central server,
 agents or complex dependencies on remote hosts.
 
-If you have SSH access to the hosts with an `agent`_, you are good to go!
+If you have SSH access to the hosts and your key pairs are loaded in an SSH
+`_agent`, you are good to go!
 
 **Key Features**
 
@@ -24,6 +26,8 @@ If you have SSH access to the hosts with an `agent`_, you are good to go!
 - Consistent view across different platforms and package managers
 - See everything in one spot, at a glance, without complex automation
   or enterprise solutions.
+- Does not require Python (or anything else) to be installed on remote systems
+- Parallel operations across hosts with optional SSH pipelining
 - Document-based reporting in HTML, text or markdown format
 - JSON output available for integration with other tools
 
