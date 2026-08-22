@@ -108,7 +108,6 @@ uv run textual run --dev -c exosphere ui
 Congratulations! Editing any of the `.tcss` files in the `ui/` directory will
 reflect changes immediately.
 
-
 ### Documentation Editing Quick Start
 
 To edit the documentation, you can use the following commands:
@@ -147,8 +146,10 @@ tasks are defined in the `pyproject.toml` file under the `[tool.poe.tasks]` tabl
 
 | path | description |
 | ---- | ----------- |
+| `LICENSES/` | Full text of every license used by the project and its assets |
 | `docs/` | Sphinx documentation source tree |
 | `docs/source/_ext/` | Custom Sphinx extensions for the project |
+| `docs/source/changelog/` | Per-release changelog entries (markdown) and their assets |
 | `examples/` | Example configuration files and reports |
 | `scripts/` | Utilitarian scripts for dev and maintenance |
 | `src/` | Main source code for the application |
@@ -183,13 +184,16 @@ Paths below are relative to `src/exosphere/` unless otherwise noted.
 | `context.py` | Context management for shared state across commands and UI |
 | `data.py` | Data models and structures for serialization and exchange |
 | `database.py` | Cache system for serialization |
+| `editing.py` | External editor helper module, shared between CLI and UI |
 | `errors.py` | Exception classes and general error messages |
+| `fspaths.py` | Platform-appropriate filesystem paths module, for state |
 | `inventory.py` | Inventory management subsystem |
 | `migrations.py` | Cache format migration processes |
 | `objects.py` | Main objects for representing Hosts, and most of the relevant logic |
 | `pipelining.py` | SSH pipelining implementation, including reaper thread |
 | `repl.py` | REPL module for interactive CLI usage |
 | `reporting.py` | Reporting subsystem, including templates and formatters |
+| `runners.py` | SSH runners module, handles setting up remote POSIX environment |
 | `security.py` | Sudo management subsystem, including policy and utilities |
 
 Generally, most of the things Exosphere does to hosts (including connection management
@@ -204,9 +208,9 @@ Paths below are relative to `src/exosphere/` unless otherwise noted.
 | `ui/app.py` | Main Textual application class and entry point for the UI |
 | `ui/context.py` | UI Context management for shared state across UI components |
 | `ui/elements.py` | Shared UI elements, including task runners |
-| `ui/dashboard.py` | Dashboard view implementation |
-| `ui/inventory.py` | Inventory view implementation |
-| `ui/logs.py` | Logs view implementation |
+| `ui/dashboard.py` | Dashboard screen implementation |
+| `ui/inventory.py` | Inventory screen implementation |
+| `ui/logs.py` | Logs screen implementation |
 | `ui/messages.py` | Screen refresh and message passing system |
 | `ui/palette.py` | Command palette providers and implementations |
 
