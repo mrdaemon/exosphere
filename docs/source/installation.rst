@@ -78,9 +78,11 @@ having to contend with potential conflicts with other Python packages.
 The main difference is that ``uv tool`` will also download and manage the necessary
 Python runtime for you, if you do not have a suitable version available.
 
-``pip install`` is **not recommended** outside of a venv, as it *will* interfere
-with other Python packages and system versions of the libraries, and many
-distributions will in fact not allow you to install it that way.
+.. caution::
+
+    ``pip install`` is **not recommended** outside of a venv, as it *will* interfere
+    with other Python packages and system versions of the libraries, and many
+    distributions will in fact not allow you to install it that way.
 
 Once installed, you can run Exosphere using the `exosphere` command, like so:
 
