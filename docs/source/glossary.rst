@@ -32,6 +32,20 @@ Security
     in the software installed on the Host. Exosphere will generally report these
     with some form of emphasis, as they are more urgent than regular updates.
 
+Pending Reboot
+    A host is considered to have a Pending Reboot when updates have been applied
+    that will not take effect until the operating system is restarted, usually
+    pertaining to changes in shared, core libraries or a new kernel.
+
+    Exosphere attempts to determine this on a best-effort basis during a Refresh
+    operation, on supported platforms.
+
+Stale
+    Host data is considered stale when it has not been refreshed for a while.
+    How long is configurable with the :option:`stale_threshold` configuration
+    option, with a default of 24 hours. This indicates the host should be
+    refreshed, as the state possibly no longer reflects reality.
+
 Discovery
     Discovery is the initial process through which Exosphere connects to a host
     and tries to determine platform details. This usually consists of:

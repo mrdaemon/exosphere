@@ -126,7 +126,7 @@ or, for a single host:
 If a host fails, work through the checklist:
 
 * Your SSH agent is running and has the right key loaded
-* The username and port are correct (see :doc:`configuration`)
+* The username and port are correct (see the :doc:`configuration <configuration>` page)
 * The host is reachable and its SSH service is running
 * The host allows public key authentication
 

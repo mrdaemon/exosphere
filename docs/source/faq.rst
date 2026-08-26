@@ -124,7 +124,7 @@ Can I specify a custom path for the configuration file?
 Yes! You can specify a custom path for the configuration file by setting the
 ``EXOSPHERE_CONFIG_FILE`` environment variable to the full path of the file you wish to use.
 
-See :doc:`configuration` for more details on other environment variables
+See the :doc:`configuration <configuration>` page for more details on other environment variables
 you can define to influence or override the configuration.
 
 I don't like the ascii art banner in interactive mode

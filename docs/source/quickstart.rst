@@ -73,8 +73,8 @@ You can also explore the interactive help system in the CLI by running:
 This will detect the platform and package manager for each host.
 It only needs to be done once, or if something changes on the host.
 
-If you encounter issues at this step, see the :doc:`connections`
-and :doc:`supportedos` pages for more details.
+If you encounter issues at this step, see the :doc:`connections <connections>`
+and :doc:`supported platforms <supportedos>` pages for more details.
 
 **Refresh Hosts**
 

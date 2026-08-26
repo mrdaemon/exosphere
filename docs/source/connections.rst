@@ -77,7 +77,7 @@ Authentication failures will display clearly in the output. The exact cause, how
 vary, but you should check the following:
 
 * Ensure your SSH agent is running and has the necessary keys loaded.
-* Ensure the username and port are correct in :doc:`configuration`
+* Ensure the username and port are correct in your :doc:`configuration file <configuration>`
 * Ensure the remote host is reachable over the network and that the SSH service is running.
 * Ensure the remote host's SSH configuration allows *Public Key Authentication*
 

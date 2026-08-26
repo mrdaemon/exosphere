@@ -55,7 +55,7 @@ Feature requests and ideas
 
 Suggestions are welcome. Open a discussion on `GitHub Discussions`_, or an issue
 via the `bug report form`_ --- whichever feels more appropriate. If you have
-built something neat on top of Exosphere's :doc:`reporting` (a dashboard, a bot,
+built something neat on top of Exosphere's :doc:`reporting output <reporting>` (a dashboard, a bot,
 a coffee-brewing cron job), we would love to hear about it.
 
 .. _GitHub Discussions: https://github.com/mrdaemon/exosphere/discussions

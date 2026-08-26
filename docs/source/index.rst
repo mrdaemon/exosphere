@@ -48,8 +48,9 @@ on management of your systems.
 You can get started with :doc:`installation` and then follow up
 with the :doc:`quickstart` to get an overview of how to use Exosphere.
 
-:doc:`configuration` details are also available, alongside the
-:doc:`api/index` if you wish to implement your own providers.
+The :doc:`configuration <configuration>` reference is also available, alongside
+the :doc:`API documentation <api/index>` if you wish to implement your own
+providers.
 
 .. toctree::
    :maxdepth: 2

@@ -71,7 +71,7 @@ Working with your hosts follows a simple loop:
    entirely read-only.
 3. **Repository Sync** *(optional)*: refresh the host's own package metadata
    first, so the next Refresh sees the very latest. This is the one step that
-   may require :doc:`sudo` on some platforms.
+   may require :doc:`sudo privileges <sudo>` on some platforms.
 4. **View / Report**: look at the results, via the :doc:`cli` status tables,
    the interactive :doc:`ui`, or generated :doc:`reports <reporting>`.
 

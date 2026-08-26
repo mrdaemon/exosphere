@@ -108,8 +108,8 @@ See below for more details.
 Some providers may require elevated privileges to perform certain operations, but this is
 entirely optional.
 
-More details about all of this are available in the :doc:`connections` and
-:doc:`sudo` sections.
+More details about all of this are available in the
+:doc:`connections <connections>` and :doc:`sudo <sudo>` sections.
 
 .. note::
 
