@@ -16,19 +16,18 @@ exclusively to the "command reference" section.
 """
 
 from docutils import nodes
-from sphinx.util import logging
-
-logger = logging.getLogger(__name__)
 
 # We only apply this dirty hack to the command reference section
 TARGET_DOCNAME = "command_reference"
 
+# Prefixes for anchors, internal and external
+CYCLOPTS_ANCHOR_PREFIX = "cyclopts-"
+PUBLIC_ANCHOR_PREFIX = "exosphere-"
+
 
 def _first_paragraph(section):
     """Return the first direct-child paragraph of a section, or None."""
-    return next(
-        (c for c in section.children if isinstance(c, nodes.paragraph)), None
-    )
+    return next((c for c in section.children if isinstance(c, nodes.paragraph)), None)
 
 
 def promote_command_summaries(app, doctree):
@@ -86,9 +85,68 @@ def promote_command_summaries(app, doctree):
         summary.children = [nodes.strong("", "", *summary.children)]
 
 
+def namespace_command_anchors(app, doctree):
+    """
+    Make the namespaced anchor the primary id of each command section.
+
+    Sucommand names can clash across commands (i.e. inventory discover
+    vs host discover, anything with 'show' etc). As a result the
+    stupid toctree will contain a bunch of anchor links within sections
+    all claiming '#discover' or '#show' for themselves and every link
+    will land on whichever sorted first in the document, which is not
+    desirable in any way shape or form.
+
+    Cyclopts already has a unique ``.. _cyclopts-<group>-<command>:``
+    label for each command, so the section carries a perfectly good
+    namespaced id as well, it's just, infuriatingly, not the one
+    being used:
+
+        ids = ["discover", "cyclopts-inventory-discover"]
+
+    So this function just promotes the namespaced id to the top while
+    renaming the prefix so it doesn't look ass in user facing links, and
+    drops the bare one, which fixes the navigation, gets rid of
+    duplicate id attributes in the output, solves world hunger and
+    waters my plants.
+
+    We also keep the original id as a secondary anchor on purpose to
+    name the sections and honor ``:ref:`` links, if any.
+
+    This should run *before* the toctree collector, to ensure it
+    happens before the ids are picked up, and should be connected in
+    setup() with a priority of 400, otherwise it won't be effective.
+    """
+    if app.env.docname != TARGET_DOCNAME:
+        return
+
+    for section in doctree.findall(nodes.section):
+        ids = section["ids"]
+
+        qualified = next((i for i in ids if i.startswith(CYCLOPTS_ANCHOR_PREFIX)), None)
+
+        if qualified is None:
+            continue
+
+        public = PUBLIC_ANCHOR_PREFIX + qualified.removeprefix(CYCLOPTS_ANCHOR_PREFIX)
+
+        if ids[0] == public:
+            continue
+
+        # A good traditional dirty print for useful output during build
+        print(f"Renaming command anchor {ids[0]} -> {public} in {TARGET_DOCNAME}")
+
+        section["ids"] = [public, qualified]
+
+        # Keep docutils' id bookkeeping aware of the anchor we just
+        # invented, so nothing else can lay claim to it later on.
+        # It's also good form, and polite. Probably.
+        doctree.ids.setdefault(public, section)
+
+
 def setup(app):
     print("[INFO] Exosphere CLI Help Hack extension loaded")
 
+    app.connect("doctree-read", namespace_command_anchors, priority=400)
     app.connect("doctree-read", promote_command_summaries)
 
     return {"parallel_read_safe": True, "parallel_write_safe": True}

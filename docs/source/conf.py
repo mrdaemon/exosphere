@@ -32,7 +32,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_tabs.tabs',
     'sphinxcontrib.spelling',
-    'cyclopts.sphinx_ext',
+    'cyclopts.ext.sphinx',
     'exosphere_lexer',  # Custom Exosphere CLI lexer
     'exosphere_help',  # Custom Exosphere CLI help SVG renderer
     'exosphere_artifacts',  # Custom extension to copy artifacts to _static
