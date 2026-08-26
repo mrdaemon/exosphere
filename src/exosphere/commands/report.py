@@ -102,8 +102,8 @@ def generate(
     the report will include all hosts in the inventory.
 
     It can further be narrowed to hosts with pending updates
-    (`--updates-only`) or pending security updates
-    (`--security-updates-only`), which are mutually exclusive.
+    (``--updates-only``) or pending security updates
+    (``--security-updates-only``), which are mutually exclusive.
 
     Note: Undiscovered or unsupported hosts are excluded from the report.
 
@@ -120,7 +120,7 @@ def generate(
     security_only
         Only report security updates
     tee
-        Also print report to stdout (requires `--output`)
+        Also print report to stdout (requires ``--output``)
     quiet
         Suppress informational messages
     navigation
@@ -241,14 +241,14 @@ def schema(
     Show or write the JSON Schema for the current version of Exosphere
 
     Emits the JSON Schema (draft-07) describing the structure produced
-    by `report generate --format json`, for the currently running
+    by ``report generate --format json``, for the currently running
     version of Exosphere.
 
     This allows anyone to easily get an overview of the structure,
     validate and integrate, offline, without a local source tree or
     access to the online documentation.
 
-    By default the schema is printed to stdout. Use `--output` to
+    By default the schema is printed to stdout. Use ``--output`` to
     write it to a file instead.
 
     Parameters

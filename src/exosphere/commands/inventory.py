@@ -122,11 +122,11 @@ def refresh(
     Connects to hosts in the inventory and retrieves pending package
     updates.
 
-    If `--discover` is specified, the platform information (Operating
+    If ``--discover`` is specified, the platform information (Operating
     System flavor, version, package manager) will also be refreshed.
     Also refreshes the online status in the process.
 
-    If `--sync` is specified, the package repositories will also be
+    If ``--sync`` is specified, the package repositories will also be
     synchronized remotely.
 
     Synchronizing the package repositories involves invoking whatever mechanism
@@ -135,7 +135,7 @@ def refresh(
     with a handful of slow hosts.
 
     By default, only the progress bar is shown during the operation.
-    If `--verbose` is specified, the name and completion status of each host
+    If ``--verbose`` is specified, the name and completion status of each host
     will be shown in real time.
 
     Parameters
@@ -342,18 +342,18 @@ def status(
     online status and whether or not the data is stale.
 
     Output can be filtered to show only hosts with pending updates
-    (`--updates-only`) or only those with pending security updates
-    (`--security-only`). These two filters are mutually exclusive.
+    (``--updates-only``) or only those with pending security updates
+    (``--security-only``). These two filters are mutually exclusive.
 
-    Output can also be sorted by any column with `--sort`, optionally
-    reversed with `--reverse`. Sorting by 'version' groups hosts by
+    Output can also be sorted by any column with ``--sort``, optionally
+    reversed with ``--reverse``. Sorting by 'version' groups hosts by
     flavor first, since versions are not comparable across flavors.
 
     When sorting by any column other than name, hosts with unknown
     or unsupported values for that column will be grouped together at the
     end.
 
-    Use `--full` to include extra columns, such as the host description.
+    Use ``--full`` to include extra columns, such as the host description.
 
     No matches when filtering will exit with code 3.
 
@@ -368,7 +368,7 @@ def status(
     sort
         Sort the table by the given column
     reverse
-        Reverse the sort order (requires `--sort`)
+        Reverse the sort order (requires ``--sort``)
     full
         Show additional columns, including host descriptions
     """

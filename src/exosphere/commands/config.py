@@ -40,7 +40,7 @@ def show(
     Displays the current configuration options, or the value of a specific option
     if specified.
 
-    If `--full` is specified, it will show the entire configuration structure,
+    If ``--full`` is specified, it will show the entire configuration structure,
     including the inventory, beyond just the "options" section.
 
     Parameters
@@ -150,9 +150,9 @@ def diff(
     file can exclusively contain the options you want to change.
 
     This command allows you to see exactly what has been changed, optionally
-    in its context, using the `--full` option.
+    in its context, using the ``--full`` option.
 
-    For a full config dump, use the `show` command instead.
+    For a full config dump, use the ``show`` command instead.
 
     Parameters
     ----------

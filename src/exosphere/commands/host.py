@@ -270,7 +270,7 @@ def refresh(
     This command retrieves the host by name from the inventory
     and refreshes its state and available updates.
 
-    If `--sync` is specified, the package repositories will also be
+    If ``--sync`` is specified, the package repositories will also be
     synchronized remotely.
 
     Parameters
