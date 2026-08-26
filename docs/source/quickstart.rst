@@ -10,11 +10,11 @@ following this guide and adapting the simple scenario it presents to your needs.
 
     $ exosphere config paths
 
-Create ``config.yaml`` in the `Config` directory shown here.
+Create ``config.yaml`` in the ``Config`` directory shown here.
 
 .. tip::
 
-    You can also use `config.toml` or `config.json` if you prefer those formats.
+    You can also use ``config.toml`` or ``config.json`` if you prefer those formats.
     See the :doc:`configuration <configuration>` page for more details.
 
 

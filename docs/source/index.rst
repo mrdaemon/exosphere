@@ -17,7 +17,7 @@ It is meant to be simple to deploy and use, requiring no central server,
 agents or complex dependencies on remote hosts.
 
 If you have SSH access to the hosts and your key pairs are loaded in an SSH
-`_agent`, you are good to go!
+`agent`_, you are good to go!
 
 **Key Features**
 

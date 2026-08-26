@@ -62,9 +62,9 @@ Below are examples of each output format to help you choose the right one for yo
 
     .. tab:: Markdown
 
-        Made available mostly as a lightweight intermediate format, since they can be
+        Made available mostly as a lightweight intermediate format, since it can be
         rendered to a variety of other formats while providing support for tables.
-        They can also be fed directly into any other tool that supports markdown.
+        It can also be fed directly into any other tool that supports markdown.
 
         .. literalinclude:: ../../examples/reports/full.md
             :language: markdown
@@ -185,7 +185,7 @@ All reports include:
 - **Update Details**: Package names, versions, and security status
 - **Metadata**: Report generation time and scope information
 
-The presentation and formatting varies by format, but the core information
+The presentation and formatting vary by format, but the core information
 remains consistent across all output types.
 
 .. tip::
@@ -259,7 +259,7 @@ and have a valid :doc:`package manager provider <providers>` assigned to them.
 
     Unless you are directly using the Python API (see :doc:`api/reporting`)
     to generate reports, you **can** safely assume that all the hosts in the
-    report have been discovered, and **will not** have `null` values anywhere
+    report have been discovered, and **will not** have ``null`` values anywhere
     other than ``last_refresh`` (if the host has never been refreshed).
 
 
@@ -282,7 +282,7 @@ Each host's ``updates`` array contains update objects with the following structu
 
     The ``current_version`` field may be ``null`` whenever the package is a new
     dependency. Interfaces in the Exosphere API usually translate this to the
-    string `(NEW)`, but the raw JSON will have ``null`` in these cases.
+    string ``(NEW)``, but the raw JSON will have ``null`` in these cases.
 
 .. literalinclude:: ../../examples/sample-report.json
    :language: json

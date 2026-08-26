@@ -25,7 +25,7 @@ For instance, for a **YAML** configuration file, the default locations are:
 
         ``%LOCALAPPDATA%\exosphere\config.yaml``
 
-You can of course substitute the file extension with `.toml` or `.json` if you wish
+You can of course substitute the file extension with ``.toml`` or ``.json`` if you wish
 to use those formats instead.
 
 You can also ask Exosphere where it expects the configuration file to be on your
@@ -99,8 +99,8 @@ file you wish to use.
     will be searched for. This can be useful in certain deployments.
 
 Exosphere also supports loading configuration options from environment variables.
-You can use this to override any specific `Option` from the configuration file.
-You cannot use environment variables to override the `Hosts` section.
+You can use this to override any specific ``options`` from the configuration file.
+You cannot use environment variables to override the ``hosts`` section.
 
 The environment variable names are prefixed with ``EXOSPHERE_OPTIONS_`` and
 the option name in uppercase.
@@ -236,7 +236,7 @@ and examples of how to set them in the configuration file.
       commands without a password
 
     This controls how Exosphere will handle sudo permissions when running commands
-    on hosts. The default is `skip`, which means Exosphere will not attempt to use
+    on hosts. The default is ``skip``, which means Exosphere will not attempt to use
     sudo at all.
 
     If you want Exosphere to run commands that require elevated privileges at all,
@@ -253,7 +253,7 @@ and examples of how to set them in the configuration file.
 
         This is the global value that, by default, applies to all hosts.
         It can be overridden on a per-host basis in the inventory, inside
-        the `hosts` section, via :option:`sudo_policy`.
+        the ``hosts`` section, via :option:`sudo_policy`.
 
 
     **Default**: ``skip``
@@ -750,7 +750,7 @@ and examples of how to set them in the configuration file.
 
         This is the global value that, by default, applies to all hosts.
         It can be overridden on a per-host basis in the inventory, inside
-        the `hosts` section, via :option:`connect_timeout`.
+        the ``hosts`` section, via :option:`connect_timeout`.
 
 
     **Default**: ``10`` (seconds)
@@ -798,7 +798,7 @@ and examples of how to set them in the configuration file.
 
         This is the global value that, by default, applies to all hosts.
         It can be overridden on a per-host basis in the inventory, inside
-        the `hosts` section, via :option:`username`.
+        the ``hosts`` section, via :option:`username`.
 
     **Default**: ``None`` (Current user's username)
 
@@ -1282,10 +1282,10 @@ and examples of how to set them in the configuration file.
 Inventory
 ---------
 
-The second section of the configuration file is the `Hosts` section, which is
+The second section of the configuration file is the ``hosts`` section, which is
 referred to throughout the documentation as **The Inventory**.
 
-The `Hosts` section contains a list of hosts that Exosphere will connect to, as well
+The ``hosts`` section contains a list of hosts that Exosphere will connect to, as well
 as their connection parameters and any specific option for each host.
 
 Host entries are structured as follows. This example describes two hosts, one of which

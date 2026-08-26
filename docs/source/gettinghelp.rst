@@ -1,7 +1,7 @@
 Getting Help
 ============
 
-While exosphere is provided as-is, with no expectation of warranty or support,
+While Exosphere is provided as-is, with no expectation of warranty or support,
 there are a few resources available for help if you run into issues or have questions.
 
 Before reaching out

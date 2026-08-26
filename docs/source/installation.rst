@@ -30,7 +30,7 @@ Installing from PyPI
 Exosphere is available on the `Python Package Index`_ (PyPI) for convenience,
 and can be installed using various methods.
 
-The package name is `exosphere-cli`.
+The package name is ``exosphere-cli``.
 
 .. admonition:: Note
 
@@ -66,8 +66,8 @@ The package name is `exosphere-cli`.
 
             uv tool install exosphere-cli
 
-        `uv tool` will handle downloading and installing the necessary Python
-        runtime and dependencies for you, and then make the `exosphere`
+        ``uv tool`` will handle downloading and installing the necessary Python
+        runtime and dependencies for you, and then make the ``exosphere``
         command available in your PATH.
 
 
@@ -84,7 +84,7 @@ Python runtime for you, if you do not have a suitable version available.
     with other Python packages and system versions of the libraries, and many
     distributions will in fact not allow you to install it that way.
 
-Once installed, you can run Exosphere using the `exosphere` command, like so:
+Once installed, you can run Exosphere using the ``exosphere`` command, like so:
 
 .. code-block:: bash
 
@@ -143,18 +143,18 @@ If you want the stable version, you can switch to the latest tag.
             git checkout |CurrentVersionTag|
 
         You can substitute |CurrentVersionTag| with a specific tag or
-        version to use a specific release, e.g., `v0.8.1`.
+        version to use a specific release, e.g., ``v2.4.1``.
 
         You can find the list of tags on the `GitHub releases page`_.
 
     .. group-tab:: Latest Development
 
         If you want the latest development version, you can switch to the
-        `main` branch. This is not recommended for most users, as it may
+        ``main`` branch. This is not recommended for most users, as it may
         contain unstable or untested code.
 
         If you want to hack on Exosphere, or get the latest features
-        even if they are not fully tested, you should use the `main` branch.
+        even if they are not fully tested, you should use the ``main`` branch.
 
         .. code-block:: bash
 
@@ -202,7 +202,7 @@ Exosphere directly:
             exosphere
 
 
-    From that point on, you can run Exosphere using the `exosphere` command.
+    From that point on, you can run Exosphere using the ``exosphere`` command.
 
 
 Updating Exosphere
@@ -244,7 +244,7 @@ From PyPI
 
     .. group-tab:: pipx
 
-        If you installed Exosphere using `pipx`, you can update it with:
+        If you installed Exosphere using ``pipx``, you can update it with:
 
         .. code-block:: bash
 
@@ -252,7 +252,7 @@ From PyPI
 
     .. group-tab:: uv
 
-        If you installed Exosphere using `uv`, you can update it with:
+        If you installed Exosphere using ``uv``, you can update it with:
 
         .. code-block:: bash
 
@@ -278,13 +278,13 @@ pulling the latest changes and then syncing with `uv`_:
             uv sync --no-dev
 
         You can substitute |CurrentVersionTag| with the latest tag or
-        specific version you want to use, e.g., `v0.8.1`.
+        specific version you want to use, e.g., ``v2.4.1``.
 
         You can find the list of tags on the `GitHub releases page`_.
 
     .. group-tab:: Latest Development
 
-        If you are on the `main` branch, you can update it with:
+        If you are on the ``main`` branch, you can update it with:
 
         .. code-block:: bash
 

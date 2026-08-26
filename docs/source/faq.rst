@@ -13,7 +13,7 @@ Unfortunately, no. Exosphere is not a configuration management or automation
 tool, simply a reporting and aggregation tool.
 
 The gap it exists to fill is providing you with a unified, centralized view
-of the `state` of updates and patches across your systems, so you can
+of the *state* of updates and patches across your systems, so you can
 make informed decisions about what needs patching, and when.
 
 This functionality is not planned, and left to frankly better tooling that
@@ -92,8 +92,8 @@ It only supports Binary Packages, for both FreeBSD and OpenBSD.
 There are plans to add support for system updates in the future, presenting
 them as a synthetic package in the updates view, but this needs more work.
 
-For the time being, cron reports and mailing lists for `syspatch` and
-`freebsd-update` are recommended to keep tabs on these.
+For the time being, cron reports and mailing lists for ``syspatch`` and
+``freebsd-update`` are recommended to keep tabs on these.
 
 Does FreeBSD support extend to things like OPNSense?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -156,7 +156,7 @@ Troubleshooting
 Why does ping report Offline when the system is reachable?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``ping`` checks in exosphere aren't ICMP ping, but SSH pings.
+The ``ping`` checks in Exosphere aren't ICMP pings, but SSH pings.
 They will only return an Online status if the remote system can be
 connected to successfully, over SSH, and a simple POSIX test command
 can be executed. (``/bin/true`` or shell built-in equivalent)
@@ -176,8 +176,8 @@ but is currently shutting down, or has not finished booting.
 Generally, if the host shows up as Offline, you would not be able to
 perform any of the other operations on it anyways.
 
-You can re-run the ``discovery`` command to find out what the issue is and
-correct it, if you are getting this during initial setup.
+You can re-run the ``inventory discover`` command to find out what the issue is
+and correct it, if you are getting this during initial setup.
 
 I get an error with "Private key file is encrypted", what does it mean?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -190,7 +190,7 @@ Verify that:
 - Your SSH agent is running and has the correct key loaded
 - The right user name is being used to connect
 
-The unhelpful error message is unfortunately a `Known Issue`_ in the `paramiko`
+The unhelpful error message is unfortunately a `Known Issue`_ in the ``paramiko``
 library, which is used internally to handle SSH connections. Whenever
 authentication fails when an SSH agent is used, this is the exception
 that will be raised, regardless of the actual issue.
@@ -198,10 +198,10 @@ that will be raised, regardless of the actual issue.
 Exosphere will generally catch this specific error and rewrite the error message
 to be more helpful, but there are a few edge cases where it may be displayed as-is.
 
-My system using `dnf` or `yum` hangs when refreshing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+My system using ``dnf`` or ``yum`` hangs when refreshing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `dnf` and `yum` providers do a best effort to prevent interactive
+The ``dnf`` and ``yum`` providers do a best effort to prevent interactive
 prompts when running the commands they need to synchronize repositories
 and cache, but sometimes, they will still prompt for user input, which
 Exosphere cannot handle.
@@ -227,18 +227,18 @@ user you use within Exosphere, and manually run the following commands:
 And answer all the prompts that may appear. The provider should no longer hang
 past this point.
 
-After an update, my system using `dnf` fails to refresh!
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+After an update, my system using ``dnf`` fails to refresh!
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 After certain types of updates, you may get the following error message when
-trying to refresh a `dnf` based system:
+trying to refresh a ``dnf`` based system:
 
 .. code-block:: text
 
     Failed to get current versions: Error: SQLite error on "/var/lib/dnf/history.sqlite":
     Executing an SQL statement failed: attempt to write a readonly database
 
-This is a known issue where `dnf` apparently needs to perform some database
+This is a known issue where ``dnf`` apparently needs to perform some database
 updates before it can perform its queries. This requires root privileges, which
 Exosphere does not have access to during normal operations.
 
@@ -281,7 +281,7 @@ Updates refresh fails on my OpenBSD system with an exotic architecture!
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Exosphere relies on the availability of the ``syspatch`` command to determine
-if the system is tracking a stable release or `-current`.
+if the system is tracking a stable release or ``-current``.
 
 If you're running a more exotic, non-x86 architecture, Exosphere may not
 be able to handle the failure mode gracefully, and we'd deeply appreciate

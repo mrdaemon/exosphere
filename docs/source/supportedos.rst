@@ -48,7 +48,7 @@ Compatibility List
   - OpenBSD (all supported versions)
   - *Package Managers*: ``pkg`` (FreeBSD), ``pkg_add`` (OpenBSD)
 
-.. admonition:: note
+.. admonition:: Note
 
    FreeBSD optionally requires the ``sudo`` package for repository sync operations.
    Unfortunately ``doas`` is not supported at this time.
@@ -58,7 +58,7 @@ Compatibility List
 
 - Other Linux distributions (e.g., Arch Linux, Gentoo, NixOS, etc.)
 - Other BSD systems (e.g. NetBSD)
-- Other Unix-like systems (e.g., Solaris, AIX, IRIX, Mac OS)
+- Other Unix-like systems (e.g., Solaris, AIX, IRIX, macOS)
 
 The bar for entry is fairly low to fit this description, as long as it can be connected
 to via SSH, has a POSIX shell available [#binsh]_ and returns something useful via
@@ -95,7 +95,7 @@ entirely through SSH connections and standard system utilities.
 
 **Optional Requirements**
 
-- **Elevated privileges** for certain operations on some platforms (i.e. `root`)
+- **Elevated privileges** for certain operations on some platforms (i.e. ``root``)
 - ``sudo`` installed on the remote host (if needed) and :doc:`configured properly <sudo>`
 
 See below for more details.

@@ -12,7 +12,7 @@ The CLI itself has two main modes of operation:
 
 Normal Mode
    This is the default mode where you can run exosphere commands directly as
-   arguments to the `exosphere` command.
+   arguments to the ``exosphere`` command.
 
 Interactive Mode
    You can enter an interactive shell by running ``exosphere`` without any arguments.
@@ -180,7 +180,7 @@ The available sort columns are ``host``, ``os``, ``flavor``, ``version``,
 
 Sorting and filtering **can be combined freely**.
 
-A useful filter and sort combo you might find useful out of the box would be:
+A filter and sort combination you might find useful out of the box would be:
 
 .. code-block:: exosphere
 
@@ -322,7 +322,7 @@ configuration file exists yet, the default platform path is opened instead, so
 you can create one from scratch.
 
 The editor used is determined from the :option:`editor` configuration option.
-In its absence, it will fallback to the ``VISUAL`` and ``EDITOR`` environment
+In its absence, it will fall back to the ``VISUAL`` and ``EDITOR`` environment
 variables, and finally a platform default (``notepad`` on Windows, ``vi``
 elsewhere).
 

@@ -149,7 +149,7 @@ as well as:
 
     exosphere> connections close
 
-See the `connections` command help for more details.
+See the ``connections`` command help for more details.
 
 The configurable values for SSH Pipelining include the :ref:`maximum lifetime
 of idle connections <ssh_pipelining_lifetime_option>`, as well as the

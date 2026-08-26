@@ -17,7 +17,7 @@ Inventory
 Provider
     A Provider is a platform-specific implementation of a package manager
     interface that Exosphere uses to gather information. For instance, on
-    Debian and Ubuntu systems, the `apt` provider is used.
+    Debian and Ubuntu systems, the ``apt`` provider is used.
 
     Providers are generally not exposed directly through configuration, just
     automatically detected based on the platform.

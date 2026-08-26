@@ -52,7 +52,7 @@ There are currently two valid settings for the Sudo Policy options:
 * ``skip``: Do not use sudo at all, skip operations that require it and emit a warning in logs
 * ``nopasswd``: Assume sudoers configuration allows running the provider commands without a password
 
-The default Sudo Policy for exosphere is `skip`, :ref:`configured globally <default_sudo_policy_option>`.
+The default Sudo Policy for Exosphere is ``skip``, :ref:`configured globally <default_sudo_policy_option>`.
 This means that Exosphere will not attempt to use sudo at all when running provider commands.
 
 This can also be configured per system, by setting the :ref:`sudo policy option <hosts_sudo_policy_option>`
@@ -146,10 +146,11 @@ On FreeBSD, you can set up a cron job or periodic task to run
 
 For other distributions, similar automated package management tools are available.
 
-How can I check what the effective Sudo Policy is for a given host?
--------------------------------------------------------------------
+Checking the Effective Sudo Policy
+----------------------------------
 
-You can use the ``sudo check`` helper command.
+To check what the effective Sudo Policy is for a given host, you can use the
+``sudo check`` helper command.
 
 As an example, to check the effective Sudo Policy for a host named ``bigserver``:
 

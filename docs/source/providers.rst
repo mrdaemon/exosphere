@@ -11,7 +11,7 @@ below.
 Debian/Ubuntu (Apt)
 -------------------
 
-The Debian/Ubuntu provider is implemented in the `exosphere.providers.debian` module.
+The Debian/Ubuntu provider is implemented in the ``exosphere.providers.debian`` module.
 
 Repo sync **requires** sudo privileges, as it needs to run ``apt-get update`` to
 update the package cache from repository.
@@ -45,15 +45,15 @@ Exact Commands run on remote hosts
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
 
-- `apt-get`
-- `grep`
+- ``apt-get``
+- ``grep``
 
 .. _Unattended Upgrades: https://wiki.debian.org/UnattendedUpgrades
 
 RedHat-Likes (Yum/DNF)
 ----------------------
 
-The RedHat provider is implemented in the `exosphere.providers.redhat` module.
+The RedHat provider is implemented in the ``exosphere.providers.redhat`` module.
 
 It implements the functionality identically between Yum and DNF, as they share
 an interface for the relevant commands. The only distinction is the command name.
@@ -95,11 +95,11 @@ Exact Commands run on remote systems
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
 
-- `yum` or `dnf`
-- For updates (optional):
+- ``yum`` or ``dnf``
+- For pending reboot detection (optional):
 
-  - `python3-dnf-plugins-core` on dnf4 (installed by default on RHEL 8/9)
-  - `yum-utils` on yum
+  - ``python3-dnf-plugins-core`` on dnf4 (installed by default on RHEL 8/9)
+  - ``yum-utils`` on yum
 
 Usage Notes and Issues
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -113,7 +113,7 @@ Some minor limitations:
   This is generally a misconfiguration, and you should seek vendor support to resolve this.
   Google Compute Platform (GCP) is known to exhibit this issue with some legacy vendor kernels.
 
-In some scenarios, the `yum` or `dnf` commands may hang when running due to
+In some scenarios, the ``yum`` or ``dnf`` commands may hang when running due to
 unexpectedly prompting for user input interactively, which Exosphere cannot handle.
 
 The provider is written to avoid this, but if you do encounter this, simply run
@@ -128,8 +128,8 @@ Note that we consider having to do this a bug, and would appreciate if you could
 FreeBSD (Pkg)
 -------------
 
-The FreeBSD provider is implemented in the `exosphere.providers.freebsd` module.
-It uses the `pkg` command to manage packages and updates.
+The FreeBSD provider is implemented in the ``exosphere.providers.freebsd`` module.
+It uses the ``pkg`` command to manage packages and updates.
 
 Repo sync **requires** sudo privileges, as it needs to run ``/usr/sbin/pkg update``
 to update the package cache from repository, as well as refresh ``vuln.xml`` for
@@ -160,23 +160,23 @@ Exact Commands run on remote systems
 
 - ``/usr/sbin/pkg update -q`` **(requires sudo)**
 - ``/usr/sbin/pkg audit -qF`` **(requires sudo)**
-- ``/usr/sbin/pkg audit -q`` for security updates
-- ``/usr/sbin/pkg upgrade -qn | grep -e '^\\s'``
+- ``pkg audit -q`` for security updates
+- ``pkg upgrade -qn | grep -e '^\s'``
 - ``freebsd-version -k``
 - ``freebsd-version -r``
 
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
 
-- `pkg`
-- `grep`
-- `freebsd-version`
+- ``pkg``
+- ``grep``
+- ``freebsd-version``
 
 OpenBSD (pkg_add)
 -----------------
 
-The OpenBSD provider is implemented in the `exosphere.providers.openbsd` module.
-It uses the `pkg_add` command to manage packages and updates.
+The OpenBSD provider is implemented in the ``exosphere.providers.openbsd`` module.
+It uses the ``pkg_add`` command to manage packages and updates.
 
 Repo sync is essentially a no-op, as OpenBSD does not have a command to
 synchronize package repositories. The command being run will directly query
@@ -200,9 +200,9 @@ Limitations
 
 - On **stable/release**, all package updates are assumed to be security updates,
   since OpenBSD only ever updates packages for security issues.
-- If the system is tracking `-current` or `-beta`, security status will default to
+- If the system is tracking ``-current`` or ``-beta``, security status will default to
   False, as there is no way to tell given the rolling release nature of these branches.
-- On more exotic architectures, `syspatch` may not be available and the failure
+- On more exotic architectures, ``syspatch`` may not be available and the failure
   modes are untested. If you have such a system, and this breaks for you, please
   `file a bug report`_ and include the output of ``syspatch -l``.
 - Only handles binary packages, does not support ports or syspatch/system updates.
@@ -219,8 +219,8 @@ Exact Commands run on remote systems
 Command dependencies
 ^^^^^^^^^^^^^^^^^^^^
 
-- `pkg_add`
-- `grep`
-- `syspatch`
+- ``pkg_add``
+- ``grep``
+- ``syspatch``
 
 .. _file a bug report: https://github.com/mrdaemon/exosphere/issues
