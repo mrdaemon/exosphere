@@ -161,15 +161,28 @@ a:focus {
     margin-left: 0.3em;
 }
 
-/* String Literals */
+/* String Literals
+ *
+ * We use a lot of them and I like boxes, and since they're
+ * visually busy, we make them borderless.
+ *
+ * Intended to be translucent-like, with a tint, so it looks good
+ * in most contexts, and inherits the color which immediately takes
+ * the look from sysadmin docs to wow super pro.
+ *
+ * font-size is 0.86em en purpose to accomodate Source Code Pro
+ * as a font, which has a different x-height and I have been
+ * fighting this forever, and this magical value makes it look
+ * cohesive.
+ */
 .rst-content code.literal,
 .rst-content tt.literal {
-    background: #ebebeb;
-    color: #3d3d3d;
-    border: 1px solid #d4d4d4;
+    background: rgba(13, 59, 89, 0.08);
+    color: inherit;
+    border: 0;
     border-radius: 3px;
-    padding: 0.1em 0.35em;
-    font-size: 0.8em;
+    padding: 0.12em 0.34em;
+    font-size: 0.86em;
 }
 
 .rst-content .note {
