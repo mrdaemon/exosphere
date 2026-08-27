@@ -185,6 +185,27 @@ a:focus {
     font-size: 0.86em;
 }
 
+/* CLI Command Reference subcommands
+ *
+ * The section class is tacked on by a custom sphinx extension, and allows
+ * us to generally distinguish subcommand sections from command ones.
+ *
+ * Subcommand sections are indently slightly under the parent command with
+ * a hairline rule on the lefthand side. Hairline follows the same translucent
+ * tint rules as the string literals.
+ */
+.rst-content section.exosphere-subcommand {
+    padding-left: 1.25rem;
+    border-left: 2px solid rgba(13, 59, 89, 0.1);
+}
+
+/* Make that much less pronounced on small screens where every pixel counts */
+@media screen and (max-width: 768px) {
+    .rst-content section.exosphere-subcommand {
+        padding-left: 0.5rem;
+    }
+}
+
 .rst-content .note {
     color: #003274;
     background: #ccddf3;

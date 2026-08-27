@@ -24,10 +24,31 @@ TARGET_DOCNAME = "command_reference"
 CYCLOPTS_ANCHOR_PREFIX = "cyclopts-"
 PUBLIC_ANCHOR_PREFIX = "exosphere-"
 
+# Class tagged on subcommand sections
+# Helper intended purely to lubricatre CSS styling
+SUBCOMMAND_SECTION_CLASS = "exosphere-subcommand"
+
 
 def _first_paragraph(section):
     """Return the first direct-child paragraph of a section, or None."""
     return next((c for c in section.children if isinstance(c, nodes.paragraph)), None)
+
+
+def tag_subcommand_sections(app, doctree):
+    """
+    Tag a class on every subcommand section, purely as a CSS hook.
+
+    See exosphere-overrides.css for details, but the gist of it is
+    that we want to format the subcommands slightly differently, and
+    this is the path of least resistance to being able to distinguish
+    them.
+    """
+    if app.env.docname != TARGET_DOCNAME:
+        return
+
+    for section in doctree.findall(nodes.section):
+        if any(isinstance(child, nodes.literal_block) for child in section.children):
+            section["classes"].append(SUBCOMMAND_SECTION_CLASS)
 
 
 def promote_command_summaries(app, doctree):
@@ -148,5 +169,6 @@ def setup(app):
 
     app.connect("doctree-read", namespace_command_anchors, priority=400)
     app.connect("doctree-read", promote_command_summaries)
+    app.connect("doctree-read", tag_subcommand_sections)
 
     return {"parallel_read_safe": True, "parallel_write_safe": True}
