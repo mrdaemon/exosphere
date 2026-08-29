@@ -6,6 +6,8 @@ autosave
 autosize
 backend
 backfilled
+backtick
+backticks
 boolean
 booleans
 bugfix
@@ -48,6 +50,7 @@ github
 hostname
 hotfix
 init
+inlined
 installonly
 ip
 janky
