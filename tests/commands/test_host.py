@@ -6,6 +6,7 @@ import pytest
 from exosphere.commands import host as host_module
 from exosphere.commands import utils as utils_module
 from exosphere.data import Update
+from exosphere.errors import DataRefreshError
 
 
 @pytest.fixture(autouse=True)
@@ -283,8 +284,8 @@ class TestDiscoverCommand:
         """
         Test discovering a host when host.discover() raises an exception.
         """
-        # Make discover() raise an exception
-        mock_host.discover.side_effect = Exception("Connection failed")
+        # Make discover() raise a domain exception
+        mock_host.discover.side_effect = DataRefreshError("Connection failed")
 
         code = host_module.app(
             ["discover", mock_host.name], result_action="return_value"
@@ -350,7 +351,7 @@ class TestRefreshCommand:
         """
         Test refreshing a host when discover operation fails.
         """
-        mock_host.discover.side_effect = Exception("Discovery failed")
+        mock_host.discover.side_effect = DataRefreshError("Discovery failed")
 
         code = host_module.app(
             ["refresh", mock_host.name, "--discover"], result_action="return_value"
@@ -363,7 +364,7 @@ class TestRefreshCommand:
         """
         Test refreshing a host when sync_repos operation fails.
         """
-        mock_host.sync_repos.side_effect = Exception("Repository sync failed")
+        mock_host.sync_repos.side_effect = DataRefreshError("Repository sync failed")
 
         code = host_module.app(
             ["refresh", mock_host.name, "--sync"], result_action="return_value"
@@ -376,7 +377,9 @@ class TestRefreshCommand:
         """
         Test refreshing a host when refresh_updates operation fails.
         """
-        mock_host.refresh_updates.side_effect = Exception("Update refresh failed")
+        mock_host.refresh_updates.side_effect = DataRefreshError(
+            "Update refresh failed"
+        )
 
         code = host_module.app(
             ["refresh", mock_host.name], result_action="return_value"

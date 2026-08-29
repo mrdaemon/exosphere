@@ -507,6 +507,22 @@ class Host:
                 )
                 self.online = False
                 raise
+        except PasswordRequiredException as e:
+            self.logger.error(
+                "Authentication error for host %s: %s",
+                self.name,
+                type(e).__name__ + ": " + str(e),
+            )
+            self.online = False
+            raise OfflineHostError(AUTH_FAILURE_MESSAGE) from e
+        except Exception as e:
+            self.logger.error(
+                "Unexpected error during discovery for host %s: %s",
+                self.name,
+                e,
+            )
+            self.online = False
+            raise DataRefreshError(f"Discovery failed: {e}") from e
         finally:
             if not app_config["options"]["ssh_pipelining"]:
                 self.close()
@@ -533,9 +549,23 @@ class Host:
         self.package_manager = platform_info.package_manager
 
         if self.package_manager:
-            self._pkginst = PkgManagerFactory.create(
-                self.package_manager, host_name=self.name
-            )
+            try:
+                self._pkginst = PkgManagerFactory.create(
+                    self.package_manager, host_name=self.name
+                )
+            except ValueError as e:
+                # This is a bit of an edge case but COULD conceivably
+                # come from serialization issues, so we cover it here.
+                self.logger.error(
+                    "LIKELY BUG: No provider implementation for package manager %s on host %s: %s",
+                    self.package_manager,
+                    self.name,
+                    e,
+                )
+                self.package_manager = None
+                self._pkginst = None
+                raise DataRefreshError(f"Discovery failed: {e}") from e
+
             self.logger.debug(
                 "Using concrete package manager %s.%s for %s",
                 self._pkginst.__class__.__module__,
@@ -596,6 +626,23 @@ class Host:
                 raise DataRefreshError(
                     f"Failed to sync package repositories on {self.name}"
                 )
+        except DataRefreshError:
+            raise
+        except PasswordRequiredException as e:
+            self.logger.error(
+                "Authentication error for host %s: %s",
+                self.name,
+                type(e).__name__ + ": " + str(e),
+            )
+            self.online = False
+            raise OfflineHostError(AUTH_FAILURE_MESSAGE) from e
+        except Exception as e:
+            self.logger.error(
+                "Unexpected error during repository sync for host %s: %s",
+                self.name,
+                e,
+            )
+            raise DataRefreshError(f"Repository sync failed: {e}") from e
         finally:
             # Close connection if pipelining is disabled
             if not app_config["options"]["ssh_pipelining"]:
@@ -643,6 +690,23 @@ class Host:
             pkg_manager = self._pkginst
             self.updates = pkg_manager.get_updates(self.connection)
             self._refresh_reboot_status(pkg_manager)
+        except DataRefreshError:
+            raise
+        except PasswordRequiredException as e:
+            self.logger.error(
+                "Authentication error for host %s: %s",
+                self.name,
+                type(e).__name__ + ": " + str(e),
+            )
+            self.online = False
+            raise OfflineHostError(AUTH_FAILURE_MESSAGE) from e
+        except Exception as e:
+            self.logger.error(
+                "Unexpected error during update refresh for host %s: %s",
+                self.name,
+                e,
+            )
+            raise DataRefreshError(f"Update refresh failed: {e}") from e
         finally:
             if not app_config["options"]["ssh_pipelining"]:
                 self.close()

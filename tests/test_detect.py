@@ -352,6 +352,25 @@ class TestDetection:
         with pytest.raises(DataRefreshError, match="Stuff broke"):
             platform_detect(connection)
 
+    def test_platform_detect_unexpected_exception_logged_and_wrapped(
+        self, mocker, connection
+    ) -> None:
+        """Unexpected exceptions should be logged and re-raised as DataRefreshError."""
+        mocker.patch(
+            "exosphere.setup.detect.os_detect",
+            side_effect=RuntimeError("unexpected low-level failure"),
+        )
+        logger = mocker.patch("exosphere.setup.detect.logger.error")
+
+        with pytest.raises(
+            DataRefreshError, match="Unexpected error during OS detection"
+        ):
+            platform_detect(connection)
+
+        assert logger.call_count == 1
+        assert logger.call_args.args[0] == "Unexpected error during OS detection: %s"
+        assert str(logger.call_args.args[1]) == "unexpected low-level failure"
+
     def test_platform_detect_uname_failure(self, connection) -> None:
         """
         Test that platform_detect raises UnsupportedOSError when uname -s fails

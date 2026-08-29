@@ -1,10 +1,16 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from paramiko.ssh_exception import PasswordRequiredException
 
 from exosphere.config import Configuration
 from exosphere.data import HostInfo, Update
-from exosphere.errors import DataRefreshError, OfflineHostError
+from exosphere.errors import (
+    AUTH_FAILURE_MESSAGE,
+    DataRefreshError,
+    OfflineHostError,
+    UnsupportedOSError,
+)
 from exosphere.objects import Host, HostOperation
 from exosphere.providers.api import requires_sudo
 from exosphere.runners import ExosphereRemote
@@ -378,8 +384,6 @@ class TestHostObject:
         For rationale, see:
         https://github.com/paramiko/paramiko/issues/387
         """
-        from paramiko.ssh_exception import PasswordRequiredException
-
         mock_instance = mock_connection.return_value
         mock_instance.run.side_effect = PasswordRequiredException(
             "Private key file is encrypted."
@@ -454,6 +458,48 @@ class TestHostObject:
             connect_timeout=host.connect_timeout,
             config=mocker.ANY,
         )
+
+    def test_host_discovery_unregistered_package_manager(
+        self, mocker, mock_connection, caplog
+    ):
+        """
+        Discover should handle unregistered package manager correctly
+
+        This should never happen, and is definitely a bug if it does, but
+        the discovery codepath should still cleanly handle the scenario
+        where a package manager is set by the setup module, but has no
+        concrete provider registered.
+
+        It should namely not leak ValueError or anything else.
+        """
+        mocker.patch(
+            "exosphere.setup.detect.platform_detect",
+            return_value=HostInfo(
+                os="linux",
+                version="1.0",
+                flavor="arch",
+                package_manager="pacman",  # Should normally be unset
+                is_supported=True,
+            ),
+        )
+
+        host = Host(name="test_host", ip="127.0.0.1")
+        mocker.patch.object(host, "ping", return_value=True)
+
+        with (
+            caplog.at_level("ERROR"),
+            pytest.raises(DataRefreshError, match="Unsupported package manager"),
+        ):
+            host.discover()
+
+        assert (
+            "LIKELY BUG: No provider implementation for package manager pacman"
+            in caplog.text
+        )
+
+        # Ensure the garbage value is not persisted to cache
+        assert host.package_manager is None
+        assert host._pkginst is None
 
     def test_host_discovery_offline(self, mocker, mock_connection):
         """
@@ -790,7 +836,10 @@ class TestHostObject:
 
         host._pkginst = pkg_manager
 
-        with pytest.raises(DataRefreshError):
+        with pytest.raises(
+            DataRefreshError,
+            match="^Failed to sync package repositories on test_host$",
+        ):
             host.sync_repos()
 
     def test_sync_repos_sudopolicy_disallowed(self, mocker, mock_connection, caplog):
@@ -1021,8 +1070,6 @@ class TestHostObject:
         Test that discover raises UnsupportedOSError for non-Unix systems
         where uname -s fails
         """
-        from exosphere.errors import UnsupportedOSError
-
         # Mock platform_detect to raise UnsupportedOSError for non-Unix systems
         mocker.patch(
             "exosphere.setup.detect.platform_detect",
@@ -1053,8 +1100,6 @@ class TestHostObject:
         Test that UnsupportedOSError from platform detection takes precedence
         when it provides more specific information than ping failures
         """
-        from exosphere.errors import OfflineHostError, UnsupportedOSError
-
         # Mock platform_detect to raise UnsupportedOSError
         mocker.patch(
             "exosphere.setup.detect.platform_detect",
@@ -1836,6 +1881,189 @@ class TestHostTaskMethodsConnectionCleanup:
             mock_close.assert_called_once()
 
     @pytest.mark.parametrize(
+        ("method_name", "setup", "expected_pattern", "expected_log_prefix"),
+        [
+            (
+                "discover",
+                lambda host, mocker: (
+                    mocker.patch.object(host, "ping", return_value=True),
+                    mocker.patch(
+                        "exosphere.setup.detect.platform_detect",
+                        side_effect=RuntimeError("posix unimplemented"),
+                    ),
+                ),
+                "Discovery failed: posix unimplemented",
+                "Unexpected error during discovery for host %s: %s",
+            ),
+            (
+                "sync_repos",
+                lambda host, mocker: (
+                    setattr(
+                        host,
+                        "_pkginst",
+                        mocker.Mock(
+                            reposync=mocker.Mock(
+                                side_effect=RuntimeError("posix unimplemented")
+                            )
+                        ),
+                    ),
+                    setattr(host, "sudo_policy", SudoPolicy.NOPASSWD),
+                    mocker.patch(
+                        "exosphere.objects.check_sudo_policy", return_value=True
+                    ),
+                ),
+                "Repository sync failed: posix unimplemented",
+                "Unexpected error during repository sync for host %s: %s",
+            ),
+            (
+                "refresh_updates",
+                lambda host, mocker: (
+                    setattr(
+                        host,
+                        "_pkginst",
+                        mocker.Mock(
+                            get_updates=mocker.Mock(
+                                side_effect=RuntimeError("posix unimplemented")
+                            )
+                        ),
+                    ),
+                    setattr(host, "sudo_policy", SudoPolicy.NOPASSWD),
+                    mocker.patch(
+                        "exosphere.objects.check_sudo_policy", return_value=True
+                    ),
+                ),
+                "Update refresh failed: posix unimplemented",
+                "Unexpected error during update refresh for host %s: %s",
+            ),
+        ],
+        ids=["discover", "sync_repos", "refresh_updates"],
+    )
+    def test_host_unexpected_exception_contract(
+        self,
+        mocker,
+        mock_connection,
+        method_name,
+        setup,
+        expected_pattern,
+        expected_log_prefix,
+    ):
+        """Unexpected exceptions are logged then re-raised as DataRefreshError."""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = False
+        mocker.patch("exosphere.objects.app_config", config)
+
+        host = Host(name="test", ip="127.0.0.1")
+        host.online = True
+        host.supported = True
+
+        logger = mocker.patch.object(host.logger, "error")
+        setup(host, mocker)
+
+        with pytest.raises(DataRefreshError, match=expected_pattern):
+            getattr(host, method_name)()
+
+        assert logger.call_count == 1
+        assert logger.call_args.args[0] == expected_log_prefix
+        assert logger.call_args.args[1] == host.name
+        assert str(logger.call_args.args[2]) == "posix unimplemented"
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            DataRefreshError("provider blew up", stdout="OUT", stderr="ERR"),
+            OfflineHostError("host vanished mid-operation"),
+            UnsupportedOSError("nobody expects plan9"),
+        ],
+        ids=["data_refresh", "offline_host", "unsupported_os"],
+    )
+    @pytest.mark.parametrize(
+        ("method_name", "pkg_method"),
+        [
+            ("sync_repos", "reposync"),
+            ("refresh_updates", "get_updates"),
+        ],
+        ids=["sync_repos", "refresh_updates"],
+    )
+    def test_host_domain_exception_passthrough(
+        self, mocker, mock_connection, method_name, pkg_method, error
+    ):
+        """Domain errors are re-raised untouched"""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = False
+        mocker.patch("exosphere.objects.app_config", config)
+        mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
+
+        host = Host(name="test", ip="127.0.0.1", sudo_policy=SudoPolicy.NOPASSWD)
+        host.online = True
+        host.supported = True
+        host._pkginst = mocker.Mock(**{pkg_method: mocker.Mock(side_effect=error)})
+
+        logger = mocker.patch.object(host.logger, "error")
+
+        with pytest.raises(type(error)) as excinfo:
+            getattr(host, method_name)()
+
+        # Same instance, so type, message and captured output all survive
+        assert excinfo.value is error
+        assert excinfo.value.stdout == error.stdout
+        assert excinfo.value.stderr == error.stderr
+        logger.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("method_name", "setup"),
+        [
+            (
+                "discover",
+                lambda host, mocker, exc: (
+                    mocker.patch.object(host, "ping", return_value=True),
+                    mocker.patch(
+                        "exosphere.setup.detect.platform_detect", side_effect=exc
+                    ),
+                ),
+            ),
+            (
+                "sync_repos",
+                lambda host, mocker, exc: setattr(
+                    host,
+                    "_pkginst",
+                    mocker.Mock(reposync=mocker.Mock(side_effect=exc)),
+                ),
+            ),
+            (
+                "refresh_updates",
+                lambda host, mocker, exc: setattr(
+                    host,
+                    "_pkginst",
+                    mocker.Mock(get_updates=mocker.Mock(side_effect=exc)),
+                ),
+            ),
+        ],
+        ids=["discover", "sync_repos", "refresh_updates"],
+    )
+    def test_host_auth_failure_contract(
+        self, mocker, mock_connection, method_name, setup
+    ):
+        """Auth failures are reworded and flag the host offline"""
+        config = Configuration()
+        config["options"]["ssh_pipelining"] = False
+
+        mocker.patch("exosphere.objects.app_config", config)
+        mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
+
+        host = Host(name="test", ip="127.0.0.1", sudo_policy=SudoPolicy.NOPASSWD)
+        host.online = True
+        host.supported = True
+
+        # More or less representative of the awful paramiko exception
+        setup(host, mocker, PasswordRequiredException("Private key file is encrypted."))
+
+        with pytest.raises(OfflineHostError) as excinfo:
+            getattr(host, method_name)()
+
+        assert str(excinfo.value) == AUTH_FAILURE_MESSAGE
+        assert host.online is False
+
+    @pytest.mark.parametrize(
         "ssh_pipelining", [True, False], ids=["pipelining_on", "pipelining_off"]
     )
     def test_discover_connection_cleanup_on_exception(
@@ -1895,7 +2123,7 @@ class TestHostTaskMethodsConnectionCleanup:
 
         mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(DataRefreshError):
             host.sync_repos()
 
         if ssh_pipelining:
@@ -1929,7 +2157,7 @@ class TestHostTaskMethodsConnectionCleanup:
 
         mocker.patch("exosphere.objects.check_sudo_policy", return_value=True)
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(DataRefreshError):
             host.refresh_updates()
 
         if ssh_pipelining:

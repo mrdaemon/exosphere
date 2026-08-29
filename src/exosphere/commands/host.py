@@ -22,6 +22,7 @@ from exosphere.commands.utils import (
     err_console,
     save_inventory_state,
 )
+from exosphere.errors import DataRefreshError
 from exosphere.objects import Host
 
 # Simple spinner layout for long or pre-tasks
@@ -232,12 +233,7 @@ def discover(host: HostArg, /) -> int:
         progress.add_task(f"Discovering platform for '{host.name}'", total=None)
         try:
             host.discover()
-        except Exception as e:  # noqa: BLE001
-            # Broad on purpose: providers hand the Connection to fabric
-            # directly, so paramiko/invoke errors (SSHException,
-            # NoValidConnectionsError, AuthFailure) leak past
-            # DataRefreshError on a host that dies mid-operation.
-            # FIXME: This handling should be moved at the Host boundary
+        except DataRefreshError as e:
             progress.console.print(
                 Panel.fit(
                     f"{e!s}",
@@ -289,8 +285,7 @@ def refresh(
             )
             try:
                 host.discover()
-            except Exception as e:  # noqa: BLE001
-                # Broad on purpose, see discover() above.
+            except DataRefreshError as e:
                 progress.console.print(
                     Panel.fit(
                         f"{e!s}",
@@ -310,8 +305,7 @@ def refresh(
             )
             try:
                 host.sync_repos()
-            except Exception as e:  # noqa: BLE001
-                # Broad on purpose, see discover() above.
+            except DataRefreshError as e:
                 progress.console.print(
                     Panel.fit(
                         f"{e!s}",
@@ -328,8 +322,7 @@ def refresh(
         task = progress.add_task(f"Refreshing updates for '{host.name}'", total=None)
         try:
             host.refresh_updates()
-        except Exception as e:  # noqa: BLE001
-            # Broad on purpose, see discover() above.
+        except DataRefreshError as e:
             progress.console.print(
                 Panel.fit(
                     f"{e!s}",

@@ -71,6 +71,7 @@ misconfigured
 nopasswd
 nullable
 onboarding
+paramiko
 passwordless
 poe
 pre
