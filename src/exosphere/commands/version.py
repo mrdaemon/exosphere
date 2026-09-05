@@ -12,7 +12,7 @@ from urllib.error import URLError
 from cyclopts import App, Parameter
 from packaging.version import parse
 
-from exosphere import __version__, app_config
+from exosphere import __version__, app_config, docs_url
 
 from .utils import console, err_console, print_environment, print_version
 
@@ -27,9 +27,7 @@ app = App(name="version", help=ROOT_HELP, help_flags=["--help"])
 PACKAGE_NAME = "exosphere-cli"
 PYPI_URL = f"https://pypi.org/pypi/{PACKAGE_NAME}/json"
 RELEASE_URL = "https://github.com/mrdaemon/exosphere/releases/tag/"
-DOCS_URL = (
-    "https://exosphere.readthedocs.io/en/stable/installation.html#updating-exosphere"
-)
+DOCS_URL = f"{docs_url}/en/stable/installation.html#updating-exosphere"
 
 
 @app.default

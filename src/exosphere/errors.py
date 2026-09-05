@@ -11,6 +11,8 @@ from rich.box import ROUNDED
 from rich.console import RenderableType
 from rich.panel import Panel
 
+from exosphere import docs_url
+
 # Standard authentication error message for better UX
 # This is intended to be displayed whenever Paramiko raises
 # PasswordRequiredException, which is nearly always, and has the
@@ -31,7 +33,7 @@ SUDO_AUTH_FAILURE_MESSAGE = (
     "Sudo failed: "
     "Ensure the user is configured with passwordless sudo. "
     "You can use 'exosphere sudo generate' to produce a sudoers snippet for this host. "
-    "See: https://exosphere.readthedocs.io/en/stable/connections.html#id1"
+    f"See: {docs_url}/en/stable/sudo.html#generating-a-sudoers-configuration"
 )
 
 
