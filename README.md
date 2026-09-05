@@ -22,8 +22,8 @@ on remote hosts.
 If you have SSH access to the hosts and your keypairs are loaded in an SSH Agent,
 you are good to go!
 
-Simply follow the [Quickstart Guide](https://exosphere.readthedocs.io/en/stable/quickstart.html),
-or see [the documentation](https://exosphere.readthedocs.io/en/stable/) to get started.
+Simply follow the [Quickstart Guide](https://docs.exosphere.tools/en/stable/quickstart.html),
+or see [the documentation](https://docs.exosphere.tools/en/stable/) to get started.
 
 ## Key Features
 
@@ -62,7 +62,7 @@ This includes network equipment with proprietary operating systems, etc.
 ## Documentation
 
 For installation instructions, configuration and usage examples,
-[full documentation](https://exosphere.readthedocs.io/) is available.
+[full documentation](https://docs.exosphere.tools/) is available.
 
 ## Development
 
@@ -220,7 +220,7 @@ The TCSS for all of it is in a single file under `ui/style.tcss`.
 
 This use case is not currently well supported, but it is possible to use Exosphere as a library.
 The documentation for this (alongside actual examples) is still a WIP, but you can
-refer to the [Online API Documentation](https://exosphere.readthedocs.io/en/stable/api/index.html)
+refer to the [Online API Documentation](https://docs.exosphere.tools/en/stable/api/index.html)
 for the core functionality and objects that are considered public.
 
 ## LLM/"AI" Contributions Policy
