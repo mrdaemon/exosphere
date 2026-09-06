@@ -20,6 +20,7 @@ ci
 cancelling
 codebase
 compat
+comprised
 config
 cron
 cronjob
@@ -28,10 +29,12 @@ cx
 cyclopts
 dataclass
 dataclasses
+db
 de
 debian
 deps
 dev
+dict
 dicts
 discoverability
 discoverable
@@ -39,6 +42,7 @@ distro
 DNF
 dnf
 docstrings
+etc
 Fediverse
 filesystem
 filesystems
@@ -76,6 +80,8 @@ nullable
 onboarding
 paramiko
 passwordless
+pipelining
+pkg
 poe
 pre
 preselect
@@ -114,6 +120,7 @@ sudoers
 syspatch
 tcp
 templating
+timezone
 toJSON
 toml
 tomllib
