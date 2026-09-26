@@ -81,6 +81,7 @@ onboarding
 paramiko
 passwordless
 pipelining
+pipx
 pkg
 poe
 pre
@@ -92,6 +93,7 @@ QoL
 quickstart
 reachability
 readline
+readthedocs
 redhat
 Renku
 repo
@@ -131,6 +133,7 @@ uncreative
 unicity
 uniformize
 unix
+urls
 uv
 uvx
 venvs
