@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from exosphere import cli
 from exosphere.commands import sudo
 from exosphere.commands import utils as utils_module
 from exosphere.config import Configuration
@@ -13,6 +14,7 @@ from exosphere.security import SudoPolicy
 def _console(patch_console):
     """Install deterministic consoles for the sudo command module."""
     patch_console(sudo)
+    patch_console(cli)
 
 
 @pytest.fixture(autouse=True)
@@ -164,7 +166,7 @@ class TestCheckCommand:
         input error (exit 1) raised during argument binding.
         """
         with pytest.raises(SystemExit) as exc_info:
-            sudo.app(["check", "testhost"])
+            cli.run(["sudo", "check", "testhost"])
 
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
@@ -347,7 +349,7 @@ class TestGenerateCommand:
         mock_inventory.hosts = [dummy_host]
 
         with pytest.raises(SystemExit) as exc_info:
-            sudo.app(["generate", "--host", "dummy_host", "--provider", "apt"])
+            cli.run(["sudo", "generate", "--host", "dummy_host", "--provider", "apt"])
 
         assert exc_info.value.code == 1
         assert "Mutually exclusive arguments" in capsys.readouterr().err
@@ -378,7 +380,7 @@ class TestGenerateCommand:
         mock_inventory.get_host.return_value = None
 
         with pytest.raises(SystemExit) as exc_info:
-            sudo.app(["generate", "--host", "invalid_host"])
+            cli.run(["sudo", "generate", "--host", "invalid_host"])
 
         assert exc_info.value.code == 1  # Input error from converter
         captured = capsys.readouterr()
@@ -658,7 +660,7 @@ class TestSudoCommands:
         mocker.patch.object(utils_module.context, "inventory", None)
 
         with pytest.raises(SystemExit) as exc_info:
-            sudo.app([command] + args)
+            cli.run(["sudo", command, *args])
 
         assert exc_info.value.code == 1  # Input error from converter
         captured = capsys.readouterr()

@@ -105,11 +105,19 @@ class TestResolveHost:
             utils_module.resolve_host(Host, [_token("test-host")])
 
 
-class TestRequires:
-    """Tests for the requires() group-validator factory."""
+class TestArgRequiresArg:
+    """Tests for the arg_requires_arg() group-validator factory."""
 
     @staticmethod
     def _app():
+        """
+        Stand up a basic mock app with our validator
+
+        The return value being a string is not exactly standard here,
+        but having it return a sentinel value explicitly instead of
+        an integer is easier to read for tests, and prevents confusion
+        with actual exit codes, which are irrelevant here.
+        """
         from typing import Annotated
 
         from cyclopts import App, Group, Parameter
@@ -127,36 +135,36 @@ class TestRequires:
             required: Annotated[
                 str | None, Parameter(name=["--required"], group=group)
             ] = None,
-        ) -> int:
-            return 0
+        ) -> str:
+            return "ok"  # Sentinel: validator let shit through
 
         return app
 
-    def test_dependent_without_required_errors(self, capsys):
+    def test_dependent_without_required_errors(self):
         """The dependent flag without its requirement is an input error."""
-        with pytest.raises(SystemExit) as exc_info:
-            self._app()(["run", "--dependent"])
+        from cyclopts import CycloptsError
 
-        assert exc_info.value.code == 1
         # Message is derived from the arguments' primary CLI names.
-        assert "--dependent requires --required" in capsys.readouterr().err
+        # CycloptsError is what the CLI wraps as Input Error for exit.
+        with pytest.raises(CycloptsError, match="--dependent requires --required"):
+            self._app()(["run", "--dependent"], exit_on_error=False, print_error=False)
 
     def test_dependent_with_required_ok(self):
         """Both supplied is valid."""
-        code = self._app()(
+        result = self._app()(
             ["run", "--dependent", "--required", "x"], result_action="return_value"
         )
-        assert code == 0
+        assert result == "ok"
 
     def test_neither_ok(self):
         """Neither supplied is valid (the rule only triggers on the dependent)."""
-        code = self._app()(["run"], result_action="return_value")
-        assert code == 0
+        result = self._app()(["run"], result_action="return_value")
+        assert result == "ok"
 
     def test_required_alone_ok(self):
         """The required flag alone is valid."""
-        code = self._app()(["run", "--required", "x"], result_action="return_value")
-        assert code == 0
+        result = self._app()(["run", "--required", "x"], result_action="return_value")
+        assert result == "ok"
 
 
 class TestGetHostsOrAll:

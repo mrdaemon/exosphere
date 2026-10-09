@@ -3,6 +3,7 @@ from typing import ClassVar
 
 import pytest
 
+from exosphere import cli
 from exosphere.commands import host as host_module
 from exosphere.commands import utils as utils_module
 from exosphere.data import Update
@@ -13,6 +14,7 @@ from exosphere.errors import DataRefreshError
 def _console(patch_console):
     """Install deterministic consoles for the host command module."""
     patch_console(host_module)
+    patch_console(cli)
 
 
 @pytest.fixture
@@ -147,7 +149,7 @@ class TestShowCommand:
         an input error (exit 1) raised during argument binding.
         """
         with pytest.raises(SystemExit) as exc_info:
-            host_module.app(["show", "not_test_host"])
+            cli.run(["host", "show", "not_test_host"])
 
         assert exc_info.value.code == 1
         assert not hasattr(mock_host, "discovered")
@@ -275,7 +277,7 @@ class TestDiscoverCommand:
         Test discovering a host that does not exist in the inventory.
         """
         with pytest.raises(SystemExit) as exc_info:
-            host_module.app(["discover", "not_test_host"])
+            cli.run(["host", "discover", "not_test_host"])
 
         assert exc_info.value.code == 1  # Input error from converter
         assert not hasattr(mock_host, "discovered")
@@ -393,7 +395,7 @@ class TestRefreshCommand:
         Test refreshing a host that does not exist in the inventory.
         """
         with pytest.raises(SystemExit) as exc_info:
-            host_module.app(["refresh", "not_test_host"])
+            cli.run(["host", "refresh", "not_test_host"])
 
         assert exc_info.value.code == 1  # Input error from converter
 
@@ -424,7 +426,7 @@ class TestPingCommand:
         Test pinging a host that does not exist in the inventory.
         """
         with pytest.raises(SystemExit) as exc_info:
-            host_module.app(["ping", "not_exists_yo"])
+            cli.run(["host", "ping", "not_exists_yo"])
 
         assert exc_info.value.code == 1  # Input error from converter
 
@@ -450,7 +452,7 @@ class TestHostCommands:
         mocker.patch("exosphere.context.inventory", None)
 
         with pytest.raises(SystemExit) as exc_info:
-            host_module.app([command] + args)
+            cli.run(["host", command, *args])
 
         assert exc_info.value.code == 1  # Input error from converter
         assert "Inventory is not initialized" in capsys.readouterr().err

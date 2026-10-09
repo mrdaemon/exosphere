@@ -9,8 +9,9 @@ and acts as the CLI entrypoint for the application.
 """
 
 import logging
+from collections.abc import Sequence
 
-from cyclopts import App, Group
+from cyclopts import App, CycloptsError, Group
 from cyclopts.help import DefaultFormatter
 from cyclopts.help.specs import PanelSpec
 
@@ -93,6 +94,32 @@ app.register_install_completion_command()
 _root_flags_group = Group("Parameters")
 for flag in ("--help", "--version", "--install-completion"):
     app[flag].group = _root_flags_group
+
+
+def run(tokens: Sequence[str] | None = None, *, help_on_error: bool = False) -> None:
+    """
+    Run the CLI in non-interactive mode.
+
+    Effectively a wrapper around app(exit_on_error=False), to manage
+    return codes explicitly and avoid breaking the contract around
+    them that has already been changed twice since Exosphere 1.0.
+
+    Messages from Cyclopts are untouched, still go through formatters,
+    and this just gives us control over the return codes to fit our
+    documented behaviors, instead of delegating to external deps.
+
+    NOTE: Commands raising CyloptsError (none today, can't foresee any)
+          will silently hit SystemExit(1) with no output. This
+          limitation is, IMO, not worth alleviating.
+
+    :param tokens: CLI tokens to parse, defaults to ``sys.argv[1:]``
+    :param help_on_error: Print the help page before the error
+    :raises SystemExit: code 1 (input error) on parsing/validation errors
+    """
+    try:
+        app(tokens, help_on_error=help_on_error, exit_on_error=False)
+    except CycloptsError:
+        raise SystemExit(1) from None  # Input error
 
 
 def start_interactive() -> None:

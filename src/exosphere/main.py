@@ -210,7 +210,7 @@ def main() -> None:
     # Fast-path calls to --version/-V to avoid unnecessary
     # initialization and potential lock contention
     if {"--version", "-V"} & set(sys.argv[1:]):
-        cli.app()
+        cli.run()
         return
 
     # Ensure all required directories exist
@@ -282,7 +282,7 @@ def main() -> None:
     # Launch the regular CLI or REPL
     if len(sys.argv) > 1:
         # Non-interactive errors should display help
-        cli.app(help_on_error=True)
+        cli.run(help_on_error=True)
     else:
         cli.start_interactive()
 

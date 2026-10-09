@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from exosphere import cli
 from exosphere.commands import report
 from exosphere.commands import utils as utils_module
 from exosphere.data import Update
@@ -20,6 +21,7 @@ from exosphere.schema import get_host_report_schema
 def _console(patch_console):
     """Install deterministic consoles for the report command module."""
     patch_console(report)
+    patch_console(cli)
 
 
 @pytest.fixture(autouse=True)
@@ -488,7 +490,9 @@ class TestGenerateCommand:
         mock_get_hosts([sample_host])
 
         with pytest.raises(SystemExit) as exc_info:
-            report.app(["generate", "--format", "json", "--output", str(tmp_path)])
+            cli.run(
+                ["report", "generate", "--format", "json", "--output", str(tmp_path)]
+            )
 
         assert exc_info.value.code == 1  # Input error from validator
 
@@ -497,7 +501,7 @@ class TestGenerateCommand:
         mock_get_hosts([sample_host])
 
         with pytest.raises(SystemExit) as exc_info:
-            report.app(["generate", "--tee"])
+            cli.run(["report", "generate", "--tee"])
 
         assert exc_info.value.code == 1
         assert "--tee requires --output" in capsys.readouterr().err
@@ -507,7 +511,7 @@ class TestGenerateCommand:
         mock_get_hosts([sample_host])
 
         with pytest.raises(SystemExit) as exc_info:
-            report.app(["generate", "--format", "text", "--no-navigation"])
+            cli.run(["report", "generate", "--format", "text", "--no-navigation"])
 
         assert exc_info.value.code == 1
         assert (
@@ -519,7 +523,7 @@ class TestGenerateCommand:
         mock_get_hosts([sample_host])
 
         with pytest.raises(SystemExit) as exc_info:
-            report.app(["generate", "--updates-only", "--security-updates-only"])
+            cli.run(["report", "generate", "--updates-only", "--security-updates-only"])
 
         assert exc_info.value.code == 1
         assert "Mutually exclusive arguments" in capsys.readouterr().err

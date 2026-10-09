@@ -88,13 +88,66 @@ def test_unused_tokens_error_is_reworded(capsys) -> None:
     from exosphere import cli
 
     with pytest.raises(SystemExit) as exc_info:
-        cli.app(["version", "stray"])
+        cli.run(["version", "stray"])
 
     assert exc_info.value.code == 1
 
     err = capsys.readouterr().err
     assert "Unexpected argument(s): stray. See --help for usage." in err
     assert "Unused Tokens" not in err
+
+
+def test_run_maps_cyclopts_errors_to_input_error(capsys) -> None:
+    """
+    Parse errors exit with our input error code, regardless of the
+    exit code the installed Cyclopts version would use, and still print.
+    """
+    from exosphere import cli
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.run(["no-such-command"])
+
+    assert exc_info.value.code == 1
+
+    captured = capsys.readouterr()
+    assert 'Unknown command "no-such-command"' in captured.err
+    assert captured.out == ""
+
+
+def test_run_help_on_error(capsys) -> None:
+    """help_on_error prints the help page along with the error."""
+    from exosphere import cli
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.run(["version", "stray"], help_on_error=True)
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "Usage:" in captured.out + captured.err
+
+
+def test_run_passes_through_command_exit_codes(mocker) -> None:
+    """Exit codes from the commands themselves are left untouched."""
+    from exosphere import cli
+    from exosphere.commands import version
+
+    mocker.patch.object(version, "print_version", side_effect=SystemExit(2))
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.run(["version"])
+
+    assert exc_info.value.code == 2
+
+
+def test_run_success_passes_through(capsys) -> None:
+    """Successful runs exit as expected, propagating 0"""
+    from exosphere import cli
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.run(["--version"])
+
+    assert exc_info.value.code == 0
+    assert "Exosphere version" in capsys.readouterr().out
 
 
 def test_ui(mocker, caplog) -> None:

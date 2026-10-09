@@ -93,7 +93,7 @@ class TestMain:
         )
         mock_setup_logging = mocker.patch("exosphere.main.setup_logging")
 
-        mock_cli_app = mocker.patch("exosphere.cli.app")
+        mock_cli_run = mocker.patch("exosphere.cli.run")
 
         from exosphere.main import main
 
@@ -101,7 +101,7 @@ class TestMain:
 
         mock_load_first_config.assert_called_once()
         mock_setup_logging.assert_called_once()
-        mock_cli_app.assert_called_once_with(help_on_error=True)
+        mock_cli_run.assert_called_once_with(help_on_error=True)
 
         assert "Configuration loaded from:" in caplog.text
 
@@ -261,7 +261,7 @@ class TestMain:
         """
         monkeypatch.setattr("sys.argv", ["exosphere", "--version"])
 
-        mock_cli_app = mocker.patch("exosphere.cli.app")
+        mock_cli_run = mocker.patch("exosphere.cli.run")
         mock_inv_cls = mocker.patch("exosphere.main.Inventory")
         mock_load_first_config = mocker.patch("exosphere.main.load_first_config")
 
@@ -269,7 +269,7 @@ class TestMain:
 
         main()
 
-        mock_cli_app.assert_called_once_with()
+        mock_cli_run.assert_called_once_with()
         mock_filelock.assert_not_called()  # No locks
         mock_inv_cls.assert_not_called()  # No inventory init
         mock_load_first_config.assert_not_called()  # No config load

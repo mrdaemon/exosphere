@@ -1,5 +1,6 @@
 import pytest
 
+from exosphere import cli
 from exosphere.commands import inventory as inventory_module
 from exosphere.commands import utils as utils_module
 from exosphere.config import Configuration
@@ -10,6 +11,7 @@ from exosphere.objects import HostOperation
 def _console(patch_console):
     """Install deterministic consoles for the inventory command module."""
     patch_console(inventory_module)
+    patch_console(cli)
 
 
 @pytest.fixture(autouse=True)
@@ -439,7 +441,7 @@ class TestStatusCommand:
         ]
 
         with pytest.raises(SystemExit) as exc_info:
-            inventory_module.app(["status", "--updates-only", "--security-only"])
+            cli.run(["inventory", "status", "--updates-only", "--security-only"])
 
         assert exc_info.value.code == 1
         assert "Mutually exclusive arguments" in capsys.readouterr().err
@@ -539,9 +541,9 @@ class TestStatusCommand:
         mock_inventory.hosts = [create_host(name="host1")]
 
         with pytest.raises(SystemExit) as exc_info:
-            inventory_module.app(["status", "--sort", "bogus"])
+            cli.run(["inventory", "status", "--sort", "bogus"])
 
-        assert exc_info.value.code != 0
+        assert exc_info.value.code == 1
 
     def test_reverse_without_sort_errors(self, create_host, mock_inventory, capsys):
         """
@@ -553,7 +555,7 @@ class TestStatusCommand:
         ]
 
         with pytest.raises(SystemExit) as exc_info:
-            inventory_module.app(["status", "--reverse"])
+            cli.run(["inventory", "status", "--reverse"])
 
         assert exc_info.value.code == 1
         assert "--reverse requires --sort" in capsys.readouterr().err
