@@ -85,6 +85,9 @@ module-name = "exosphere"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.ruff.lint]
+extend-select = ["DTZ"]
+
 [tool.codespell]
 skip = "*.lock,*.woff,*.woff2,*.ttf,*.ttx,*.svg,*.png,*.gif,*.html,*.htm,docs/source/_static"
 
