@@ -208,8 +208,11 @@ def main() -> None:
     install_rich_traceback(console=err_console, show_locals=False)
 
     # Fast-path calls to --version/-V to avoid unnecessary
-    # initialization and potential lock contention
-    if {"--version", "-V"} & set(sys.argv[1:]):
+    # initialization and potential lock contention.
+
+    # Only the first token counts, past a subcommand it should fall
+    # through to normal hanndling.
+    if sys.argv[1:2] in (["--version"], ["-V"]):
         cli.run()
         return
 

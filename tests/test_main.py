@@ -255,11 +255,16 @@ class TestMain:
         assert excinfo.value.code == 1
         mock_inv_cls.assert_not_called()
 
-    def test_main_version_fast_path(self, mocker, monkeypatch, mock_filelock):
+    @pytest.mark.parametrize(
+        "args",
+        [["--version"], ["-V"], ["-V", "version"]],
+        ids=["long", "short", "with-trailing-args"],
+    )
+    def test_main_version_fast_path(self, mocker, monkeypatch, mock_filelock, args):
         """
-        Test that --version flag skips init
+        Test that a leading --version/-V flag skips init
         """
-        monkeypatch.setattr("sys.argv", ["exosphere", "--version"])
+        monkeypatch.setattr("sys.argv", ["exosphere", *args])
 
         mock_cli_run = mocker.patch("exosphere.cli.run")
         mock_inv_cls = mocker.patch("exosphere.main.Inventory")
@@ -273,6 +278,36 @@ class TestMain:
         mock_filelock.assert_not_called()  # No locks
         mock_inv_cls.assert_not_called()  # No inventory init
         mock_load_first_config.assert_not_called()  # No config load
+
+    @pytest.mark.parametrize(
+        "args",
+        [["version", "-V"], ["host", "show", "-V"], ["host", "show", "--", "-V"]],
+        ids=["after-command", "after-subcommand", "positional-value"],
+    )
+    def test_main_version_flag_not_leading_runs_full_init(
+        self, mocker, monkeypatch, mock_filelock, args
+    ):
+        """
+        Test that a version flag past the first token takes the regular
+        path, since we only honor it that way as a root option.
+        """
+        monkeypatch.setattr("sys.argv", ["exosphere", *args])
+
+        mocker.patch("exosphere.main.setup_logging")
+        mock_cli_run = mocker.patch("exosphere.cli.run")
+        mock_inv_cls = mocker.patch("exosphere.main.Inventory")
+        mock_load_first_config = mocker.patch(
+            "exosphere.main.load_first_config", return_value=True
+        )
+
+        from exosphere.main import main
+
+        main()
+
+        mock_cli_run.assert_called_once_with(help_on_error=True)
+        mock_filelock.return_value.acquire.assert_called_once()  # Lock taken
+        mock_inv_cls.assert_called_once()  # Inventory initialized
+        mock_load_first_config.assert_called_once()  # Config loaded
 
     def test_load_first_config(self, mocker, mock_config):
         """
