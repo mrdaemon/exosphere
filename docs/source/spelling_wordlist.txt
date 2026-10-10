@@ -86,6 +86,7 @@ pkg
 poe
 pre
 preselect
+pydantic
 pyproject
 pytest
 pyyaml
