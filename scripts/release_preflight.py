@@ -88,8 +88,22 @@ MANUAL_STEPS = [
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
-    """Run a command at the repo root, capturing output."""
-    return subprocess.run(args, cwd=ROOT, capture_output=True, text=True, check=False)
+    """
+    Run a command at the repo root, capturing output.
+
+    We pin decoding to UTF-8 with replacement, because otherwise this
+    barfs on Python 3.15 with default UTF-8. Git will emit UTF-8 but
+    gpg will emit the OS codepage on Windows, which is a nightmare.
+    We don't really use the GPG output, so lossy is absolutely ok.
+    """
+    return subprocess.run(
+        args,
+        cwd=ROOT,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
 
 
 def project_version() -> str:
