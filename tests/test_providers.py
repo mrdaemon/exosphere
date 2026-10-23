@@ -506,7 +506,7 @@ class TestPkgProvider:
                 p5-URI: 5.31 -> 5.32 [FreeBSD]
                 pciids: 20250309 -> 20250415 [FreeBSD]
                 py311-cryptography: 44.0.1,1 -> 44.0.2,1 [FreeBSD]
-                py311-h11: 0.14.0_1 -> 0.16.0 [FreeBSD]
+                py311-h11: 0.14.0_1 -> 0.16.0 [FreeBSD] (vulnerable!)
                 py311-httpcore: 1.0.7 -> 1.0.9 [FreeBSD]
                 py311-markdown: 3.6 -> 3.7 [FreeBSD]
                 py311-typing-extensions: 4.13.1 -> 4.13.2 [FreeBSD]

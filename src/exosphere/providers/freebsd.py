@@ -222,6 +222,13 @@ class Pkg(PkgManager):
 
         Extracts the package name, current version, and proposed version.
         Also extracts the repository name in case of recent versions of pkg.
+
+        Recent versions of `pkg` now append `(vulnerable!)` to security
+        update lines. We accept it, but largely ignore it, relying
+        instead of `pkg audit` still, because of uncertainty around the
+        presence of that tag across all supported releases.
+
+        If this ever changes, I'd be nice to simplify.
         """
 
         # Compile the regex pattern on first use
@@ -233,6 +240,7 @@ class Pkg(PkgManager):
                 r"(?:\s+->\s+(?P<new>[^\s]+))?"  # Optional separator and new version
                 r")"  # End of alternation group
                 r"(?:\s*\[(?P<repo>.*?)\])?"  # Optional repo tag in brackets (e.g., [FreeBSD])
+                r"(?:\s+\(vulnerable!\))?"  # Optional vulnerability marker
                 r"$"  # End of line
             )
 
