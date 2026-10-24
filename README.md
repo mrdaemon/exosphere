@@ -76,7 +76,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 The documentation prose is licensed under CC BY 4.0, and the docs bundle a few
 third-party assets (fonts under the SIL OFL 1.1, a CSS file derived from the
 Renku Sphinx Theme under Apache-2.0). The exact per-path licensing is recorded
-in machine-readable form in the [COPYRIGHT](COPYRIGHT) file, with full license
+in machine-readable form in the [dep5](.reuse/dep5) file, with full license
 texts under [LICENSES/](LICENSES/).
 
 The bundled fonts under `docs/source/_static/fonts/` are cosmetic and safe to

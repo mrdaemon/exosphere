@@ -81,7 +81,7 @@ or by any Large Language Model or similar will be summarily rejected.
 
 Content submitted to the project should be compatible with its licenses.
 The short version is: MIT for code, CC BY 4.0 for documentation prose, per LICENSE
-and COPYRIGHT. See those files for details.
+and .reuse/dep5. See those files for details.
 
 ## Development Guide
 
